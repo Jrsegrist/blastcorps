@@ -47,16 +47,16 @@ void commpt_set_box_verts(s32 x, s32 y, s32 z);
  * anim_rewind and anim_play(1) between them). */
 #define BOX_MODEL_CHANNELS(ch, a, b)                                          \
     {                                                                         \
-        anim_init_model((u32 *) (b), (u32 *) (a), (Unk8029DEA0Entry *) (ch), D_803FBBD8); \
-        anim_set_speed((Unk8029DEA0Entry *) (ch), 0, 100);                     \
-        anim_set_reverse((Unk8029DEA0Entry *) (ch), 0, 0);                       \
-        anim_set_loop_mode((Unk8029DEA0Entry *) (ch), 0, 0);                       \
-        anim_set_interp(0.0f, (Unk8029DEA0Entry *) (ch), 0, 0);                 \
-        anim_play((Unk8029DEA0Entry *) (ch), 0, 1);                       \
-        anim_update_model((a), (b), (Unk8029DEA0Entry *) (ch));                   \
-        anim_rewind(0, (Unk8029DEA0Entry *) (ch));                          \
-        anim_play((Unk8029DEA0Entry *) (ch), 0, 1);                       \
-        anim_update_model((b), (a), (Unk8029DEA0Entry *) (ch));                   \
+        anim_init_model((u32 *) (b), (u32 *) (a), (AnimChannel *) (ch), D_803FBBD8); \
+        anim_set_speed((AnimChannel *) (ch), 0, 100);                     \
+        anim_set_reverse((AnimChannel *) (ch), 0, 0);                       \
+        anim_set_loop_mode((AnimChannel *) (ch), 0, 0);                       \
+        anim_set_interp(0.0f, (AnimChannel *) (ch), 0, 0);                 \
+        anim_play((AnimChannel *) (ch), 0, 1);                       \
+        anim_update_model((a), (b), (AnimChannel *) (ch));                   \
+        anim_rewind(0, (AnimChannel *) (ch));                          \
+        anim_play((AnimChannel *) (ch), 0, 1);                       \
+        anim_update_model((b), (a), (AnimChannel *) (ch));                   \
     }
 
 /* Level load: the communication points (model 0x96) (0x802CEAA0).
@@ -112,14 +112,14 @@ void commpt_setup(u8 *obj) {
     D_803FC1EC = (u8 *) (h + 0x900);
     gHeapPtr = h + 0xC00;
     BOX_MODEL_CHANNELS(D_803FBBE0, D_803FC1E0, D_803FC1E4);
-    anim_set_speed((Unk8029DEA0Entry *) D_803FBBE0, 1, 2);
-    anim_set_reverse((Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
-    anim_play((Unk8029DEA0Entry *) D_803FBBE0, 1, -1);
-    anim_set_speed((Unk8029DEA0Entry *) D_803FBBE0, 2, 2);
-    anim_set_reverse((Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
-    anim_play((Unk8029DEA0Entry *) D_803FBBE0, 2, -1);
+    anim_set_speed((AnimChannel *) D_803FBBE0, 1, 2);
+    anim_set_reverse((AnimChannel *) D_803FBBE0, 1, 0);
+    anim_set_loop_mode((AnimChannel *) D_803FBBE0, 1, 0);
+    anim_play((AnimChannel *) D_803FBBE0, 1, -1);
+    anim_set_speed((AnimChannel *) D_803FBBE0, 2, 2);
+    anim_set_reverse((AnimChannel *) D_803FBBE0, 2, 0);
+    anim_set_loop_mode((AnimChannel *) D_803FBBE0, 2, 0);
+    anim_play((AnimChannel *) D_803FBBE0, 2, -1);
     BOX_MODEL_CHANNELS(D_803FBEE0, D_803FC1E8, D_803FC1EC);
 }
 #else
@@ -225,9 +225,9 @@ Gfx *commpt_draw(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
         mtx++;
     }
     if (cur != 0) {
-        anim_update_model(D_803FC1E4, D_803FC1E0, (Unk8029DEA0Entry *) D_803FBBE0);
+        anim_update_model(D_803FC1E4, D_803FC1E0, (AnimChannel *) D_803FBBE0);
     } else {
-        anim_update_model(D_803FC1E0, D_803FC1E4, (Unk8029DEA0Entry *) D_803FBBE0);
+        anim_update_model(D_803FC1E0, D_803FC1E4, (AnimChannel *) D_803FBBE0);
     }
     return gdl;
 }
@@ -290,8 +290,8 @@ void commpt_update(void) {
         dz = (e->pos[2] >> 5) - pz;
         if (port_cvt_w_s(sqrtf((f32) (s32) ((u32) (dx * dx) + (u32) (dy * dy) + (u32) (dz * dz)))) < 0x4C) {
             e->unk10 = 1;
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
+            anim_set_frame(0.0f, (AnimChannel *) D_803FBBE0, 2, 0);
+            anim_set_frame(0.0f, (AnimChannel *) D_803FBBE0, 1, 0);
             stats_finish_bonus_level(n);
             func_80285CA0();
             commpt_burst(e->pos);
@@ -304,7 +304,7 @@ void commpt_update(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* The 0x38-byte debris record handed to obj_queue_effect (77E20.c's Unk803F3FF8). */
+/* The 0x38-byte debris record handed to obj_queue_effect (77E20.c's EffectSpawn). */
 typedef struct {
     /* 0x00 */ s32 pos[3];
     /* 0x0C */ s32 unkC;

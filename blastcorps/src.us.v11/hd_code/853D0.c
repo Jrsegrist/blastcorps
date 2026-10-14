@@ -82,16 +82,16 @@ void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
     veh_init_ground((s16 *) (gBallistaState + 0x52), gBallistaPos[1], x, z, (s32 *) (gBallistaState + 4),
                   (s32 *) &gBallistaPos[1], (s16 *) (gBallistaState + 0x4C), 10, fp, gBallistaState, &f);
-    anim_init_model((u32 *) gBallistaMtxB, (u32 *) gBallistaMtxA, (Unk8029DEA0Entry *) gBallistaAnim, gBallistaModel);
-    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 0, 100);
-    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 0, 1);
-    anim_update_model((u8 *) gBallistaMtxA, (u8 *) gBallistaMtxB, (Unk8029DEA0Entry *) gBallistaAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gBallistaAnim);
-    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 0, 1);
-    anim_update_model((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, (Unk8029DEA0Entry *) gBallistaAnim);
+    anim_init_model((u32 *) gBallistaMtxB, (u32 *) gBallistaMtxA, (AnimChannel *) gBallistaAnim, gBallistaModel);
+    anim_set_speed((AnimChannel *) gBallistaAnim, 0, 100);
+    anim_set_reverse((AnimChannel *) gBallistaAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gBallistaAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gBallistaAnim, 0, 0);
+    anim_play((AnimChannel *) gBallistaAnim, 0, 1);
+    anim_update_model((u8 *) gBallistaMtxA, (u8 *) gBallistaMtxB, (AnimChannel *) gBallistaAnim);
+    anim_rewind(0, (AnimChannel *) gBallistaAnim);
+    anim_play((AnimChannel *) gBallistaAnim, 0, 1);
+    anim_update_model((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, (AnimChannel *) gBallistaAnim);
     *(s16 *) (gBallistaState + 0x78) = -0x96;
     *(s16 *) (gBallistaState + 0x7A) = 0;
     *(s16 *) (gBallistaState + 0x7C) = 2;
@@ -131,7 +131,7 @@ void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 gBallistaState[]; /* this vehicle's state block (the asm's $gp) */
-extern u8 gBallistaAnim[]; /* its animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gBallistaAnim[]; /* its animation channel table (AnimChannel, 56040.c) */
 
 /* Getting into Ballista (0x802C9F54).
  * Enter this vehicle (vehicle type 10; called from hd.c and 17210.c): clears
@@ -147,26 +147,26 @@ void ballista_enter(void) {
     gCamDistance = 0xD48;
     gCamHeightBase = 1000;
     veh_start_engine_sound(0, 0x94);
-    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 1, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 1, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 2, 1);
-    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 2, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 3, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 3, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 3, 1);
-    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 3, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 4, 8);
-    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 4, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 4, 0);
-    anim_set_interp(1.0f, (Unk8029DEA0Entry *) gBallistaAnim, 4, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 5, 8);
-    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 5, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 5, 0);
-    anim_set_interp(1.0f, (Unk8029DEA0Entry *) gBallistaAnim, 5, 1);
+    anim_set_speed((AnimChannel *) gBallistaAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gBallistaAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gBallistaAnim, 1, 0);
+    anim_play((AnimChannel *) gBallistaAnim, 1, -1);
+    anim_set_speed((AnimChannel *) gBallistaAnim, 2, 0);
+    anim_set_reverse((AnimChannel *) gBallistaAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gBallistaAnim, 2, 1);
+    anim_play((AnimChannel *) gBallistaAnim, 2, -1);
+    anim_set_speed((AnimChannel *) gBallistaAnim, 3, 0);
+    anim_set_reverse((AnimChannel *) gBallistaAnim, 3, 0);
+    anim_set_loop_mode((AnimChannel *) gBallistaAnim, 3, 1);
+    anim_play((AnimChannel *) gBallistaAnim, 3, -1);
+    anim_set_speed((AnimChannel *) gBallistaAnim, 4, 8);
+    anim_set_reverse((AnimChannel *) gBallistaAnim, 4, 0);
+    anim_set_loop_mode((AnimChannel *) gBallistaAnim, 4, 0);
+    anim_set_interp(1.0f, (AnimChannel *) gBallistaAnim, 4, 1);
+    anim_set_speed((AnimChannel *) gBallistaAnim, 5, 8);
+    anim_set_reverse((AnimChannel *) gBallistaAnim, 5, 0);
+    anim_set_loop_mode((AnimChannel *) gBallistaAnim, 5, 0);
+    anim_set_interp(1.0f, (AnimChannel *) gBallistaAnim, 5, 1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_enter.s")
@@ -442,9 +442,9 @@ void ballista_update(void) {
                   0x280, 0x208, &V853_S16(0x4C), &V853_U8(0x96), &V853_S16(0x52), (s32 *) (gBallistaState + 0x28),
                   (s32 *) (gBallistaState + 0x40), (s32 *) (gBallistaState + 0x34), (s32 *) (gBallistaState + 4), &r8768, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gBallistaMtxA, (u8 *) gBallistaMtxB, (Unk8029DEA0Entry *) gBallistaAnim);
+        anim_update_model((u8 *) gBallistaMtxA, (u8 *) gBallistaMtxB, (AnimChannel *) gBallistaAnim);
     } else {
-        anim_update_model((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, (Unk8029DEA0Entry *) gBallistaAnim);
+        anim_update_model((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, (AnimChannel *) gBallistaAnim);
     }
     regs.s0 = (s32) &V853_U8(0x96);
     regs.s1 = (s32) &gBallistaPos[2];
@@ -616,11 +616,11 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
     }
 
     speed = *(s16 *) (gBallistaState + 0x76);
-    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 1, (speed < 0) ? 1 : 0);
+    anim_set_reverse((AnimChannel *) gBallistaAnim, 1, (speed < 0) ? 1 : 0);
     if (speed < 0) {
         speed = -speed;
     }
-    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 1, (u32) speed / 6);
+    anim_set_speed((AnimChannel *) gBallistaAnim, 1, (u32) speed / 6);
     speed = *(s16 *) (gBallistaState + 0x76);
     if (speed < 0) {
         speed = -speed;
@@ -653,7 +653,7 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
         }
     }
     gBallistaLean = f;
-    anim_set_frame(f, (Unk8029DEA0Entry *) gBallistaAnim, 3, 0);
+    anim_set_frame(f, (AnimChannel *) gBallistaAnim, 3, 0);
 
     if (D_803F8B7D != 0) {
         D_803F8B7D--;
@@ -662,16 +662,16 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
         snd_play(gSfxBank, 3, NULL);
         D_803F8B7E ^= 1;
         if (D_803F8B7E != 0) {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 4, 0);
-            anim_play((Unk8029DEA0Entry *) gBallistaAnim, 4, 1);
+            anim_set_frame(0.0f, (AnimChannel *) gBallistaAnim, 4, 0);
+            anim_play((AnimChannel *) gBallistaAnim, 4, 1);
             veh_find_point(10, 3, (u8 **) &rec);
             x1 = rec[0];
             y1 = rec[1];
             z1 = rec[2];
             veh_find_point(10, 4, (u8 **) &rec);
         } else {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 5, 0);
-            anim_play((Unk8029DEA0Entry *) gBallistaAnim, 5, 1);
+            anim_set_frame(0.0f, (AnimChannel *) gBallistaAnim, 5, 0);
+            anim_play((AnimChannel *) gBallistaAnim, 5, 1);
             veh_find_point(10, 1, (u8 **) &rec);
             x1 = rec[0];
             y1 = rec[1];
@@ -728,13 +728,13 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
         if (!(f <= 1.0f)) {
             f = 1.0f;
         }
-        anim_set_frame(f, (Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
+        anim_set_frame(f, (AnimChannel *) gBallistaAnim, 2, 0);
         D_803F8B68++;
         return;
     }
 stop:
     D_803F8B7C = 0;
-    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
+    anim_set_frame(0.0f, (AnimChannel *) gBallistaAnim, 2, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_update_actions.s")

@@ -46,7 +46,7 @@ anim_cancel_mtx_copies: in s2=a0 ; preserve v0,v1,a0,a1,a2,a3,t2,t4,t7,f8,f12,f1
 anim_copy_mtx: in t5=a0,s2=a1 ; preserve v0,v1,a0,a2
 # dst[0..9] = dst[-10..-1] (halfwords), t1 += 0x14 (saves v0)
 anim_repeat_pose: in t1=a0 ; out t1=ret ; preserve v0,a0,t0,t3,t8,f12,f14
-# Unk8029DEA0Entry field setters/getter: entry = base + v0 * 0x18 (all restore what they use)
+# AnimChannel field setters/getter: entry = base + v0 * 0x18 (all restore what they use)
 anim_play: in a0=a0,v0=a1,v1=a2 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 anim_stop: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 anim_rewind: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t7,f12,f14

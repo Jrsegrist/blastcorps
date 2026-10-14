@@ -24,13 +24,13 @@
 #define gYoshiWindows ((MenuPage *) gYoshiWindows)
 #define gScheduler ((u8 *) &gScheduler)
 #define gMainSchedClient ((u8 *) &gMainSchedClient)
-#define gVehicles ((Unk74 *) gVehicles)
+#define gVehicles ((VehRecord *) gVehicles)
 #define players ((Player *) players)
 #define pakBuffer ((u8 *) pakBuffer)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #define gLevelSegment8 (*(u32 *) &gLevelSegment8)
-#define gVehiclesEnd (*(Unk74 * N64P *) &gVehiclesEnd)
+#define gVehiclesEnd (*(VehRecord * N64P *) &gVehiclesEnd)
 #define gRdus (*(Node88 * N64P *) &gRdus)
 #define gMarkedTargetPts (*(Box * N64P *) &gMarkedTargetPts)
 #define gRdpOutputBuffer (*(s32 *) &gRdpOutputBuffer)
@@ -77,7 +77,7 @@ extern u8 D_80314D80[];
 extern u8 D_80314D98[];
 extern u32 D_803649F4;
 
-/* a drawable object, 0x74 bytes */
+/* A gVehicles record: one per loaded vehicle model (veh_add_record), 0x74 bytes */
 typedef struct {
     void * N64P unk0; /* segment 6 */
     void * N64P unk4; /* segment 7 */
@@ -94,11 +94,12 @@ typedef struct {
     s32 unk58;
     s32 type; /* the vehicle type (docs/blast_corps_vehicles.txt) */
     u32 alpha; /* env alpha */
-    u8 pad64[0xC];
-    s32 active;
-} Unk74;
+    u8 pad64[0xC]; /* x, y, z (veh_set_record) */
+    s32 onMovingPart; /* resting on a moving level part: veh_update_others re-grounds it */
+} VehRecord;
+STATIC_ASSERT_SIZE(VehRecord, 0x74);
 #ifndef NON_MATCHING
-extern Unk74 *gVehiclesEnd;
+extern VehRecord *gVehiclesEnd;
 #endif
 
 
@@ -2205,7 +2206,7 @@ void veh_update_others(void) {
 
     i = 0;
     while (&gVehicles[i] != gVehiclesEnd) {
-        if (gVehicles[i].active != 0) {
+        if (gVehicles[i].onMovingPart != 0) {
             id = gVehicles[i].type;
             if (id != gCurVehicle && id != 0xFF && id != 0xFE && id != 0) {
                 switch (id) {
@@ -2875,7 +2876,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
                                     G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                 th = 32, tw = 32;
             } else {
-                gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b,
+                gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(VehShadow)), G_IM_FMT_IA, G_IM_SIZ_8b,
                                     64, 64, 0, G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                                     G_TX_NOLOD);
                 th = 64, tw = 64;
@@ -2973,7 +2974,7 @@ void veh_draw_chopper_shadow(Gfx **gfx, DynamicBuf *dyn) {
             i++;
         }
     }
-    gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_CLAMP,
+    gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(VehShadow)), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_CLAMP,
                         G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     x = gVehicleShadows[i].unk1004 >> 5;
     y = gVehicleShadows[i].unk1008 >> 5;
@@ -4444,7 +4445,7 @@ void hd_mode_setup(void) {
     }
     gTexTableLoaded = 0;
     tex_load_table();
-    gVehicleShadows = (Vehicle *) (((u32) D_80358088 + 0x40) & ~0x3F);
+    gVehicleShadows = (VehShadow *) (((u32) D_80358088 + 0x40) & ~0x3F);
     mb_init();
     cmo_hit_request = 0;
     gLevelDoneRequest = 0;
@@ -4729,7 +4730,7 @@ void lvl_load_file(s32 level, s32 dest, s32 *size) {
 void hd_setup_level(s32 arg0) {
     s32 i;
     s32 size;
-    Vehicle *v;
+    VehShadow *v;
     u8 found;
     s32 old;
 

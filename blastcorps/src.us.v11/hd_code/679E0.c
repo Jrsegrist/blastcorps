@@ -114,7 +114,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
         *(s32 *) (obj + 0x10) = 0xBB80;
         oz = *(s32 *) (obj + 0x18);
         *(s32 *) (obj + 0x18) = 0xBB80;
-        obj_move_model((struct Unk802BD99CModel *) obj, 0xBB80 - ox, 0, 0xBB80 - oz);
+        obj_move_model((struct LevelObjectHead *) obj, 0xBB80 - ox, 0, 0xBB80 - oz);
     }
 }
 #else

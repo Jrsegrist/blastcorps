@@ -10,15 +10,15 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define gYoshiFeItems ((PathNode *) gYoshiFeItems)
+#define gYoshiFeItems ((YoshiItem *) gYoshiFeItems)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F49F4 ((YoshiSnd *) D_802F49F4)
-#define gYoshiGameItems ((PathNode *) gYoshiGameItems)
-#define gYoshiWindows ((YoshiArg *) gYoshiWindows)
+#define D_802F49F4 ((SpriteAnim *) D_802F49F4)
+#define gYoshiGameItems ((YoshiItem *) gYoshiGameItems)
+#define gYoshiWindows ((YoshiWindow *) gYoshiWindows)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
-#define gYoshiHeapItems (*(PathNode * N64P *) &gYoshiHeapItems)
-#define gRdus (*(YoshiNode * N64P *) &gRdus)
+#define gYoshiHeapItems (*(YoshiItem * N64P *) &gYoshiHeapItems)
+#define gRdus (*(RduRecord * N64P *) &gRdus)
 #endif
 /* end of views */
 
@@ -30,7 +30,7 @@ typedef struct {
     /* 0x00 */ u8 id;
     /* 0x01 */ char name[15];
     /* 0x10 */ s32 unk10;
-} PathInfo;
+} TargetBuilding;
 
 /* One item (text line or sprite) of a Yoshi window, 0x1C bytes */
 typedef struct {
@@ -49,7 +49,7 @@ typedef struct {
     /* 0x19 */ u8 selColor;
     /* 0x1A */ u8 unk1A;
     /* 0x1B */ u8 unk1B;
-} PathNode;
+} YoshiItem;
 
 /* Animated sprite, 0x30 bytes */
 typedef struct {
@@ -68,7 +68,7 @@ typedef struct {
     /* 0x2D */ u8 unk2D;
     /* 0x2E */ s8 unk2E;
     /* 0x2F */ u8 unk2F;
-} YoshiSnd;
+} SpriteAnim;
 
 /* Per-player state, 0x100 bytes */
 typedef struct {
@@ -83,7 +83,7 @@ typedef struct {
 typedef struct {
     /* 0x00 */ u8 id;
     /* 0x02 */ s16 ids[16];
-} YoshiTrigger;
+} YoshiHintList;
 
 /* Yoshi path node, 0x88 bytes */
 typedef struct {
@@ -93,7 +93,7 @@ typedef struct {
     /* 0x06 */ u8 visited;
     /* 0x07 */ u8 cell;
     /* 0x08 */ Vtx vtx[2][4]; /* double-buffered quad */
-} YoshiNode;
+} RduRecord;
 
 /* Per-level info, 0x44 bytes */
 typedef struct {
@@ -113,7 +113,7 @@ typedef struct {
 #define YOSHI_DEMAND_OFF 0x4000
 
 /* A Yoshi window, 0x1C bytes */
-typedef struct YoshiArg {
+typedef struct YoshiWindow {
     /* 0x00 */ u16 w;
     /* 0x02 */ u16 h;
     /* 0x04 */ s16 x;
@@ -128,18 +128,18 @@ typedef struct YoshiArg {
     /* 0x18 */ u16 sel; /* selected item */
     /* 0x1A */ u8 atEnd;
     /* 0x1B */ u8 unk1B;
-} YoshiArg;
+} YoshiWindow;
 
 /* Frame buffers passed in as arg1 */
 #define YMTX(off) ((Mtx *) N64_IPTR(arg1 + (off)))
 
 u16 yoshi_next_item(u16 arg0, u16 arg1, u16 start, u16 mask);
-void yoshi_select_items(struct YoshiArg *arg0);
+void yoshi_select_items(struct YoshiWindow *arg0);
 s32 rdu_is_visible();
-void yoshi_load_window_sprites(struct YoshiArg *arg0);
+void yoshi_load_window_sprites(struct YoshiWindow *arg0);
 Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count);
-void yoshi_start_typing(YoshiArg *arg0);
-void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese);
+void yoshi_start_typing(YoshiWindow *arg0);
+void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese);
 u8 yoshi_scroll_fade(u16 *arg0, u16 *arg1, s16 arg2);
 u16 yoshi_prev_item(u16 lo, u16 hi, u16 mask);
 
@@ -174,7 +174,7 @@ extern s32 D_802FA260; /* -m */
 extern u16 D_8036BBB2[];
 extern s32 gRduLitOrderLen;
 #ifndef NON_MATCHING
-extern YoshiNode *gRdus;
+extern RduRecord *gRdus;
 #endif
 extern f32 gRduLastHeading;
 extern u8 gRduVtxSet;
@@ -182,21 +182,21 @@ extern Vtx gRduQuad[]; /* quad template */
 extern u8 gRduTexUnlit[]; /* 16x16 RGBA32 textures */
 extern u8 gRduTexLit[];
 extern s32 gRduPickupRadius[];
-extern YoshiTrigger gYoshiHints[];
+extern YoshiHintList gYoshiHints[];
 extern u8 gYoshiHintMaxShows[];
 extern u8 gYoshiHintShown[];
 extern u16 gYoshiTypeItem;
 extern u16 gYoshiTypeChar;
-extern PathNode * N64P gYoshiItems;
+extern YoshiItem * N64P gYoshiItems;
 #ifndef NON_MATCHING
-extern PathNode *gYoshiHeapItems;
+extern YoshiItem *gYoshiHeapItems;
 #endif
 extern u8 D_8036BA98[];
-extern PathInfo gTargetBuildings[];
+extern TargetBuilding gTargetBuildings[];
 
 /* A level's hint window, once per level and up to its show limit (0x8026AD30). */
 u8 yoshi_show_hint(s16 arg0) {
-    YoshiTrigger *trig;
+    YoshiHintList *trig;
     u8 found = 0;
     s32 i;
     s32 j;
@@ -266,8 +266,8 @@ u16 yoshi_get_demand(void) {
 /* Resets the window state; preloads this mode's window sprites (0x8026B118).
  * Resets the Yoshi state and sets up the level's path nodes */
 void yoshi_init(u8 arg0) {
-    YoshiArg *arg;
-    YoshiTrigger *trig;
+    YoshiWindow *arg;
+    YoshiHintList *trig;
     u8 found;
     s32 i;
     s32 j;
@@ -411,11 +411,11 @@ void yoshi_set_target_icons(void) {
 }
 
 /* Loads the animated sprites a window's items use (0x8026BA7C). */
-void yoshi_load_window_sprites(YoshiArg *arg0) {
-    YoshiSnd *snd;
+void yoshi_load_window_sprites(YoshiWindow *arg0) {
+    SpriteAnim *snd;
     s32 i;
     u8 v;
-    PathNode *node;
+    YoshiItem *node;
 
     v = 4;
     yoshi_select_items(arg0);
@@ -465,8 +465,8 @@ void yoshi_draw(Gfx *gfx, s32 arg1, s32 *count) {
  * Runs and draws the current Yoshi window: handles open/close demands, menu
  * input, the open/close animation, the scroll arrows, sprites and text */
 Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
-    YoshiArg *arg;
-    PathNode *node;
+    YoshiWindow *arg;
+    YoshiItem *node;
     u8 *text;
     u16 *wtext;
     Gfx *gdl;
@@ -891,7 +891,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
             for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
                 node = &gYoshiItems[i];
                 if (!(node->flags & 0x800) && (node->flags & 0x400) && (!(node->flags & 0x300) || i <= gYoshiTypeItem)) {
-                    YoshiSnd *snd;
+                    SpriteAnim *snd;
                     s16 x;
                     s16 y;
                     u8 visible;
@@ -1006,7 +1006,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
 }
 
 /* Arms the typewriter reveal of a window's text items (0x8026EF70). */
-void yoshi_start_typing(YoshiArg *arg0) {
+void yoshi_start_typing(YoshiWindow *arg0) {
     if (arg0->flags & 0x80) {
         gYoshiTypeItem = yoshi_next_item(arg0->unkE, arg0->unk10, arg0->unkE - 1, 0x100);
         gYoshiTypeChar = 0;
@@ -1023,8 +1023,8 @@ void yoshi_start_typing(YoshiArg *arg0) {
 /* An item's text (partial while typing) (0x8026F004).
  * Returns the text of message node idx, revealing it one character at a
  * time while gYoshiTypeState is 2 */
-void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
-    PathNode *node = &gYoshiItems[idx];
+void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese) {
+    YoshiItem *node = &gYoshiItems[idx];
     u8 lang = japanese ? 1 : 0;
     u8 *text = node->text;
     u16 *jtext = node->jtext;
@@ -1199,7 +1199,7 @@ u8 yoshi_get_target_building(char * N64P *name, s32 *arg1) {
 }
 
 /* Points gYoshiItems at the window's item table (0x8026FB50). */
-void yoshi_select_items(YoshiArg *arg0) {
+void yoshi_select_items(YoshiWindow *arg0) {
     if (arg0->flags & 0x8000) {
         gYoshiItems = gYoshiHeapItems;
     } else if (arg0->flags & 0x800) {
@@ -1218,7 +1218,7 @@ void rdu_init(s16 *pos, s16 *end) {
     if (gGameMode != 0x40) {
         gRduLitOrderLen = *gRduLitOrder = 0;
     }
-    gRdus = (YoshiNode *) gHeapPtr;
+    gRdus = (RduRecord *) gHeapPtr;
     gRduVtxSet = 0;
     gRduLastHeading = 999999.0f;
     while (pos != end) {
@@ -1231,7 +1231,7 @@ void rdu_init(s16 *pos, s16 *end) {
         util_copy64((u64 *) (gRdus[gRduCount].vtx[1]), (u64 *) gRduQuad, sizeof(gRdus->vtx[1]));
         gRduCount++, pos += 3;
     }
-    gHeapPtr = (u8 *) ((YoshiNode *) gHeapPtr + gRduCount);
+    gHeapPtr = (u8 *) ((RduRecord *) gHeapPtr + gRduCount);
 }
 
 /* 1 if RDU i is lit (0x8026FE6C). */
@@ -1341,7 +1341,7 @@ void rdu_draw(Gfx **gfx, s32 arg1) {
 }
 
 /* 1 if the RDU's grid cell is in gVisibleCells (0x80270A54). */
-s32 rdu_is_visible(YoshiNode *node, s32 arg1) {
+s32 rdu_is_visible(RduRecord *node, s32 arg1) {
     s32 i;
     u8 v;
     s32 pad;

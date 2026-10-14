@@ -50,8 +50,8 @@ void coll_blast_at_probe(s32 amount, s32 radius) {
 #endif
 
 #ifdef NON_MATCHING
-/* The parts of 77E20.c's gObjects object (Unk802C1DD0Entry) and collision
- * triangle (Unk803B9890) that coll_probe_objects..coll_damage_object_part use. */
+/* The parts of 77E20.c's gObjects object (LevelObject) and collision
+ * triangle (CollisionTri) that coll_probe_objects..coll_damage_object_part use. */
 typedef struct {
     /* 0x00 */ u8 pad0[4];
     /* 0x04 */ u8 type; /* damage divisor */
@@ -179,7 +179,7 @@ s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
                 coll_damage_object_part(e, t, hit);
             }
         }
-        func_802BF264((struct Unk803B9890 *) t);
+        func_802BF264((struct CollisionTri *) t);
         hit = 1;
     }
     return hit;
@@ -216,16 +216,16 @@ void coll_damage_object_part(Obj89250 *e, Tri89250 *tri, s32 amount) {
         level = 100;
     }
     pcts[part - 1] = level;
-    obj_spawn_break_effects((struct Unk802C1DD0Entry *) e, part, level);
+    obj_spawn_break_effects((struct LevelObject *) e, part, level);
     if (level == 100) {
         Tri89250 *t;
         Tri89250 *end;
 
-        obj_mark_part_gone((struct Unk802C1DD0Entry *) e, part);
-        obj_start_topple((struct Unk802C1DD0Entry *) e, part);
-        obj_start_part_fade(part, (struct Unk802C1DD0Entry *) e);
-        obj_start_sinking_part(part, (struct Unk802C1DD0Entry *) e);
-        obj_spawn_people((struct Unk802C1DD0Entry *) e);
+        obj_mark_part_gone((struct LevelObject *) e, part);
+        obj_start_topple((struct LevelObject *) e, part);
+        obj_start_part_fade(part, (struct LevelObject *) e);
+        obj_start_sinking_part(part, (struct LevelObject *) e);
+        obj_spawn_people((struct LevelObject *) e);
         end = e->end;
         for (t = e->start; t != end; t++) {
             if (t->unk52 == part) {
@@ -235,8 +235,8 @@ void coll_damage_object_part(Obj89250 *e, Tri89250 *tri, s32 amount) {
                 t->unk51 = 1;
             }
         }
-        obj_drop_unsupported_parts((struct Unk802C1DD0Entry *) e);
-        obj_check_destroyed((struct Unk802C1DD0Entry *) e);
+        obj_drop_unsupported_parts((struct LevelObject *) e);
+        obj_check_destroyed((struct LevelObject *) e);
     }
 }
 #else

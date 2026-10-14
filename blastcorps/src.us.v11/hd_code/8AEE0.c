@@ -130,16 +130,16 @@ void starski_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
                         (s16 *) (v + 0x4C), 0xF, fpIn, v, f);
     b0 = gStarskiMtxA;
     b1 = gStarskiMtxB;
-    t7 = anim_init_model((u32 *) b1, (u32 *) b0, (Unk8029DEA0Entry *) gStarskiAnim, gStarskiModel);
-    anim_set_speed((Unk8029DEA0Entry *) gStarskiAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gStarskiAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gStarskiAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gStarskiAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gStarskiAnim, 0, 1);
-    anim_update_model((u8 *) b0, (u8 *) b1, (Unk8029DEA0Entry *) gStarskiAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gStarskiAnim);
-    anim_play((Unk8029DEA0Entry *) gStarskiAnim, 0, 1);
-    anim_update_model((u8 *) b1, (u8 *) b0, (Unk8029DEA0Entry *) gStarskiAnim);
+    t7 = anim_init_model((u32 *) b1, (u32 *) b0, (AnimChannel *) gStarskiAnim, gStarskiModel);
+    anim_set_speed((AnimChannel *) gStarskiAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gStarskiAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gStarskiAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gStarskiAnim, 0, 0);
+    anim_play((AnimChannel *) gStarskiAnim, 0, 1);
+    anim_update_model((u8 *) b0, (u8 *) b1, (AnimChannel *) gStarskiAnim);
+    anim_rewind(0, (AnimChannel *) gStarskiAnim);
+    anim_play((AnimChannel *) gStarskiAnim, 0, 1);
+    anim_update_model((u8 *) b1, (u8 *) b0, (AnimChannel *) gStarskiAnim);
     *(s16 *) (v + 0x78) = -0xB4;
     *(s16 *) (v + 0x7A) = 0;
     *(s16 *) (v + 0x7C) = 2;
@@ -463,9 +463,9 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
                   0x15E, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gStarskiMtxA, (u8 *) gStarskiMtxB, (Unk8029DEA0Entry *) gStarskiAnim);
+        anim_update_model((u8 *) gStarskiMtxA, (u8 *) gStarskiMtxB, (AnimChannel *) gStarskiAnim);
     } else {
-        anim_update_model((u8 *) gStarskiMtxB, (u8 *) gStarskiMtxA, (Unk8029DEA0Entry *) gStarskiAnim);
+        anim_update_model((u8 *) gStarskiMtxB, (u8 *) gStarskiMtxA, (AnimChannel *) gStarskiAnim);
     }
     starski_build_model((s32) (v + 0x34), (s32) (v + 0x96), (s32) &gStarskiPos[2], &mo);
     veh_collision_setup(gStarskiPos[2], (s32) D_80306460, 1, 1, gStarskiPos[0], gStarskiPos[1], 7, *(s16 *) (v + 0x76),
@@ -764,16 +764,16 @@ void cyclone_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
                         (s16 *) (v + 0x4C), 0x10, fpIn, v, f);
     b0 = gCycloneMtxA;
     b1 = gCycloneMtxB;
-    t7 = anim_init_model((u32 *) b1, (u32 *) b0, (Unk8029DEA0Entry *) gCycloneAnim, gCycloneModel);
-    anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gCycloneAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gCycloneAnim, 0, 1);
-    anim_update_model((u8 *) b0, (u8 *) b1, (Unk8029DEA0Entry *) gCycloneAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gCycloneAnim);
-    anim_play((Unk8029DEA0Entry *) gCycloneAnim, 0, 1);
-    anim_update_model((u8 *) b1, (u8 *) b0, (Unk8029DEA0Entry *) gCycloneAnim);
+    t7 = anim_init_model((u32 *) b1, (u32 *) b0, (AnimChannel *) gCycloneAnim, gCycloneModel);
+    anim_set_speed((AnimChannel *) gCycloneAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gCycloneAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gCycloneAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gCycloneAnim, 0, 0);
+    anim_play((AnimChannel *) gCycloneAnim, 0, 1);
+    anim_update_model((u8 *) b0, (u8 *) b1, (AnimChannel *) gCycloneAnim);
+    anim_rewind(0, (AnimChannel *) gCycloneAnim);
+    anim_play((AnimChannel *) gCycloneAnim, 0, 1);
+    anim_update_model((u8 *) b1, (u8 *) b0, (AnimChannel *) gCycloneAnim);
     *(s16 *) (v + 0x78) = -0x64;
     *(s16 *) (v + 0x7A) = 0;
     *(s16 *) (v + 0x7C) = 4;
@@ -795,8 +795,8 @@ void cyclone_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     model = gCycloneModel;
     veh_register_parts(0x10, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x2134);
     veh_add_shadow(0x10, 0x64, 0x2D, 0x2D);
-    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gCycloneAnim, 1, 1);
+    anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
+    anim_play((AnimChannel *) gCycloneAnim, 1, 1);
     v[0x9A] = 1;
     cyclone_update(t6, t7, z, (s32) (v + 4), (s32) &gCyclonePos[1], (s32) s3v, (s32) (v + 0x4C), f->cross, f->cz,
                   f->side, f->sideZ, f->dz);
@@ -848,7 +848,7 @@ extern u8 gCycloneAnim[];  /* this vehicle's animation channel table */
 void cyclone_leave(void) {
     *(s16 *) (gCycloneState + 0x76) = 0;
     veh_sync_buffers(gCycloneMtxA, gCycloneMtxB, 0x1400);
-    anim_stop(0x1F, (Unk8029DEA0Entry *) gCycloneAnim);
+    anim_stop(0x1F, (AnimChannel *) gCycloneAnim);
     veh_stop_engine_sounds();
     snd_stop(gCycloneEngineSound);
 }
@@ -881,19 +881,19 @@ void cyclone_enter(void) {
     anim_tex_set_reverse((s32) D_802C22D0, 0);
     anim_tex_set_loop_mode((s32) D_802C22D0, 0);
     anim_tex_play((s32) D_802C22D0, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 7, 2);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 7, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gCycloneAnim, 7, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 8, 2);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 8, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gCycloneAnim, 8, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 9, 4);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 9, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gCycloneAnim, 9, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gCycloneAnim, 1, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gCycloneAnim, 5, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gCycloneAnim, 6, 1);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 3, 0);
+    anim_set_speed((AnimChannel *) gCycloneAnim, 7, 2);
+    anim_set_loop_mode((AnimChannel *) gCycloneAnim, 7, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gCycloneAnim, 7, 1);
+    anim_set_speed((AnimChannel *) gCycloneAnim, 8, 2);
+    anim_set_loop_mode((AnimChannel *) gCycloneAnim, 8, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gCycloneAnim, 8, 1);
+    anim_set_speed((AnimChannel *) gCycloneAnim, 9, 4);
+    anim_set_loop_mode((AnimChannel *) gCycloneAnim, 9, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gCycloneAnim, 9, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gCycloneAnim, 1, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gCycloneAnim, 5, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gCycloneAnim, 6, 1);
+    anim_set_interp(0.0f, (AnimChannel *) gCycloneAnim, 3, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/cyclone_enter.s")
@@ -1024,9 +1024,9 @@ void cyclone_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gCycloneMtxA, (u8 *) gCycloneMtxB, (Unk8029DEA0Entry *) gCycloneAnim);
+        anim_update_model((u8 *) gCycloneMtxA, (u8 *) gCycloneMtxB, (AnimChannel *) gCycloneAnim);
     } else {
-        anim_update_model((u8 *) gCycloneMtxB, (u8 *) gCycloneMtxA, (Unk8029DEA0Entry *) gCycloneAnim);
+        anim_update_model((u8 *) gCycloneMtxB, (u8 *) gCycloneMtxA, (AnimChannel *) gCycloneAnim);
     }
     tag = cyclone_build_model((s32) (v + 0x34), (s32) (v + 0x96), (s32) &gCyclonePos[2], &mo);
     veh_collision_setup(gCyclonePos[2], (s32) D_80306470, 0, 0, gCyclonePos[0], gCyclonePos[1], tag, *(s16 *) (v + 0x76),
@@ -1077,14 +1077,14 @@ extern f32 D_8030D9E0;
 #define VEH16_U8(o) (gCycloneState[o])
 #define VEH16_SPEED (*(s16 *) (gCycloneState + 0x76))
 /* anim_get_state's results: [0] = unk10 (active), [1] = unk11, [6] = unk13. */
-#define CHAN_GET(idx, e) anim_get_state((idx), (Unk8029DEA0Entry *) gCycloneAnim, (e))
+#define CHAN_GET(idx, e) anim_get_state((idx), (AnimChannel *) gCycloneAnim, (e))
 
 /* Channel 0x1F: unk14 = val, unk11 = unk12 = 0, restart (anim_play). */
 static void port_802D1360_chan1F(s32 val) {
-    anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 0x1F, val);
-    anim_set_reverse((Unk8029DEA0Entry *) gCycloneAnim, 0x1F, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 0x1F, 0);
-    anim_play((Unk8029DEA0Entry *) gCycloneAnim, 0x1F, 1);
+    anim_set_speed((AnimChannel *) gCycloneAnim, 0x1F, val);
+    anim_set_reverse((AnimChannel *) gCycloneAnim, 0x1F, 0);
+    anim_set_loop_mode((AnimChannel *) gCycloneAnim, 0x1F, 0);
+    anim_play((AnimChannel *) gCycloneAnim, 0x1F, 1);
 }
 
 /* Moving, no special state: drive the gear channel chosen by +0xA2 (0, 1, 2
@@ -1129,18 +1129,18 @@ static void port_802D1360_gear(void) {
             idx = 6;
             VEH16_U8(0xA2) = 2;
         }
-        anim_play((Unk8029DEA0Entry *) gCycloneAnim, idx, (e[1] != 0) ? 2 : 1);
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, idx, 0);
+        anim_play((AnimChannel *) gCycloneAnim, idx, (e[1] != 0) ? 2 : 1);
+        anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, idx, 0);
     }
     v = VEH16_SPEED;
-    anim_set_reverse((Unk8029DEA0Entry *) gCycloneAnim, idx, v < 0);
+    anim_set_reverse((AnimChannel *) gCycloneAnim, idx, v < 0);
     if (v < 0) {
         v = -v;
     }
     if (v != 0) {
         v = (u32) v / 24;
     }
-    anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, idx, v);
+    anim_set_speed((AnimChannel *) gCycloneAnim, idx, v);
 }
 
 /* State 0 (+0xA1 == 0): driving. */
@@ -1167,22 +1167,22 @@ static void port_802D1360_state0(void) {
     if (VEH16_SPEED == 0) {
         /* standing: leave the moving pose once (+0xA3), then idle anims */
         if (VEH16_U8(0xA3) != 0) {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 7, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 7, 0);
             if (CHAN_GET(0x1F, e), e[0] != 0) {
-                anim_stop(0x1F, (Unk8029DEA0Entry *) gCycloneAnim);
-                anim_blend_channels(0x1F, 7, (Unk8029DEA0Entry *) gCycloneAnim);
+                anim_stop(0x1F, (AnimChannel *) gCycloneAnim);
+                anim_blend_channels(0x1F, 7, (AnimChannel *) gCycloneAnim);
             } else if (CHAN_GET(1, e), e[0] != 0) {
-                anim_stop(1, (Unk8029DEA0Entry *) gCycloneAnim);
-                anim_blend_channels(1, 7, (Unk8029DEA0Entry *) gCycloneAnim);
+                anim_stop(1, (AnimChannel *) gCycloneAnim);
+                anim_blend_channels(1, 7, (AnimChannel *) gCycloneAnim);
             } else if (CHAN_GET(5, e), e[0] != 0) {
-                anim_stop(5, (Unk8029DEA0Entry *) gCycloneAnim);
-                anim_blend_channels(5, 7, (Unk8029DEA0Entry *) gCycloneAnim);
+                anim_stop(5, (AnimChannel *) gCycloneAnim);
+                anim_blend_channels(5, 7, (AnimChannel *) gCycloneAnim);
             } else if (CHAN_GET(6, e), e[0] != 0) {
-                anim_stop(6, (Unk8029DEA0Entry *) gCycloneAnim);
-                anim_blend_channels(6, 7, (Unk8029DEA0Entry *) gCycloneAnim);
+                anim_stop(6, (AnimChannel *) gCycloneAnim);
+                anim_blend_channels(6, 7, (AnimChannel *) gCycloneAnim);
             } else {
-                anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 1, 0);
-                anim_blend_channels(1, 7, (Unk8029DEA0Entry *) gCycloneAnim);
+                anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
+                anim_blend_channels(1, 7, (AnimChannel *) gCycloneAnim);
             }
             port_802D1360_chan1F(0x1E);
         }
@@ -1210,26 +1210,26 @@ static void port_802D1360_state0(void) {
         } else {
             r = 9;
         }
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, r, 0);
-        anim_play((Unk8029DEA0Entry *) gCycloneAnim, r, 1);
+        anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, r, 0);
+        anim_play((AnimChannel *) gCycloneAnim, r, 1);
         return;
     }
 
     /* moving: enter the moving pose once (+0xA3) */
     if (VEH16_U8(0xA3) != 1) {
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 1, 0);
+        anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
         if (CHAN_GET(7, e), e[0] != 0) {
-            anim_blend_channels(7, 1, (Unk8029DEA0Entry *) gCycloneAnim);
-            anim_stop(7, (Unk8029DEA0Entry *) gCycloneAnim);
+            anim_blend_channels(7, 1, (AnimChannel *) gCycloneAnim);
+            anim_stop(7, (AnimChannel *) gCycloneAnim);
         } else if (CHAN_GET(8, e), e[0] != 0) {
-            anim_blend_channels(8, 1, (Unk8029DEA0Entry *) gCycloneAnim);
-            anim_stop(8, (Unk8029DEA0Entry *) gCycloneAnim);
+            anim_blend_channels(8, 1, (AnimChannel *) gCycloneAnim);
+            anim_stop(8, (AnimChannel *) gCycloneAnim);
         } else if (CHAN_GET(9, e), e[0] != 0) {
-            anim_blend_channels(9, 1, (Unk8029DEA0Entry *) gCycloneAnim);
-            anim_stop(9, (Unk8029DEA0Entry *) gCycloneAnim);
+            anim_blend_channels(9, 1, (AnimChannel *) gCycloneAnim);
+            anim_stop(9, (AnimChannel *) gCycloneAnim);
         } else {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 7, 0);
-            anim_blend_channels(7, 1, (Unk8029DEA0Entry *) gCycloneAnim);
+            anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 7, 0);
+            anim_blend_channels(7, 1, (AnimChannel *) gCycloneAnim);
         }
         port_802D1360_chan1F(0x28);
     }
@@ -1242,7 +1242,7 @@ static void port_802D1360_state0(void) {
         VEH16_SPEED >= 0x96) {
         /* start the special move (state 1) from the current gear channel */
         VEH16_U8(0xA1) = 1;
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 2, 0);
+        anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 2, 0);
         switch (VEH16_U8(0xA2)) {
             case 0:
                 r = 1;
@@ -1256,8 +1256,8 @@ static void port_802D1360_state0(void) {
             default: /* the asm executes `syscall` here */
                 return;
         }
-        anim_blend_channels(r, 2, (Unk8029DEA0Entry *) gCycloneAnim);
-        anim_stop(r, (Unk8029DEA0Entry *) gCycloneAnim);
+        anim_blend_channels(r, 2, (AnimChannel *) gCycloneAnim);
+        anim_stop(r, (AnimChannel *) gCycloneAnim);
         port_802D1360_chan1F(0x50);
         mb_start(6, D_8030D9E0, 0x64);
         return;
@@ -1277,13 +1277,13 @@ static void port_802D1360_state12(s32 state) {
         if (state == 1) {
             mb_stop();
             VEH16_U8(0xA1) = 3;
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 3, 0);
-            anim_blend_channels(0x1F, 3, (Unk8029DEA0Entry *) gCycloneAnim);
+            anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 3, 0);
+            anim_blend_channels(0x1F, 3, (AnimChannel *) gCycloneAnim);
         } else {
             VEH16_U8(0xA1) = 3;
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 3, 0);
-            anim_blend_channels(2, 3, (Unk8029DEA0Entry *) gCycloneAnim);
-            anim_stop(2, (Unk8029DEA0Entry *) gCycloneAnim);
+            anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 3, 0);
+            anim_blend_channels(2, 3, (AnimChannel *) gCycloneAnim);
+            anim_stop(2, (AnimChannel *) gCycloneAnim);
         }
         port_802D1360_chan1F(0x21);
         gVehAttacking = 1;
@@ -1295,10 +1295,10 @@ static void port_802D1360_state12(s32 state) {
             if (CHAN_GET(0x1F, e), e[0] == 1) {
                 return;
             }
-            anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 2, 0xA);
-            anim_set_reverse((Unk8029DEA0Entry *) gCycloneAnim, 2, 0);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 2, 0);
-            anim_play((Unk8029DEA0Entry *) gCycloneAnim, 2, 1);
+            anim_set_speed((AnimChannel *) gCycloneAnim, 2, 0xA);
+            anim_set_reverse((AnimChannel *) gCycloneAnim, 2, 0);
+            anim_set_loop_mode((AnimChannel *) gCycloneAnim, 2, 0);
+            anim_play((AnimChannel *) gCycloneAnim, 2, 1);
             VEH16_U8(0xA1) = 2;
             return;
         }
@@ -1311,16 +1311,16 @@ static void port_802D1360_state12(s32 state) {
             VEH16_SPEED = 0x3C;
         }
         veh_stop_engine_sounds();
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 1, 0);
-        anim_blend_channels(0x1F, 1, (Unk8029DEA0Entry *) gCycloneAnim);
+        anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
+        anim_blend_channels(0x1F, 1, (AnimChannel *) gCycloneAnim);
     } else {
         veh_stop_engine_sounds();
         if (VEH16_SPEED >= 0) {
             VEH16_SPEED = 0x3C;
         }
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 1, 0);
-        anim_stop(2, (Unk8029DEA0Entry *) gCycloneAnim);
-        anim_blend_channels(2, 1, (Unk8029DEA0Entry *) gCycloneAnim);
+        anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
+        anim_stop(2, (AnimChannel *) gCycloneAnim);
+        anim_blend_channels(2, 1, (AnimChannel *) gCycloneAnim);
     }
     port_802D1360_chan1F(0x32);
     mb_stop();
@@ -1329,7 +1329,7 @@ static void port_802D1360_state12(s32 state) {
 
 /* Walk and gears, the charge (states 1-2), the crash (3-4) (0x802D1360).
  * Animation / state machine of vehicle type 16 ($gp = gCycloneState, read as
- * the global; channels in gCycloneAnim, an Unk8029DEA0Entry table), on the
+ * the global; channels in gCycloneAnim, an AnimChannel table), on the
  * state byte +0xA1: 0 driving (gears, idle anims, starting the special move
  * with the inputs at speed >= 150), 1 and 2 the special move, 3 the crash
  * (sound 0x4B, veh_prev_contacts_clear, then channel 3 -> state 4), 4 recovering (back
@@ -1366,10 +1366,10 @@ void cyclone_update_moves(void) {
             }
             gVehAttacking = 0;
             mb_stop();
-            anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 3, 5);
-            anim_set_reverse((Unk8029DEA0Entry *) gCycloneAnim, 3, 0);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 3, 0);
-            anim_play((Unk8029DEA0Entry *) gCycloneAnim, 3, 1);
+            anim_set_speed((AnimChannel *) gCycloneAnim, 3, 5);
+            anim_set_reverse((AnimChannel *) gCycloneAnim, 3, 0);
+            anim_set_loop_mode((AnimChannel *) gCycloneAnim, 3, 0);
+            anim_play((AnimChannel *) gCycloneAnim, 3, 1);
             VEH16_U8(0xA1) = 4;
             break;
         case 4:
@@ -1378,9 +1378,9 @@ void cyclone_update_moves(void) {
                 break;
             }
             gVehAttacking = 1;
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 1, 0);
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 5, 0);
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 6, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 5, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 6, 0);
             VEH16_U8(0xA1) = 0;
             break;
         default: /* the asm executes `syscall` here */

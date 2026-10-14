@@ -232,7 +232,7 @@ bool triHeight(const Vec3 p[3], double x, double z, double &h) {
 
 /* every building's collision triangles: the gObjects records (0x803F4030,
  * 0xFC bytes each, up to gObjectsEnd at 0x803F7654) hold the range [+4, +8) of 0x60-byte triangles (77E20.c
- * Unk803B9890: s32 vertices at +0x28 in world / 4 units, kept where the
+ * CollisionTri: s32 vertices at +0x28 in world / 4 units, kept where the
  * building is) */
 template <typename F> void forEachObstacle(F f) {
     const uint32_t end = rd<uint32_t>(0x803F7654u);
@@ -279,7 +279,7 @@ double groundHeight(double x, double y, double z) {
         }
     }
     /* buildings and other obstacles: the 0x60-byte collision triangles
-     * (77E20.c Unk803B9890: s32 vertices at +0x28 in world / 4 units) */
+     * (77E20.c CollisionTri: s32 vertices at +0x28 in world / 4 units) */
     obstacle = true;
     forEachObstacle([&](const int32_t *v) {
         const Vec3 p[3] = {{v[0] / 8.0, v[1] / 8.0, v[2] / 8.0}, {v[3] / 8.0, v[4] / 8.0, v[5] / 8.0},

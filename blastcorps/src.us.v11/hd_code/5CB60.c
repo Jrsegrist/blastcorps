@@ -1807,7 +1807,7 @@ void port_unit_mark(void *p, u32 n, s32 width);
 u8 port_n64_byte(const void *p);
 void port_garbage(const void *p, u32 len);
 
-/* the layout of a record lvl_build_coll_tri built (Unk803B9890, 77E20.c) */
+/* the layout of a record lvl_build_coll_tri built (CollisionTri, 77E20.c) */
 static void port_tri_mark(u8 *rec) {
     port_unit_mark(rec, 4, 8);
     port_unit_mark(rec + 0x20, 11, 4);

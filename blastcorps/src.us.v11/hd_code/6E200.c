@@ -213,16 +213,16 @@ static void port_veh_init_anim(u8 *veh, PortVehPos *p, s32 id, u8 *ch, const s16
                   veh, &f);
     a = p->bufA;
     b = p->bufB;
-    anim_init_model((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) ch, p->model);
-    anim_set_speed((Unk8029DEA0Entry *) ch, 0, 100);
-    anim_set_reverse((Unk8029DEA0Entry *) ch, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) ch, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) ch, 0, 0);
-    anim_play((Unk8029DEA0Entry *) ch, 0, 1);
-    anim_update_model((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) ch);
-    anim_rewind(0, (Unk8029DEA0Entry *) ch);
-    anim_play((Unk8029DEA0Entry *) ch, 0, 1);
-    anim_update_model((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) ch);
+    anim_init_model((u32 *) b, (u32 *) a, (AnimChannel *) ch, p->model);
+    anim_set_speed((AnimChannel *) ch, 0, 100);
+    anim_set_reverse((AnimChannel *) ch, 0, 0);
+    anim_set_loop_mode((AnimChannel *) ch, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) ch, 0, 0);
+    anim_play((AnimChannel *) ch, 0, 1);
+    anim_update_model((u8 *) a, (u8 *) b, (AnimChannel *) ch);
+    anim_rewind(0, (AnimChannel *) ch);
+    anim_play((AnimChannel *) ch, 0, 1);
+    anim_update_model((u8 *) b, (u8 *) a, (AnimChannel *) ch);
     for (i = 0; i < 15; i++) {
         VEH_S16(veh, 0x78 + i * 2) = bands[i];
     }
@@ -283,9 +283,9 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
                   (s16 *) (veh + 0x52), (s32 *) (veh + 0x28), (s32 *) (veh + 0x40), (s32 *) (veh + 0x34),
                   (s32 *) (veh + 4), &r8, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) p->bufA, (u8 *) p->bufB, (Unk8029DEA0Entry *) ch);
+        anim_update_model((u8 *) p->bufA, (u8 *) p->bufB, (AnimChannel *) ch);
     } else {
-        anim_update_model((u8 *) p->bufB, (u8 *) p->bufA, (Unk8029DEA0Entry *) ch);
+        anim_update_model((u8 *) p->bufB, (u8 *) p->bufA, (AnimChannel *) ch);
     }
     /* s0/s1 here are anim_update_model's leftovers in the asm (register leak,
      * read only for a zero-count part). */
@@ -431,10 +431,10 @@ void skyfall_enter(void) {
 
     gSkyfallState[0x99] = 0;
     for (i = 1; i <= 3; i++) {
-        anim_set_speed((Unk8029DEA0Entry *) gSkyfallAnim, i, 0);
-        anim_set_reverse((Unk8029DEA0Entry *) gSkyfallAnim, i, 0);
-        anim_set_loop_mode((Unk8029DEA0Entry *) gSkyfallAnim, i, i == 1 ? 0 : 1);
-        anim_play((Unk8029DEA0Entry *) gSkyfallAnim, i, -1);
+        anim_set_speed((AnimChannel *) gSkyfallAnim, i, 0);
+        anim_set_reverse((AnimChannel *) gSkyfallAnim, i, 0);
+        anim_set_loop_mode((AnimChannel *) gSkyfallAnim, i, i == 1 ? 0 : 1);
+        anim_play((AnimChannel *) gSkyfallAnim, i, -1);
     }
     anim_tex_set_speed((s32) D_802C2314, 0);
     anim_tex_set_reverse((s32) D_802C2314, 0);
@@ -737,7 +737,7 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         }
     }
     gSkyfallThrottleAnim = f;
-    anim_set_frame(f, (Unk8029DEA0Entry *) gSkyfallAnim, 3, 0);
+    anim_set_frame(f, (AnimChannel *) gSkyfallAnim, 3, 0);
 
     /* 3. channel 2 level */
     v = gSkyfallSteerAnim;
@@ -763,16 +763,16 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         }
     }
     gSkyfallSteerAnim = v;
-    anim_set_frame((f32) v / 100.0f, (Unk8029DEA0Entry *) gSkyfallAnim, 2, 0);
+    anim_set_frame((f32) v / 100.0f, (AnimChannel *) gSkyfallAnim, 2, 0);
 
     /* 4. channel 1 from the speed */
     speed = *(s16 *) (gSkyfallState + 0x76);
-    anim_set_reverse((Unk8029DEA0Entry *) gSkyfallAnim, 1, speed < 0);
+    anim_set_reverse((AnimChannel *) gSkyfallAnim, 1, speed < 0);
     if (speed < 0) {
         speed = -speed;
     }
     speed = (u32) speed / 30;
-    anim_set_speed((Unk8029DEA0Entry *) gSkyfallAnim, 1, speed);
+    anim_set_speed((AnimChannel *) gSkyfallAnim, 1, speed);
     veh_set_engine_level(speed);
 
     /* 5. boost */
@@ -1024,7 +1024,7 @@ extern u8 gRamdozerAnim[]; /* its animation channel table */
  * and v1 = -1, unused by the C callers. */
 void ramdozer_enter(void) {
     gRamdozerState[0x99] = 0;
-    anim_set_reverse((Unk8029DEA0Entry *) gRamdozerAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gRamdozerAnim, 1, 0);
     anim_tex_set_speed((s32) D_802C2190, 0);
     anim_tex_set_reverse((s32) D_802C2190, 0);
     anim_tex_set_loop_mode((s32) D_802C2190, 0);
@@ -1037,10 +1037,10 @@ void ramdozer_enter(void) {
     anim_tex_set_reverse((s32) D_802C21B8, 0);
     anim_tex_set_loop_mode((s32) D_802C21B8, 0);
     anim_tex_play((s32) D_802C21B8, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gRamdozerAnim, 2, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gRamdozerAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gRamdozerAnim, 2, 1);
-    anim_play((Unk8029DEA0Entry *) gRamdozerAnim, 2, -1);
+    anim_set_speed((AnimChannel *) gRamdozerAnim, 2, 0);
+    anim_set_reverse((AnimChannel *) gRamdozerAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gRamdozerAnim, 2, 1);
+    anim_play((AnimChannel *) gRamdozerAnim, 2, -1);
     gCamDistance = 0xBB8;
     gCamHeightBase = 0x3E8;
     veh_start_engine_sound((s32) gRamdozerAnim, 0x0B);
@@ -1323,7 +1323,7 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
         }
     }
     gRamdozerThrottleAnim = f;
-    anim_set_frame(f, (Unk8029DEA0Entry *) gRamdozerAnim, 2, 0);
+    anim_set_frame(f, (AnimChannel *) gRamdozerAnim, 2, 0);
 
     speed = *(s16 *) (gRamdozerState + 0x76);
     if (speed != 0) {
@@ -1353,11 +1353,11 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
     anim_tex_set_frame(0.0f, (s32) D_802C21B8, (u32) v / 76);
 
     if (gRamdozerDeflecting != 0) {
-        anim_get_state(1, (Unk8029DEA0Entry *) gRamdozerAnim, ch);
+        anim_get_state(1, (AnimChannel *) gRamdozerAnim, ch);
         if (ch[0] != 1) {
-            anim_set_speed((Unk8029DEA0Entry *) gRamdozerAnim, 1, 9);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gRamdozerAnim, 1, 1);
-            anim_play((Unk8029DEA0Entry *) gRamdozerAnim, 1, 2);
+            anim_set_speed((AnimChannel *) gRamdozerAnim, 1, 9);
+            anim_set_loop_mode((AnimChannel *) gRamdozerAnim, 1, 1);
+            anim_play((AnimChannel *) gRamdozerAnim, 1, 2);
             snd_play(gSfxBank, 1, NULL);
         }
     }

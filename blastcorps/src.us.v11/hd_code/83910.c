@@ -126,7 +126,7 @@ static void veh83910_model(const VehDesc83910 *d) {
     data = *d->data;
     veh_deck_transform(d->type, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = *d->data;
-    veh_update_tris(VEH_U16(veh, 0x4C), (Unk8029DEA0Entry *) d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
+    veh_update_tris(VEH_U16(veh, 0x4C), (AnimChannel *) d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
 }
 
 /* Per-frame update (barge_update_0b / 8FA8 / 92C0, through barge_update):
@@ -183,9 +183,9 @@ static void veh83910_frame(const VehDesc83910 *d) {
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) *d->bufA, (u8 *) *d->bufB, (Unk8029DEA0Entry *) d->chan);
+        anim_update_model((u8 *) *d->bufA, (u8 *) *d->bufB, (AnimChannel *) d->chan);
     } else {
-        anim_update_model((u8 *) *d->bufB, (u8 *) *d->bufA, (Unk8029DEA0Entry *) d->chan);
+        anim_update_model((u8 *) *d->bufB, (u8 *) *d->bufA, (AnimChannel *) d->chan);
     }
     d->model();
     /* b0 / h2 are the model update's leftover t0 (x) and t2 (the type) */
@@ -276,16 +276,16 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
                   fp, veh, &tri);
     a = *d->bufA;
     b = *d->bufB;
-    anim_init_model((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) d->chan, *d->data);
-    anim_set_speed((Unk8029DEA0Entry *) d->chan, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) d->chan, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) d->chan, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) d->chan, 0, 0);
-    anim_play((Unk8029DEA0Entry *) d->chan, 0, 1);
-    anim_update_model((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) d->chan);
-    anim_rewind(0, (Unk8029DEA0Entry *) d->chan);
-    anim_play((Unk8029DEA0Entry *) d->chan, 0, 1);
-    anim_update_model((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) d->chan);
+    anim_init_model((u32 *) b, (u32 *) a, (AnimChannel *) d->chan, *d->data);
+    anim_set_speed((AnimChannel *) d->chan, 0, 0x64);
+    anim_set_reverse((AnimChannel *) d->chan, 0, 0);
+    anim_set_loop_mode((AnimChannel *) d->chan, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) d->chan, 0, 0);
+    anim_play((AnimChannel *) d->chan, 0, 1);
+    anim_update_model((u8 *) a, (u8 *) b, (AnimChannel *) d->chan);
+    anim_rewind(0, (AnimChannel *) d->chan);
+    anim_play((AnimChannel *) d->chan, 0, 1);
+    anim_update_model((u8 *) b, (u8 *) a, (AnimChannel *) d->chan);
     VEH_S16(veh, 0x78) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;

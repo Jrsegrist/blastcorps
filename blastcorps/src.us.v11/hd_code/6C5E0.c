@@ -98,16 +98,16 @@ void thunderfist_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s3
                         (s16 *) (v + 0x4C), 2, fpIn, v, f);
     b0 = gThunderfistMtxA;
     b1 = gThunderfistMtxB;
-    t7 = anim_init_model((u32 *) b1, (u32 *) b0, (Unk8029DEA0Entry *) gThunderfistAnim, gThunderfistModel);
-    anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gThunderfistAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 0, 1);
-    anim_update_model((u8 *) b0, (u8 *) b1, (Unk8029DEA0Entry *) gThunderfistAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gThunderfistAnim);
-    anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 0, 1);
-    anim_update_model((u8 *) b1, (u8 *) b0, (Unk8029DEA0Entry *) gThunderfistAnim);
+    t7 = anim_init_model((u32 *) b1, (u32 *) b0, (AnimChannel *) gThunderfistAnim, gThunderfistModel);
+    anim_set_speed((AnimChannel *) gThunderfistAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gThunderfistAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gThunderfistAnim, 0, 0);
+    anim_play((AnimChannel *) gThunderfistAnim, 0, 1);
+    anim_update_model((u8 *) b0, (u8 *) b1, (AnimChannel *) gThunderfistAnim);
+    anim_rewind(0, (AnimChannel *) gThunderfistAnim);
+    anim_play((AnimChannel *) gThunderfistAnim, 0, 1);
+    anim_update_model((u8 *) b1, (u8 *) b0, (AnimChannel *) gThunderfistAnim);
     *(s16 *) (v + 0x78) = -0x64;
     *(s16 *) (v + 0x7A) = 0;
     *(s16 *) (v + 0x7C) = 4;
@@ -129,8 +129,8 @@ void thunderfist_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s3
     model = gThunderfistModel;
     veh_register_parts(2, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x6590);
     veh_add_shadow(2, 0x64, 0x2D, 0x2D);
-    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 1, 1);
+    anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
+    anim_play((AnimChannel *) gThunderfistAnim, 1, 1);
     v[0x9A] = 1;
     thunderfist_update(t6, t7, z, (s32) (v + 4), (s32) &gThunderfistPos[1], (s32) s3v, (s32) (v + 0x4C), f->cross, f->cz,
                   f->side, f->sideZ, f->dz);
@@ -184,7 +184,7 @@ extern u8 gThunderfistAnim[];  /* this vehicle's animation channel table */
 void thunderfist_leave(void) {
     *(s16 *) (gThunderfistState + 0x76) = 0;
     veh_sync_buffers(gThunderfistMtxA, gThunderfistMtxB, 0x1400);
-    anim_stop(0x1F, (Unk8029DEA0Entry *) gThunderfistAnim);
+    anim_stop(0x1F, (AnimChannel *) gThunderfistAnim);
     veh_stop_engine_sounds();
     snd_stop(gThunderfistEngineSound);
 }
@@ -215,18 +215,18 @@ void thunderfist_enter(void) {
     anim_tex_set_speed((s32) D_802C2308, 0x19);
     anim_tex_set_reverse((s32) D_802C2308, 0);
     anim_tex_set_loop_mode((s32) D_802C2308, 0);
-    anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 7, 2);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 7, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gThunderfistAnim, 7, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 8, 2);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 8, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gThunderfistAnim, 8, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 9, 4);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 9, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gThunderfistAnim, 9, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gThunderfistAnim, 5, 1);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 3, 0);
+    anim_set_speed((AnimChannel *) gThunderfistAnim, 7, 2);
+    anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 7, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gThunderfistAnim, 7, 1);
+    anim_set_speed((AnimChannel *) gThunderfistAnim, 8, 2);
+    anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 8, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gThunderfistAnim, 8, 1);
+    anim_set_speed((AnimChannel *) gThunderfistAnim, 9, 4);
+    anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 9, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gThunderfistAnim, 9, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gThunderfistAnim, 1, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gThunderfistAnim, 5, 1);
+    anim_set_interp(0.0f, (AnimChannel *) gThunderfistAnim, 3, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/thunderfist_enter.s")
@@ -363,9 +363,9 @@ void thunderfist_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, 
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gThunderfistMtxA, (u8 *) gThunderfistMtxB, (Unk8029DEA0Entry *) gThunderfistAnim);
+        anim_update_model((u8 *) gThunderfistMtxA, (u8 *) gThunderfistMtxB, (AnimChannel *) gThunderfistAnim);
     } else {
-        anim_update_model((u8 *) gThunderfistMtxB, (u8 *) gThunderfistMtxA, (Unk8029DEA0Entry *) gThunderfistAnim);
+        anim_update_model((u8 *) gThunderfistMtxB, (u8 *) gThunderfistMtxA, (AnimChannel *) gThunderfistAnim);
     }
     tag = thunderfist_build_model((s32) (v + 0x34), (s32) (v + 0x96), (s32) &gThunderfistPos[2], &mo);
     veh_collision_setup(gThunderfistPos[2], (s32) D_80305CF0, 0, 0, gThunderfistPos[0], gThunderfistPos[1], tag, *(s16 *) (v + 0x76),
@@ -427,27 +427,27 @@ extern f32 D_8030D8B0;
 
 /* Channel idx's field 0x10 ((s8), anim_get_state's v1); out gets the rest. */
 static s32 veh2_ch_get(s32 idx, s32 *out) {
-    anim_get_state(idx, (Unk8029DEA0Entry *) gThunderfistAnim, out);
+    anim_get_state(idx, (AnimChannel *) gThunderfistAnim, out);
     return out[0];
 }
 
 /* Channel 31 (the blend track) starts: 039C = v, 03D4 = 0, 040C = 0, 0290 = 1. */
 static void veh2_ch31_start(s32 v) {
-    anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 0x1F, v);
-    anim_set_reverse((Unk8029DEA0Entry *) gThunderfistAnim, 0x1F, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 0x1F, 0);
-    anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 0x1F, 1);
+    anim_set_speed((AnimChannel *) gThunderfistAnim, 0x1F, v);
+    anim_set_reverse((AnimChannel *) gThunderfistAnim, 0x1F, 0);
+    anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 0x1F, 0);
+    anim_play((AnimChannel *) gThunderfistAnim, 0x1F, 1);
 }
 
 /* Channel ch: 03D4 = (speed < 0), 039C = |speed| / 24. */
 static void veh2_ch_speed(s32 ch) {
     s32 speed = VEH2_SPEED;
 
-    anim_set_reverse((Unk8029DEA0Entry *) gThunderfistAnim, ch, speed < 0);
+    anim_set_reverse((AnimChannel *) gThunderfistAnim, ch, speed < 0);
     if (speed < 0) {
         speed = -speed;
     }
-    anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, ch, (u32) speed / 24);
+    anim_set_speed((AnimChannel *) gThunderfistAnim, ch, (u32) speed / 24);
 }
 
 /* State 0 (+0xA1 == 0): driving. */
@@ -473,19 +473,19 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
     if (VEH2_SPEED == 0) {
         /* standing: blend back to an idle pose once (+0xA3), then idle anims at random */
         if (gThunderfistState[0xA3] != 0) {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 7, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 7, 0);
             if (veh2_ch_get(0x1F, o) != 0) {
-                anim_stop(0x1F, (Unk8029DEA0Entry *) gThunderfistAnim);
-                anim_blend_channels(0x1F, 7, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_stop(0x1F, (AnimChannel *) gThunderfistAnim);
+                anim_blend_channels(0x1F, 7, (AnimChannel *) gThunderfistAnim);
             } else if (veh2_ch_get(1, o) != 0) {
-                anim_stop(1, (Unk8029DEA0Entry *) gThunderfistAnim);
-                anim_blend_channels(1, 7, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_stop(1, (AnimChannel *) gThunderfistAnim);
+                anim_blend_channels(1, 7, (AnimChannel *) gThunderfistAnim);
             } else if (veh2_ch_get(5, o) != 0) {
-                anim_stop(5, (Unk8029DEA0Entry *) gThunderfistAnim);
-                anim_blend_channels(5, 7, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_stop(5, (AnimChannel *) gThunderfistAnim);
+                anim_blend_channels(5, 7, (AnimChannel *) gThunderfistAnim);
             } else {
-                anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 0);
-                anim_blend_channels(1, 7, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
+                anim_blend_channels(1, 7, (AnimChannel *) gThunderfistAnim);
             }
             veh2_ch31_start(0x1E);
         }
@@ -499,26 +499,26 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         }
         r = util_rand2_range(0, 2);
         r = (r == 0) ? 7 : (r == 1) ? 8 : 9;
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, r, 0);
-        anim_play((Unk8029DEA0Entry *) gThunderfistAnim, r, 1);
+        anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, r, 0);
+        anim_play((AnimChannel *) gThunderfistAnim, r, 1);
         return;
     }
 
     /* moving: blend from the idle pose once (+0xA3 == 1 afterwards) */
     if (gThunderfistState[0xA3] != 1) {
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 0);
+        anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
         if (veh2_ch_get(7, o) != 0) {
-            anim_blend_channels(7, 1, (Unk8029DEA0Entry *) gThunderfistAnim);
-            anim_stop(7, (Unk8029DEA0Entry *) gThunderfistAnim);
+            anim_blend_channels(7, 1, (AnimChannel *) gThunderfistAnim);
+            anim_stop(7, (AnimChannel *) gThunderfistAnim);
         } else if (veh2_ch_get(8, o) != 0) {
-            anim_blend_channels(8, 1, (Unk8029DEA0Entry *) gThunderfistAnim);
-            anim_stop(8, (Unk8029DEA0Entry *) gThunderfistAnim);
+            anim_blend_channels(8, 1, (AnimChannel *) gThunderfistAnim);
+            anim_stop(8, (AnimChannel *) gThunderfistAnim);
         } else if (veh2_ch_get(9, o) != 0) {
-            anim_blend_channels(9, 1, (Unk8029DEA0Entry *) gThunderfistAnim);
-            anim_stop(9, (Unk8029DEA0Entry *) gThunderfistAnim);
+            anim_blend_channels(9, 1, (AnimChannel *) gThunderfistAnim);
+            anim_stop(9, (AnimChannel *) gThunderfistAnim);
         } else {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 7, 0);
-            anim_blend_channels(7, 1, (Unk8029DEA0Entry *) gThunderfistAnim);
+            anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 7, 0);
+            anim_blend_channels(7, 1, (AnimChannel *) gThunderfistAnim);
         }
         veh2_ch31_start(0x28);
     }
@@ -531,13 +531,13 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         if (VEH2_SPEED >= 0x96) {
             /* fast with a button held: switch to state 1 */
             gThunderfistState[0xA1] = 1;
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 2, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 2, 0);
             if (gThunderfistState[0xA2] == 0) {
-                anim_blend_channels(1, 2, (Unk8029DEA0Entry *) gThunderfistAnim);
-                anim_stop(1, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_blend_channels(1, 2, (AnimChannel *) gThunderfistAnim);
+                anim_stop(1, (AnimChannel *) gThunderfistAnim);
             } else if (gThunderfistState[0xA2] == 1) {
-                anim_blend_channels(5, 2, (Unk8029DEA0Entry *) gThunderfistAnim);
-                anim_stop(5, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_blend_channels(5, 2, (AnimChannel *) gThunderfistAnim);
+                anim_stop(5, (AnimChannel *) gThunderfistAnim);
             } else {
                 return; /* asm: syscall (+0xA2 is only ever 0 or 1) */
             }
@@ -578,13 +578,13 @@ pick:
         speed = -speed;
     }
     if (speed >= 0x78) {
-        anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 5, o[1] != 0 ? 2 : 1);
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 5, 0);
+        anim_play((AnimChannel *) gThunderfistAnim, 5, o[1] != 0 ? 2 : 1);
+        anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 5, 0);
         gThunderfistState[0xA2] = 1;
         goto ch5;
     }
-    anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 1, o[1] != 0 ? 2 : 1);
-    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 0);
+    anim_play((AnimChannel *) gThunderfistAnim, 1, o[1] != 0 ? 2 : 1);
+    anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
     gThunderfistState[0xA2] = 0;
     goto ch1;
 }
@@ -634,8 +634,8 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
                 VEH2_SPEED = VEH2_SPEED >> 1;
                 mb_stop();
                 gThunderfistState[0xA1] = 3;
-                anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 3, 3);
-                anim_blend_channels(0x1F, 3, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 3, 3);
+                anim_blend_channels(0x1F, 3, (AnimChannel *) gThunderfistAnim);
                 veh2_ch31_start(0x21);
                 gVehAttacking = 1;
                 return;
@@ -645,8 +645,8 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
                     VEH2_SPEED = 0x3C;
                 }
                 veh_stop_engine_sounds();
-                anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 0);
-                anim_blend_channels(0x1F, 1, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
+                anim_blend_channels(0x1F, 1, (AnimChannel *) gThunderfistAnim);
                 veh2_to_state0_tail();
                 return;
             }
@@ -654,10 +654,10 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
             if (veh2_ch_get(0x1F, o) == 1) {
                 return;
             }
-            anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 2, 10);
-            anim_set_reverse((Unk8029DEA0Entry *) gThunderfistAnim, 2, 0);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 2, 0);
-            anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 2, 1);
+            anim_set_speed((AnimChannel *) gThunderfistAnim, 2, 10);
+            anim_set_reverse((AnimChannel *) gThunderfistAnim, 2, 0);
+            anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 2, 0);
+            anim_play((AnimChannel *) gThunderfistAnim, 2, 1);
             gThunderfistState[0xA1] = 2;
             return;
 
@@ -665,9 +665,9 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
             if (gThunderfistState[0x9C] != 0) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
                 gThunderfistState[0xA1] = 3;
-                anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 3, 3);
-                anim_blend_channels(2, 3, (Unk8029DEA0Entry *) gThunderfistAnim);
-                anim_stop(2, (Unk8029DEA0Entry *) gThunderfistAnim);
+                anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 3, 3);
+                anim_blend_channels(2, 3, (AnimChannel *) gThunderfistAnim);
+                anim_stop(2, (AnimChannel *) gThunderfistAnim);
                 veh2_ch31_start(0x21);
                 gVehAttacking = 1;
                 return;
@@ -682,9 +682,9 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
             if (VEH2_SPEED >= 0) {
                 VEH2_SPEED = 0x3C;
             }
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 0);
-            anim_stop(2, (Unk8029DEA0Entry *) gThunderfistAnim);
-            anim_blend_channels(2, 1, (Unk8029DEA0Entry *) gThunderfistAnim);
+            anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
+            anim_stop(2, (AnimChannel *) gThunderfistAnim);
+            anim_blend_channels(2, 1, (AnimChannel *) gThunderfistAnim);
             veh2_to_state0_tail();
             return;
 
@@ -703,10 +703,10 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
             }
             gVehAttacking = 0;
             mb_stop();
-            anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 3, 8);
-            anim_set_reverse((Unk8029DEA0Entry *) gThunderfistAnim, 3, 0);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 3, 0);
-            anim_play((Unk8029DEA0Entry *) gThunderfistAnim, 3, 1);
+            anim_set_speed((AnimChannel *) gThunderfistAnim, 3, 8);
+            anim_set_reverse((AnimChannel *) gThunderfistAnim, 3, 0);
+            anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 3, 0);
+            anim_play((AnimChannel *) gThunderfistAnim, 3, 1);
             gThunderfistState[0xA1] = 4;
             return;
 
@@ -720,8 +720,8 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
                 return;
             }
             gVehAttacking = 1;
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 1, 0);
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 5, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 5, 0);
             gThunderfistState[0xA1] = 0;
             return;
 

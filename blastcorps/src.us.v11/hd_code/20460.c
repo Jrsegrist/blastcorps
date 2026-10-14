@@ -14,23 +14,23 @@
 /* The people: a pool of 20 little people who run out of a destroyed object
  * (people_spawn, from obj_spawn_people), wait inside a box, walk away from
  * the player and are picked up by the BCT chopper (type 0xFE; drawn only
- * while gHaveChopper). The old view type name Debris is a person. The audio
+ * while gHaveChopper); its record type was called Debris before. The audio
  * manager that follows is a separate file, 22EE0.c (audio.c). */
 
 typedef struct {
     /* 0x00 */ s16 x;
     /* 0x02 */ s16 y;
     /* 0x04 */ s16 z;
-    /* 0x06 */ s16 unk6; /* target x */
-    /* 0x08 */ s16 unk8; /* target z */
-    /* 0x0A */ s16 unkA; /* box centre x */
-    /* 0x0C */ s16 unkC; /* box centre z */
-    /* 0x0E */ s16 unkE; /* box half size */
-    /* 0x10 */ s16 unk10;
+    /* 0x06 */ s16 unk6; /* run-out target x */
+    /* 0x08 */ s16 unk8; /* run-out target z */
+    /* 0x0A */ s16 unkA; /* home box centre x */
+    /* 0x0C */ s16 unkC; /* home box centre z */
+    /* 0x0E */ s16 unkE; /* home box half size */
+    /* 0x10 */ s16 unk10; /* half size of the area where the player makes them flee */
     /* 0x12 */ u8 unk12;
     /* 0x13 */ u8 unk13;
     /* 0x14 */ u8 unk14;
-    /* 0x15 */ u8 unk15; /* state: 0 free, 1/2/3/4 active, 5 homing */
+    /* 0x15 */ u8 state; /* 0 free, 5 running out, 1 idle, 4 walking away, 2 chosen for pickup, 3 boarding */
     /* 0x16 */ s16 unk16;
     /* 0x18 */ s16 unk18; /* heading, 0..0xFFF */
     /* 0x1A */ u8 unk1A;
@@ -38,9 +38,9 @@ typedef struct {
     /* 0x1C */ u8 unk1C; /* speed */
     /* 0x1D */ u8 pad1D[3];
     /* 0x20 */ f32 unk20; /* last distance to target */
-} Debris; /* size 0x24 */
+} Person; /* size 0x24 */
 
-extern Debris gPeople[20];
+extern Person gPeople[20];
 extern s16 gPeopleStepX;
 extern s16 gPeopleStepZ;
 extern s32 gChopperPickupTimer;
@@ -59,7 +59,7 @@ void people_init(s32 arg0) {
     s32 i;
 
     for (i = 0; i < 20; i++) {
-        gPeople[i].unk15 = 0;
+        gPeople[i].state = 0;
     }
     gRandSeed = osGetCount();
     gChopperPickupTimer = 99999999;
@@ -94,7 +94,7 @@ void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
         }
         found = 0;
         while (i < 20 && !found) {
-            if (gPeople[i].unk15 == 0) {
+            if (gPeople[i].state == 0) {
                 found = 1;
             } else {
                 i++;
@@ -117,7 +117,7 @@ void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
             gPeople[i].unk16 = util_rand2_range(-500, 500);
             gPeople[i].unk12 = arg4;
             gPeople[i].unk1C = 0;
-            gPeople[i].unk15 = 5;
+            gPeople[i].state = 5;
             gPeople[i].unk18 = 4000;
             gPeople[i].unk20 = 100000000.0f;
             gPeople[i].unk1B = 0;
@@ -151,7 +151,7 @@ void people_run_out(void) {
     s32 i;
 
     for (i = 0; i < 20; i++) {
-        if (gPeople[i].unk15 == 5) {
+        if (gPeople[i].state == 5) {
             dx = gPeople[i].unk6 - gPeople[i].x;
             if (dx >= 0) {
                 adx = dx;
@@ -166,7 +166,7 @@ void people_run_out(void) {
             }
             dist = util_dist2d(gPeople[i].unk6, gPeople[i].unk8, gPeople[i].x, gPeople[i].z);
             if (dist < 1.0 || gPeople[i].unk20 < dist) {
-                gPeople[i].unk15 = 1;
+                gPeople[i].state = 1;
             } else {
                 gPeople[i].unk20 = dist;
                 sx = adx / dist * 5.0f;
@@ -200,7 +200,7 @@ void people_flee(void) {
     s32 d2;
 
     for (i = 0; i < 20; i++) {
-        if ((gPeople[i].unk15 == 1 || gPeople[i].unk15 == 4 || gPeople[i].unk15 == 2) && people_player_near(i)) {
+        if ((gPeople[i].state == 1 || gPeople[i].state == 4 || gPeople[i].state == 2) && people_player_near(i)) {
             people_step(i);
             x = gPeople[i].x + gPeopleStepX;
             z = gPeople[i].z + gPeopleStepZ;
@@ -259,15 +259,15 @@ void people_flee(void) {
                 }
                 gPeople[i].unk1A = 1;
             }
-            if (i == 1 && gPeople[i].unk15 != 4) {
+            if (i == 1 && gPeople[i].state != 4) {
                 snd_play(gSfxBank, 0x24, 0);
             }
-            if (gPeople[i].unk15 == 2) {
+            if (gPeople[i].state == 2) {
                 gChopperMode = 6;
             }
-            gPeople[i].unk15 = 4;
-        } else if (gPeople[i].unk15 == 4) {
-            gPeople[i].unk15 = 1;
+            gPeople[i].state = 4;
+        } else if (gPeople[i].state == 4) {
+            gPeople[i].state = 1;
         }
     }
 }
@@ -371,8 +371,8 @@ void people_dispatch_chopper(void) {
         i = 0;
         found = 0;
         while (!found) {
-            if (gPeople[i].unk15 == 2) {
-                gPeople[i].unk15 = 3;
+            if (gPeople[i].state == 2) {
+                gPeople[i].state = 3;
                 gPeople[i].unk13 = 0;
                 found = 1;
             } else {
@@ -385,18 +385,18 @@ void people_dispatch_chopper(void) {
         gChopperPickupTimer--;
         if (gChopperPickupTimer == 0) {
             gChopperMode = 6;
-            gPeople[gChopperPickupIndex].unk15 = 1;
+            gPeople[gChopperPickupIndex].state = 1;
             forced = 1;
         }
     }
     if (gChopperMode == 0) {
         for (i = 0; i < 20; i++) {
-            if (gPeople[i].unk15 == 3) {
-                gPeople[i].unk15 = 0;
+            if (gPeople[i].state == 3) {
+                gPeople[i].state = 0;
             }
         }
         for (i = 0; i < 20; i++) {
-            if (gPeople[i].unk15 == 1) {
+            if (gPeople[i].state == 1) {
                 d = util_dist2d(gChopperX, gChopperZ, gPeople[i].x << 5, gPeople[i].z << 5);
                 if (d < minDist) {
                     minIdx = i;
@@ -417,7 +417,7 @@ void people_dispatch_chopper(void) {
             gChopperTargetX = gPeople[i].x << 5;
             gChopperTargetZ = gPeople[i].z << 5;
             gChopperLandY = gPeople[i].y << 5;
-            gPeople[i].unk15 = 2;
+            gPeople[i].state = 2;
             gChopperPickupTimer = 600;
             gChopperMode = 1;
             gChopperPickupIndex = i;
@@ -452,7 +452,7 @@ typedef struct DynBuf {
     Vtx vtx[1];
 } DynBuf;
 
-extern Debris gPeople[20];
+extern Person gPeople[20];
 extern Vtx D_802E9FB0[4];
 extern u16 D_802E9FF0[];
 extern u16 D_802EA4F0[], D_802EA9F0[], D_802EAEF0[], D_802EB3F0[], D_802EB8F0[], D_802EBDF0[];
@@ -500,7 +500,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     for (i = 0; i < 20; i++) {
         if (people_is_visible(&gPeople[i]) &&
-            (gPeople[i].unk15 == 1 || gPeople[i].unk15 == 2 || (gPeople[i].unk15 == 4 && gPeople[i].unk1C == 0))) {
+            (gPeople[i].state == 1 || gPeople[i].state == 2 || (gPeople[i].state == 4 && gPeople[i].unk1C == 0))) {
             gPeople[i].unk14++;
             if (gPeople[i].unk14 >= 6) {
                 gPeople[i].unk13++;
@@ -533,7 +533,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
         }
     }
     for (i = 0; i < 20; i++) {
-        if (((gPeople[i].unk15 == 4 && gPeople[i].unk1C != 0) || gPeople[i].unk15 == 5) &&
+        if (((gPeople[i].state == 4 && gPeople[i].unk1C != 0) || gPeople[i].state == 5) &&
             people_is_visible(&gPeople[i])) {
             gPeople[i].unk14 += gPeople[i].unk1C;
             if (gPeople[i].unk14 >= 11) {
@@ -623,7 +623,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
         i = 0;
         found = 0;
         while (i < 20 && !found) {
-            if (gPeople[i].unk15 == 3) {
+            if (gPeople[i].state == 3) {
                 found = 1;
                 PORT_ITAG(gdl, PORT_ITAG_MARKER, 0);
                 LOAD_TEX(osVirtualToPhysical(D_802E9FF0));

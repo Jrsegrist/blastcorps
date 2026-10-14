@@ -135,10 +135,10 @@ extern u16 gPerspNorm; /* projection scale, 65535 = 1.0 */
 extern s32 nextdma; /* queued-DMA counter (next OSIoMesg slot) */
 extern s32 no_palette_dmas; /* no_palette_dmas */
 #ifndef LEGACY_gVehicleShadows
-extern Vehicle * N64P gVehicleShadows; /* size 0xFC */
+extern VehShadow * N64P gVehicleShadows; /* size 0xFC */
 #endif
 #ifndef LEGACY_gVehicleShadowsEnd
-extern Vehicle * N64P gVehicleShadowsEnd; /* size 0xFC */
+extern VehShadow * N64P gVehicleShadowsEnd; /* size 0xFC */
 #endif
 extern u8 D_803643D4;
 extern u8 D_803643D5;
@@ -178,7 +178,7 @@ extern u8 gCurVehicle; /* the type of the vehicle the player drives (0: on foot)
 #ifndef LEGACY_gLevelSegment8
 extern u8 * N64P gLevelSegment8; /* the level file's display data (segment 8) */
 #endif
-extern u8 gVehicles[][0x74]; /* one record per loaded vehicle model (00000.c's Unk74) */
+extern u8 gVehicles[][0x74]; /* one record per loaded vehicle model (00000.c's VehRecord) */
 #ifndef LEGACY_gVehiclesEnd
 extern u8 * N64P gVehiclesEnd; /* one past the last record in use */
 #endif
@@ -261,7 +261,7 @@ extern u8 D_8036B965;
 extern s32 gRandSeed;
 extern u8 D_8036B971;
 #ifndef LEGACY_D_8036B974
-extern struct Unk802C1DD0Entry * N64P D_8036B974; /* size 0x14 */
+extern struct LevelObject * N64P D_8036B974; /* size 0x14 */
 #endif
 extern char D_8036B9A8[]; /* status screen lines, 0x20 each */
 extern u16 yoshiSelection;

@@ -74,32 +74,32 @@ void shuttle_spawn(u8 *hdr) {
     D_803FCD7A = 0;
     D_803FCD78 = 0;
     D_803FCD79 = 0;
-    anim_init_model((u32 *) gShuttleMtxB, (u32 *) gShuttleMtxA, (Unk8029DEA0Entry *) gShuttleAnim, gShuttleModel);
-    anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 0, 100);
-    anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gShuttleAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 0, 1);
-    anim_update_model(gShuttleMtxA, gShuttleMtxB, (Unk8029DEA0Entry *) gShuttleAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gShuttleAnim);
-    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 0, 1);
-    anim_update_model(gShuttleMtxB, gShuttleMtxA, (Unk8029DEA0Entry *) gShuttleAnim);
+    anim_init_model((u32 *) gShuttleMtxB, (u32 *) gShuttleMtxA, (AnimChannel *) gShuttleAnim, gShuttleModel);
+    anim_set_speed((AnimChannel *) gShuttleAnim, 0, 100);
+    anim_set_reverse((AnimChannel *) gShuttleAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gShuttleAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gShuttleAnim, 0, 0);
+    anim_play((AnimChannel *) gShuttleAnim, 0, 1);
+    anim_update_model(gShuttleMtxA, gShuttleMtxB, (AnimChannel *) gShuttleAnim);
+    anim_rewind(0, (AnimChannel *) gShuttleAnim);
+    anim_play((AnimChannel *) gShuttleAnim, 0, 1);
+    anim_update_model(gShuttleMtxB, gShuttleMtxA, (AnimChannel *) gShuttleAnim);
     if (D_803FCD75 == 0) {
         snd = snd_play(gSfxBank, 0x6A, &gShuttleSound);
         snd_modify(snd, 8, 0);
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 2, 1);
+        anim_set_frame(0.0f, (AnimChannel *) gShuttleAnim, 2, 1);
     } else {
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 2, 0);
+        anim_set_frame(0.0f, (AnimChannel *) gShuttleAnim, 2, 0);
     }
-    anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 2, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gShuttleAnim, 2, 1);
-    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 2, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
-    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
-    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 1, -1);
+    anim_set_speed((AnimChannel *) gShuttleAnim, 2, 0);
+    anim_set_reverse((AnimChannel *) gShuttleAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gShuttleAnim, 2, 1);
+    anim_play((AnimChannel *) gShuttleAnim, 2, -1);
+    anim_set_speed((AnimChannel *) gShuttleAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gShuttleAnim, 1, 0);
+    anim_set_frame(0.0f, (AnimChannel *) gShuttleAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gShuttleAnim, 1, 1);
+    anim_play((AnimChannel *) gShuttleAnim, 1, -1);
     veh_add_shadow(0xFD, 120, 45, 45);
     util_shuttle_path_init();
     gShuttleState[0x9A] = 1;
@@ -140,9 +140,9 @@ void shuttle_update(void) {
         shuttle_update_events();
     }
     if (gBufferIndex != 0) {
-        anim_update_model(gShuttleMtxA, gShuttleMtxB, (Unk8029DEA0Entry *) gShuttleAnim);
+        anim_update_model(gShuttleMtxA, gShuttleMtxB, (AnimChannel *) gShuttleAnim);
     } else {
-        anim_update_model(gShuttleMtxB, gShuttleMtxA, (Unk8029DEA0Entry *) gShuttleAnim);
+        anim_update_model(gShuttleMtxB, gShuttleMtxA, (AnimChannel *) gShuttleAnim);
     }
     shuttle_build_model();
 }
@@ -270,9 +270,9 @@ void shuttle_update_events(void) {
 
     switch (gShuttlePathEvent) {
         case 2:
-            anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
-            anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
-            anim_play((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
+            anim_set_speed((AnimChannel *) gShuttleAnim, 1, 1);
+            anim_set_reverse((AnimChannel *) gShuttleAnim, 1, 0);
+            anim_play((AnimChannel *) gShuttleAnim, 1, 1);
             snd_play(gSfxBank, 0x66, NULL);
             break;
         case 3:

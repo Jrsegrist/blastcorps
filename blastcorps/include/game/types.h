@@ -59,22 +59,24 @@ typedef struct FeDyn {
     u8 unkA3A0[0x21498 - 0xA3A0];
 } FeDyn;
 
-/* 0x18-byte animation-channel entry (the -1-terminated table gTexAnims and
- * the 0x20-entry blocks built by anim_init_model; 56040.c). */
-typedef struct Unk8029DEA0Entry {
-    /* 0x00 */ s32 id;
-    /* 0x04 */ f32 unk4;
-    /* 0x08 */ f32 unk8;
-    /* 0x0C */ s16 unkC;
+/* 0x18-byte animation channel (the -1-terminated texture-animation table
+ * gTexAnims and the 32-channel blocks built by anim_init_model; 56040.c).
+ * The setters (anim_play .. anim_set_interp) show what the fields hold; the
+ * names stay unkXX because many files read these offsets through views. */
+typedef struct AnimChannel {
+    /* 0x00 */ s32 id;    /* the track (or texture animation) data */
+    /* 0x04 */ f32 unk4;  /* fraction within the frame */
+    /* 0x08 */ f32 unk8;  /* spline tension (anim_set_interp) */
+    /* 0x0C */ s16 unkC;  /* loop count / limit (anim_play, anim_set_loops; -1 = forever) */
     /* 0x0E */ s16 unkE;
-    /* 0x10 */ s8 unk10;
-    /* 0x11 */ s8 unk11;
-    /* 0x12 */ s8 unk12;
-    /* 0x13 */ s8 unk13;
-    /* 0x14 */ u8 unk14;
-    /* 0x15 */ u8 unk15;
+    /* 0x10 */ s8 unk10;  /* playing */
+    /* 0x11 */ s8 unk11;  /* reversed (anim_set_reverse) */
+    /* 0x12 */ s8 unk12;  /* loop mode: 0 wrap, 1 ping-pong (anim_set_loop_mode) */
+    /* 0x13 */ s8 unk13;  /* the current keyframe */
+    /* 0x14 */ u8 unk14;  /* speed (anim_set_speed) */
+    /* 0x15 */ u8 unk15;  /* interpolation: 0 linear, 1 spline (anim_set_interp) */
     /* 0x16 */ u8 pad16[2];
-} Unk8029DEA0Entry; /* size 0x18 */
+} AnimChannel; /* size 0x18 */
 
 /* The sound player's configuration (snd_init, 1A630.c; the ancestor of
  * GoldenEye's snd.c). */
@@ -88,13 +90,13 @@ typedef struct SndConfig {
 
 /* A vehicle's shadow record, 0x1040 bytes (gVehicleShadows / gVehicleShadowsEnd; hd.c;
  * 13A70.c reads it as its Struct13A70). */
-typedef struct Vehicle {
+typedef struct VehShadow {
     u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
-    f32 unk1000;
-    s32 unk1004; /* position, 1/32 units */
-    s32 unk1008;
-    s32 unk100C;
-    s32 unk1010;
+    f32 unk1000; /* render distance (veh_render_shadow_tex) */
+    s32 unk1004; /* position x, 1/32 units */
+    s32 unk1008; /* the floor y under it (veh_shadow_floor_y) */
+    s32 unk100C; /* z */
+    s32 unk1010; /* the render eye's y */
     u8 pad1014[4];
     s16 halfWidth; /* shadow half-width */
     s16 halfDepth; /* shadow half-depth */
@@ -104,7 +106,7 @@ typedef struct Vehicle {
     u8 type; /* the vehicle type */
     u8 layer; /* draw layer (veh_draw_shadows) */
     u8 pad1024[0x1C];
-} Vehicle; /* 0x1040 bytes */
+} VehShadow; /* 0x1040 bytes */
 
 /* A level result (D_8036EA60 best, nss this run, D_8036EA80/90). */
 typedef struct Score {
@@ -195,5 +197,18 @@ typedef struct LevelPart {
     /* 0x04 */ s32 n;       /* number of part indices used */
     /* 0x08 */ u8 idx[16];  /* indices into the record's +0xEC bytes */
 } LevelPart; /* size 0x18 */
+
+/* Layout checks: these records are read from the N64 image and by hand-written asm at fixed
+ * offsets, so their sizes must stay the original ones in every build (a mismatch makes the
+ * array size negative, a compile error).  No code comes from a typedef. */
+#define STATIC_ASSERT_SIZE(T, n) typedef char static_assert_size_##T[(sizeof(T) == (n)) ? 1 : -1]
+STATIC_ASSERT_SIZE(DynamicBuf, 0x21498);
+STATIC_ASSERT_SIZE(AnimChannel, 0x18);
+STATIC_ASSERT_SIZE(VehShadow, 0x1040);
+STATIC_ASSERT_SIZE(Score, 0x10);
+STATIC_ASSERT_SIZE(GlobeLevel, 0x30);
+STATIC_ASSERT_SIZE(EffectDef, 0x10);
+STATIC_ASSERT_SIZE(ParticleDef, 0x24);
+STATIC_ASSERT_SIZE(LevelPart, 0x18);
 
 #endif

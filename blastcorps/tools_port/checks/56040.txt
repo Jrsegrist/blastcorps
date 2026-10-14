@@ -107,7 +107,7 @@ anim_copy_mtx: -n 50 --seed 1 --heap 0x200 --arg s2=rel:heap0 --arg t5=rel:heap0
 # anim_repeat_pose (t1 = dst): copy the 10 halfwords before dst to dst, return dst + 0x14 in t1
 anim_repeat_pose: -n 200 --heap 0x200 --arg t1=rel:heap0+0x14*int:1:20
 
-# anim_play .. anim_set_interp (base in a0/v1, idx in v0, value in v1, float in f0): Unk8029DEA0Entry setters
+# anim_play .. anim_set_interp (base in a0/v1, idx in v0, value in v1, float in f0): AnimChannel setters
 anim_play: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345
 anim_stop: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
 anim_rewind: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20

@@ -110,16 +110,16 @@ void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     veh_init_ground((s16 *) (gCarrierState + 0x52), 0x7FFF, gCarrierX, gCarrierZ, (s32 *) (gCarrierState + 4),
                   &gCarrierY, (s16 *) (gCarrierState + 0x4C), 0xFF, fp, gCarrierState, &f);
     hdr = gCarrierModel;
-    anim_init_model((u32 *) gCarrierMtxB, (u32 *) gCarrierMtxA, (Unk8029DEA0Entry *) gCarrierAnim, hdr);
-    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gCarrierAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCarrierAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gCarrierAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 0, 1);
-    anim_update_model(gCarrierMtxA, gCarrierMtxB, (Unk8029DEA0Entry *) gCarrierAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gCarrierAnim);
-    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 0, 1);
-    anim_update_model(gCarrierMtxB, gCarrierMtxA, (Unk8029DEA0Entry *) gCarrierAnim);
+    anim_init_model((u32 *) gCarrierMtxB, (u32 *) gCarrierMtxA, (AnimChannel *) gCarrierAnim, hdr);
+    anim_set_speed((AnimChannel *) gCarrierAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gCarrierAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gCarrierAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gCarrierAnim, 0, 0);
+    anim_play((AnimChannel *) gCarrierAnim, 0, 1);
+    anim_update_model(gCarrierMtxA, gCarrierMtxB, (AnimChannel *) gCarrierAnim);
+    anim_rewind(0, (AnimChannel *) gCarrierAnim);
+    anim_play((AnimChannel *) gCarrierAnim, 0, 1);
+    anim_update_model(gCarrierMtxB, gCarrierMtxA, (AnimChannel *) gCarrierAnim);
     hdr = gCarrierModel;
     veh_register_parts(0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x59D8);
     veh_add_shadow(0xFF, 0x96, 0x3C, 0x3C);
@@ -132,14 +132,14 @@ void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     gCarrierState[0x9A] = 0;
     hdr = gCarrierModel;
     mtx_copy_at(gCarrierMtxB, gCarrierMtxA, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
-    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 1, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gCarrierAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCarrierAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 1, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 2, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gCarrierAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCarrierAnim, 2, 1);
-    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 2, -1);
+    anim_set_speed((AnimChannel *) gCarrierAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gCarrierAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gCarrierAnim, 1, 0);
+    anim_play((AnimChannel *) gCarrierAnim, 1, -1);
+    anim_set_speed((AnimChannel *) gCarrierAnim, 2, 0);
+    anim_set_reverse((AnimChannel *) gCarrierAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gCarrierAnim, 2, 1);
+    anim_play((AnimChannel *) gCarrierAnim, 2, -1);
     anim_tex_set_speed((s32) D_802C236C, 0x64);
     anim_tex_set_reverse((s32) D_802C236C, 0);
     anim_tex_set_loop_mode((s32) D_802C236C, 1);
@@ -353,9 +353,9 @@ void carrier_update(void) {
 
 animate:
     if (gBufferIndex != 0) {
-        anim_update_model(gCarrierMtxA, gCarrierMtxB, (Unk8029DEA0Entry *) gCarrierAnim);
+        anim_update_model(gCarrierMtxA, gCarrierMtxB, (AnimChannel *) gCarrierAnim);
     } else {
-        anim_update_model(gCarrierMtxB, gCarrierMtxA, (Unk8029DEA0Entry *) gCarrierAnim);
+        anim_update_model(gCarrierMtxB, gCarrierMtxA, (AnimChannel *) gCarrierAnim);
     }
     regs.a3 = 0;
     regs.s1 = 0;
@@ -462,7 +462,7 @@ extern s16 D_803EF6D6;   /* last speed sent to the engine sound */
 extern f32 D_8030D920;
 extern f32 D_8030D924;
 extern f32 D_8030D928;
-extern u8 gCarrierAnim[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gCarrierAnim[];  /* animation channel table (AnimChannel, 56040.c) */
 
 /* Engine pitch, wheel channel, the camera-angle channel (0x802BA6AC).
  * Engine sound and animation channels for vehicle gCarrierState (speed = s16 at
@@ -497,15 +497,15 @@ s32 carrier_update_anims(void) {
     q = a / 0x555;
     frac = (f32) (s32) (a % 0x555) / D_8030D924;
     if (q == 0) {
-        anim_set_frame(frac, (Unk8029DEA0Entry *) gCarrierAnim, 2, 0);
+        anim_set_frame(frac, (AnimChannel *) gCarrierAnim, 2, 0);
     } else if (q == 1) {
-        anim_set_frame(frac, (Unk8029DEA0Entry *) gCarrierAnim, 2, 1);
+        anim_set_frame(frac, (AnimChannel *) gCarrierAnim, 2, 1);
     } else {
-        anim_set_frame(frac, (Unk8029DEA0Entry *) gCarrierAnim, 2, 2);
+        anim_set_frame(frac, (AnimChannel *) gCarrierAnim, 2, 2);
     }
     v = gPaused != 0 ? 0 : *(s16 *) (gCarrierState + 0x76);
     CVT_W_S(v, (f32) v * D_8030D928);
-    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 1, v);
+    anim_set_speed((AnimChannel *) gCarrierAnim, 1, v);
     return q;
 }
 #else
@@ -596,7 +596,7 @@ void carrier_check_crash(s32 h2) {
     }
     if (D_803643D8 == 0) {
         hud_panel_stop();
-        anim_stop(1, (Unk8029DEA0Entry *) gCarrierAnim);
+        anim_stop(1, (AnimChannel *) gCarrierAnim);
         fx_finish_all();
         obj_clear_effect_queue();
     }
@@ -758,16 +758,16 @@ void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     veh_init_ground((s16 *) (gCraneState + 0x52), gCranePos[1], x, z, (s32 *) (gCraneState + 4),
                   (s32 *) &gCranePos[1], (s16 *) (gCraneState + 0x4C), 6, fp, gCraneState, &f);
     hdr = gCraneModel;
-    anim_init_model((u32 *) gCraneMtxB, (u32 *) gCraneMtxA, (Unk8029DEA0Entry *) gCraneAnim, hdr);
-    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gCraneAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gCraneAnim, 0, 1);
-    anim_update_model((u8 *) gCraneMtxA, (u8 *) gCraneMtxB, (Unk8029DEA0Entry *) gCraneAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gCraneAnim);
-    anim_play((Unk8029DEA0Entry *) gCraneAnim, 0, 1);
-    anim_update_model((u8 *) gCraneMtxB, (u8 *) gCraneMtxA, (Unk8029DEA0Entry *) gCraneAnim);
+    anim_init_model((u32 *) gCraneMtxB, (u32 *) gCraneMtxA, (AnimChannel *) gCraneAnim, hdr);
+    anim_set_speed((AnimChannel *) gCraneAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gCraneAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gCraneAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gCraneAnim, 0, 0);
+    anim_play((AnimChannel *) gCraneAnim, 0, 1);
+    anim_update_model((u8 *) gCraneMtxA, (u8 *) gCraneMtxB, (AnimChannel *) gCraneAnim);
+    anim_rewind(0, (AnimChannel *) gCraneAnim);
+    anim_play((AnimChannel *) gCraneAnim, 0, 1);
+    anim_update_model((u8 *) gCraneMtxB, (u8 *) gCraneMtxA, (AnimChannel *) gCraneAnim);
     gCraneState[0xA1] = 0;
     gCraneState[0xA2] = 0;
     hdr = gCraneModel;
@@ -785,7 +785,7 @@ void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 gCraneAnim[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gCraneAnim[];  /* animation channel table (AnimChannel, 56040.c) */
 
 /* Getting into the crane (0x802BB054).
  * Enter vehicle type 6 (called from hd.c): gCamDistance / gCamHeightBase = 6000, 9000, then
@@ -796,17 +796,17 @@ extern u8 gCraneAnim[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) 
 void crane_enter(void) {
     gCamDistance = 6000;
     gCamHeightBase = 9000;
-    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
-    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
-    anim_play((Unk8029DEA0Entry *) gCraneAnim, 4, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
-    anim_play((Unk8029DEA0Entry *) gCraneAnim, 5, -1);
+    anim_set_speed((AnimChannel *) gCraneAnim, 2, 1);
+    anim_set_reverse((AnimChannel *) gCraneAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gCraneAnim, 2, 1);
+    anim_set_speed((AnimChannel *) gCraneAnim, 4, 0);
+    anim_set_reverse((AnimChannel *) gCraneAnim, 4, 0);
+    anim_set_loop_mode((AnimChannel *) gCraneAnim, 4, 0);
+    anim_play((AnimChannel *) gCraneAnim, 4, -1);
+    anim_set_speed((AnimChannel *) gCraneAnim, 5, 0);
+    anim_set_reverse((AnimChannel *) gCraneAnim, 5, 0);
+    anim_set_loop_mode((AnimChannel *) gCraneAnim, 5, 1);
+    anim_play((AnimChannel *) gCraneAnim, 5, -1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_enter.s")
@@ -933,9 +933,9 @@ void crane_update(void) {
     veh_update_stand_on(gCranePos[0], gCranePos[2], (s16 *) (gCraneState + 0x5E), (s16 *) (gCraneState + 0x4C),
                   (s32 *) (gCraneState + 4), 6, gCraneState, 0, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gCraneMtxA, (u8 *) gCraneMtxB, (Unk8029DEA0Entry *) gCraneAnim);
+        anim_update_model((u8 *) gCraneMtxA, (u8 *) gCraneMtxB, (AnimChannel *) gCraneAnim);
     } else {
-        anim_update_model((u8 *) gCraneMtxB, (u8 *) gCraneMtxA, (Unk8029DEA0Entry *) gCraneAnim);
+        anim_update_model((u8 *) gCraneMtxB, (u8 *) gCraneMtxA, (AnimChannel *) gCraneAnim);
     }
     regs.a3 = 0;
     regs.s1 = 0;
@@ -971,7 +971,7 @@ s32 crane_part_on_ground(void);
 
 /* A/B, Left/Right and L/R drive channels 5, 4 and 2 with sounds (0x802BB4C0).
  * Animation channels and sounds of vehicle type 6 ($gp = gCraneState, read as
- * the global; channels in gCraneAnim, an Unk8029DEA0Entry table).
+ * the global; channels in gCraneAnim, an AnimChannel table).
  * - Byte +0xA2 set: channels 5, 4 off (unk14 = 0), channel 2 unk11 = 0 and
  *   restarted (anim_play), +0xA1 = 1.
  * - Otherwise channel 5 follows input gHeldA while its unk4 <= D_8030D930
@@ -996,25 +996,25 @@ void crane_update_controls(void) {
     s32 r;
 
     if (gCraneState[0xA2] != 0) {
-        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
-        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
-        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 2, 0);
-        anim_play((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+        anim_set_speed((AnimChannel *) gCraneAnim, 5, 0);
+        anim_set_speed((AnimChannel *) gCraneAnim, 4, 0);
+        anim_set_reverse((AnimChannel *) gCraneAnim, 2, 0);
+        anim_play((AnimChannel *) gCraneAnim, 2, 1);
         gCraneState[0xA1] = 1;
         goto check2;
     }
 
-    if (gHeldA != 0 && (anim_get_state(5, (Unk8029DEA0Entry *) gCraneAnim, e), ((f32 *) e)[7] <= D_8030D930)) {
-        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
-        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
+    if (gHeldA != 0 && (anim_get_state(5, (AnimChannel *) gCraneAnim, e), ((f32 *) e)[7] <= D_8030D930)) {
+        anim_set_reverse((AnimChannel *) gCraneAnim, 5, 0);
+        anim_set_speed((AnimChannel *) gCraneAnim, 5, 1);
         goto start5;
     }
-    if (gHeldB != 0 && (anim_get_state(5, (Unk8029DEA0Entry *) gCraneAnim, e), !(((f32 *) e)[7] < D_8030D934))) {
-        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
-        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
+    if (gHeldB != 0 && (anim_get_state(5, (AnimChannel *) gCraneAnim, e), !(((f32 *) e)[7] < D_8030D934))) {
+        anim_set_reverse((AnimChannel *) gCraneAnim, 5, 1);
+        anim_set_speed((AnimChannel *) gCraneAnim, 5, 1);
         goto start5;
     }
-    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
+    anim_set_speed((AnimChannel *) gCraneAnim, 5, 0);
     if (gCraneArmSound != NULL) {
         snd_stop(gCraneArmSound);
     }
@@ -1026,13 +1026,13 @@ start5:
 
 chan4:
     if (gHeldLeft != 0) {
-        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
-        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 1);
+        anim_set_reverse((AnimChannel *) gCraneAnim, 4, 0);
+        anim_set_speed((AnimChannel *) gCraneAnim, 4, 1);
     } else if (gHeldRight != 0) {
-        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 4, 1);
-        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 1);
+        anim_set_reverse((AnimChannel *) gCraneAnim, 4, 1);
+        anim_set_speed((AnimChannel *) gCraneAnim, 4, 1);
     } else {
-        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
+        anim_set_speed((AnimChannel *) gCraneAnim, 4, 0);
         if (gCraneSwingSound != NULL) {
             snd_stop(gCraneSwingSound);
         }
@@ -1044,15 +1044,15 @@ chan4:
 
 ground:
     if (crane_part_on_ground() != 0) {
-        anim_get_state(2, (Unk8029DEA0Entry *) gCraneAnim, e);
+        anim_get_state(2, (AnimChannel *) gCraneAnim, e);
         if (e[6] == 1) {
             CVT_W_S(r, ((f32 *) e)[7] * 100.0f);
             if (r == 100) {
                 goto check2;
             }
         }
-        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 2, 0);
-        anim_play((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+        anim_set_reverse((AnimChannel *) gCraneAnim, 2, 0);
+        anim_play((AnimChannel *) gCraneAnim, 2, 1);
         gCraneState[0xA1] = 1;
     } else {
         if (gCraneState[0xA1] != 0) {
@@ -1064,13 +1064,13 @@ ground:
         if (gCraneActionSound == NULL) {
             snd_play(gSfxBank, 0x6D, &gCraneActionSound);
         }
-        anim_play((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+        anim_play((AnimChannel *) gCraneAnim, 2, 1);
         gCraneState[0xA1] = 1;
         return;
     }
 
 check2:
-    anim_get_state(2, (Unk8029DEA0Entry *) gCraneAnim, e);
+    anim_get_state(2, (AnimChannel *) gCraneAnim, e);
     if (e[0] != 1) {
         gCraneState[0xA1] = 0;
         if (gCraneActionSound != NULL) {
@@ -1174,7 +1174,7 @@ s32 crane_build_model(MtxChainRegs *regs, s32 *t2Out) {
     hdr = gCraneModel;
     veh_deck_transform(6, (u16 *) (hdr + *(s32 *) (hdr + 8)), buf, regs, &verts);
     hdr = gCraneModel;
-    veh_update_tris(*(u16 *) (gCraneState + 0x4C), (Unk8029DEA0Entry *) gCraneAnim, gCranePos[0], gCranePos[2], 6,
+    veh_update_tris(*(u16 *) (gCraneState + 0x4C), (AnimChannel *) gCraneAnim, gCranePos[0], gCranePos[2], 6,
                   hdr + *(s32 *) (hdr + 0xC), buf);
     *t2Out = 6;
     return gCranePos[0];

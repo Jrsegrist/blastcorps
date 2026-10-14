@@ -29,7 +29,7 @@ void chopper_build_model(void);
 void chopper_fly(void);
 f32 chopper_update_anims(void);
 void chopper_update_shadow(s32 t3, s32 fp, TriSideOut *f);
-extern u8 gChopperAnim[]; /* the flying vehicle's animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gChopperAnim[]; /* the flying vehicle's animation channel table (AnimChannel, 56040.c) */
 extern u8 gChopperState[]; /* the flying vehicle's state block */
 extern u8 * N64P gChopperModel;  /* its model header */
 extern u8 * N64P gChopperMtxA;  /* its model buffers */
@@ -121,16 +121,16 @@ void amdream_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     VEH8_S16(0x74) = heading;
     veh_init_ground((s16 *) (gAmdreamState + 0x52), gAmdreamPos[1], x, z, (s32 *) (gAmdreamState + 4),
                   (s32 *) &gAmdreamPos[1], (s16 *) (gAmdreamState + 0x4C), 8, fp, gAmdreamState, f);
-    anim_init_model((u32 *) gAmdreamMtxB, (u32 *) gAmdreamMtxA, (Unk8029DEA0Entry *) gAmdreamAnim, gAmdreamModel);
-    anim_set_speed((Unk8029DEA0Entry *) gAmdreamAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gAmdreamAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gAmdreamAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gAmdreamAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gAmdreamAnim, 0, 1);
-    anim_update_model((u8 *) gAmdreamMtxA, (u8 *) gAmdreamMtxB, (Unk8029DEA0Entry *) gAmdreamAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gAmdreamAnim);
-    anim_play((Unk8029DEA0Entry *) gAmdreamAnim, 0, 1);
-    anim_update_model((u8 *) gAmdreamMtxB, (u8 *) gAmdreamMtxA, (Unk8029DEA0Entry *) gAmdreamAnim);
+    anim_init_model((u32 *) gAmdreamMtxB, (u32 *) gAmdreamMtxA, (AnimChannel *) gAmdreamAnim, gAmdreamModel);
+    anim_set_speed((AnimChannel *) gAmdreamAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gAmdreamAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gAmdreamAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gAmdreamAnim, 0, 0);
+    anim_play((AnimChannel *) gAmdreamAnim, 0, 1);
+    anim_update_model((u8 *) gAmdreamMtxA, (u8 *) gAmdreamMtxB, (AnimChannel *) gAmdreamAnim);
+    anim_rewind(0, (AnimChannel *) gAmdreamAnim);
+    anim_play((AnimChannel *) gAmdreamAnim, 0, 1);
+    anim_update_model((u8 *) gAmdreamMtxB, (u8 *) gAmdreamMtxA, (AnimChannel *) gAmdreamAnim);
     h = (s16 *) (gAmdreamState + 0x78);
     h[0] = -0xB4;
     h[1] = 0;
@@ -485,9 +485,9 @@ void amdream_update(void) {
                   (s32 *) (gAmdreamState + 0x28), (s32 *) (gAmdreamState + 0x40), (s32 *) (gAmdreamState + 0x34),
                   (s32 *) (gAmdreamState + 4), &rr, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gAmdreamMtxA, (u8 *) gAmdreamMtxB, (Unk8029DEA0Entry *) gAmdreamAnim);
+        anim_update_model((u8 *) gAmdreamMtxA, (u8 *) gAmdreamMtxB, (AnimChannel *) gAmdreamAnim);
     } else {
-        anim_update_model((u8 *) gAmdreamMtxB, (u8 *) gAmdreamMtxA, (Unk8029DEA0Entry *) gAmdreamAnim);
+        anim_update_model((u8 *) gAmdreamMtxB, (u8 *) gAmdreamMtxA, (AnimChannel *) gAmdreamAnim);
     }
     amdream_build_model();
     veh_collision_setup(gAmdreamPos[2], (s32) D_80305D30, 1, 1, gAmdreamPos[0], gAmdreamPos[1], 7, VEH8_S16(0x76), 0x96, 0,
@@ -726,26 +726,26 @@ void chopper_spawn(s32 a1Val, u8 *hdr) {
     *(s16 *) (gChopperState + 0x76) = 0x14;
     D_803EF2E6 = 0;
     D_803EF328 = 0;
-    anim_init_model((u32 *) gChopperMtxB, (u32 *) gChopperMtxA, (Unk8029DEA0Entry *) gChopperAnim, gChopperModel);
-    anim_set_speed((Unk8029DEA0Entry *) gChopperAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gChopperAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gChopperAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gChopperAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gChopperAnim, 0, 1);
-    anim_update_model(gChopperMtxA, gChopperMtxB, (Unk8029DEA0Entry *) gChopperAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gChopperAnim);
-    anim_play((Unk8029DEA0Entry *) gChopperAnim, 0, 1);
-    anim_update_model(gChopperMtxB, gChopperMtxA, (Unk8029DEA0Entry *) gChopperAnim);
-    anim_set_speed((Unk8029DEA0Entry *) gChopperAnim, 1, 9);
-    anim_set_reverse((Unk8029DEA0Entry *) gChopperAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gChopperAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gChopperAnim, 1, -1);
-    anim_play((Unk8029DEA0Entry *) gChopperAnim, 2, -1);
-    anim_play((Unk8029DEA0Entry *) gChopperAnim, 3, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
-    anim_set_reverse((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
-    anim_play((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
+    anim_init_model((u32 *) gChopperMtxB, (u32 *) gChopperMtxA, (AnimChannel *) gChopperAnim, gChopperModel);
+    anim_set_speed((AnimChannel *) gChopperAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gChopperAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gChopperAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gChopperAnim, 0, 0);
+    anim_play((AnimChannel *) gChopperAnim, 0, 1);
+    anim_update_model(gChopperMtxA, gChopperMtxB, (AnimChannel *) gChopperAnim);
+    anim_rewind(0, (AnimChannel *) gChopperAnim);
+    anim_play((AnimChannel *) gChopperAnim, 0, 1);
+    anim_update_model(gChopperMtxB, gChopperMtxA, (AnimChannel *) gChopperAnim);
+    anim_set_speed((AnimChannel *) gChopperAnim, 1, 9);
+    anim_set_reverse((AnimChannel *) gChopperAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gChopperAnim, 1, 0);
+    anim_play((AnimChannel *) gChopperAnim, 1, -1);
+    anim_play((AnimChannel *) gChopperAnim, 2, -1);
+    anim_play((AnimChannel *) gChopperAnim, 3, -1);
+    anim_set_speed((AnimChannel *) gChopperAnim, 4, 1);
+    anim_set_reverse((AnimChannel *) gChopperAnim, 4, 1);
+    anim_set_loop_mode((AnimChannel *) gChopperAnim, 4, 1);
+    anim_play((AnimChannel *) gChopperAnim, 4, 1);
     gChopperMode = 0;
     gChopperTurn = 0;
     gChopperTouchdown = 0;
@@ -831,9 +831,9 @@ void chopper_update(void) {
     chopper_fly();
     chopper_update_anims();
     if (gBufferIndex != 0) {
-        anim_update_model(gChopperMtxA, gChopperMtxB, (Unk8029DEA0Entry *) gChopperAnim);
+        anim_update_model(gChopperMtxA, gChopperMtxB, (AnimChannel *) gChopperAnim);
     } else {
-        anim_update_model(gChopperMtxB, gChopperMtxA, (Unk8029DEA0Entry *) gChopperAnim);
+        anim_update_model(gChopperMtxB, gChopperMtxA, (AnimChannel *) gChopperAnim);
     }
     chopper_build_model();
     veh_find_point(0xFE, 1, &rec);
@@ -914,7 +914,7 @@ void chopper_update_shadow(s32 t3, s32 fp, TriSideOut *f) {
 extern s32 D_803EF320; /* best distance so far */
 extern s16 gChopperTurn; /* turn rate */
 extern char D_80305D40[];
-extern u8 gChopperAnim[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gChopperAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 s32 chopper_target_distance(void);
 
 #define VEH8D04_S16(off) (*(s16 *) (gChopperState + (off)))
@@ -1084,7 +1084,7 @@ static void port_state4(void) {
         gChopperY = port_approach_14(gChopperY, target);
         return;
     }
-    anim_get_state(4, (Unk8029DEA0Entry *) gChopperAnim, out);
+    anim_get_state(4, (AnimChannel *) gChopperAnim, out);
     if (out[0] == 1) {
         return;
     }
@@ -1101,7 +1101,7 @@ static void port_state4(void) {
         }
     }
     gChopperMode = 5;
-    anim_play((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
+    anim_play((AnimChannel *) gChopperAnim, 4, 1);
 }
 
 /* Its state machine on gChopperMode (approach, land, climb) (0x802B8D04).
@@ -1140,10 +1140,10 @@ void chopper_fly(void) {
     switch (gChopperMode) {
         default: /* syscall */
         case 6:
-            anim_get_state(4, (Unk8029DEA0Entry *) gChopperAnim, out);
+            anim_get_state(4, (AnimChannel *) gChopperAnim, out);
             if (!(*(f32 *) &out[7] == 0.0f)) {
-                anim_set_reverse((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
-                anim_play((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
+                anim_set_reverse((AnimChannel *) gChopperAnim, 4, 1);
+                anim_play((AnimChannel *) gChopperAnim, 4, 1);
             }
             gChopperMode = 0;
             /* fallthrough */
@@ -1180,14 +1180,14 @@ void chopper_fly(void) {
                 gChopperX = gChopperTargetX;
                 gChopperZ = gChopperTargetZ;
                 gChopperMode = 4;
-                anim_play((Unk8029DEA0Entry *) gChopperAnim, 4, 1);
+                anim_play((AnimChannel *) gChopperAnim, 4, 1);
             }
             goto tail;
         case 4:
             port_state4();
             goto tail;
         case 5:
-            anim_get_state(4, (Unk8029DEA0Entry *) gChopperAnim, out);
+            anim_get_state(4, (AnimChannel *) gChopperAnim, out);
             if (out[0] != 1) {
                 D_803EF32E = 1;
             }
@@ -1243,7 +1243,7 @@ extern s16 D_803EF2E6;  /* last value sent to the sound */
 extern s16 gChopperTurn;
 extern f32 D_8030D910;
 extern f32 D_8030D914;
-extern u8 gChopperAnim[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gChopperAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 
 /* Engine pitch and channels 2/3 from speed and turn (0x802B98E0).
  * Sound and animation channels for vehicle gChopperState (the asm's $gp; s16 at
@@ -1267,15 +1267,15 @@ f32 chopper_update_anims(void) {
 
         snd_modify(gChopperSound, 0x10, *(s32 *) &p);
     }
-    anim_set_frame(ratio, (Unk8029DEA0Entry *) gChopperAnim, 2, 0);
+    anim_set_frame(ratio, (AnimChannel *) gChopperAnim, 2, 0);
     t = gChopperTurn;
     if (t == 1 || t == -1) {
         t = 0;
     }
     if (t >= 0) {
-        anim_set_frame((f32) (0x20 - t) / 64.0f, (Unk8029DEA0Entry *) gChopperAnim, 3, 0);
+        anim_set_frame((f32) (0x20 - t) / 64.0f, (AnimChannel *) gChopperAnim, 3, 0);
     } else {
-        anim_set_frame((f32) -t / 64.0f + 0.5f, (Unk8029DEA0Entry *) gChopperAnim, 3, 0);
+        anim_set_frame((f32) -t / 64.0f + 0.5f, (AnimChannel *) gChopperAnim, 3, 0);
     }
     return ratio;
 }

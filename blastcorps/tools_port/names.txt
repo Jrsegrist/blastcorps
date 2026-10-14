@@ -178,7 +178,7 @@ D_803C30A8 = gVisibleCells
 D_80364460 = gVehicles                 # 0x74-byte records, one per loaded vehicle model; +0x5C = type
 D_803649D0 = gVehiclesEnd              # one past the last record in use
 D_80364456 = gCurVehicle               # the type of the vehicle the player drives (0 = on foot)
-D_803643C8 = gVehicleShadows           # Vehicle (0x1040-byte shadow records), 64-aligned on the heap
+D_803643C8 = gVehicleShadows           # VehShadow (0x1040-byte shadow records), 64-aligned on the heap
 D_803643CC = gVehicleShadowsEnd
 D_803643E0 = gPlayerX                  # the player's position (the camera's subject), 1/32 units
 D_803643E4 = gPlayerY
@@ -277,7 +277,7 @@ func_8025BBE8 = rec_record             # recording.c: this frame's pad into the 
 func_8025BEF8 = rec_next               # recording.c: the next recorded pad into gRecButtons
 
 # --- 5. the level objects (buildings and other destructible objects, 77E20.c) ---
-D_803F4030 = gObjects                  # 0xFC-byte records (77E20.c's Unk802C1DD0Entry), one per placed object
+D_803F4030 = gObjects                  # 0xFC-byte records (77E20.c's LevelObject), one per placed object
 D_803F7654 = gObjectsEnd               # one past the last record in use
 func_802BD1F8 = obj_draw_all           # the visible objects (gVisibleCells) into the scene and per-object lists
 func_802BCE40 = obj_find_nearest_target # the closest target object / table entry to the player
@@ -2425,3 +2425,17 @@ D_80368058 = gAudioPrevFrameStart
 D_80368060 = gAudioFrameStart
 D_80368068 = gAudioFrameEnd
 D_803156A4 = gAudioPreempt                   # never written (always 0)
+
+# --- 11. types and fields (renamed by hand; listed for reference) ---
+# types: Vehicle -> VehShadow (the 0x1040-byte shadow record), Unk74 -> VehRecord (gVehicles),
+#   Unk8029DEA0Entry -> AnimChannel, Unk802C1DD0Entry -> LevelObject, Unk802C1DD0Info -> ObjectModel,
+#   Unk802BD99CModel -> LevelObjectHead, Unk803B9890 -> CollisionTri, Unk803EFED0 -> SinkingPart,
+#   Unk803F3FF8 -> EffectSpawn; file views: 20460.c Debris -> Person; 26570.c YoshiNode -> RduRecord,
+#   YoshiSnd -> SpriteAnim, PathInfo -> TargetBuilding, YoshiArg -> YoshiWindow, YoshiTrigger ->
+#   YoshiHintList, PathNode -> YoshiItem (also 23C20.c, 45BB0.c)
+field LevelObject.unkE8 = cell
+field LevelObject.unkE9 = numParts
+field LevelObject.unkEA = destroyed
+field LevelObject.unkEB = pathBuilding
+field VehRecord.active = onMovingPart
+field Person.unk15 = state

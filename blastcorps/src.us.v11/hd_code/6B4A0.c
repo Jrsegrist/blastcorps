@@ -126,16 +126,16 @@ static void port_veh_init_anim(u8 *veh, PortVehPos *p, s32 id, u8 *ch, const s16
                   veh, &f);
     a = p->bufA;
     b = p->bufB;
-    anim_init_model((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) ch, p->model);
-    anim_set_speed((Unk8029DEA0Entry *) ch, 0, 100);
-    anim_set_reverse((Unk8029DEA0Entry *) ch, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) ch, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) ch, 0, 0);
-    anim_play((Unk8029DEA0Entry *) ch, 0, 1);
-    anim_update_model((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) ch);
-    anim_rewind(0, (Unk8029DEA0Entry *) ch);
-    anim_play((Unk8029DEA0Entry *) ch, 0, 1);
-    anim_update_model((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) ch);
+    anim_init_model((u32 *) b, (u32 *) a, (AnimChannel *) ch, p->model);
+    anim_set_speed((AnimChannel *) ch, 0, 100);
+    anim_set_reverse((AnimChannel *) ch, 0, 0);
+    anim_set_loop_mode((AnimChannel *) ch, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) ch, 0, 0);
+    anim_play((AnimChannel *) ch, 0, 1);
+    anim_update_model((u8 *) a, (u8 *) b, (AnimChannel *) ch);
+    anim_rewind(0, (AnimChannel *) ch);
+    anim_play((AnimChannel *) ch, 0, 1);
+    anim_update_model((u8 *) b, (u8 *) a, (AnimChannel *) ch);
     for (i = 0; i < 15; i++) {
         VEH_S16(veh, 0x78 + i * 2) = bands[i];
     }
@@ -192,9 +192,9 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
                   (s16 *) (veh + 0x52), (s32 *) (veh + 0x28), (s32 *) (veh + 0x40), (s32 *) (veh + 0x34),
                   (s32 *) (veh + 4), &r8, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) p->bufA, (u8 *) p->bufB, (Unk8029DEA0Entry *) ch);
+        anim_update_model((u8 *) p->bufA, (u8 *) p->bufB, (AnimChannel *) ch);
     } else {
-        anim_update_model((u8 *) p->bufB, (u8 *) p->bufA, (Unk8029DEA0Entry *) ch);
+        anim_update_model((u8 *) p->bufB, (u8 *) p->bufA, (AnimChannel *) ch);
     }
     /* s0/s1: anim_update_model's leftovers in the asm (register leak). */
     mc.s0 = 0;
@@ -292,7 +292,7 @@ void sideswipe_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 gSideswipeState[]; /* this vehicle's state block */
-extern u8 gSideswipeAnim[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gSideswipeAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 extern u8 D_802C2390[]; /* key of this vehicle's anim_tex_find entry */
 
 /* Getting into Sideswipe (0x802AFFD4).
@@ -306,25 +306,25 @@ extern u8 D_802C2390[]; /* key of this vehicle's anim_tex_find entry */
  * (the last setter's v1); C callers ignore both. */
 void sideswipe_enter(void) {
     gSideswipeState[0x99] = 0;
-    anim_set_speed((Unk8029DEA0Entry *) gSideswipeAnim, 1, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gSideswipeAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gSideswipeAnim, 1, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gSideswipeAnim, 2, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gSideswipeAnim, 2, 0);
-    anim_play((Unk8029DEA0Entry *) gSideswipeAnim, 2, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gSideswipeAnim, 5, 7);
-    anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 5, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gSideswipeAnim, 5, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gSideswipeAnim, 3, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 3, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gSideswipeAnim, 3, 1);
-    anim_play((Unk8029DEA0Entry *) gSideswipeAnim, 3, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gSideswipeAnim, 2, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gSideswipeAnim, 2, 1);
-    anim_play((Unk8029DEA0Entry *) gSideswipeAnim, 2, -1);
+    anim_set_speed((AnimChannel *) gSideswipeAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gSideswipeAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gSideswipeAnim, 1, 0);
+    anim_play((AnimChannel *) gSideswipeAnim, 1, -1);
+    anim_set_speed((AnimChannel *) gSideswipeAnim, 2, 0);
+    anim_set_reverse((AnimChannel *) gSideswipeAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gSideswipeAnim, 2, 0);
+    anim_play((AnimChannel *) gSideswipeAnim, 2, -1);
+    anim_set_speed((AnimChannel *) gSideswipeAnim, 5, 7);
+    anim_set_reverse((AnimChannel *) gSideswipeAnim, 5, 0);
+    anim_set_loop_mode((AnimChannel *) gSideswipeAnim, 5, 1);
+    anim_set_speed((AnimChannel *) gSideswipeAnim, 3, 0);
+    anim_set_reverse((AnimChannel *) gSideswipeAnim, 3, 0);
+    anim_set_loop_mode((AnimChannel *) gSideswipeAnim, 3, 1);
+    anim_play((AnimChannel *) gSideswipeAnim, 3, -1);
+    anim_set_speed((AnimChannel *) gSideswipeAnim, 2, 0);
+    anim_set_reverse((AnimChannel *) gSideswipeAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gSideswipeAnim, 2, 1);
+    anim_play((AnimChannel *) gSideswipeAnim, 2, -1);
     anim_tex_set_speed((s32) D_802C2390, 100);
     anim_tex_set_reverse((s32) D_802C2390, 0);
     anim_tex_set_loop_mode((s32) D_802C2390, 1);
@@ -340,7 +340,7 @@ void sideswipe_enter(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 gSideswipeState[]; /* this vehicle's state block */
-extern u8 gSideswipeAnim[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gSideswipeAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 /* Reads channel idx of base into out[0..7] (56040.c; asm convention in
  * tools_port/conventions.txt): out[0] = (s8) field 0x10, out[3] = field
  * 0x14, out[4] = (u16) field 0xC, ... */
@@ -359,7 +359,7 @@ s32 sideswipe_exit_check(void) {
     if (gSideswipeState[0x96] == 1 || gSideswipeState[0x97] == 1 || gSideswipeState[0x98] == 1) {
         return 0;
     }
-    anim_get_state(5, (Unk8029DEA0Entry *) gSideswipeAnim, ch);
+    anim_get_state(5, (AnimChannel *) gSideswipeAnim, ch);
     if (ch[0] == 1) {
         return 5;
     }
@@ -520,20 +520,20 @@ void sideswipe_update_anims(void) {
     pos = (f32) (s32) ((u32) a % 0x555) / D_8030D8A4;
     third = (u32) a / 0x555;
     if (third == 0) {
-        anim_set_frame(pos, (Unk8029DEA0Entry *) gSideswipeAnim, 2, 0);
+        anim_set_frame(pos, (AnimChannel *) gSideswipeAnim, 2, 0);
     } else if (third == 1) {
-        anim_set_frame(pos, (Unk8029DEA0Entry *) gSideswipeAnim, 2, 1);
+        anim_set_frame(pos, (AnimChannel *) gSideswipeAnim, 2, 1);
     } else {
-        anim_set_frame(pos, (Unk8029DEA0Entry *) gSideswipeAnim, 2, 2);
+        anim_set_frame(pos, (AnimChannel *) gSideswipeAnim, 2, 2);
     }
 
     if (gSideswipeRamCooldown != 0) {
         gSideswipeRamCooldown--;
     } else {
-        anim_get_state(5, (Unk8029DEA0Entry *) gSideswipeAnim, ch);
+        anim_get_state(5, (AnimChannel *) gSideswipeAnim, ch);
         if (ch[0] != 1 && (gHeldL != 0 || gHeldR != 0) && gSideswipeRamCharges != 0) {
             gSideswipeRamCharges--;
-            anim_play((Unk8029DEA0Entry *) gSideswipeAnim, 5, 2);
+            anim_play((AnimChannel *) gSideswipeAnim, 5, 2);
             gSideswipeRamCooldown = 10;
             snd_play(gSfxBank, 0x37, NULL);
         }
@@ -562,19 +562,19 @@ void sideswipe_update_anims(void) {
         }
     }
     gSideswipeSteerAnim = level;
-    anim_set_frame((f32) level / 100.0f, (Unk8029DEA0Entry *) gSideswipeAnim, 3, 0);
+    anim_set_frame((f32) level / 100.0f, (AnimChannel *) gSideswipeAnim, 3, 0);
 
     speed = *(s16 *) (gSideswipeState + 0x76);
     if (speed < 0) {
-        anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 1, 1);
+        anim_set_reverse((AnimChannel *) gSideswipeAnim, 1, 1);
         speed = -speed;
     } else {
-        anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 1, 0);
+        anim_set_reverse((AnimChannel *) gSideswipeAnim, 1, 0);
     }
     if (speed != 0) {
         speed = (u32) speed / 14;
     }
-    anim_set_speed((Unk8029DEA0Entry *) gSideswipeAnim, 1, speed);
+    anim_set_speed((AnimChannel *) gSideswipeAnim, 1, speed);
     veh_set_engine_level(speed);
 }
 #else
@@ -596,10 +596,10 @@ void sideswipe_update_anims(void) {
 s32 sideswipe_check_ram_hit(void) {
     s32 ch[8];
 
-    anim_get_state(5, (Unk8029DEA0Entry *) gSideswipeAnim, ch);
+    anim_get_state(5, (AnimChannel *) gSideswipeAnim, ch);
     if (ch[0] != 0 && (veh_contacts_has(4) != 0 || veh_contacts_has(5) != 0)) {
-        anim_set_reverse((Unk8029DEA0Entry *) gSideswipeAnim, 5, 1);
-        anim_play((Unk8029DEA0Entry *) gSideswipeAnim, 5, 1);
+        anim_set_reverse((AnimChannel *) gSideswipeAnim, 5, 1);
+        anim_play((AnimChannel *) gSideswipeAnim, 5, 1);
         gShakeTime = 10;
         gShakeSize = 600;
     }

@@ -9,7 +9,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define gYoshiGameItems ((PathNode *) gYoshiGameItems)
+#define gYoshiGameItems ((YoshiItem *) gYoshiGameItems)
 #define gYoshiWindows ((TextArg *) gYoshiWindows)
 #define gVehicles ((Struct80364460 *) gVehicles)
 #define players ((Struct80364AF0 *) players)
@@ -92,7 +92,7 @@ typedef struct {
     u8 pad15[3];
 } Struct802F4224;
 
-/* Pathfinding node, 0x1C bytes (see 45BB0.c) */
+/* A text-window item, 0x1C bytes (yoshi.c's YoshiItem; this file writes the landing messages into item 42) */
 typedef struct {
     /* 0x00 */ u8 unk0[2];
     /* 0x02 */ u8 unk2[4];
@@ -101,7 +101,7 @@ typedef struct {
     /* 0x0C */ char * N64P text;
     /* 0x10 */ u16 * N64P jtext;
     /* 0x14 */ u8 unk14[8];
-} PathNode;
+} YoshiItem;
 
 /* 0x1C bytes (45BB0.c's YoshiArg) */
 typedef struct {

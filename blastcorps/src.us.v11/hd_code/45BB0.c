@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define gYoshiGameItems ((PathNode *) gYoshiGameItems)
+#define gYoshiGameItems ((YoshiItem *) gYoshiGameItems)
 #define gYoshiWindows ((YoshiArg *) gYoshiWindows)
 /* end of views */
 
@@ -12,7 +12,7 @@
 #define CONTROLLER_ASSERT(EX, line) \
     if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "controller.c", line)
 
-/* Pathfinding node, 0x1C bytes (see 26570.c) */
+/* A text-window item, 0x1C bytes (yoshi.c's YoshiItem) */
 typedef struct {
     /* 0x00 */ u16 flags;
     /* 0x02 */ u8 unk2[4];
@@ -21,7 +21,7 @@ typedef struct {
     /* 0x0C */ char * N64P text;
     /* 0x10 */ u16 * N64P jtext;
     /* 0x14 */ u8 unk14[8];
-} PathNode;
+} YoshiItem;
 
 /* 0x1C bytes (see 26570.c) */
 typedef struct {

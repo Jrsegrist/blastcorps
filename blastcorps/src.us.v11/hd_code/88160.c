@@ -84,16 +84,16 @@ void ateam_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *
                   (s32 *) &gAteamPos[1], (s16 *) (gAteamState + 0x4C), 0xE, fp, gAteamState, f);
     copyA = (u8 *) gAteamMtxA;
     copyB = (u8 *) gAteamMtxB;
-    anim_init_model((u32 *) copyB, (u32 *) copyA, (Unk8029DEA0Entry *) gAteamAnim, gAteamModel);
-    anim_set_speed((Unk8029DEA0Entry *) gAteamAnim, 0, 100);
-    anim_set_reverse((Unk8029DEA0Entry *) gAteamAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gAteamAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gAteamAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gAteamAnim, 0, 1);
-    anim_update_model(copyA, copyB, (Unk8029DEA0Entry *) gAteamAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gAteamAnim);
-    anim_play((Unk8029DEA0Entry *) gAteamAnim, 0, 1);
-    anim_update_model(copyB, copyA, (Unk8029DEA0Entry *) gAteamAnim);
+    anim_init_model((u32 *) copyB, (u32 *) copyA, (AnimChannel *) gAteamAnim, gAteamModel);
+    anim_set_speed((AnimChannel *) gAteamAnim, 0, 100);
+    anim_set_reverse((AnimChannel *) gAteamAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gAteamAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gAteamAnim, 0, 0);
+    anim_play((AnimChannel *) gAteamAnim, 0, 1);
+    anim_update_model(copyA, copyB, (AnimChannel *) gAteamAnim);
+    anim_rewind(0, (AnimChannel *) gAteamAnim);
+    anim_play((AnimChannel *) gAteamAnim, 0, 1);
+    anim_update_model(copyB, copyA, (AnimChannel *) gAteamAnim);
     VEH14_S16(0x78) = -180;
     VEH14_S16(0x7A) = 0;
     VEH14_S16(0x7C) = 8;
@@ -391,9 +391,9 @@ void ateam_update(void) {
                   (s32 *) (gAteamState + 0x28), (s32 *) (gAteamState + 0x40), (s32 *) (gAteamState + 0x34),
                   (s32 *) (gAteamState + 4), &rr, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gAteamMtxA, (u8 *) gAteamMtxB, (Unk8029DEA0Entry *) gAteamAnim);
+        anim_update_model((u8 *) gAteamMtxA, (u8 *) gAteamMtxB, (AnimChannel *) gAteamAnim);
     } else {
-        anim_update_model((u8 *) gAteamMtxB, (u8 *) gAteamMtxA, (Unk8029DEA0Entry *) gAteamAnim);
+        anim_update_model((u8 *) gAteamMtxB, (u8 *) gAteamMtxA, (AnimChannel *) gAteamAnim);
     }
     ateam_build_model();
     veh_collision_setup(gAteamPos[2], (s32) D_80306440, 1, 1, gAteamPos[0], gAteamPos[1], 7, VEH14_S16(0x76), 0x96, 0,

@@ -119,16 +119,16 @@ void backlash_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     veh_init_ground((s16 *) (gBacklashState + 0x52), gBacklashPos[1], x, z, (s32 *) (gBacklashState + 4),
                   (s32 *) &gBacklashPos[1], (s16 *) (gBacklashState + 0x4C), 5, fp, gBacklashState, &f);
     hdr = gBacklashModel;
-    anim_init_model((u32 *) gBacklashMtxB, (u32 *) gBacklashMtxA, (Unk8029DEA0Entry *) gBacklashAnim, hdr);
-    anim_set_speed((Unk8029DEA0Entry *) gBacklashAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gBacklashAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBacklashAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gBacklashAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gBacklashAnim, 0, 1);
-    anim_update_model((u8 *) gBacklashMtxA, (u8 *) gBacklashMtxB, (Unk8029DEA0Entry *) gBacklashAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gBacklashAnim);
-    anim_play((Unk8029DEA0Entry *) gBacklashAnim, 0, 1);
-    anim_update_model((u8 *) gBacklashMtxB, (u8 *) gBacklashMtxA, (Unk8029DEA0Entry *) gBacklashAnim);
+    anim_init_model((u32 *) gBacklashMtxB, (u32 *) gBacklashMtxA, (AnimChannel *) gBacklashAnim, hdr);
+    anim_set_speed((AnimChannel *) gBacklashAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gBacklashAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gBacklashAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gBacklashAnim, 0, 0);
+    anim_play((AnimChannel *) gBacklashAnim, 0, 1);
+    anim_update_model((u8 *) gBacklashMtxA, (u8 *) gBacklashMtxB, (AnimChannel *) gBacklashAnim);
+    anim_rewind(0, (AnimChannel *) gBacklashAnim);
+    anim_play((AnimChannel *) gBacklashAnim, 0, 1);
+    anim_update_model((u8 *) gBacklashMtxB, (u8 *) gBacklashMtxA, (AnimChannel *) gBacklashAnim);
     /* speed bands */
     *(s16 *) (gBacklashState + 0x78) = -0x78;
     *(s16 *) (gBacklashState + 0x7A) = 0;
@@ -173,7 +173,7 @@ void backlash_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 gBacklashState[]; /* this vehicle's state block */
-extern u8 gBacklashAnim[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gBacklashAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 
 /* Getting into Backlash: engine sound 5 (0x802B5CD8).
  * Enter vehicle type 5 (called from 00000.c / 17210.c): clears byte 0x99 of
@@ -187,23 +187,23 @@ extern u8 gBacklashAnim[]; /* animation channel table (Unk8029DEA0Entry, 56040.c
  * ignore both. */
 void backlash_enter(void) {
     gBacklashState[0x99] = 0;
-    anim_set_speed((Unk8029DEA0Entry *) gBacklashAnim, 1, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gBacklashAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBacklashAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gBacklashAnim, 1, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gBacklashAnim, 2, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gBacklashAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBacklashAnim, 2, 1);
-    anim_set_frame(0.5f, (Unk8029DEA0Entry *) gBacklashAnim, 2, 0);
-    anim_play((Unk8029DEA0Entry *) gBacklashAnim, 2, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gBacklashAnim, 4, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gBacklashAnim, 4, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBacklashAnim, 4, 1);
-    anim_play((Unk8029DEA0Entry *) gBacklashAnim, 4, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gBacklashAnim, 5, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gBacklashAnim, 5, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gBacklashAnim, 5, 1);
-    anim_play((Unk8029DEA0Entry *) gBacklashAnim, 5, -1);
+    anim_set_speed((AnimChannel *) gBacklashAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gBacklashAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gBacklashAnim, 1, 0);
+    anim_play((AnimChannel *) gBacklashAnim, 1, -1);
+    anim_set_speed((AnimChannel *) gBacklashAnim, 2, 0);
+    anim_set_reverse((AnimChannel *) gBacklashAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gBacklashAnim, 2, 1);
+    anim_set_frame(0.5f, (AnimChannel *) gBacklashAnim, 2, 0);
+    anim_play((AnimChannel *) gBacklashAnim, 2, -1);
+    anim_set_speed((AnimChannel *) gBacklashAnim, 4, 0);
+    anim_set_reverse((AnimChannel *) gBacklashAnim, 4, 0);
+    anim_set_loop_mode((AnimChannel *) gBacklashAnim, 4, 1);
+    anim_play((AnimChannel *) gBacklashAnim, 4, -1);
+    anim_set_speed((AnimChannel *) gBacklashAnim, 5, 0);
+    anim_set_reverse((AnimChannel *) gBacklashAnim, 5, 0);
+    anim_set_loop_mode((AnimChannel *) gBacklashAnim, 5, 1);
+    anim_play((AnimChannel *) gBacklashAnim, 5, -1);
     anim_tex_set_speed((s32) D_802C2208, 0);
     anim_tex_set_reverse((s32) D_802C2208, 0);
     anim_tex_set_loop_mode((s32) D_802C2208, 0);
@@ -528,9 +528,9 @@ void backlash_update(void) {
 
     /* 3. */
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gBacklashMtxA, (u8 *) gBacklashMtxB, (Unk8029DEA0Entry *) gBacklashAnim);
+        anim_update_model((u8 *) gBacklashMtxA, (u8 *) gBacklashMtxB, (AnimChannel *) gBacklashAnim);
     } else {
-        anim_update_model((u8 *) gBacklashMtxB, (u8 *) gBacklashMtxA, (Unk8029DEA0Entry *) gBacklashAnim);
+        anim_update_model((u8 *) gBacklashMtxB, (u8 *) gBacklashMtxA, (AnimChannel *) gBacklashAnim);
     }
     if (gBacklashState[0x99] != 0) {
         if (mb_is_active() == 0) {
@@ -784,7 +784,7 @@ void backlash_update_anims(void) {
         TOWARDS_HALF(f, D_8030D8EC);
     }
     gBacklashLean = f;
-    anim_set_frame(f, (Unk8029DEA0Entry *) base, 5, 0);
+    anim_set_frame(f, (AnimChannel *) base, 5, 0);
 
     f = gBacklashTilt;
     near = veh_near_top_speed(gBacklashState, 10);
@@ -802,19 +802,19 @@ void backlash_update_anims(void) {
         TOWARDS_HALF(f, D_8030D8F8);
     }
     gBacklashTilt = f;
-    anim_set_frame(f, (Unk8029DEA0Entry *) base, 4, 0);
+    anim_set_frame(f, (AnimChannel *) base, 4, 0);
 
     speed = *(s16 *) (gBacklashState + 0x76);
     if (speed < 0) {
-        anim_set_reverse((Unk8029DEA0Entry *) base, 1, 1);
+        anim_set_reverse((AnimChannel *) base, 1, 1);
         speed = -speed;
     } else {
-        anim_set_reverse((Unk8029DEA0Entry *) base, 1, 0);
+        anim_set_reverse((AnimChannel *) base, 1, 0);
     }
     if (speed != 0) {
         speed = (u32) speed / 14;
     }
-    anim_set_speed((Unk8029DEA0Entry *) base, 1, speed);
+    anim_set_speed((AnimChannel *) base, 1, speed);
     veh_set_engine_level(speed);
 
     level = gBacklashSteerAnim;
@@ -840,7 +840,7 @@ void backlash_update_anims(void) {
         }
     }
     gBacklashSteerAnim = level;
-    anim_set_frame((f32) level / 100.0f, (Unk8029DEA0Entry *) base, 2, 0);
+    anim_set_frame((f32) level / 100.0f, (AnimChannel *) base, 2, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/backlash_update_anims.s")

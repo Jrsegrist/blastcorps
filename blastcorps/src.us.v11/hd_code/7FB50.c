@@ -88,7 +88,7 @@ extern f32 D_8030D974;
 
 
 /* This vehicle's animation channel table and the channel-field setters /
- * getter of 56040.c (Unk8029DEA0Entry; asm conventions in
+ * getter of 56040.c (AnimChannel; asm conventions in
  * tools_port/conventions.txt). anim_get_state's out[0] is (s8) field 0x10. */
 extern u8 gJbombAnim[];
 
@@ -201,7 +201,7 @@ void apply_status(void *in) {
                 v = 0;
             } else {
                 v = 100;
-                obj_mark_part_gone((struct Unk802C1DD0Entry *) r, i);
+                obj_mark_part_gone((struct LevelObject *) r, i);
                 anyDestroyed = 1;
             }
             *part++ = v;
@@ -421,16 +421,16 @@ void jbomb_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
     veh_init_ground(&VEH_S16(0x52), gJbombPos[1], x, z, &VEH_S32(4), (s32 *) &gJbombPos[1], &VEH_S16(0x4C), 9, fp,
                   gJbombState, &f);
-    anim_init_model((u32 *) gJbombMtxB, (u32 *) gJbombMtxA, (Unk8029DEA0Entry *) gJbombAnim, gJbombModel);
-    anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 0, 100);
-    anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gJbombAnim, 0, 1);
-    anim_update_model((u8 *) gJbombMtxA, (u8 *) gJbombMtxB, (Unk8029DEA0Entry *) gJbombAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gJbombAnim);
-    anim_play((Unk8029DEA0Entry *) gJbombAnim, 0, 1);
-    anim_update_model((u8 *) gJbombMtxB, (u8 *) gJbombMtxA, (Unk8029DEA0Entry *) gJbombAnim);
+    anim_init_model((u32 *) gJbombMtxB, (u32 *) gJbombMtxA, (AnimChannel *) gJbombAnim, gJbombModel);
+    anim_set_speed((AnimChannel *) gJbombAnim, 0, 100);
+    anim_set_reverse((AnimChannel *) gJbombAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gJbombAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gJbombAnim, 0, 0);
+    anim_play((AnimChannel *) gJbombAnim, 0, 1);
+    anim_update_model((u8 *) gJbombMtxA, (u8 *) gJbombMtxB, (AnimChannel *) gJbombAnim);
+    anim_rewind(0, (AnimChannel *) gJbombAnim);
+    anim_play((AnimChannel *) gJbombAnim, 0, 1);
+    anim_update_model((u8 *) gJbombMtxB, (u8 *) gJbombMtxA, (AnimChannel *) gJbombAnim);
     D_803F7C36 = 0;
     D_803F7C37 = 0;
     D_803F7C39 = 0;
@@ -457,8 +457,8 @@ void jbomb_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     m = gJbombModel;
     veh_register_parts(9, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x4268);
     veh_add_shadow(9, 0x64, 0x2D, 0x2D);
-    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 6, 2);
-    anim_play((Unk8029DEA0Entry *) gJbombAnim, 6, -1);
+    anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 6, 2);
+    anim_play((AnimChannel *) gJbombAnim, 6, -1);
     VEH_U8(0x9A) = 1;
     jbomb_update();
     VEH_U8(0x9A) = 0;
@@ -490,25 +490,25 @@ s32 jbomb_exit_check(void) {
     }
     if (VEH_U8(0xA1) == 5) {
         VEH_U8(0xA1) = 0;
-        anim_stop(7, (Unk8029DEA0Entry *) gJbombAnim);
-        anim_stop(8, (Unk8029DEA0Entry *) gJbombAnim);
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 6, 2);
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 9, 0);
-        anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 9, 3);
-        anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 9, 0);
-        anim_set_interp(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 9, 0);
-        anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 9, 1);
-        anim_play((Unk8029DEA0Entry *) gJbombAnim, 9, 1);
+        anim_stop(7, (AnimChannel *) gJbombAnim);
+        anim_stop(8, (AnimChannel *) gJbombAnim);
+        anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 6, 2);
+        anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 9, 0);
+        anim_set_speed((AnimChannel *) gJbombAnim, 9, 3);
+        anim_set_reverse((AnimChannel *) gJbombAnim, 9, 0);
+        anim_set_interp(0.0f, (AnimChannel *) gJbombAnim, 9, 0);
+        anim_set_loop_mode((AnimChannel *) gJbombAnim, 9, 1);
+        anim_play((AnimChannel *) gJbombAnim, 9, 1);
         return 2;
     }
     if (VEH_U8(0xA1) != 0) {
         return 2;
     }
-    anim_get_state(0x1F, (Unk8029DEA0Entry *) gJbombAnim, ch);
+    anim_get_state(0x1F, (AnimChannel *) gJbombAnim, ch);
     if (ch[0] == 1) {
         return 2;
     }
-    anim_get_state(9, (Unk8029DEA0Entry *) gJbombAnim, ch);
+    anim_get_state(9, (AnimChannel *) gJbombAnim, ch);
     if (ch[0] == 0) {
         return 1;
     }
@@ -532,7 +532,7 @@ extern u64 * N64P gJbombMtxB;
 void jbomb_leave(void) {
     VEH_S16(0x76) = 0;
     veh_sync_buffers(gJbombMtxA, gJbombMtxB, 0x1000);
-    anim_stop(0x1F, (Unk8029DEA0Entry *) gJbombAnim);
+    anim_stop(0x1F, (AnimChannel *) gJbombAnim);
     if (gJbombThrustSound != NULL) {
         snd_stop(gJbombThrustSound);
     }
@@ -554,20 +554,20 @@ void jbomb_leave(void) {
  * v1 = -1; C callers use neither. */
 void jbomb_enter(void) {
     VEH_U8(0x99) = 0;
-    anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 3, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 3, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 3, 1);
-    anim_set_interp(1.0f, (Unk8029DEA0Entry *) gJbombAnim, 3, 1);
-    anim_play((Unk8029DEA0Entry *) gJbombAnim, 3, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 4, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 4, 0);
-    anim_set_interp(1.0f, (Unk8029DEA0Entry *) gJbombAnim, 4, 1);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 4, 1);
-    anim_play((Unk8029DEA0Entry *) gJbombAnim, 4, -1);
-    anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 1, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 1, 0);
-    anim_play((Unk8029DEA0Entry *) gJbombAnim, 1, -1);
+    anim_set_speed((AnimChannel *) gJbombAnim, 3, 0);
+    anim_set_reverse((AnimChannel *) gJbombAnim, 3, 0);
+    anim_set_loop_mode((AnimChannel *) gJbombAnim, 3, 1);
+    anim_set_interp(1.0f, (AnimChannel *) gJbombAnim, 3, 1);
+    anim_play((AnimChannel *) gJbombAnim, 3, -1);
+    anim_set_speed((AnimChannel *) gJbombAnim, 4, 0);
+    anim_set_reverse((AnimChannel *) gJbombAnim, 4, 0);
+    anim_set_interp(1.0f, (AnimChannel *) gJbombAnim, 4, 1);
+    anim_set_loop_mode((AnimChannel *) gJbombAnim, 4, 1);
+    anim_play((AnimChannel *) gJbombAnim, 4, -1);
+    anim_set_speed((AnimChannel *) gJbombAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gJbombAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gJbombAnim, 1, 0);
+    anim_play((AnimChannel *) gJbombAnim, 1, -1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/jbomb_enter.s")
@@ -829,9 +829,9 @@ void jbomb_update(void) {
                   0x78, 0x78, &VEH_S16(0x4C), &VEH_U8(0x96), &VEH_S16(0x52), &VEH_S32(0x28), &VEH_S32(0x40),
                   &VEH_S32(0x34), &VEH_S32(4), &r8768, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gJbombMtxA, (u8 *) gJbombMtxB, (Unk8029DEA0Entry *) gJbombAnim);
+        anim_update_model((u8 *) gJbombMtxA, (u8 *) gJbombMtxB, (AnimChannel *) gJbombAnim);
     } else {
-        anim_update_model((u8 *) gJbombMtxB, (u8 *) gJbombMtxA, (Unk8029DEA0Entry *) gJbombAnim);
+        anim_update_model((u8 *) gJbombMtxB, (u8 *) gJbombMtxA, (AnimChannel *) gJbombAnim);
     }
     regs.s0 = (s32) &VEH_U8(0x96);
     regs.s1 = (s32) &gJbombPos[2];
@@ -1059,15 +1059,15 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
     if (VEH_U8(0xA1) == 5 && (VEH_S16(0x76) != 0 || VEH_U8(0x96) != 0)) {
         VEH_U8(0xA1) = 0;
-        anim_stop(7, (Unk8029DEA0Entry *) gJbombAnim);
-        anim_stop(8, (Unk8029DEA0Entry *) gJbombAnim);
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 6, 2);
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 9, 0);
-        anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 9, 3);
-        anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 9, 0);
-        anim_set_interp(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 9, 0);
-        anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 9, 1);
-        anim_play((Unk8029DEA0Entry *) gJbombAnim, 9, 1);
+        anim_stop(7, (AnimChannel *) gJbombAnim);
+        anim_stop(8, (AnimChannel *) gJbombAnim);
+        anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 6, 2);
+        anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 9, 0);
+        anim_set_speed((AnimChannel *) gJbombAnim, 9, 3);
+        anim_set_reverse((AnimChannel *) gJbombAnim, 9, 0);
+        anim_set_interp(0.0f, (AnimChannel *) gJbombAnim, 9, 0);
+        anim_set_loop_mode((AnimChannel *) gJbombAnim, 9, 1);
+        anim_play((AnimChannel *) gJbombAnim, 9, 1);
     }
 
     if (VEH_U8(0x9E) != 0) {
@@ -1075,8 +1075,8 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
         D_803F7C39 = 1;
     } else if (D_803F7C43 != 1) {
         if (VEH_U8(0x96) == 1) {
-            anim_stop(6, (Unk8029DEA0Entry *) gJbombAnim);
-            anim_stop(9, (Unk8029DEA0Entry *) gJbombAnim);
+            anim_stop(6, (AnimChannel *) gJbombAnim);
+            anim_stop(9, (AnimChannel *) gJbombAnim);
             D_803F7C28 = (VEH_U8(0xA2) == 5) ? D_8030D950 : 0.5f;
             D_803F7C2C = 0.5f;
             VEH_U8(0xA1) = 1;
@@ -1093,17 +1093,17 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
         VEH_S32(0x1C) = v;
         VEH_S32(0x20) = v;
         VEH_S32(0x24) = v;
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 6, 2);
-        anim_stop(5, (Unk8029DEA0Entry *) gJbombAnim);
-        anim_stop(4, (Unk8029DEA0Entry *) gJbombAnim);
-        anim_stop(3, (Unk8029DEA0Entry *) gJbombAnim);
+        anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 6, 2);
+        anim_stop(5, (AnimChannel *) gJbombAnim);
+        anim_stop(4, (AnimChannel *) gJbombAnim);
+        anim_stop(3, (AnimChannel *) gJbombAnim);
         if (VEH_U8(0xA2) != 4) {
-            anim_merge_poses(3, 4, (Unk8029DEA0Entry *) gJbombAnim);
-            anim_blend_channels(0x1E, 6, (Unk8029DEA0Entry *) gJbombAnim);
-            anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 0x1F, 0x32);
-            anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 0x1F, 0);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 0x1F, 0);
-            anim_play((Unk8029DEA0Entry *) gJbombAnim, 0x1F, 1);
+            anim_merge_poses(3, 4, (AnimChannel *) gJbombAnim);
+            anim_blend_channels(0x1E, 6, (AnimChannel *) gJbombAnim);
+            anim_set_speed((AnimChannel *) gJbombAnim, 0x1F, 0x32);
+            anim_set_reverse((AnimChannel *) gJbombAnim, 0x1F, 0);
+            anim_set_loop_mode((AnimChannel *) gJbombAnim, 0x1F, 0);
+            anim_play((AnimChannel *) gJbombAnim, 0x1F, 1);
         }
         s4 = VEH_S16(0x76);
         if (s4 >= 0x97) {
@@ -1146,25 +1146,25 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
     switch (VEH_U8(0xA1)) {
         case 5:
-            anim_get_state(7, (Unk8029DEA0Entry *) gJbombAnim, ch);
+            anim_get_state(7, (AnimChannel *) gJbombAnim, ch);
             if (ch[0] == 1) {
                 break;
             }
-            anim_get_state(8, (Unk8029DEA0Entry *) gJbombAnim, ch);
+            anim_get_state(8, (AnimChannel *) gJbombAnim, ch);
             if (ch[0] == 1) {
                 break;
             }
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 8, 0);
-            anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 8, 1);
-            anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 8, 0);
-            anim_set_interp(0.5f, (Unk8029DEA0Entry *) gJbombAnim, 8, 1);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 8, 1);
-            anim_play((Unk8029DEA0Entry *) gJbombAnim, 8, -1);
+            anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 8, 0);
+            anim_set_speed((AnimChannel *) gJbombAnim, 8, 1);
+            anim_set_reverse((AnimChannel *) gJbombAnim, 8, 0);
+            anim_set_interp(0.5f, (AnimChannel *) gJbombAnim, 8, 1);
+            anim_set_loop_mode((AnimChannel *) gJbombAnim, 8, 1);
+            anim_play((AnimChannel *) gJbombAnim, 8, -1);
             break;
 
         case 4:
             if (D_803F7C4A != 0) {
-                anim_get_state(5, (Unk8029DEA0Entry *) gJbombAnim, ch);
+                anim_get_state(5, (AnimChannel *) gJbombAnim, ch);
                 if (ch[0] != 1) {
                     VEH_TRIPLE(0x34, D_803F7BFC);
                     VEH_TRIPLE(0x40, 1);
@@ -1176,25 +1176,25 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             break;
 
         case 0:
-            anim_get_state(0x1F, (Unk8029DEA0Entry *) gJbombAnim, ch);
+            anim_get_state(0x1F, (AnimChannel *) gJbombAnim, ch);
             if (ch[0] == 1) {
                 break;
             }
-            anim_get_state(9, (Unk8029DEA0Entry *) gJbombAnim, ch);
+            anim_get_state(9, (AnimChannel *) gJbombAnim, ch);
             if (ch[0] == 1) {
                 break;
             }
             s4 = VEH_S16(0x76);
-            anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 6, (s4 < 0) ? 1 : 0);
+            anim_set_reverse((AnimChannel *) gJbombAnim, 6, (s4 < 0) ? 1 : 0);
             if (s4 < 0) {
                 s4 = -s4;
             }
             s4 = (u32) s4 / 16;
-            anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 6, s4);
-            anim_set_interp(0.5f, (Unk8029DEA0Entry *) gJbombAnim, 6, 1);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 6, 0);
-            anim_play((Unk8029DEA0Entry *) gJbombAnim, 6, -1);
-            anim_get_state(6, (Unk8029DEA0Entry *) gJbombAnim, ch);
+            anim_set_speed((AnimChannel *) gJbombAnim, 6, s4);
+            anim_set_interp(0.5f, (AnimChannel *) gJbombAnim, 6, 1);
+            anim_set_loop_mode((AnimChannel *) gJbombAnim, 6, 0);
+            anim_play((AnimChannel *) gJbombAnim, 6, -1);
+            anim_get_state(6, (AnimChannel *) gJbombAnim, ch);
             /* ch[6] is the asm's t1 (the whole word; the store keeps 16 bits) */
             old = D_803F7C32;
             D_803F7C32 = ch[6];
@@ -1220,10 +1220,10 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             /* fall through */
         case 1:
         case 3:
-            anim_stop(0x1F, (Unk8029DEA0Entry *) gJbombAnim);
-            anim_stop(6, (Unk8029DEA0Entry *) gJbombAnim);
-            anim_play((Unk8029DEA0Entry *) gJbombAnim, 4, -1);
-            anim_play((Unk8029DEA0Entry *) gJbombAnim, 3, -1);
+            anim_stop(0x1F, (AnimChannel *) gJbombAnim);
+            anim_stop(6, (AnimChannel *) gJbombAnim);
+            anim_play((AnimChannel *) gJbombAnim, 4, -1);
+            anim_play((AnimChannel *) gJbombAnim, 3, -1);
             jbomb_update_tilt(&s2);
             if (D_803F7C39 != 0) {
                 if (VEH_U8(0x9C) == 0) {
@@ -1262,13 +1262,13 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             VEH_TRIPLE(0x28, 0);
             VEH_TRIPLE(0x34, D_803F7BFC);
             VEH_TRIPLE(0x40, 1);
-            anim_stop(4, (Unk8029DEA0Entry *) gJbombAnim);
-            anim_stop(3, (Unk8029DEA0Entry *) gJbombAnim);
-            anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 5, 10);
-            anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 5, 0);
-            anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 5, 1);
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 5, 0);
-            anim_play((Unk8029DEA0Entry *) gJbombAnim, 5, 1);
+            anim_stop(4, (AnimChannel *) gJbombAnim);
+            anim_stop(3, (AnimChannel *) gJbombAnim);
+            anim_set_speed((AnimChannel *) gJbombAnim, 5, 10);
+            anim_set_reverse((AnimChannel *) gJbombAnim, 5, 0);
+            anim_set_loop_mode((AnimChannel *) gJbombAnim, 5, 1);
+            anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 5, 0);
+            anim_play((AnimChannel *) gJbombAnim, 5, 1);
             snd_play(gSfxBank, 0x5C, NULL);
             break;
 
@@ -1309,13 +1309,13 @@ void jbomb_check_idle(void) {
         return;
     }
     VEH_U8(0xA1) = 5;
-    anim_stop(6, (Unk8029DEA0Entry *) gJbombAnim);
-    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 7, 0);
-    anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 7, 3);
-    anim_set_reverse((Unk8029DEA0Entry *) gJbombAnim, 7, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 7, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 7, 1);
-    anim_play((Unk8029DEA0Entry *) gJbombAnim, 7, 1);
+    anim_stop(6, (AnimChannel *) gJbombAnim);
+    anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 7, 0);
+    anim_set_speed((AnimChannel *) gJbombAnim, 7, 3);
+    anim_set_reverse((AnimChannel *) gJbombAnim, 7, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gJbombAnim, 7, 0);
+    anim_set_loop_mode((AnimChannel *) gJbombAnim, 7, 1);
+    anim_play((AnimChannel *) gJbombAnim, 7, 1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/jbomb_check_idle.s")
@@ -1598,7 +1598,7 @@ void jbomb_update_jet_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s3
         }
     }
     D_803F7C3B = v;
-    anim_set_speed((Unk8029DEA0Entry *) gJbombAnim, 1, (u32) (s32) D_803F7C3B / 4);
+    anim_set_speed((AnimChannel *) gJbombAnim, 1, (u32) (s32) D_803F7C3B / 4);
     if (D_803F7C3A != 0) {
         D_803F7C3A--;
         return;
@@ -1737,9 +1737,9 @@ store1:
     D_803F7C2C = f;
     f = 1.0f - f;
     if (f <= 0.5f) {
-        anim_set_frame(f * 2.0f, (Unk8029DEA0Entry *) gJbombAnim, 4, 1);
+        anim_set_frame(f * 2.0f, (AnimChannel *) gJbombAnim, 4, 1);
     } else {
-        anim_set_frame((f - 0.5f) * 2.0f, (Unk8029DEA0Entry *) gJbombAnim, 4, 2);
+        anim_set_frame((f - 0.5f) * 2.0f, (AnimChannel *) gJbombAnim, 4, 2);
     }
 
     f = D_803F7C28;
@@ -1774,9 +1774,9 @@ store1:
 store2:
     D_803F7C28 = f;
     if (f <= 0.5f) {
-        anim_set_frame(f * 2.0f, (Unk8029DEA0Entry *) gJbombAnim, 3, 1);
+        anim_set_frame(f * 2.0f, (AnimChannel *) gJbombAnim, 3, 1);
     } else {
-        anim_set_frame((f - 0.5f) * 2.0f, (Unk8029DEA0Entry *) gJbombAnim, 3, 2);
+        anim_set_frame((f - 0.5f) * 2.0f, (AnimChannel *) gJbombAnim, 3, 2);
     }
 }
 #else

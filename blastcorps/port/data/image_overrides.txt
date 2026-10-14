@@ -28,7 +28,7 @@
 802E8BF8 4 be
 802E8BFC 48 w4
 #
-# gYoshiHints (26570.c YoshiTrigger[8], 0x22 bytes: u8 level, s16 window ids[16]):
+# gYoshiHints (26570.c YoshiHintList[8], 0x22 bytes: u8 level, s16 window ids[16]):
 # 26570.c yoshi_show_hint also reads gYoshiHintMaxShows[id] (u8) with ids 70..107, i.e. a
 # byte table from 0x802F49E0 that IDO addresses from base - 70; that u8[]
 # declaration's extent typed triggers 5-7 (levels 33, 13, 10) as bytes: their

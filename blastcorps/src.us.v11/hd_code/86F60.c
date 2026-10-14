@@ -94,16 +94,16 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
                   (s32 *) &gPolicePos[1], (s16 *) (gPoliceState + 0x4C), 0xD, fp, gPoliceState, f);
     copyA = (u8 *) gPoliceMtxA;
     copyB = (u8 *) gPoliceMtxB;
-    anim_init_model((u32 *) copyB, (u32 *) copyA, (Unk8029DEA0Entry *) gPoliceAnim, gPoliceModel);
-    anim_set_speed((Unk8029DEA0Entry *) gPoliceAnim, 0, 100);
-    anim_set_reverse((Unk8029DEA0Entry *) gPoliceAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gPoliceAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gPoliceAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gPoliceAnim, 0, 1);
-    anim_update_model(copyA, copyB, (Unk8029DEA0Entry *) gPoliceAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gPoliceAnim);
-    anim_play((Unk8029DEA0Entry *) gPoliceAnim, 0, 1);
-    anim_update_model(copyB, copyA, (Unk8029DEA0Entry *) gPoliceAnim);
+    anim_init_model((u32 *) copyB, (u32 *) copyA, (AnimChannel *) gPoliceAnim, gPoliceModel);
+    anim_set_speed((AnimChannel *) gPoliceAnim, 0, 100);
+    anim_set_reverse((AnimChannel *) gPoliceAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gPoliceAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gPoliceAnim, 0, 0);
+    anim_play((AnimChannel *) gPoliceAnim, 0, 1);
+    anim_update_model(copyA, copyB, (AnimChannel *) gPoliceAnim);
+    anim_rewind(0, (AnimChannel *) gPoliceAnim);
+    anim_play((AnimChannel *) gPoliceAnim, 0, 1);
+    anim_update_model(copyB, copyA, (AnimChannel *) gPoliceAnim);
     VEH13_S16(0x78) = -180;
     VEH13_S16(0x7A) = 0;
     VEH13_S16(0x7C) = 2;
@@ -442,9 +442,9 @@ void police_update(void) {
                   (s32 *) (gPoliceState + 0x28), (s32 *) (gPoliceState + 0x40), (s32 *) (gPoliceState + 0x34),
                   (s32 *) (gPoliceState + 4), &rr, &f);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gPoliceMtxA, (u8 *) gPoliceMtxB, (Unk8029DEA0Entry *) gPoliceAnim);
+        anim_update_model((u8 *) gPoliceMtxA, (u8 *) gPoliceMtxB, (AnimChannel *) gPoliceAnim);
     } else {
-        anim_update_model((u8 *) gPoliceMtxB, (u8 *) gPoliceMtxA, (Unk8029DEA0Entry *) gPoliceAnim);
+        anim_update_model((u8 *) gPoliceMtxB, (u8 *) gPoliceMtxA, (AnimChannel *) gPoliceAnim);
     }
     police_build_model();
     veh_collision_setup(gPolicePos[2], (s32) D_80306430, 1, 1, gPolicePos[0], gPolicePos[1], 7, VEH13_S16(0x76), 0x96, 0,

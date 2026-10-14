@@ -19,7 +19,7 @@
 /* Register blocks of the 62740.c helpers these vehicle functions call (the
  * asm passes them in registers; the C rewrites take pointers). */
 extern u8 gDriverState[];  /* vehicle 0's state block (the asm's $gp) */
-extern u8 gDriverAnim[];  /* vehicle 0's animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gDriverAnim[];  /* vehicle 0's animation channel table (AnimChannel, 56040.c) */
 extern s32 gDriverExitGroundY;   /* exit-path ground height */
 extern u8 gDriverExitChecking;    /* exit walk being set up */
 extern u8 gDriverExitDir;    /* exit-walk direction: 0 +z, 1 -z, 2 +x, else -x */
@@ -106,16 +106,16 @@ void driver_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gDriverState[0xA1] = 0;
     veh_init_ground((s16 *) (gDriverState + 0x52), pos[1], x, z, (s32 *) (gDriverState + 4), &pos[1],
                   (s16 *) (gDriverState + 0x4C), 0, fp, gDriverState, f);
-    anim_init_model((u32 *) gDriverMtxB, (u32 *) gDriverMtxA, (Unk8029DEA0Entry *) gDriverAnim, gDriverModel);
-    anim_set_speed((Unk8029DEA0Entry *) gDriverAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gDriverAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gDriverAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gDriverAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gDriverAnim, 0, 1);
-    anim_update_model(gDriverMtxA, gDriverMtxB, (Unk8029DEA0Entry *) gDriverAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gDriverAnim);
-    anim_play((Unk8029DEA0Entry *) gDriverAnim, 0, 1);
-    anim_update_model(gDriverMtxB, gDriverMtxA, (Unk8029DEA0Entry *) gDriverAnim);
+    anim_init_model((u32 *) gDriverMtxB, (u32 *) gDriverMtxA, (AnimChannel *) gDriverAnim, gDriverModel);
+    anim_set_speed((AnimChannel *) gDriverAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gDriverAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gDriverAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gDriverAnim, 0, 0);
+    anim_play((AnimChannel *) gDriverAnim, 0, 1);
+    anim_update_model(gDriverMtxA, gDriverMtxB, (AnimChannel *) gDriverAnim);
+    anim_rewind(0, (AnimChannel *) gDriverAnim);
+    anim_play((AnimChannel *) gDriverAnim, 0, 1);
+    anim_update_model(gDriverMtxB, gDriverMtxA, (AnimChannel *) gDriverAnim);
     h = (s16 *) (gDriverState + 0x78);
     h[0] = -0x28;
     h[1] = 0;
@@ -140,22 +140,22 @@ void driver_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gDriverState[0x9A] = 0;
     hdr = gDriverModel;
     mtx_copy_at(gDriverMtxB, gDriverMtxA, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
-    anim_set_speed((Unk8029DEA0Entry *) gDriverAnim, 1, 0);
-    anim_set_reverse((Unk8029DEA0Entry *) gDriverAnim, 1, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gDriverAnim, 1, 0);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gDriverAnim, 1, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gDriverAnim, 2, 2);
-    anim_set_reverse((Unk8029DEA0Entry *) gDriverAnim, 2, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gDriverAnim, 2, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gDriverAnim, 2, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gDriverAnim, 3, 2);
-    anim_set_reverse((Unk8029DEA0Entry *) gDriverAnim, 3, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gDriverAnim, 3, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gDriverAnim, 3, 1);
-    anim_set_speed((Unk8029DEA0Entry *) gDriverAnim, 4, 2);
-    anim_set_reverse((Unk8029DEA0Entry *) gDriverAnim, 4, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gDriverAnim, 4, 1);
-    anim_set_interp(0.5f, (Unk8029DEA0Entry *) gDriverAnim, 4, 1);
+    anim_set_speed((AnimChannel *) gDriverAnim, 1, 0);
+    anim_set_reverse((AnimChannel *) gDriverAnim, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gDriverAnim, 1, 0);
+    anim_set_interp(0.5f, (AnimChannel *) gDriverAnim, 1, 1);
+    anim_set_speed((AnimChannel *) gDriverAnim, 2, 2);
+    anim_set_reverse((AnimChannel *) gDriverAnim, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gDriverAnim, 2, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gDriverAnim, 2, 1);
+    anim_set_speed((AnimChannel *) gDriverAnim, 3, 2);
+    anim_set_reverse((AnimChannel *) gDriverAnim, 3, 0);
+    anim_set_loop_mode((AnimChannel *) gDriverAnim, 3, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gDriverAnim, 3, 1);
+    anim_set_speed((AnimChannel *) gDriverAnim, 4, 2);
+    anim_set_reverse((AnimChannel *) gDriverAnim, 4, 0);
+    anim_set_loop_mode((AnimChannel *) gDriverAnim, 4, 1);
+    anim_set_interp(0.5f, (AnimChannel *) gDriverAnim, 4, 1);
     gCamDistance = 0xD48;
     gCamHeightBase = 0;
 }
@@ -165,14 +165,14 @@ void driver_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 gDriverAnim[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gDriverAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 
 /* Stops the driver's blend animation (on getting into a vehicle) (0x802AE860).
  * Stops channel 31 of gDriverAnim (anim_stop; called from hd.c's vehicle
  * switch). The asm leaves v0 = 31 and v1 = &gDriverAnim; the C caller uses
  * neither. */
 void driver_stop_blend_anim(void) {
-    anim_stop(0x1F, (Unk8029DEA0Entry *) gDriverAnim);
+    anim_stop(0x1F, (AnimChannel *) gDriverAnim);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/driver_stop_blend_anim.s")
@@ -287,10 +287,10 @@ s32 driver_try_exit(s32 dist) {
         pos[1] = t;
         pos[2] = gPlayerZ;
         gDriverExitWalk = 1;
-        anim_set_speed((Unk8029DEA0Entry *) gDriverAnim, 1, 0);
-        anim_set_reverse((Unk8029DEA0Entry *) gDriverAnim, 1, 0);
-        anim_set_loop_mode((Unk8029DEA0Entry *) gDriverAnim, 1, 0);
-        anim_play((Unk8029DEA0Entry *) gDriverAnim, 1, -1);
+        anim_set_speed((AnimChannel *) gDriverAnim, 1, 0);
+        anim_set_reverse((AnimChannel *) gDriverAnim, 1, 0);
+        anim_set_loop_mode((AnimChannel *) gDriverAnim, 1, 0);
+        anim_play((AnimChannel *) gDriverAnim, 1, -1);
         gCamDistance = 0xD48;
         gCamHeightBase = 0;
         ret = 1;
@@ -546,9 +546,9 @@ void driver_update(void) {
     }
 animate:
     if (gBufferIndex != 0) {
-        anim_update_model(gDriverMtxA, gDriverMtxB, (Unk8029DEA0Entry *) gDriverAnim);
+        anim_update_model(gDriverMtxA, gDriverMtxB, (AnimChannel *) gDriverAnim);
     } else {
-        anim_update_model(gDriverMtxB, gDriverMtxA, (Unk8029DEA0Entry *) gDriverAnim);
+        anim_update_model(gDriverMtxB, gDriverMtxA, (AnimChannel *) gDriverAnim);
     }
     end = driver_build_model();
     if (gDriverExitWalk == 0) {
@@ -673,7 +673,7 @@ extern s16 gDriverWalkPose;   /* last channel-1 mode */
 static s32 AnimChannelState(s32 idx) {
     s32 ch[8];
 
-    anim_get_state(idx, (Unk8029DEA0Entry *) gDriverAnim, ch);
+    anim_get_state(idx, (AnimChannel *) gDriverAnim, ch);
     return ch[0];
 }
 
@@ -704,13 +704,13 @@ void driver_update_anims(void) {
 
     if (speed == 0) {
         if (gDriverState[0xA1] != 0) {
-            anim_stop(1, (Unk8029DEA0Entry *) base);
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) base, 3, 0);
-            anim_blend_channels(1, 3, (Unk8029DEA0Entry *) base);
-            anim_set_speed((Unk8029DEA0Entry *) base, 0x1F, 0x46);
-            anim_set_reverse((Unk8029DEA0Entry *) base, 0x1F, 0);
-            anim_set_loop_mode((Unk8029DEA0Entry *) base, 0x1F, 0);
-            anim_play((Unk8029DEA0Entry *) base, 0x1F, 1);
+            anim_stop(1, (AnimChannel *) base);
+            anim_set_frame(0.0f, (AnimChannel *) base, 3, 0);
+            anim_blend_channels(1, 3, (AnimChannel *) base);
+            anim_set_speed((AnimChannel *) base, 0x1F, 0x46);
+            anim_set_reverse((AnimChannel *) base, 0x1F, 0);
+            anim_set_loop_mode((AnimChannel *) base, 0x1F, 0);
+            anim_play((AnimChannel *) base, 0x1F, 1);
         }
         gDriverState[0xA1] = 0;
         if (AnimChannelState(0x1F) == 1 || AnimChannelState(2) == 1 || AnimChannelState(3) == 1 ||
@@ -722,50 +722,50 @@ void driver_update_anims(void) {
         }
         r = util_rand2_range(0, 2);
         if (r == 0) {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) base, 3, 0);
-            anim_play((Unk8029DEA0Entry *) base, 3, 1);
+            anim_set_frame(0.0f, (AnimChannel *) base, 3, 0);
+            anim_play((AnimChannel *) base, 3, 1);
         } else if (r == 1) {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) base, 4, 0);
-            anim_play((Unk8029DEA0Entry *) base, 4, 1);
+            anim_set_frame(0.0f, (AnimChannel *) base, 4, 0);
+            anim_play((AnimChannel *) base, 4, 1);
         } else {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) base, 2, 0);
-            anim_play((Unk8029DEA0Entry *) base, 2, 1);
+            anim_set_frame(0.0f, (AnimChannel *) base, 2, 0);
+            anim_play((AnimChannel *) base, 2, 1);
         }
         return;
     }
 
     if (gDriverState[0xA1] != 1) {
-        anim_set_frame(0.0f, (Unk8029DEA0Entry *) base, 1, 2);
+        anim_set_frame(0.0f, (AnimChannel *) base, 1, 2);
         if (AnimChannelState(2) != 0) {
-            anim_blend_channels(2, 1, (Unk8029DEA0Entry *) base);
-            anim_stop(2, (Unk8029DEA0Entry *) base);
+            anim_blend_channels(2, 1, (AnimChannel *) base);
+            anim_stop(2, (AnimChannel *) base);
         } else if (AnimChannelState(3) != 0) {
-            anim_blend_channels(3, 1, (Unk8029DEA0Entry *) base);
-            anim_stop(3, (Unk8029DEA0Entry *) base);
+            anim_blend_channels(3, 1, (AnimChannel *) base);
+            anim_stop(3, (AnimChannel *) base);
         } else if (AnimChannelState(4) != 0) {
-            anim_blend_channels(4, 1, (Unk8029DEA0Entry *) base);
-            anim_stop(4, (Unk8029DEA0Entry *) base);
+            anim_blend_channels(4, 1, (AnimChannel *) base);
+            anim_stop(4, (AnimChannel *) base);
         } else {
-            anim_set_frame(0.0f, (Unk8029DEA0Entry *) base, 3, 0);
-            anim_blend_channels(3, 1, (Unk8029DEA0Entry *) base);
+            anim_set_frame(0.0f, (AnimChannel *) base, 3, 0);
+            anim_blend_channels(3, 1, (AnimChannel *) base);
         }
-        anim_set_speed((Unk8029DEA0Entry *) base, 0x1F, 0x28);
-        anim_set_reverse((Unk8029DEA0Entry *) base, 0x1F, 0);
-        anim_set_loop_mode((Unk8029DEA0Entry *) base, 0x1F, 0);
-        anim_play((Unk8029DEA0Entry *) base, 0x1F, 1);
+        anim_set_speed((AnimChannel *) base, 0x1F, 0x28);
+        anim_set_reverse((AnimChannel *) base, 0x1F, 0);
+        anim_set_loop_mode((AnimChannel *) base, 0x1F, 0);
+        anim_play((AnimChannel *) base, 0x1F, 1);
     }
     if (AnimChannelState(0x1F) != 1) {
         speed = *(s16 *) (gDriverState + 0x76);
         if (speed < 0) {
-            anim_set_reverse((Unk8029DEA0Entry *) base, 1, 1);
+            anim_set_reverse((AnimChannel *) base, 1, 1);
         } else {
-            anim_set_reverse((Unk8029DEA0Entry *) base, 1, 0);
+            anim_set_reverse((AnimChannel *) base, 1, 0);
         }
         if (LEVEL_MSB != 0x31 && LEVEL_MSB != 0x26) { /* always true in the game */
             s32 old = gDriverWalkPose;
             s32 mode;
 
-            anim_get_state(1, (Unk8029DEA0Entry *) base, ch);
+            anim_get_state(1, (AnimChannel *) base, ch);
             mode = ch[6];
             gDriverWalkPose = mode;
             if (mode != old) {
@@ -779,8 +779,8 @@ void driver_update_anims(void) {
         if (speed < 0) {
             speed = -speed;
         }
-        anim_set_speed((Unk8029DEA0Entry *) base, 1, (u32) speed / 11);
-        anim_play((Unk8029DEA0Entry *) base, 1, -1);
+        anim_set_speed((AnimChannel *) base, 1, (u32) speed / 11);
+        anim_play((AnimChannel *) base, 1, -1);
     }
     gDriverState[0xA1] = 1;
 }

@@ -120,16 +120,16 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
                   fp, veh, &tri);
     a = gTrainMtxA;
     b = gTrainMtxB;
-    anim_init_model((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) gTrainAnim, gTrainModel);
-    anim_set_speed((Unk8029DEA0Entry *) gTrainAnim, 0, 0x64);
-    anim_set_reverse((Unk8029DEA0Entry *) gTrainAnim, 0, 0);
-    anim_set_loop_mode((Unk8029DEA0Entry *) gTrainAnim, 0, 0);
-    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gTrainAnim, 0, 0);
-    anim_play((Unk8029DEA0Entry *) gTrainAnim, 0, 1);
-    anim_update_model((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) gTrainAnim);
-    anim_rewind(0, (Unk8029DEA0Entry *) gTrainAnim);
-    anim_play((Unk8029DEA0Entry *) gTrainAnim, 0, 1);
-    anim_update_model((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) gTrainAnim);
+    anim_init_model((u32 *) b, (u32 *) a, (AnimChannel *) gTrainAnim, gTrainModel);
+    anim_set_speed((AnimChannel *) gTrainAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gTrainAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gTrainAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gTrainAnim, 0, 0);
+    anim_play((AnimChannel *) gTrainAnim, 0, 1);
+    anim_update_model((u8 *) a, (u8 *) b, (AnimChannel *) gTrainAnim);
+    anim_rewind(0, (AnimChannel *) gTrainAnim);
+    anim_play((AnimChannel *) gTrainAnim, 0, 1);
+    anim_update_model((u8 *) b, (u8 *) a, (AnimChannel *) gTrainAnim);
     VEH_S16(veh, 0x78) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;
@@ -317,9 +317,9 @@ void train_update(void) {
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
     if (gBufferIndex != 0) {
-        anim_update_model((u8 *) gTrainMtxA, (u8 *) gTrainMtxB, (Unk8029DEA0Entry *) gTrainAnim);
+        anim_update_model((u8 *) gTrainMtxA, (u8 *) gTrainMtxB, (AnimChannel *) gTrainAnim);
     } else {
-        anim_update_model((u8 *) gTrainMtxB, (u8 *) gTrainMtxA, (Unk8029DEA0Entry *) gTrainAnim);
+        anim_update_model((u8 *) gTrainMtxB, (u8 *) gTrainMtxA, (AnimChannel *) gTrainAnim);
     }
     train_build_model();
     gTrainPart3Clear++;
@@ -445,7 +445,7 @@ void train_build_model(void) {
     data = gTrainModel;
     veh_deck_transform(7, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = gTrainModel;
-    veh_update_tris(VEH_U16(veh, 0x4C), (Unk8029DEA0Entry *) gTrainAnim, gTrainX, gTrainZ, 7, OBJ_PTR(data, 0xC), base);
+    veh_update_tris(VEH_U16(veh, 0x4C), (AnimChannel *) gTrainAnim, gTrainX, gTrainZ, 7, OBJ_PTR(data, 0xC), base);
     D_803EFECB = veh_tris_all_solid_impl(7);
 }
 #else

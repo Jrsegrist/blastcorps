@@ -451,7 +451,8 @@ if(BC_GAME)
     # src/live: SDL2 window and input, the RT64 renderer, bc.ini
     add_library(bc_live OBJECT ${BC_PORT}/src/live/live_rt64.cpp ${BC_PORT}/src/live/live_setup.cpp
         ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp ${BC_PORT}/src/live/live_interp.cpp
-        ${BC_PORT}/src/live/live_orbit.cpp ${BC_PORT}/src/live/orbit_math.cpp ${BC_PORT}/src/live/live_wide.cpp)
+        ${BC_PORT}/src/live/live_orbit.cpp ${BC_PORT}/src/live/orbit_math.cpp ${BC_PORT}/src/live/live_wide.cpp
+        ${BC_PORT}/src/live/live_texdump.cpp ${BC_PORT}/src/live/tmem_decode.cpp)
     add_dependencies(bc_live bc_version rt64)
     target_compile_features(bc_live PRIVATE cxx_std_17)
     target_compile_definitions(bc_live PRIVATE RT64_NATIVE_HOST_LAYOUT SDL_MAIN_HANDLED HLSL_CPU FFX_GCC
@@ -482,6 +483,26 @@ if(BC_GAME)
     target_compile_options(bc_cameratest PRIVATE /EHsc /W3)
     target_link_options(bc_cameratest PRIVATE /SUBSYSTEM:CONSOLE)
 
+    # bc_packtool.exe: makes an RT64 texture pack from edited textures of bc.exe's
+    # texture dump (src/packtool; RT64's copies of stb_image and miniz), shipped in
+    # the player package.  bc_texturetest.exe: its tests and the texture dump's TMEM
+    # decoder's, on synthetic data (exit 0: all pass)
+    foreach(t bc_packtool bc_texturetest)
+        if(t STREQUAL bc_packtool)
+            add_executable(${t} ${BC_PORT}/src/packtool/packtool_main.cpp ${BC_PORT}/src/packtool/packtool.cpp
+                ${rt64c}/miniz/miniz.c)
+        else()
+            add_executable(${t} ${BC_PORT}/src/packtool/texture_test.cpp ${BC_PORT}/src/packtool/packtool.cpp
+                ${BC_PORT}/src/live/tmem_decode.cpp ${rt64c}/miniz/miniz.c)
+        endif()
+        target_compile_features(${t} PRIVATE cxx_std_17)
+        target_compile_definitions(${t} PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS UNICODE _UNICODE)
+        target_compile_options(${t} PRIVATE /O2 $<$<COMPILE_LANGUAGE:CXX>:/EHsc /W3 /utf-8>)
+        target_include_directories(${t} PRIVATE ${rt64c})
+        target_link_libraries(${t} PRIVATE shell32)
+        target_link_options(${t} PRIVATE /SUBSYSTEM:CONSOLE)
+    endforeach()
+
     link_tables(bc LIBS ${HL_LIBS} HOST bc_core bc_host bc_game_main bc_live)
     bc_exe(bc REPORT ${bc_REPORT} OPTS /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup
         LIBS rt64 ${BC_SDL2}/lib/x64/SDL2.lib d3d12 dxgi dxguid shcore dwmapi imm32 version setupapi winmm
@@ -505,6 +526,6 @@ if(BC_GAME)
         COMMAND ${PY} ${BC_PORT}/dist/make_dist.py --exe-dir $<TARGET_FILE_DIR:bc> --out ${CMAKE_BINARY_DIR}/dist
             --version-h ${GEN}/version.h --rt64 ${BC_RT64_SOURCE} --dxc ${BC_DXC} --sdl2 ${BC_SDL2}
             --readme ${BC_PORT}/dist/README.txt
-        DEPENDS bc ${BC_PORT}/dist/make_dist.py ${BC_PORT}/dist/README.txt
+        DEPENDS bc bc_packtool ${BC_PORT}/dist/make_dist.py ${BC_PORT}/dist/README.txt
         COMMENT "the player package (dist/make_dist.py)" VERBATIM)
 endif()

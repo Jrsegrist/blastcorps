@@ -21,7 +21,9 @@
 #ifndef ORBIT_MATH_H
 #define ORBIT_MATH_H
 
+#include <cstdint>
 #include <functional>
+#include <vector>
 
 namespace live {
 namespace orbit {
@@ -133,6 +135,70 @@ double clearShare(const Vec3 &target, const Vec3 &dir, double dist, double clear
 void lookAt(const Vec3 &eye, const Vec3 &target, double m[4][4]);
 /* eye and the point at `dist` ahead of a look-at view matrix */
 bool viewEye(const double m[4][4], Vec3 &eye, Vec3 &forward);
+
+/* the height of triangle p at (x, z): false outside it (in x/z) or for a
+ * vertical one */
+bool triHeight(const Vec3 p[3], double x, double z, double &h);
+
+/* Triangles binned by their x/z bounds, for the collision's many height
+ * queries (one step asks up to ~800): forEachAt gives every triangle whose
+ * x/z bounds hold the point (and some others), so a query over them finds
+ * exactly what a test of all of them would.  Rebuilt each step (the
+ * buildings' triangles move and fall apart). */
+class TriGrid {
+public:
+    void clear();
+    void add(const Vec3 p[3]);
+    void build();   /* after the adds, before the queries */
+    size_t size() const { return tris_.size(); }
+    template <typename F> void forEachAt(double x, double z, F f) const {
+        if (tris_.empty() || !(x == x) || !(z == z)) return;
+        for (uint32_t i : big_) f(tris_[i].p);
+        const uint32_t b = uint32_t(row(z) * nx_ + col(x));
+        for (uint32_t i = start_[b]; i < start_[b + 1]; i++) f(tris_[index_[i]].p);
+    }
+
+private:
+    struct Tri {
+        double minX, maxX, minZ, maxZ;
+        Vec3 p[3];
+    };
+    int col(double x) const;
+    int row(double z) const;
+    std::vector<Tri> tris_;
+    std::vector<uint32_t> start_, index_, big_;   /* bins (row-major), their triangles; ones in too many bins */
+    double x0_ = 0, z0_ = 0, cw_ = 1, cd_ = 1;
+    int nx_ = 1, nz_ = 1;
+};
+
+/* The drawing list's visibility test (render only): what a camera can see,
+ * from the eye looking at the target, as a pyramid with the projection's
+ * half angles (tan: tanX, tanY) widened by marginDeg (pictures between list
+ * updates may look a little elsewhere), its apex moved back by `back` along
+ * the view (the eye may move a little meanwhile), and the far plane at depth
+ * farDist (> 0; plus `back`).  A side widened to 89 degrees or more stops
+ * limiting.  (No `near`/`far` names here: windows.h defines them.) */
+class ViewVolume {
+public:
+    ViewVolume(const Vec3 &eye, const Vec3 &target, double tanX, double tanY, double marginDeg, double back,
+               double farDist);
+    /* false if an axis-aligned box is surely outside (all its corners
+     * beyond one of the planes) */
+    bool boxVisible(const Vec3 &lo, const Vec3 &hi) const;
+    /* exact: some part of the box is inside (its faces clipped against the
+     * planes; or the view's axis starts inside it) - for checks; the plane
+     * test above keeps some boxes that are outside (big ones beside the eye) */
+    bool boxVisibleExact(const Vec3 &lo, const Vec3 &hi) const;
+
+private:
+    double m_[4][4];
+    double sx_, sy_, far_;
+    bool limX_, limY_;
+};
+
+/* the near and far distances of an N64 perspective projection (guPerspective,
+ * row vectors); false if it isn't one */
+bool perspectiveRange(const double p[4][4], double &nearZ, double &farZ);
 
 }  // namespace orbit
 }  // namespace live

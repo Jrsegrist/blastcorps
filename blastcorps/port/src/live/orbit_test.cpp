@@ -1,8 +1,12 @@
 /* bc_cameratest.exe: tests of the orbit camera's math (orbit_math.cpp):
  * limits, recentring, zoom, collision pull-in, the view matrix.  No window,
  * ROM or renderer; exit status 0 when all pass. */
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
+#include <utility>
+#include <vector>
 
 #include "orbit_math.h"
 
@@ -231,6 +235,147 @@ int main() {
         o4.eyeFor(gw, 0, 0, l, eye);
         check(near(o4.rise(), 35.0, 0.5), "rises over a low wall");
         check(near(o4.distanceRatio(), 1.0, 0.01), "... at the full distance");
+    }
+    /* the collision's triangle grid: the same heights as a test of every triangle */
+    {
+        unsigned seed = 12345;
+        auto rnd = [&](double lo, double hi) {
+            seed = seed * 1103515245u + 12345u;
+            return lo + (hi - lo) * double((seed >> 8) & 0xFFFF) / 65535.0;
+        };
+        std::vector<std::array<Vec3, 3>> tris;
+        for (int i = 0; i < 1500; i++) {   /* small walls and roofs, a few big slabs, some vertical */
+            const double cx = rnd(-2000, 2000), cz = rnd(-2000, 2000), r = i % 97 == 0 ? 3000 : rnd(2, 60);
+            std::array<Vec3, 3> t = {{{cx + rnd(-r, r), rnd(0, 300), cz + rnd(-r, r)},
+                                      {cx + rnd(-r, r), rnd(0, 300), cz + rnd(-r, r)},
+                                      {cx + rnd(-r, r), rnd(0, 300), cz + rnd(-r, r)}}};
+            if (i % 50 == 0) t[2] = {t[0].x, t[0].y + 40, t[0].z};
+            tris.push_back(t);
+        }
+        TriGrid grid;
+        for (const auto &t : tris) grid.add(t.data());
+        grid.build();
+        check(grid.size() == tris.size(), "the grid keeps every triangle");
+        int same = 0, total = 0, hits = 0;
+        for (int q = 0; q < 20000; q++) {
+            /* points anywhere, at triangle corners and outside the triangles' area */
+            double x = rnd(-2600, 2600), z = rnd(-2600, 2600);
+            if (q % 4 == 0) {
+                const auto &t = tris[q % tris.size()];
+                x = t[q % 3].x, z = t[q % 3].z;
+            }
+            double all = -1e31, h;
+            for (const auto &t : tris)
+                if (triHeight(t.data(), x, z, h)) all = std::max(all, h);
+            double binned = -1e31;
+            grid.forEachAt(x, z, [&](const Vec3 *p) {
+                if (triHeight(p, x, z, h)) binned = std::max(binned, h);
+            });
+            same += all == binned;
+            hits += all > -1e30;
+            total++;
+        }
+        check(same == total, "grid height queries equal a test of every triangle");
+        check(hits > 1000, "... with many queries over triangles");
+        TriGrid empty;
+        empty.build();
+        int calls = 0;
+        empty.forEachAt(0, 0, [&](const Vec3 *) { calls++; });
+        check(calls == 0, "an empty grid has no triangles anywhere");
+    }
+    /* the drawing list's view volume */
+    {
+        /* guPerspective(fovy 60, aspect 4:3, near 10, far 5000, scale 1), row vectors */
+        const double n = 10, f = 5000, cot = 1.0 / std::tan(30.0 * 3.14159265358979 / 180.0);
+        double p[4][4] = {{cot / (4.0 / 3.0), 0, 0, 0}, {0, cot, 0, 0}, {0, 0, (n + f) / (n - f), -1},
+                          {0, 0, 2 * n * f / (n - f), 0}};
+        double nz, fz;
+        check(perspectiveRange(p, nz, fz) && near(nz, 10, 1e-9) && near(fz, 5000, 1e-6), "perspective near/far");
+        for (auto &r : p)
+            for (double &v : r) v *= 2.0;   /* guPerspective's scale */
+        check(perspectiveRange(p, nz, fz) && near(nz, 10, 1e-9) && near(fz, 5000, 1e-6), "... with a scale");
+        double id[4][4] = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+        check(!perspectiveRange(id, nz, fz), "not a perspective");
+        const double tx = 1.0 / cot * (4.0 / 3.0), ty = 1.0 / cot;
+        const Vec3 eye = {0, 100, 0}, at = {0, 100, -100};   /* looking along -z */
+        const ViewVolume v(eye, at, tx, ty, 0.0, 0.0, 5000);
+        auto box = [](const Vec3 &c, double r) { return std::make_pair(c - Vec3{r, r, r}, c + Vec3{r, r, r}); };
+        auto vis = [&](const ViewVolume &vv, const Vec3 &c, double r) {
+            const auto b = box(c, r);
+            return vv.boxVisible(b.first, b.second);
+        };
+        check(vis(v, {0, 100, -500}, 5), "a box straight ahead is seen");
+        check(!vis(v, {0, 100, 500}, 5), "a box behind is not");
+        check(!vis(v, {2000, 100, -500}, 5), "a box far to the right is not");
+        check(vis(v, {500 * tx - 1, 100, -500}, 5), "a box just inside the right edge is");
+        check(!vis(v, {500 * tx + 10, 100, -500}, 5), "... just outside it is not");
+        check(!vis(v, {0, 100 + 500 * ty + 10, -500}, 5), "... nor just above the top edge");
+        check(!vis(v, {0, 100, -6000}, 5), "a box beyond the far plane is not");
+        check(vis(v, {0, 100, 2}, 5), "a box around the eye is");
+        const ViewVolume wide(eye, at, tx, ty, 15.0, 0.0, 5000);
+        check(vis(wide, {500 * tx + 10, 100, -500}, 5), "the margin widens the edges");
+        const ViewVolume back(eye, at, tx, ty, 0.0, 50.0, 5000);
+        check(vis(back, {0, 100, 30}, 5), "the apex moved back sees a little behind the eye");
+        const ViewVolume all(eye, at, tx, ty, 80.0, 0.0, 0);
+        check(vis(all, {5000, 100, -1}, 5) && !vis(all, {0, 100, 500}, 5), "a side over 89 degrees stops limiting");
+        /* the margins only ever add: every box the exact volume sees, a wider one sees */
+        unsigned seed = 777;
+        auto rnd = [&](double lo, double hi) {
+            seed = seed * 1103515245u + 12345u;
+            return lo + (hi - lo) * double((seed >> 8) & 0xFFFF) / 65535.0;
+        };
+        int lost = 0, seen = 0;
+        for (int i = 0; i < 20000; i++) {
+            const Vec3 e = {rnd(-500, 500), rnd(0, 300), rnd(-500, 500)};
+            const Vec3 t = {rnd(-500, 500), rnd(0, 100), rnd(-500, 500)};
+            if (length(t - e) < 1) continue;
+            const ViewVolume ex(e, t, tx * 1.467, ty, 0.0, 0.0, 3000);
+            const ViewVolume wd(e, t, tx * 1.467, ty, rnd(0, 40), rnd(0, 80), 3000);
+            const Vec3 c = {rnd(-3000, 3000), rnd(-100, 400), rnd(-3000, 3000)};
+            const double r = rnd(1, 200);
+            /* (boxes in front of the eye: one reaching behind it may pass the
+             * plane test without being seen at all) */
+            const Vec3 fw = normalize(t - e);
+            bool front = true;
+            for (int k = 0; k < 8; k++) {
+                const Vec3 q = {c.x + ((k & 1) ? r : -r), c.y + ((k & 2) ? r : -r), c.z + ((k & 4) ? r : -r)};
+                front = front && dot(q - e, fw) > 0;
+            }
+            if (front && vis(ex, c, r)) {
+                seen++;
+                lost += !vis(wd, c, r);
+            }
+        }
+        check(seen > 1000 && lost == 0, "margins never drop a box the exact view sees");
+        /* the exact test: a big flat box beside and behind the eye passes the plane test but isn't seen */
+        {
+            /* the game's projection: fovy 45, 4:3 (proj [0][0] 1.81065, [1][1] 2.4142) */
+            const Vec3 e = {2480.7, 252.8, 1524.2}, t = {2178.7, 0.7, 1328.2};
+            const ViewVolume ex(e, t, 1.0 / 1.81065, 1.0 / 2.4142, 0.0, 0.0, 10200);
+            check(ex.boxVisible({3000, 0, 0}, {4500, 1, 2500}) && !ex.boxVisibleExact({3000, 0, 0}, {4500, 1, 2500}),
+                  "exact test: a big box beside the eye (level 3) is out, the plane test keeps it");
+            check(ex.boxVisibleExact({2000, 0, 1000}, {2400, 1, 1600}), "exact test: the ground under the target is in");
+            check(ex.boxVisibleExact({2400, 200, 1500}, {2500, 300, 1550}), "exact test: a box around the eye is in");
+            check(ex.boxVisibleExact({-50000, -50000, -50000}, {50000, 50000, 50000}), "exact test: inside a huge box");
+        }
+        /* exact implies the plane test; and the margins keep every box the exact view sees */
+        int bad = 0, lost2 = 0, seen2 = 0;
+        for (int i = 0; i < 20000; i++) {
+            const Vec3 e = {rnd(-500, 500), rnd(0, 300), rnd(-500, 500)};
+            const Vec3 t = {rnd(-500, 500), rnd(0, 100), rnd(-500, 500)};
+            if (length(t - e) < 1) continue;
+            const ViewVolume ex(e, t, tx * 1.467, ty, 0.0, 0.0, 3000);
+            const ViewVolume wd(e, t, tx * 1.467, ty, rnd(0, 40), rnd(0, 80), 3000);
+            const Vec3 c = {rnd(-3000, 3000), rnd(-100, 400), rnd(-3000, 3000)};
+            const Vec3 r = {rnd(1, 1500), rnd(1, 200), rnd(1, 1500)};
+            if (ex.boxVisibleExact(c - r, c + r)) {
+                seen2++;
+                bad += !ex.boxVisible(c - r, c + r);
+                lost2 += !wd.boxVisible(c - r, c + r);
+            }
+        }
+        check(seen2 > 1000 && bad == 0, "the exact test only passes boxes the plane test passes");
+        check(lost2 == 0, "margins keep every box the exact view sees (big boxes too)");
     }
     printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

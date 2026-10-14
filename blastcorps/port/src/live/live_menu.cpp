@@ -190,7 +190,10 @@ void videoTab(Config &c) {
         }
         ImGui::EndDisabled();
         if (map.size() < 2) help("This graphics card (or its driver) has no programmable sample positions, which RT64 needs for MSAA.");
-        else help("Smooths the edges of 3D shapes (multisample anti-aliasing).");
+        else help("Smooths the edges of 3D shapes (multisample anti-aliasing). Each step up costs graphics time: "
+                  "at 1920x1080 on integrated graphics (a Ryzen 7 5700U's) 8x took 1.5 to 2 times as long a "
+                  "picture as Off. If the game isn't smooth there, try 2x or Off first.");
+        if (map.size() >= 2 && c.msaa >= 4) ImGui::TextDisabled("4x and 8x: high cost on integrated graphics.");
     }
     {
         static const double ratios[] = {0, 16.0 / 9.0, 16.0 / 10.0, 21.0 / 9.0, -1};

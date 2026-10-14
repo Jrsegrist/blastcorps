@@ -116,7 +116,8 @@ buttons (C left/right, the game's own 45-degree camera turns, stay on J and L); 
 menus the right stick is the C buttons as before. The view rises over low walls and
 moves in when buildings or hills are in the way. People still face the game's own
 camera, the radar keeps the game's heading, and the screen doesn't shake in the
-orbit view.
+orbit view. (Before this version, turning the orbit camera could slow the whole game
+down to about 20 frames a second on a laptop: its collision test was too slow. Fixed.)
 
 The frame-rate counter (F2, or fps_counter in the settings menu) shows in a corner
 how many pictures a second reach the display and how many frames a second the game
@@ -171,6 +172,13 @@ choice matters only with vsync on and the Direct3D 12 graphics API):
          The game falls back to the timer for a few seconds if the PC can't
          keep up at all.
 Try vsync if motion looks uneven while something else runs in the background.
+
+Settings for integrated graphics (measured on a laptop's Ryzen 7 5700U with its
+Radeon graphics, 1920x1080 fullscreen at 60 Hz): framerate 60 with widescreen and
+the orbit camera turning kept 59-60 pictures a second at msaa 8, 2 and 0 alike (the
+graphics were 20-40 % busy); msaa 8 made each picture take 1.5 to 2 times as long as
+msaa 0. If motion isn't smooth on a slower PC, lower msaa to 2 or 0 first, then the
+resolution.
 
 On 120/144 Hz and other high-refresh displays the speed is the same; a field then stays up for a whole number of
 refreshes (2 or 3 in turn at 144 Hz), a slight unevenness the eye barely sees.

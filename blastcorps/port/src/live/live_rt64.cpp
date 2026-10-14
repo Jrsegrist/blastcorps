@@ -42,6 +42,11 @@
  *                       summary in the log at exit
  *     --flip-log FILE   (testing) every present RT64 made and, with D3D12, every display
  *                       refresh and the present it showed (DXGI frame statistics), CSV
+ *     --perf-log FILE   (testing) twice a second: game frames, RT64's pictures and their GPU
+ *                       time, render-thread and processDisplayLists time, pacing waits, the
+ *                       orbit camera's host work, draw calls and triangles, CSV
+ *     --pace-from F     (testing) real-time pacing only from game frame F (as fast as it
+ *                       goes before: measured runs get to play sooner)
  *     --present-pacing P  timer (default: RT64's own present timer, the lowest latency) or
  *                       vsync (with vsync on, pictures go to the display on its refreshes,
  *                       port patch 0005: even under load, about 5-10 ms more latency);
@@ -61,7 +66,13 @@
  *                       render only, the game runs as with its own camera)
  *     --orbit-test Y[:P[:Z]]  (testing) the orbit camera turns by itself: Y degrees a second,
  *                       pitch P degrees, zoom Z
- *     --orbit-log       log both cameras every 30 frames (and the collision's heights)
+ *     --orbit-log       log both cameras every 30 frames (and the collision's heights); check
+ *                       every picture's view against its drawing list and every collision
+ *                       query against a test of every triangle (summary at exit)
+ *     --orbit-cull M    (testing) all: the drawing paths get every cell (as before the orbit
+ *                       view's test), view: the game's cells and the orbit view's (default)
+ *     --orbit-repeatable  (testing) pictures use the orbit as it was when their frame was made
+ *                       (the same pictures every run, for comparisons)
  *     --interp-log      log every frame's camera motion (the interpolation cut test) and
  *                       tagged objects that jumped
  *     --tag-test MASK   (testing) tagged interpolation experiments: 1 no vertex blending, 2 HUD
@@ -122,6 +133,7 @@
 #include <SDL_syswm.h>
 
 #include "hle/rt64_application.h"
+#include "hle/rt64_workload_queue.h"
 #include "common/rt64_tmem_hasher.h"
 #include "render/rt64_render_target.h"
 #include "render/rt64_texture_cache.h"
@@ -151,6 +163,7 @@ namespace {
 struct LiveOpts {
     bool vulkan = false;
     bool pace = true;
+    unsigned paceFrom = 0;           /* --pace-from F (testing): as fast as it goes before game frame F */
     unsigned scale = 3;              /* window size: 320x240 times this */
     bool fullscreen = false;
     bool vsync = true;
@@ -839,6 +852,111 @@ void writePaceLog() {
              unsigned(np), unsigned(g_pace.size()), p.mean, p.sd, p.p01, p.p99, p.max, unsigned(prOver));
 }
 
+/* ---- where the time goes (--perf-log FILE, testing) --------------------------
+ * Twice a second one line: the game's frames; RT64's rendered pictures and
+ * their GPU time (RT64's own timestamp queries, WorkloadQueue::
+ * rendererGPUProfiler) and its render thread's time per workload; the main
+ * thread's time in processDisplayLists and waiting for the paced retrace
+ * (the rest of the window is the game's and the host's work); the orbit
+ * camera's host work; the frame workloads' draw calls and triangles.  It
+ * only reads clocks and counters (the profilers' histories are read without
+ * their thread's lock: testing numbers). */
+struct PerfWin {
+    double t = 0, span = 0;
+    unsigned frames = 0, frameEnd = 0, gpuN = 0, wlN = 0, dlTasks = 0, workloads = 0;
+    double gpuSum = 0, gpuMax = 0, wlSum = 0, wlMax = 0, dlMs = 0, waitMs = 0, calls = 0, tris = 0;
+    live::OrbitPerf orbit;
+};
+struct PerfLog {
+    const char *path = nullptr;
+    std::vector<PerfWin> wins;
+    PerfWin cur;
+    double start = -1;
+    uint32_t gpuIdx = 0, wlIdx = 0;
+    double dlStart = 0;              /* processDisplayLists time before this window (any frame rate) */
+} g_perf;
+double g_perfDlSeconds;              /* time in processDisplayLists (--perf-log) */
+
+void perfTake(const RT64::ProfilingTimer &p, uint32_t &idx, double &sum, double &mx, unsigned &n) {
+    const uint32_t now = p.index();
+    const size_t size = p.size();
+    const double *d = p.data();
+    for (uint32_t i = idx; i != now; i = uint32_t((i + 1) % size)) {
+        sum += d[i];
+        mx = std::max(mx, d[i]);
+        n++;
+    }
+    idx = now;
+}
+
+/* the frame's workload (the frame's main task: the workload it was written
+ * to, just after processDisplayLists) */
+void perfWorkload(int cursor) {
+    if (g_perf.path == nullptr) return;
+    const RT64::WorkloadQueue &q = *g_app->workloadQueue;
+    const RT64::Workload &w = q.workloads[cursor];
+    unsigned calls = 0;
+    for (uint32_t i = 0; i < w.fbPairCount && i < w.fbPairs.size(); i++) calls += w.fbPairs[i].gameCallCount;
+    if (calls == 0) return;
+    g_perf.cur.workloads++;
+    g_perf.cur.calls += calls;
+    g_perf.cur.tris += double(w.drawData.faceIndices.size()) / 3.0 + double(w.drawData.rawTriVertexCount()) / 3.0;
+}
+
+/* each retrace, after updateScreen */
+void perfTick(unsigned frames) {
+    if (g_perf.path == nullptr) return;
+    const double now = secondsSince(g_tStart);
+    if (g_perf.start < 0) {
+        g_perf.start = now;
+        g_perf.cur = PerfWin();
+        g_perf.cur.t = now;
+        g_perf.cur.frames = frames;
+        g_perf.gpuIdx = g_app->workloadQueue->rendererGPUProfiler.index();
+        g_perf.wlIdx = g_app->workloadQueue->workloadProfiler.index();
+        g_perf.dlStart = g_perfDlSeconds;
+        live::orbitPerfTake();
+        return;
+    }
+    if (now - g_perf.cur.t < 0.5) return;
+    PerfWin &w = g_perf.cur;
+    w.span = now - w.t;
+    w.frames = frames - w.frames;
+    w.frameEnd = frames;
+    perfTake(g_app->workloadQueue->rendererGPUProfiler, g_perf.gpuIdx, w.gpuSum, w.gpuMax, w.gpuN);
+    perfTake(g_app->workloadQueue->workloadProfiler, g_perf.wlIdx, w.wlSum, w.wlMax, w.wlN);
+    w.dlMs = (g_perfDlSeconds - g_perf.dlStart) * 1e3;
+    g_perf.dlStart = g_perfDlSeconds;
+    w.orbit = live::orbitPerfTake();
+    w.t -= g_perf.start;
+    if (g_perf.wins.size() < 100000) g_perf.wins.push_back(w);
+    g_perf.cur = PerfWin();
+    g_perf.cur.t = now;
+    g_perf.cur.frames = frames;
+}
+
+void perfWait(double seconds) {
+    if (g_perf.path != nullptr) g_perf.cur.waitMs += seconds * 1e3;
+}
+
+void perfWrite() {
+    if (g_perf.path == nullptr) return;
+    const char *path = g_perf.path;
+    g_perf.path = nullptr;
+    FILE *f = static_cast<FILE *>(host_fopen(path, "w"));
+    if (f == nullptr) return;
+    fprintf(f, "t_s,span_s,frame_end,frames,renders,gpu_ms_sum,gpu_ms_max,workloads_rt64,wl_ms_sum,wl_ms_max,dl_ms,dl_tasks,"
+               "wait_ms,frame_workloads,calls,tris,orbit_step_ms,orbit_cells_ms,orbit_lists,orbit_cells,game_cells,"
+               "orbit_read_ms,orbit_queries\n");
+    for (const PerfWin &w : g_perf.wins)
+        fprintf(f, "%.3f,%.3f,%u,%u,%u,%.3f,%.3f,%u,%.3f,%.3f,%.3f,%u,%.3f,%u,%.0f,%.0f,%.3f,%.3f,%u,%u,%u,%.3f,%u\n", w.t,
+                w.span, w.frameEnd, w.frames, w.gpuN, w.gpuSum, w.gpuMax, w.wlN, w.wlSum, w.wlMax, w.dlMs, w.dlTasks, w.waitMs,
+                w.workloads, w.calls, w.tris, w.orbit.stepMs, w.orbit.cellsMs, w.orbit.lists, w.orbit.cells,
+                w.orbit.gameCells, w.orbit.readMs, w.orbit.queries);
+    fclose(f);
+    host_log("live: perf log: %u windows -> %s\n", unsigned(g_perf.wins.size()), path);
+}
+
 [[noreturn]] void shutdown(int code) {
     if (g_audioDev != 0) {
         host_log("live: sound queue resets %u, failed queue calls %u\n", g_audioResets, g_audioDrops);
@@ -1297,13 +1415,21 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     live::orbitBeforeTask(dataPtr, frameDl);
     live::interpTagsBeforeTask(dataPtr, frameDl);
     LARGE_INTEGER t0, t1;
-    if (g_cfg.framerate != 0) QueryPerformanceCounter(&t0);
+    const bool timed = g_cfg.framerate != 0 || g_perf.path != nullptr;
+    const int cursor = g_app->workloadQueue->writeCursor;
+    if (timed) QueryPerformanceCounter(&t0);
     g_app->processDisplayLists(rdramBase(), dataPtr & 0x3FFFFFF, 0, true);
-    if (g_cfg.framerate != 0) {
+    if (timed) {
         QueryPerformanceCounter(&t1);
-        g_dlSeconds += double(t1.QuadPart - t0.QuadPart) / double(g_freq.QuadPart);
-        g_dlTasks++;
+        const double s = double(t1.QuadPart - t0.QuadPart) / double(g_freq.QuadPart);
+        if (g_cfg.framerate != 0) {
+            g_dlSeconds += s;
+            g_dlTasks++;
+        }
+        g_perfDlSeconds += s;
+        g_perf.cur.dlTasks++;
     }
+    if (frameDl) perfWorkload(cursor);
     live::interpTagsAfterTask(frameDl);
     live::orbitAfterTask(frameDl);
     for (auto &s : g_skipped) *s.first = s.second;
@@ -1386,7 +1512,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
      * display's next refresh).  Waiting before handing it over (not after)
      * keeps the hand-over times regular: the game's and RT64's own work for
      * the next retrace happens after it, inside the wait's slack. */
-    if (g_opt.pace) {
+    if (g_opt.pace && frames >= g_opt.paceFrom) {
         LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
         if (g_t0.QuadPart == 0) {
@@ -1400,12 +1526,14 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
             g_when0 = when;
             g_paceResets++;
         } else {
+            const double waitFrom = t;
             while (t < due) {
                 const double left = due - t;
                 if (left > 0.002) Sleep(DWORD((left - 0.0015) * 1000.0));
                 QueryPerformanceCounter(&now);
                 t = double(now.QuadPart - g_t0.QuadPart) / double(g_freq.QuadPart);
             }
+            perfWait(t - waitFrom);
         }
     }
     counterTick(frames);
@@ -1421,6 +1549,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
     }
     const double before = g_opt.paceLog != nullptr ? secondsSince(g_tStart) : 0.0;
     g_app->updateScreen();
+    perfTick(frames);
     g_app->state->presentDueTime = RT64::Timestamp();
     if (g_opt.paceLog != nullptr) {
         const double after = secondsSince(g_tStart);
@@ -1677,6 +1806,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--no-rom-check")) g_opt.romCheck = false;
     else if (!strcmp(a, "--pace-log")) g_opt.paceLog = next();
     else if (!strcmp(a, "--flip-log")) g_flip.path = next();
+    else if (!strcmp(a, "--perf-log")) g_perf.path = next();
     else if (!strcmp(a, "--config") || !strcmp(a, "--no-config")) {
         if (a[2] == 'c') next();   /* read before host_main (main) */
     } else if (!strcmp(a, "--saves")) {
@@ -1710,6 +1840,11 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--display-hz")) g_interp.displayHz = std::max(1u, num(next()));
     else if (!strcmp(a, "--interp-log")) g_interp.log = true;
     else if (!strcmp(a, "--orbit-log")) live::orbitSetLog(true);
+    else if (!strcmp(a, "--orbit-repeatable")) live::orbitSetRepeatable(true);
+    else if (!strcmp(a, "--orbit-cull")) {
+        const char *s = next();
+        if (!live::orbitSetCull(s)) host_fatal("--orbit-cull %s: all or view", s);
+    }
     else if (!strcmp(a, "--orbit-test")) {
         const char *s = next();
         if (!live::orbitSetTest(s)) host_fatal("--orbit-test %s: YAWSPEED[:PITCH[:ZOOM]], e.g. 60:25:1.5", s);
@@ -1720,6 +1855,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         if (sscanf(s, "%u:%u", &g_wseq.frame, &g_wseq.ms) != 2) host_fatal("--wseq %s: FRAME:MILLISECONDS", s);
     }
     else if (!strcmp(a, "--no-pace")) g_opt.pace = false;
+    else if (!strcmp(a, "--pace-from")) g_opt.paceFrom = num(next());
     else if (!strcmp(a, "--scale")) g_opt.scale = std::max(1u, num(next()));
     else if (!strcmp(a, "--shot-dir")) g_opt.shotDir = next();
     else if (!strcmp(a, "--shot-every")) g_opt.shotEvery = num(next());
@@ -2075,6 +2211,7 @@ int main(int, char **) {
         if (g_wseq.thread.joinable()) g_wseq.thread.join();
         flipWrite();
         writePaceLog();
+        perfWrite();
         if (g_dlTasks != 0)
             host_log("live: frame rate option: %.3f ms per task in processDisplayLists (%u tasks, interpolation %s)\n",
                      g_dlSeconds * 1e3 / g_dlTasks, g_dlTasks, live::interpTagsOn() ? "tagged" : "auto");

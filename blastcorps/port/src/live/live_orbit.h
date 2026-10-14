@@ -41,7 +41,23 @@ void orbitAfterTask(bool frameDl);
  * player input; --orbit-log logs every frame's cameras */
 bool orbitSetTest(const std::string &spec);
 void orbitSetLog(bool on);
+/* testing: --orbit-cull all (the drawing paths get every cell of the level,
+ * as before the orbit view's test) or view (the default: the game's cells and
+ * those the orbit camera can see) */
+bool orbitSetCull(const std::string &mode);
+/* testing: --orbit-repeatable: each picture uses the orbit as it was when its
+ * frame was made (no input since: the same pictures every run, for
+ * comparisons; normally pictures use the newest orbit) */
+void orbitSetRepeatable(bool on);
 void orbitSummary();
+/* testing (--perf-log): the orbit's host work since the last call (ms: its
+ * step with the collision queries, the drawing list) and the cells the
+ * drawing list had beyond the game's own (summed over the lists made) */
+struct OrbitPerf {
+    double stepMs = 0, cellsMs = 0, readMs = 0;   /* (readMs: reading the obstacles, part of stepMs) */
+    unsigned lists = 0, cells = 0, gameCells = 0, queries = 0;   /* (queries: collision height queries) */
+};
+OrbitPerf orbitPerfTake();
 
 }  // namespace live
 

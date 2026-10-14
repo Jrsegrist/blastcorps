@@ -264,6 +264,9 @@ void fe_player_ticker_reset(u8 arg0) {
         gScrollLine[i] = D_802E8C94[gScrollUsesGlyphs];
     }
     gScrollLine[i] = gTextTerminator[gScrollUsesGlyphs];
+#ifdef PORT_HOST
+    PORT_TICKER(PORT_TICKER_RESET, 0, NULL); /* bc.exe's widescreen: the line was blanked */
+#endif
     gScrollPixel = 0;
     gScrollIconX = 9999;
     for (i = 1; i < 5; i++) {
@@ -505,6 +508,9 @@ Gfx *fe_player_draw_panel(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
         gScrollPixel += gScrollSpeed;
         if (gScrollPixel >= gScrollCharWidth) {
             gScrollPixel -= gScrollCharWidth;
+#ifdef PORT_HOST
+            PORT_TICKER(PORT_TICKER_SHIFT, gScrollLine[0], NULL); /* bc.exe's widescreen: it leaves the line */
+#endif
             for (i = 1; gScrollLine[i] != gTextTerminator[gScrollUsesGlyphs]; i++) {
                 gScrollLine[i - 1] = gScrollLine[i];
             }
@@ -532,6 +538,41 @@ Gfx *fe_player_draw_panel(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
         text_print_gradient((Gfx * N64P *) dyn, (gScrollUsesGlyphs == 1) ? NULL : font_narrow(gScrollLine), (gScrollUsesGlyphs == 1) ? gScrollLine : NULL,
                       0, 0, -gScrollPixel % gScrollCharWidth, 0xC7, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, gPanelAlpha, 0xFF, 0xFF,
                       0xFF, gPanelAlpha);
+#ifdef PORT_HOST
+        {
+            /* bc.exe's widescreen: the line as drawn, for the characters beyond 4:3 (port.h) */
+            PortTicker t;
+            s32 k;
+
+            t.line = gScrollLine;
+            t.text = gScrollText;
+            t.len = sslen;
+            t.pos = gScrollPos;
+            t.pixel = gScrollPixel;
+            t.charWidth = gScrollCharWidth;
+            t.speed = gScrollSpeed;
+            t.speedGoal = gScrollSpeedGoal;
+            t.hold = gScrollHoldTime;
+            t.alpha = gPanelAlpha;
+            t.iconX = gScrollIconX;
+            t.iconPos = gScrollIconPos;
+            t.iconSprite = gScrollIconSprite;
+            for (k = 0; k < 5; k++) {
+                t.medalX[k] = k != 0 ? gScrollMedalX[k] : 9999;
+                t.medalPos[k] = k != 0 ? gScrollMedalPos[k] : -1;
+            }
+            t.medalSprite = gScrollMedalSpriteBase;
+            t.maxRank = MAX_RANK();
+            t.skip[0] = D_802E8C94[0];
+            t.skip[1] = D_802E8C90[0];
+            t.skip[2] = D_802E8C8C[0];
+            t.noAdvance = D_802E8C8C[0];
+            t.terminator = gTextTerminator[0];
+            t.advance = gFontAdvance[0];
+            t.glyphs = gScrollUsesGlyphs;
+            PORT_TICKER(PORT_TICKER_FRAME, 0, &t);
+        }
+#endif
         gDPPipeSync(gdl++);
     }
     return gdl;

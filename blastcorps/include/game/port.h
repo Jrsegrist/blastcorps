@@ -143,6 +143,31 @@ void *port_save_semblock(const void *sem);
 #define PORT_ITAG_RADAR 14    /* the radar's sweep and heading arrow (blended; then back to HUD) */
 #define PORT_ITAG_CUT 30
 #define PORT_ITAG_SPAWN 31
+/*   Widescreen tags (bc.exe's widescreen, port/src/live/live_wide.cpp), told
+ *   the host the same way (nothing written, nothing read back):
+ *   PORT_WTAG(gdl, kind, x0, x1)  the 2D commands written from gdl on (in that
+ *                     list and the lists it calls) are, until the next
+ *                     PORT_WTAG on that list:
+ *     PORT_WTAG_NONE   not HUD (or centred: left where it is);
+ *     PORT_WTAG_LEFT / PORT_WTAG_RIGHT  a HUD part of the left / right side
+ *                      (moved to that edge with video.hud_position = edges);
+ *     PORT_WTAG_SPAN   a HUD part spanning x0..x1 (screen pixels): left, right
+ *                      or centred by where it lies;
+ *     PORT_WTAG_TEXT_SIDES  a text flush of the HUD: each string's quads go
+ *                      to the side the string is on (PORT_WTAG_TEXT);
+ *     PORT_WTAG_TICKER the ticker's lit band (01C40.c; made as wide as the
+ *                      picture);
+ *     PORT_WTAG_STARS  the globe's starfield (spread across the picture).
+ *   PORT_WTAG(vtx, PORT_WTAG_TEXT, n, fit)  a queued string's n vertices from
+ *                     vtx (14B30.c; fit != 0: a centred string). */
+#define PORT_WTAG_NONE 0
+#define PORT_WTAG_LEFT 1
+#define PORT_WTAG_RIGHT 2
+#define PORT_WTAG_SPAN 3
+#define PORT_WTAG_TEXT_SIDES 4
+#define PORT_WTAG_TICKER 5
+#define PORT_WTAG_STARS 6
+#define PORT_WTAG_TEXT 7
 #if defined(NON_MATCHING) && defined(PORT_HOST)
 void port_itag(const void *gdl, int kind, int index);
 #define PORT_ITAG(gdl, kind, index) port_itag((const void *) (gdl), (kind), (int) (index))
@@ -150,11 +175,14 @@ void port_itag(const void *gdl, int kind, int index);
 #define PORT_ICUT_IF(c) port_itag(0, PORT_ITAG_CUT, (c) ? 1 : 0)
 short *port_draw_cells(short *game);
 #define PORT_DRAW_CELLS(list) port_draw_cells((short *) (list))
+void port_wtag(const void *gdl, int kind, int x0, int x1);
+#define PORT_WTAG(gdl, kind, x0, x1) port_wtag((const void *) (gdl), (kind), (int) (x0), (int) (x1))
 #else
 #define PORT_ITAG(gdl, kind, index)
 #define PORT_ISPAWN(kind, index)
 #define PORT_ICUT_IF(c)
 #define PORT_DRAW_CELLS(list) ((short *) (list))
+#define PORT_WTAG(gdl, kind, x0, x1)
 #endif
 
 #endif

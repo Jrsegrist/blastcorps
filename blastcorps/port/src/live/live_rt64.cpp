@@ -57,6 +57,7 @@
  *     --msaa N          multisample anti-aliasing: 0 (default), 2, 4, 8
  *     --filtering F     the picture's scaling: aa (default), linear, nearest
  *     --aspect A        widescreen: original (4:3, default), 16:9, 16:10, 21:9, W:H, window
+ *     --hud-position P  widescreen HUD: centered (default, the 4:3 middle) or edges
  *     --framerate F     pictures a second: original (the game's 20/30, default), display, or N
  *                       (RT64 interpolates in-between pictures; the game runs as before)
  *     --interpolation M tagged (default: objects paired by the game's tags, live_interp.cpp)
@@ -1008,7 +1009,8 @@ void updateCullWide() {
         if (pw > 0 && ph > 0) k = double(pw) / double(ph) / (4.0 / 3.0);
     }
     if (k < 1.0) k = 1.0;
-    live::wideSetFactor(k);   /* the full-screen 2D (sky, fades, ...) as wide as the picture (live_wide.cpp) */
+    live::wideSetHudEdges(g_cfg.hudPosition == 1);   /* the HUD at the edges (live_wide.cpp) */
+    live::wideSetFactor(k);  /* the full-screen 2D (sky, fades, ...) as wide as the picture (live_wide.cpp) */
     if (g_cfg.framerate != 0) k *= kInterpCullMargin;
     if (k != host_cull_wide) {
         host_cull_wide = k;
@@ -1419,6 +1421,7 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     const bool frameDl = isFrameDl(dataPtr);
     live::orbitBeforeTask(dataPtr, frameDl);
     live::interpTagsBeforeTask(dataPtr, frameDl);
+    live::wideBeforeTask();
     LARGE_INTEGER t0, t1;
     const bool timed = g_cfg.framerate != 0 || g_perf.path != nullptr;
     const int cursor = g_app->workloadQueue->writeCursor;
@@ -1436,6 +1439,7 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     }
     if (frameDl) perfWorkload(cursor);
     live::interpTagsAfterTask(frameDl);
+    live::wideAfterTask(frameDl);
     live::orbitAfterTask(frameDl);
     for (auto &s : g_skipped) *s.first = s.second;
     g_skipped.clear();
@@ -1651,6 +1655,11 @@ void configToRT64(RT64::UserConfiguration &u) {
         u.aspectRatio = U::AspectRatio::Manual;
         u.aspectTarget = g_cfg.aspect;
     }
+    /* video.hud_position = edges: the HUD's left and right parts get RT64's
+     * extended-GBI origins (live_wide.cpp), which move them out by the whole
+     * extra width only with extAspectRatio Expand.  Centered keeps RT64's
+     * default (Original: no origins are set anyway) */
+    u.extAspectRatio = g_cfg.hudPosition == 1 ? U::AspectRatio::Expand : U::AspectRatio::Original;
     /* frame rate: in-between pictures (see interpTask) */
     if (g_cfg.framerate == 0) {
         u.refreshRate = U::RefreshRate::Original;
@@ -1764,7 +1773,7 @@ void settingChanged(const live::Setting &s) {
     } else if (s.section == "video" && s.key == "interpolation") {
         interpApply();
     } else if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa" || s.key == "aspect" ||
-                                 s.key == "framerate")) {
+                                 s.key == "framerate" || s.key == "hud_position")) {
         if (s.key == "framerate") interpApply();
         const uint32_t before = g_app->userConfig.msaaSampleCount();
         if (s.key == "msaa" && g_cfg.msaa > 1 && (msaaSupported() & unsigned(g_cfg.msaa)) == 0) {
@@ -1830,6 +1839,7 @@ const std::pair<const char *, const char *> kSetAliases[] = {
     {"--msaa", "video.msaa"},
     {"--filtering", "video.filtering"},
     {"--aspect", "video.aspect"},
+    {"--hud-position", "video.hud_position"},
     {"--framerate", "video.framerate"},
     {"--interpolation", "video.interpolation"},
     {"--fps-counter", "video.fps_counter"},
@@ -2087,11 +2097,12 @@ void prestart(HostOpts *o) {
              !g_cfg.vsyncPacing ? "timer" : g_opt.pace ? "vsync" : "timer (--no-pace)");
     if (g_cfg.resolution != 0 || g_cfg.msaa != 0 || g_cfg.filtering != 0 || g_cfg.aspect != 0 ||
         g_cfg.framerate != 0 || g_app->userConfig.msaaSampleCount() > 1)
-        host_log("live: video: resolution %s, MSAA %ux%s, filtering %s, aspect %s, frame rate %s\n",
+        host_log("live: video: resolution %s, MSAA %ux%s, filtering %s, aspect %s (HUD %s), frame rate %s\n",
                  live::configValue(g_cfg, {"video", "resolution"}).c_str(), g_app->userConfig.msaaSampleCount(),
                  g_cfg.msaa > 1 && g_app->userConfig.msaaSampleCount() < 2 ? " (not supported here)" : "",
                  live::configValue(g_cfg, {"video", "filtering"}).c_str(),
                  live::configValue(g_cfg, {"video", "aspect"}).c_str(),
+                 live::configValue(g_cfg, {"video", "hud_position"}).c_str(),
                  live::configValue(g_cfg, {"video", "framerate"}).c_str());
     if (g_interp.displayHz != 0) host_log("live: --display-hz %u: RT64 told the display runs at %u Hz\n",
                                           g_interp.displayHz, g_interp.displayHz);

@@ -57,7 +57,9 @@ struct Config {
                                        2 nearest */
     double aspect = 0;              /* 0 = the N64's 4:3; > 0 = widescreen at this width/height;
                                        -1 = as wide as the window */
-    int framerate = 0;              /* frames shown per second: 0 = the game's own (20/30 a second),
+    int hudPosition = 0;            /* widescreen HUD: 0 = centred in the 4:3 middle (as the N64), 1 = its
+                                       left and right parts at the screen's edges (live_wide.cpp) */
+    int framerate = 0;             /* frames shown per second: 0 = the game's own (20/30 a second),
                                        -1 = the display's refresh rate, N = N a second; above the
                                        game's own, RT64 adds interpolated frames (presentation only:
                                        the game itself runs exactly as before) */

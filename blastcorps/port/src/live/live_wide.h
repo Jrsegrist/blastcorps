@@ -15,6 +15,12 @@ namespace live {
  * original: then nothing is touched, and the GBI isn't wrapped for it) */
 void wideSetFactor(double k);
 double wideFactor();
+/* video.hud_position = edges: the HUD's left and right parts at the screen's
+ * edges (widescreen only; RT64's extAspectRatio must be Expand) */
+void wideSetHudEdges(bool on);
+/* around RT64's processDisplayLists of each task */
+void wideBeforeTask();
+void wideAfterTask(bool frameDl);
 
 /* after RT64 ran a G_VTX (`w1` its address word; `first` the workload's
  * vertex count before it): live_interp.cpp's dispatch, and the orbit camera

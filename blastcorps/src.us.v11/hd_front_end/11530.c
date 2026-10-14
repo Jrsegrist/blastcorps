@@ -1240,7 +1240,9 @@ Gfx *fe_globe_draw_stars(Gfx *arg0, Dynamic *dyn) {
     gDPSetRenderMode(gdl++, 0x0F0A7008, 0);
     gDPSetCombine(gdl++, 0xFFFFFF, 0xFFFCF279);
     gDPSetTextureFilter(gdl++, G_TF_BILERP);
+    PORT_WTAG(gdl, PORT_WTAG_STARS, 0, 0); /* bc.exe's widescreen: spread across the picture */
     gSPDisplayList(gdl++, gGlobeStarsDl);
+    PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
     gDPPipeSync(gdl++);
     return gdl;
 }

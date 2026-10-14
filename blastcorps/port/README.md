@@ -641,10 +641,34 @@ it without a fault.  The x64-asan preset is the tool for this now.
     fe_bg_draw's 64x16 rectangles, drawn with RT64's extended
     `G_EX_ASPECT_STRETCH`: stretched to the width).  The fades to black
     (30430.c), the carrier blast's red tint and the clears are full-width
-    fill rectangles (stretched by RT64 already).
+    fill rectangles (stretched by RT64 already).  Two front-end pictures
+    the game names with `PORT_WTAG` (port.h; host-side tags like
+    `PORT_ITAG`, nothing written to RDRAM) are widened the same way: the
+    ticker's lit band (01C40.c gPanelDl, a 3D strip; the player select and
+    the results screen) and the globe's starfield (11530.c; each star's quad
+    moved out from the view's axis by k, its size kept, so the stars fill the
+    wider picture as densely as the 4:3 one).  The ticker's text and icons
+    still scroll across the 4:3 width (the game draws only the characters
+    that fit 320 pixels).
     Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
-    the 4:3 edges; the HUD is centred, not anchored to the screen edges
-    (that would need RT64's extended GBI origins in the game's lists).
+    the 4:3 edges.
+  - `hud_position` (`--hud-position`): `centered` (the default: the HUD in
+    the 4:3 middle, as before) or `edges` (widescreen only): the HUD's left
+    parts (the vehicle panel or portrait when it is top-left, the Skyfall's
+    dial, the missile / ram icons and counts, the radar and the carrier's
+    target arrow, the objective icon, laps, timers and progress text) move to
+    the left edge and its right parts (money, the panel when bottom-right,
+    the fixed-camera icon) to the right edge, keeping their distance from
+    the 4:3 picture's edge.  The game tags its HUD drawing with the side
+    (`PORT_WTAG` in 00000.c hd_build_frame_dl, 1D990.c, 32E00.c, 39050.c;
+    text strings by where they lie, recorded at 14B30.c text_queue_string
+    because the flush sorts the glyphs of all strings), and live_wide.cpp
+    sets RT64's extended-GBI origins while RT64 reads those commands (the
+    viewport's origin for vertices, the rectangle alignment for texture
+    rectangles, a scissor spanning the screen), with RT64's
+    `extAspectRatio` Expand.  Centred messages, the message windows and
+    menus (pause, level complete), the markers that follow the 3D view and
+    the front end stay centred.
   - `framerate` (`--framerate`): `original` (the default: RT64's
     `refreshRate` Original, every picture as the game made it, 30 a second
     in play), `display` (`RefreshRate::Display`: the display's refresh rate)

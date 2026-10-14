@@ -389,6 +389,8 @@ void hud_panel_stop(void) {
 void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
     Gfx *gdl = *gfx;
 
+    /* widescreen HUD sides (port.h): the top-left or bottom-right panel */
+    PORT_WTAG(gdl, PORT_WTAG_SPAN, D_802FBD50[4].v.ob[0], D_802FBD50[5].v.ob[0]);
     if (gPanelActive) {
         tex_queue_load(D_8036CB40[D_8036CB39], D_8036CB48[buf], 0);
         switch (D_8036CB38) {
@@ -472,5 +474,6 @@ void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
         gSP1Triangle(gdl++, 4, 6, 7, 0);
         gDPPipeSync(gdl++);
     }
+    PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
     *gfx = gdl;
 }

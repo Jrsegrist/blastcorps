@@ -494,8 +494,10 @@ Gfx *fe_player_draw_panel(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
         }
         osWritebackDCache(gPanelVtx, 0x80);
         if (gPanelAlpha != 0) {
+            PORT_WTAG(gdl, PORT_WTAG_TICKER, 0, 0); /* bc.exe's widescreen: as wide as the picture */
             gSPDisplayList(gdl++, gPanelDl);
         }
+        PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
         gDPPipeSync(gdl++);
         gSPClearGeometryMode(gdl++, G_LIGHTING);
         gScrollPixel += gScrollSpeed;

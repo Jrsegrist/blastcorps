@@ -175,6 +175,11 @@ extern double host_cull_wide;
  * PORT_ISPAWN and PORT_ICUT).  It must not change anything the game sees. */
 extern void (*host_itag_hook)(unsigned addr, int kind, int index);
 
+/* Widescreen tags from the game (port.h PORT_WTAG; plat_core.c): bc.exe's
+ * widescreen sets this while the picture is wider than 4:3 (live_wide.cpp).
+ * It must not change anything the game sees. */
+extern void (*host_wtag_hook)(unsigned addr, int kind, int x0, int x1);
+
 /* bc.exe's orbit camera (live_orbit.cpp; NULL otherwise).  host_camera_hook:
  * once a frame, at the end of the game's camera function (00000.c
  * cam_update, PORT_ICUT_IF), `snap` = its snap flag; it may only read.

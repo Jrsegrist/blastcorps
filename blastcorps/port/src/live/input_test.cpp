@@ -133,6 +133,17 @@ int main(int, char **) {
         check(!live::configSet(f, "video.framerate=10") && f.framerate == 0, "framerate 10 rejected (below 30)");
         check(!live::configSet(f, "video.framerate=fast") && f.framerate == 0, "framerate 'fast' rejected");
     }
+    /* video.hud_position: centered (the default) or edges */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(f.hudPosition == 0 && live::configValue(f, {"video", "hud_position"}) == "centered",
+              "hud position default: centered");
+        check(live::configSet(f, "video.hud_position=edges") && f.hudPosition == 1 &&
+                  live::configValue(f, {"video", "hud_position"}) == "edges", "hud position edges");
+        check(live::configSet(f, "video.hud_position=centred") && f.hudPosition == 0, "hud position centred");
+        check(!live::configSet(f, "video.hud_position=top") && f.hudPosition == 0, "hud position 'top' rejected");
+    }
     /* video.interpolation, the frame-rate counter and its bindings */
     {
         live::Config f;

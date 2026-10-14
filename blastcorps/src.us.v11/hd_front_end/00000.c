@@ -12,25 +12,14 @@
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F47B0 ((u8 *) D_802F47B0)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
 /* digger_loop.c: the vehicle ("digger") select screen. */
 
-typedef struct {
-    u8 pad0[0x2C];
-    u32 unk2C; /* mask of vehicles available on this level */
-    u8 pad30[0x14];
-} LevelInfo; /* 0x44 bytes */
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
-typedef struct {
-    u8 pad0[0x10];
-    u32 unk10; /* mask of vehicles unlocked */
-    u8 pad14[4];
-    u8 unk18[0x7A]; /* per level */
-    u8 unk92[0x5E]; /* per level: last vehicle used */
-    u8 padF0[0x10];
-} Player; /* 0x100 bytes */
+/* (players[]: PlayerInfo, game/types.h) */
 #ifndef NON_MATCHING
 extern s32 gSfxBank;
 #endif
@@ -127,7 +116,7 @@ s32 fe_digger_init(void) {
     anim_tex_init();
     for (i = 0; i < 19; i++) {
         slot[i] = -1;
-        if ((players[playerNumberAtStart].unk10 & (1 << i) & level->unk2C) &&
+        if ((players[playerNumberAtStart].vehiclesUnlocked & (1 << i) & level->vehicles) &&
             (playerNumber == playerNumberAtStart || gBestTimes[playerNumberAtStart][D_802E8C44[i]] != 0)) {
             fe_load_model(i, (u8 * N64P *) &gDiggerModels[gDiggerCount], (u8 * N64P *) gDiggerMtxBufs[gDiggerCount], (u8 * N64P *) gDiggerDls[gDiggerCount]);
             gDiggerVehicleX[i] = x;
@@ -147,15 +136,15 @@ s32 fe_digger_init(void) {
     mid = (gDiggerCount - 1) / 2;
     sel = -1;
     switch (gGameMode) {
-        case 0x80:
-            sel = slot[players[playerNumber].unk92[levelno]];
+        case MODE_LEVEL_STATUS:
+            sel = slot[players[playerNumber].bestVehicle[levelno]];
             break;
-        case 4:
-        case 0x100:
-        case 0x8000000:
+        case MODE_LEVEL:
+        case MODE_MAP_VIEW:
+        case MODE_RESULTS:
             sel = slot[D_803643D4];
             break;
-        case 0x4000:
+        case MODE_WORLD:
             break;
         default:
             DIGGER_ASSERT(1==0, 139);
@@ -212,14 +201,14 @@ void fe_digger_frame(void) {
     cont_update();
     if (gFramesInMode >= 11 && !areWeFading()) {
         if ((gContButtons & 0x9000) && !(gContPrevButtons & 0x9000)) {
-            fade_to_mode(0x2000);
-            snd_play(gSfxBank, 0x1E, 0);
+            fade_to_mode(MODE_LEVEL_START);
+            snd_play(gSfxBank, SFX_SELECT, 0);
         } else if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000)) {
-            snd_play(gSfxBank, 0xDE, 0);
+            snd_play(gSfxBank, SFX_BACK, 0);
             D_803643D4 = gDiggerPrevVehicle;
             switch (gPrevGameMode) {
-                case 0x80:
-                case 0x8000000:
+                case MODE_LEVEL_STATUS:
+                case MODE_RESULTS:
                     gNextGameMode = gPrevGameMode;
                     break;
                 default:

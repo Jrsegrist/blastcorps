@@ -75,7 +75,7 @@ void veh_check_wrap(s32 *px, s32 *py, s32 *pz) {
 
 /* Level kind 0x40 only: collides the vehicle with the objects; a hit fails the level unless the power pill
  * runs, then sound 0x3D and the object is moved away (0x802AC2A4).
- * Only in game mode 0x40: vehicle-state reset (veh_collision_setup with b2 = 1,
+ * Only on levels of kind 0x40 (gLevelKind): vehicle-state reset (veh_collision_setup with b2 = 1,
  * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
  * (obj_collide_vehicle), then if anything was hit: with gPowerPillTimer zero sets
  * gFailTrigger; else plays snd_play(gSfxBank, 0x3D, 0) and moves every
@@ -103,7 +103,7 @@ void veh_maze_object_hits(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehic
         gFailTrigger = 1;
         return;
     }
-    snd_play(gSfxBank, 0x3D, 0);
+    snd_play(gSfxBank, SFX_GHOST_EATEN, 0);
     end = gObjHitsEnd;
     for (p = gObjHits; p != end; p += 8) {
         u8 *obj = *(u8 * N64P *) p;

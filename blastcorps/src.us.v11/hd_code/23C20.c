@@ -12,7 +12,7 @@
 #define gYoshiGameItems ((YoshiItem *) gYoshiGameItems)
 #define gYoshiWindows ((TextArg *) gYoshiWindows)
 #define gVehicles ((Struct80364460 *) gVehicles)
-#define players ((Struct80364AF0 *) players)
+#define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gVehiclesEnd (*(Struct80364460 * N64P *) &gVehiclesEnd)
 #define D_8036B974 (*(s32 *) &D_8036B974)
@@ -121,11 +121,7 @@ typedef struct {
     s32 unk70;
 } Struct80364460;
 
-/* players, 0x100 bytes each */
-typedef struct {
-    u8 pad0[0x18];
-    u8 unk18[0xE8];
-} Struct80364AF0;
+/* (players[]: PlayerInfo, game/types.h) */
 
 extern Struct802F3C10 gBoardZones[];
 extern Struct802F3C24 gCamPaths[];
@@ -325,7 +321,7 @@ void util_shuttle_path_init(void) {
     f32 s;
 
     found = 0;
-    if (gNextGameMode == 0x800) {
+    if (gNextGameMode == MODE_INTRO_FLY) {
         D_8036B966 = 0;
     } else {
         D_8036B966 = 1;
@@ -481,7 +477,7 @@ void util_shuttle_path_step(void) {
             switch (gShuttlePathBranch) {
                 case 0:
                     if (D_803FCD75 == 1) {
-                        fade_to_mode_speed(0x200000000000, 0.5f);
+                        fade_to_mode_speed(MODE_SEQ_END, 0.5f);
                     } else {
                         gLevelDoneRequest = 1;
                         gPauseRequest = 1;
@@ -774,7 +770,7 @@ void util_check_hint_events(void) {
         yoshi_show_hint(0x53);
     }
     if (D_8036B971) {
-        if (!((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)
+        if (!((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0)
             && !gTargetsCleared) {
             if (!yoshi_show_hint(0x4E)) {
                 yoshi_show_hint(0x4F);

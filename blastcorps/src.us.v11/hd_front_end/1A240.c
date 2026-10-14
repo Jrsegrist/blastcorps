@@ -167,7 +167,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
             break;
     }
     if (gAttractPicPrimAlpha > 60 && D_8021ABA8 == 0) {
-        snd_play(gSfxBank, 0x69, &D_8021ABA8);
+        snd_play(gSfxBank, SFX_STATIC, &D_8021ABA8);
     }
     gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gAttractPicPrimAlpha);
     gDPSetEnvColor(gdl++, 0, 0, 0, gAttractPicEnvAlpha);

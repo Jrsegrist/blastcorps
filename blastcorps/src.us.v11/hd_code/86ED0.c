@@ -23,8 +23,8 @@
 void veh_start_turbo(u8 *state) {
     s32 v;
 
-    if (gNextGameMode != 0x40) {
-        snd_play(gSfxBank, 0x55, NULL);
+    if (gNextGameMode != MODE_REPLAY) {
+        snd_play(gSfxBank, SFX_TURBO, NULL);
     }
     v = gCamTiltMax;
     *(s16 *) (state + 0x76) = v + (v >> 1);

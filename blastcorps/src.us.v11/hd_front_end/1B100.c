@@ -4,7 +4,7 @@
  * Hand-written asm (sd $ra frames that save s0-s7, gp and fp): o32 entry
  * points through which the front end's C calls hd_code functions that take
  * their arguments in other registers (model loading, display-list setup and
- * the engine-sound channel setters of 56040.c).
+ * the texture-animation (anim_tex_*) setters of 56040.c).
  *
  * The NON_MATCHING versions call those functions' C rewrites directly.  The
  * asm compares and passes whole registers, so the parameters are s32 here
@@ -16,7 +16,7 @@
 #include "game/game.h"
 
 
-/* engine-sound channel tables in hd_code's 7D9D0 text blob */
+/* texture-animation tables in hd_code's 7D9D0 text blob */
 
 
 /* Lvl_load_model, two heap buffers, display lists, veh_add_record (0x80202100).
@@ -88,7 +88,7 @@ void fe_anim_start_channel(void *base, s32 idx, s32 v040C, s32 v0480, f32 f, s32
 
 /* Resets the vehicle's texture animations (speed 0, forward, wrap, play) for Backlash (kind 5) and Ramdozer
  * (kind 4), as backlash_enter / ramdozer_enter do (0x80202380).
- * reset the engine-sound channels of vehicle kind 5 or 4.  (After the kind-4
+ * reset the texture animations of vehicle kind 5 or 4.  (After the kind-4
  * block the asm has a third, unreachable one that would set up D_802C2324 and
  * D_802C2348 with 100.) */
 void fe_veh_reset_tex_anims(s32 kind) {
@@ -104,7 +104,7 @@ void fe_veh_reset_tex_anims(s32 kind) {
 
 /* Sets the heading-driven texture-animation frames of Backlash / Ramdozer from val, a heading in 4096ths of a
  * turn (as their _update_anims do) (0x802025D0).
- * engine-sound pitch from `val` for vehicle kind 5 or 4 */
+ * texture-animation frames from `val` for vehicle kind 5 or 4 */
 void fe_veh_set_heading_tex_anims(s32 kind, s32 val) {
     if (kind == 5) {
         if (val >= 0x800) {

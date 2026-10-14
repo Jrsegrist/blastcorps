@@ -15,7 +15,7 @@
 #define D_802F49F4 ((SpriteAnim *) D_802F49F4)
 #define gYoshiGameItems ((YoshiItem *) gYoshiGameItems)
 #define gYoshiWindows ((YoshiWindow *) gYoshiWindows)
-#define players ((Player *) players)
+#define players ((PlayerHintView *) players)
 #ifdef NON_MATCHING
 #define gYoshiHeapItems (*(YoshiItem * N64P *) &gYoshiHeapItems)
 #define gRdus (*(RduRecord * N64P *) &gRdus)
@@ -70,14 +70,15 @@ typedef struct {
     /* 0x2F */ u8 unk2F;
 } SpriteAnim;
 
-/* Per-player state, 0x100 bytes */
+/* This file's view of a PlayerInfo (game/types.h): yoshi_show_hint indexes
+ * the hint counts by window id from 0x88 (ids 0x46..0x57 = PlayerInfo.hintShows). */
 typedef struct {
-    /* 0x00 */ u8 unk0[0x18];
-    /* 0x18 */ u8 unk18[0x70]; /* per level */
-    /* 0x88 */ u8 unk88[9];
-    /* 0x91 */ u8 unk91;
-    /* 0x92 */ u8 unk92[0x6E];
-} Player;
+    /* 0x00 */ u8 pad0[0x18];
+    /* 0x18 */ u8 medal[0x70]; /* per level */
+    /* 0x88 */ u8 hintShowsById[9]; /* [window id]: times shown */
+    /* 0x91 */ u8 gameState;
+    /* 0x92 */ u8 bestVehicle[0x6E];
+} PlayerHintView;
 
 /* 0x22 bytes */
 typedef struct {
@@ -95,11 +96,7 @@ typedef struct {
     /* 0x08 */ Vtx vtx[2][4]; /* double-buffered quad */
 } RduRecord;
 
-/* Per-level info, 0x44 bytes */
-typedef struct {
-    /* 0x00 */ u8 unk0;
-    /* 0x01 */ u8 unk1[0x43];
-} LevelInfo;
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 #define MIN255(x) ((x) >= 256 ? 255 : (x))
@@ -206,7 +203,7 @@ u8 yoshi_show_hint(s16 arg0) {
     if (!(gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_LEVEL_START))) {
         return 0;
     }
-    if (players[playerNumber].unk91 >= 11) {
+    if (players[playerNumber].gameState >= 11) {
         return 0;
     }
     for (i = 0; i < 8 && !found; i++) {
@@ -214,11 +211,11 @@ u8 yoshi_show_hint(s16 arg0) {
         if (trig->id == levelno) {
             for (j = 0; j < 16 && !found && trig->ids[j] != -1; j++) {
                 if (trig->ids[j] == arg0) {
-                    c1 = players[playerNumber].unk88[arg0] < gYoshiHintMaxShows[arg0];
+                    c1 = players[playerNumber].hintShowsById[arg0] < gYoshiHintMaxShows[arg0];
                     c2 = levelno == 0;
                     if (!gYoshiHintShown[arg0] && (c2 || c1)) {
                         if (c1 && !c2) {
-                            players[playerNumber].unk88[arg0]++;
+                            players[playerNumber].hintShowsById[arg0]++;
                         }
                         gYoshiHintShown[arg0] = 1;
                         yoshi_demand(arg0 | 0x8000 | 0x2000);
@@ -296,63 +293,63 @@ void yoshi_init(u8 arg0) {
         D_802F49F4[i].unk2E = -1;
     }
     switch (gNextGameMode) {
-        case 0x80:
-        case 0x8000000:
+        case MODE_LEVEL_STATUS:
+        case MODE_RESULTS:
             gYoshiFeItems[25].unk14 = 0;
             /* fallthrough */
-        case 0x40000000:
-            arg = &gYoshiWindows[D_802F4868[lowest_set_bit(gLevelInfo[levelno].unk0)]];
+        case MODE_PROMOTION:
+            arg = &gYoshiWindows[D_802F4868[lowest_set_bit(gLevelInfo[levelno].kind)]];
             if (gUseEeprom) {
                 gYoshiFeItems[29].flags &= ~1;
                 gYoshiFeItems[29].unk14 = 11;
             }
-            if (gLevelInfo[levelno].unk0 == 1) {
+            if (gLevelInfo[levelno].kind == 1) {
                 if (academy_marker_found(levelno)) {
                     gYoshiFeItems[18].unk14 = 24;
                 } else {
                     gYoshiFeItems[18].unk14 = 0;
                 }
-            } else if (gLevelInfo[levelno].unk0 == 0x20) {
+            } else if (gLevelInfo[levelno].kind == 0x20) {
                 gYoshiFeItems[23].flags &= ~0x400;
                 gYoshiFeItems[26].flags &= ~0x400;
                 gYoshiFeItems[27].unk14 = 0;
                 gYoshiFeItems[28].unk14 = 0;
             } else {
-                gYoshiFeItems[23].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
-                gYoshiFeItems[26].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                gYoshiFeItems[23].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].kind)];
+                gYoshiFeItems[26].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].kind)];
                 gYoshiFeItems[27].unk14 = 0;
                 gYoshiFeItems[28].unk14 = 0;
             }
             break;
-        case 0x40000000000:
+        case MODE_BEST_TIMES:
             arg = &gYoshiWindows[22];
             break;
-        case 0x4000000000000:
+        case MODE_REGRADE_NOTICE:
             arg = &gYoshiWindows[56];
             break;
-        case 0x40:
-            arg = &gYoshiWindows[D_802F4870[lowest_set_bit(gLevelInfo[levelno].unk0)]];
-            if (gLevelInfo[levelno].unk0 == 0x20) {
+        case MODE_REPLAY:
+            arg = &gYoshiWindows[D_802F4870[lowest_set_bit(gLevelInfo[levelno].kind)]];
+            if (gLevelInfo[levelno].kind == 0x20) {
                 gYoshiGameItems[27].flags &= ~0x400;
                 gYoshiGameItems[28].flags &= ~0x400;
                 gYoshiGameItems[29].unk14 = 0;
                 gYoshiGameItems[30].unk14 = 0;
             } else {
-                gYoshiGameItems[27].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
-                gYoshiGameItems[28].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                gYoshiGameItems[27].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].kind)];
+                gYoshiGameItems[28].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].kind)];
                 gYoshiGameItems[29].unk14 = 0;
                 gYoshiGameItems[30].unk14 = 0;
             }
             break;
-        case 0x2000:
-            if (((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) &&
-                gLevelInfo[levelno].unk0 == 1) {
+        case MODE_LEVEL_START:
+            if (((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) &&
+                gLevelInfo[levelno].kind == 1) {
                 arg = &gYoshiWindows[6];
             } else {
                 arg = NULL;
             }
             break;
-        case 0x100000000000:
+        case MODE_GLOBE_SEQ:
             switch (levelno) {
                 case 55:
                     arg = &gYoshiWindows[65];
@@ -402,7 +399,7 @@ void yoshi_set_target_icons(void) {
         gYoshiGameItems[28].flags |= 0x400;
         gYoshiFeItems[23].unk14 = gYoshiFeItems[26].unk14 = gYoshiGameItems[27].unk14 = gYoshiGameItems[28].unk14 =
             yoshi_get_target_building(NULL, NULL);
-        if (gNextGameMode == 0x40) {
+        if (gNextGameMode == MODE_REPLAY) {
             yoshi_load_window_sprites(&gYoshiWindows[D_802F4870[lowest_set_bit(gLevelKind)]]);
         } else {
             yoshi_load_window_sprites(&gYoshiWindows[D_802F4868[lowest_set_bit(gLevelKind)]]);
@@ -512,7 +509,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
     c = D_802F47B0[20];
     c[2] = 255 - gYoshiPulse;
     c[6] = gYoshiPulse;
-    if (gGameMode == 0x200 && gHaveCarrier && gCarrierHit) {
+    if (gGameMode == MODE_CARRIER_END && gHaveCarrier && gCarrierHit) {
         gYoshiPendingWindow = -1;
         if (yoshiState == 4 || yoshiState == 2) {
             debug_printf("putting off!\n");
@@ -570,14 +567,14 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
         }
         if (PRESSED(0x4000)) {
             if ((arg->flags & 0x20000000) && arg->atEnd) {
-                snd_play(gSfxBank, 0xDE, NULL);
+                snd_play(gSfxBank, SFX_BACK, NULL);
                 yoshiSelection = 0xFFFF;
                 redraw = 1;
                 if (arg->flags & 0x40000000) {
                     gUnpauseRequest = 1;
                 }
             } else {
-                snd_play(gSfxBank, 0xD0, NULL);
+                snd_play(gSfxBank, SFX_DENIED, NULL);
             }
         }
     }
@@ -783,7 +780,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                     if (prev != arg->sel) {
                         snd_play(gSfxBank, sound, NULL);
                     } else {
-                        snd_play(gSfxBank, 0xD0, NULL);
+                        snd_play(gSfxBank, SFX_DENIED, NULL);
                     }
                 }
                 gYoshiScrollGoal += gYoshiItems[arg->sel].y - gYoshiItems[prev].y;
@@ -802,7 +799,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                     if (next != arg->sel) {
                         snd_play(gSfxBank, sound, NULL);
                     } else {
-                        snd_play(gSfxBank, 0xD0, NULL);
+                        snd_play(gSfxBank, SFX_DENIED, NULL);
                     }
                 }
                 gYoshiScrollGoal += gYoshiItems[arg->sel].y - gYoshiItems[next].y;
@@ -832,7 +829,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 } else {
                     off = 0x1C;
                 }
-                if (!(gGameMode & 0xC9FD0FE79BFF80B0) || gBufferIndex) {
+                if (!(gGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2 | MODE_LEVEL_STATUS | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_33 | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_DELETE_CONFIRM | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_BOOT_CHECK | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_NO_CONTROLLER | MODE_QUIT_GAME | MODE_LOAD_GAME_EXIT)) || gBufferIndex) {
                     gYoshiArrowBob += gYoshiArrowDir;
                 }
                 if (gYoshiArrowDir < 0) {
@@ -948,7 +945,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 gdl = spr_pipe_sync(gdl);
             }
         }
-        if (currentYoshiWindow < 0x62 || currentYoshiWindow >= 0x6C || gGameMode == 2) {
+        if (currentYoshiWindow < 0x62 || currentYoshiWindow >= 0x6C || gGameMode == MODE_ATTRACT) {
             for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
                 node = &gYoshiItems[i];
                 wtext = NULL;
@@ -1062,9 +1059,9 @@ void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese) {
                         ch = text[gYoshiTypeChar];
                     }
                     if (ch == D_802E8C90[lang]) {
-                        snd_play(gSfxBank, 0x91, NULL);
+                        snd_play(gSfxBank, SFX_TYPE_ALT, NULL);
                     } else if (ch != D_802E8C94[lang] && ch != gTextTerminator[lang] && ch != D_802E8C8C[lang]) {
-                        snd_play(gSfxBank, 0x22, NULL);
+                        snd_play(gSfxBank, SFX_TYPE_KEY, NULL);
                     }
                 }
                 if (japanese) {
@@ -1099,7 +1096,7 @@ void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese) {
                             gYoshiStateTime = D_803156C4;
                         }
                     } else {
-                        snd_play(gSfxBank, 0x23, NULL);
+                        snd_play(gSfxBank, SFX_TYPE_NEWLINE, NULL);
                         gYoshiTypeItem = next;
                     }
                     gYoshiTypeChar = 0;
@@ -1215,7 +1212,7 @@ void rdu_init(s16 *pos, s16 *end) {
 
     gRduCount = 0;
     D_8036EA7C = 0;
-    if (gGameMode != 0x40) {
+    if (gGameMode != MODE_REPLAY) {
         gRduLitOrderLen = *gRduLitOrder = 0;
     }
     gRdus = (RduRecord *) gHeapPtr;
@@ -1263,7 +1260,7 @@ void rdu_update(void) {
                 if (++D_8036EA7C >= 4 && !gPaused) {
                     yoshi_show_hint(0x46);
                 }
-                if (gGameMode != 0x40) {
+                if (gGameMode != MODE_REPLAY) {
                     gRduLitOrder[gRduLitOrderLen] = D_8036BBB2[gRduLitOrderLen] = i;
                     gRduLitOrderLen++;
                 }
@@ -1272,9 +1269,9 @@ void rdu_update(void) {
                 if (!flag) {
                     flag = 1;
                     if (gLevelKind == 0x40) {
-                        snd_play(gSfxBank, 0x3B, NULL);
+                        snd_play(gSfxBank, SFX_RDU_GHOST_LEVEL, NULL);
                     } else {
-                        snd_play(gSfxBank, 0x27, NULL);
+                        snd_play(gSfxBank, SFX_RDU, NULL);
                     }
                 }
             }

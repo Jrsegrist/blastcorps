@@ -182,17 +182,17 @@ void veh_prepare_escape(u8 *veh) {
         if (v >= 0xC9) {
             v = 0xC8;
         }
-        VEH_GP_U8(veh, 0xA0) = v;
+        VEH_GP_U8(veh, VS_PUSH_DIVISOR) = v;
     } else {
-        v = VEH_GP_U8(veh, 0xA0);
+        v = VEH_GP_U8(veh, VS_PUSH_DIVISOR);
         if (v != 1) {
-            VEH_GP_U8(veh, 0xA0) = v - 1;
+            VEH_GP_U8(veh, VS_PUSH_DIVISOR) = v - 1;
         }
     }
-    if (VEH_GP_S16(veh, 0x76) == 0 && D_80358064 != 0) {
-        VEH_GP_S16(veh, 0x76) = 10;
+    if (VEH_GP_S16(veh, VS_SPEED) == 0 && D_80358064 != 0) {
+        VEH_GP_S16(veh, VS_SPEED) = 10;
     }
-    if (VEH_GP_S16(veh, 0x76) < 0) {
+    if (VEH_GP_S16(veh, VS_SPEED) < 0) {
         v = ((u16) gFreeArcStart) - 0x800;
         if (v < 0) {
             v += 0xFFF;
@@ -1470,7 +1470,7 @@ u32 veh_scale_other_radius(u32 v, s32 key, u8 *veh) {
     u32 d;
 
     if (key != 0xFF) {
-        d = VEH_GP_U8(veh, 0xA0);
+        d = VEH_GP_U8(veh, VS_PUSH_DIVISOR);
         if (d != 1) {
             v /= d;
         }
@@ -1638,7 +1638,7 @@ u32 veh_scale_part_radius(u32 v, s32 key, u8 *veh) {
     u32 d;
 
     if (key != 0xFF) {
-        d = VEH_GP_U8(veh, 0xA0);
+        d = VEH_GP_U8(veh, VS_PUSH_DIVISOR);
         if (d != 1) {
             v /= d;
         }
@@ -2188,7 +2188,7 @@ s32 veh_gate_area_test(s32 val, s32 x, s32 z, s32 n, s32 *table, Unk8029DA90Regs
 s32 veh_gate_anim_test(s32 n, u8 *pairs, AnimChannel *tbl) {
     while (n != 0) {
         n--;
-        if (tbl[pairs[0]].unk13 == pairs[1]) {
+        if (tbl[pairs[0]].frame == pairs[1]) {
             return 0;
         }
         pairs += 2;
@@ -2424,14 +2424,14 @@ void anim_tex_init(void) {
             break;
         }
         src++;
-        dst->unk4 = 0.0f;
-        dst->unkC = 0;
-        dst->unkE = 0;
-        dst->unk10 = 0;
-        dst->unk11 = 0;
-        dst->unk12 = 0;
-        dst->unk13 = 0;
-        dst->unk14 = 0;
+        dst->frac = 0.0f;
+        dst->loopCount = 0;
+        dst->loopLimit = 0;
+        dst->playing = 0;
+        dst->reverse = 0;
+        dst->loopMode = 0;
+        dst->frame = 0;
+        dst->speed = 0;
         dst++;
     }
 }
@@ -2500,7 +2500,7 @@ void anim_tex_update_all(u8 *param) {
     AnimChannel *e;
 
     for (e = gTexAnims; e->id != -1; e++) {
-        if (e->unk10 != 0) {
+        if (e->playing != 0) {
             anim_tex_step(e, param);
         }
     }
@@ -2545,8 +2545,8 @@ u32 anim_tex_load_block(s32 key, s32 id, u8 *param);
 void anim_tex_step(AnimChannel *ch, u8 *param) {
     u8 *a = (u8 *) N64_IPTR(ch->id);
     s32 key = ch->id;
-    s32 frame = ch->unk13;
-    f32 frac = ch->unk4;
+    s32 frame = ch->frame;
+    f32 frac = ch->frac;
     u16 *keys = (u16 *) (a + 4) + frame;
     Unk8029F1BCOut o;
     s32 n;
@@ -2696,7 +2696,7 @@ void anim_update_model(u8 *base, u8 *other, AnimChannel *ch) {
 
     gAnimOtherBuf = other;
     for (n = 0x20; n != 0; n--, ch++) {
-        if (ch->unk10 != 0) {
+        if (ch->playing != 0) {
             anim_update_channel(ch, base);
         }
     }
@@ -2736,9 +2736,9 @@ void anim_apply_spline_key(u8 *rec, u8 *mtx, f32 t);
  * changed, none of them read by its caller anim_update_model (which keeps t0,
  * t1). Its add/sub/addi trap on overflow (not reached). */
 void anim_update_channel(AnimChannel *ch, u8 *base) {
-    s32 frame = ch->unk13;
+    s32 frame = ch->frame;
     u8 *a = (u8 *) N64_IPTR(ch->id);
-    f32 frac = ch->unk4;
+    f32 frac = ch->frac;
     u8 *k = a + frame;
     s32 n = a[0];
     s32 k0 = k[1];
@@ -2753,8 +2753,8 @@ void anim_update_channel(AnimChannel *ch, u8 *base) {
 
     o.frame = frame;
     anim_advance_channel(((f32) (k[2] - k0) * frac + (f32) k0) / 300.0f, frac, ch, frame, n, &o);
-    mode = ch->unk15;
-    flag = (u8) ch->unk10;
+    mode = ch->interp;
+    flag = (u8) ch->playing;
     if (mode != 0) {
         anim_set_spline_basis((u8 *) ch, mode, &o2);
         anim_spline_keys(o.frac, o.frame, n);
@@ -3206,9 +3206,9 @@ void anim_set_spline_basis(u8 *p, s32 mode, Unk8029F110Out *o) {
  * Register convention: delta in f6, frac in f30, ch in t0, frame in t2, n in
  * t6; outputs t2, t7, f30, f8; s0-s2 scratch (conventions.txt). */
 f32 anim_advance_channel(f32 delta, f32 frac, AnimChannel *ch, s32 frame, s32 n, Unk8029F1BCOut *o) {
-    f32 speed = ch->unk14;
-    s32 dir = ch->unk11;
-    s32 mode = (u8) ch->unk12;
+    f32 speed = ch->speed;
+    s32 dir = ch->reverse;
+    s32 mode = (u8) ch->loopMode;
     s32 whole;
     s32 cnt;
     s32 lim;
@@ -3220,16 +3220,16 @@ f32 anim_advance_channel(f32 delta, f32 frac, AnimChannel *ch, s32 frame, s32 n,
         frame = frame + whole;
         frac = frac - (f32) whole;
         if (frame >= n - 1) {
-            cnt = ch->unkC + (u32) frame / (u32) (n - 1);
-            lim = ch->unkE;
-            ch->unkC = cnt;
+            cnt = ch->loopCount + (u32) frame / (u32) (n - 1);
+            lim = ch->loopLimit;
+            ch->loopCount = cnt;
             if (cnt >= lim && lim != -1) {
                 frac = 1.0f;
                 if (mode == 1) {
                     dir = 1;
                 }
                 frame = n - 2;
-                ch->unk10 = 0;
+                ch->playing = 0;
             } else if (mode == 0) {
                 frame = (u32) frame % (u32) (n - 1);
             } else if (mode == 1) {
@@ -3247,16 +3247,16 @@ f32 anim_advance_channel(f32 delta, f32 frac, AnimChannel *ch, s32 frame, s32 n,
             frame = frame + port_cvt_w_s(w);
         }
         if (frame < 0) {
-            cnt = ch->unkC + dir;
-            lim = ch->unkE;
-            ch->unkC = cnt;
+            cnt = ch->loopCount + dir;
+            lim = ch->loopLimit;
+            ch->loopCount = cnt;
             if (cnt >= lim && lim != -1) {
                 frac = 0.0f;
                 if (mode == 1) {
                     dir = 0;
                 }
                 frame = 0;
-                ch->unk10 = 0;
+                ch->playing = 0;
             } else if (mode == 0) {
                 frame = (u32) -frame % (u32) (n - 1);
                 if (frame != 0) {
@@ -3269,9 +3269,9 @@ f32 anim_advance_channel(f32 delta, f32 frac, AnimChannel *ch, s32 frame, s32 n,
             }
         }
     }
-    ch->unk11 = dir;
-    ch->unk13 = frame;
-    ch->unk4 = frac;
+    ch->reverse = dir;
+    ch->frame = frame;
+    ch->frac = frac;
     o->frame = frame;
     o->dir = dir;
     o->frac = frac;
@@ -3503,16 +3503,16 @@ s32 anim_init_model(u32 *bufA, u32 *bufB, AnimChannel *ch, u8 *hdr) {
     s32 i;
 
     for (i = 0; i < 32; i++) {
-        ch->unk4 = 0.0f;
+        ch->frac = 0.0f;
         ch->id = (s32) (base + offs[i]);
-        ch->unkC = 0;
-        ch->unkE = 0;
-        ch->unk10 = 0;
-        ch->unk11 = 0;
-        ch->unk12 = 0;
-        ch->unk13 = 0;
-        ch->unk14 = 0;
-        ch->unk15 = 0;
+        ch->loopCount = 0;
+        ch->loopLimit = 0;
+        ch->playing = 0;
+        ch->reverse = 0;
+        ch->loopMode = 0;
+        ch->frame = 0;
+        ch->speed = 0;
+        ch->interp = 0;
         ch++;
     }
 
@@ -3588,8 +3588,8 @@ static u8 *port_track_records(u8 *hdr, s32 *count, s32 *stride) {
  * key rec + 8 + (s8) ch->unk13 * 0x14 and t = ch->unk4 when it is 0. (The asm
  * executes `syscall` for any other mode; no C equivalent.) */
 static s16 *port_channel_pose(s16 *dst, AnimChannel *ch, u8 *rec) {
-    if (ch->unk15 == 0) {
-        return anim_lerp_pose(dst, (s16 *) (rec + ch->unk13 * 0x14 + 8), ch->unk4);
+    if (ch->interp == 0) {
+        return anim_lerp_pose(dst, (s16 *) (rec + ch->frame * 0x14 + 8), ch->frac);
     }
     return anim_spline_pose(dst, ch, rec);
 }
@@ -3602,13 +3602,13 @@ static void port_publish_track(AnimChannel *e, u8 *dst) {
     u32 *d = (u32 *) dst;
     s32 i;
 
-    e->unk10 = 0;
-    e->unk11 = 0;
-    e->unk12 = 0;
-    e->unk15 = 0;
-    e->unk13 = 0;
+    e->playing = 0;
+    e->reverse = 0;
+    e->loopMode = 0;
+    e->interp = 0;
+    e->frame = 0;
     e->id = (s32) dst;
-    e->unk4 = 0.0f;
+    e->frac = 0.0f;
     for (i = 0; i < 0x1800 / 4; i++) {
         d[i] = s[i];
     }
@@ -3755,15 +3755,15 @@ extern u8 gAnimSplineKeys[4];
 /* A channel's current pose (spline) (0x8029FFA0). */
 s16 *anim_spline_pose(s16 *dst, AnimChannel *ch, u8 *keys) {
     Unk8029F110Out basis;
-    f32 t = ch->unk4;
+    f32 t = ch->frac;
     s16 *k0;
     s16 *k1;
     s16 *k2;
     s16 *k3;
     s32 i;
 
-    anim_set_spline_basis((u8 *) ch, (u8) ch->unk15, &basis);
-    anim_spline_keys(t, (u8) ch->unk13, *(u8 *) N64_IPTR(ch->id));
+    anim_set_spline_basis((u8 *) ch, (u8) ch->interp, &basis);
+    anim_spline_keys(t, (u8) ch->frame, *(u8 *) N64_IPTR(ch->id));
     keys += 8;
     k0 = (s16 *) (keys + gAnimSplineKeys[0] * 0x14);
     k1 = (s16 *) (keys + gAnimSplineKeys[1] * 0x14);
@@ -3823,9 +3823,9 @@ s16 *anim_lerp_pose(s16 *dst, s16 *key, f32 t) {
 void anim_play(AnimChannel *base, s32 idx, s32 val) {
     AnimChannel *e = ENTRY_AT(base, idx);
 
-    e->unk10 = 1;
-    e->unkE = val;
-    e->unkC = 0;
+    e->playing = 1;
+    e->loopLimit = val;
+    e->loopCount = 0;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_play.s")
@@ -3835,7 +3835,7 @@ void anim_play(AnimChannel *base, s32 idx, s32 val) {
 /* Stops a channel (0x802A02E4).
  * unk10 = 0 (idx in v0, base in v1). */
 void anim_stop(s32 idx, AnimChannel *base) {
-    ENTRY_AT(base, idx)->unk10 = 0;
+    ENTRY_AT(base, idx)->playing = 0;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_stop.s")
@@ -3847,8 +3847,8 @@ void anim_stop(s32 idx, AnimChannel *base) {
 void anim_rewind(s32 idx, AnimChannel *base) {
     AnimChannel *e = ENTRY_AT(base, idx);
 
-    e->unk13 = 0;
-    e->unk4 = 0.0f;
+    e->frame = 0;
+    e->frac = 0.0f;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_rewind.s")
@@ -3860,8 +3860,8 @@ void anim_rewind(s32 idx, AnimChannel *base) {
 void anim_set_frame(f32 f, AnimChannel *base, s32 idx, s32 val) {
     AnimChannel *e = ENTRY_AT(base, idx);
 
-    e->unk13 = val;
-    e->unk4 = f;
+    e->frame = val;
+    e->frac = f;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_set_frame.s")
@@ -3871,7 +3871,7 @@ void anim_set_frame(f32 f, AnimChannel *base, s32 idx, s32 val) {
 /* A channel's speed (0x802A039C).
  * unk14 = val (base in a0, idx in v0, val in v1). */
 void anim_set_speed(AnimChannel *base, s32 idx, s32 val) {
-    ENTRY_AT(base, idx)->unk14 = val;
+    ENTRY_AT(base, idx)->speed = val;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_set_speed.s")
@@ -3881,7 +3881,7 @@ void anim_set_speed(AnimChannel *base, s32 idx, s32 val) {
 /* A channel's direction (0x802A03D4).
  * unk11 = val (base in a0, idx in v0, val in v1). */
 void anim_set_reverse(AnimChannel *base, s32 idx, s32 val) {
-    ENTRY_AT(base, idx)->unk11 = val;
+    ENTRY_AT(base, idx)->reverse = val;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_set_reverse.s")
@@ -3891,7 +3891,7 @@ void anim_set_reverse(AnimChannel *base, s32 idx, s32 val) {
 /* 0 wrap, 1 ping-pong (0x802A040C).
  * unk12 = val (base in a0, idx in v0, val in v1). */
 void anim_set_loop_mode(AnimChannel *base, s32 idx, s32 val) {
-    ENTRY_AT(base, idx)->unk12 = val;
+    ENTRY_AT(base, idx)->loopMode = val;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_set_loop_mode.s")
@@ -3903,8 +3903,8 @@ void anim_set_loop_mode(AnimChannel *base, s32 idx, s32 val) {
 void anim_set_loops(AnimChannel *base, s32 idx, s32 val) {
     AnimChannel *e = ENTRY_AT(base, idx);
 
-    e->unkC = 0;
-    e->unkE = val;
+    e->loopCount = 0;
+    e->loopLimit = val;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_set_loops.s")
@@ -3916,8 +3916,8 @@ void anim_set_loops(AnimChannel *base, s32 idx, s32 val) {
 void anim_set_interp(f32 f, AnimChannel *base, s32 idx, s32 val) {
     AnimChannel *e = ENTRY_AT(base, idx);
 
-    e->unk15 = val;
-    e->unk8 = f;
+    e->interp = val;
+    e->tension = f;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_set_interp.s")
@@ -3932,14 +3932,14 @@ void anim_set_interp(f32 f, AnimChannel *base, s32 idx, s32 val) {
 void anim_get_state(s32 idx, AnimChannel *base, s32 *out) {
     AnimChannel *e = ENTRY_AT(base, idx);
 
-    out[0] = e->unk10;
-    out[1] = e->unk11;
-    out[2] = e->unk12;
-    out[3] = e->unk14;
-    out[4] = (u16) e->unkC;
-    out[5] = (u16) e->unkE;
-    out[6] = e->unk13;
-    ((f32 *) out)[7] = e->unk4;
+    out[0] = e->playing;
+    out[1] = e->reverse;
+    out[2] = e->loopMode;
+    out[3] = e->speed;
+    out[4] = (u16) e->loopCount;
+    out[5] = (u16) e->loopLimit;
+    out[6] = e->frame;
+    ((f32 *) out)[7] = e->frac;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_get_state.s")
@@ -3960,9 +3960,9 @@ AnimChannel *anim_tex_find(s32 id);
 void anim_tex_play(s32 key, s32 val) {
     AnimChannel *e = anim_tex_find(key);
 
-    e->unk10 = 1;
-    e->unkE = val;
-    e->unkC = 0;
+    e->playing = 1;
+    e->loopLimit = val;
+    e->loopCount = 0;
 }
 #else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -3977,7 +3977,7 @@ void anim_tex_play(s32 key, s32 val) {
 /* Stops a texture animation (0x802A0540).
  * unk10 = 0 (key in v0). */
 void anim_tex_stop(s32 key) {
-    anim_tex_find(key)->unk10 = 0;
+    anim_tex_find(key)->playing = 0;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_tex_stop.s")
@@ -3989,8 +3989,8 @@ void anim_tex_stop(s32 key) {
 void anim_tex_rewind(s32 key) {
     AnimChannel *e = anim_tex_find(key);
 
-    e->unk13 = 0;
-    e->unk4 = 0.0f;
+    e->frame = 0;
+    e->frac = 0.0f;
 }
 #else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -4019,8 +4019,8 @@ void anim_tex_rewind(s32 key) {
 void anim_tex_set_frame(f32 f, s32 key, s32 val) {
     AnimChannel *e = anim_tex_find(key);
 
-    e->unk13 = val;
-    e->unk4 = f;
+    e->frame = val;
+    e->frac = f;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/anim_tex_set_frame.s")
@@ -4030,7 +4030,7 @@ void anim_tex_set_frame(f32 f, s32 key, s32 val) {
 /* A texture animation's speed (0x802A05D0).
  * unk14 = val (key in v0, val in v1). */
 void anim_tex_set_speed(s32 key, s32 val) {
-    anim_tex_find(key)->unk14 = val;
+    anim_tex_find(key)->speed = val;
 }
 #else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -4041,7 +4041,7 @@ void anim_tex_set_speed(s32 key, s32 val) {
 /* A texture animation's direction (0x802A05F8).
  * unk11 = val (key in v0, val in v1). */
 void anim_tex_set_reverse(s32 key, s32 val) {
-    anim_tex_find(key)->unk11 = val;
+    anim_tex_find(key)->reverse = val;
 }
 #else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -4052,7 +4052,7 @@ void anim_tex_set_reverse(s32 key, s32 val) {
 /* A texture animation's loop mode (0x802A0620).
  * unk12 = val (key in v0, val in v1). */
 void anim_tex_set_loop_mode(s32 key, s32 val) {
-    anim_tex_find(key)->unk12 = val;
+    anim_tex_find(key)->loopMode = val;
 }
 #else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -4065,8 +4065,8 @@ void anim_tex_set_loop_mode(s32 key, s32 val) {
 void anim_tex_set_loops(s32 key, s32 val) {
     AnimChannel *e = anim_tex_find(key);
 
-    e->unkC = 0;
-    e->unkE = val;
+    e->loopCount = 0;
+    e->loopLimit = val;
 }
 #else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -4082,14 +4082,14 @@ void anim_tex_set_loops(s32 key, s32 val) {
 void anim_tex_get_state(s32 key, s32 *out) {
     AnimChannel *e = anim_tex_find(key);
 
-    out[0] = e->unk10;
-    out[1] = e->unk11;
-    out[2] = e->unk12;
-    out[3] = e->unk14;
-    out[4] = (u16) e->unkC;
-    out[5] = (u16) e->unkE;
-    out[6] = e->unk13;
-    ((f32 *) out)[7] = e->unk4;
+    out[0] = e->playing;
+    out[1] = e->reverse;
+    out[2] = e->loopMode;
+    out[3] = e->speed;
+    out[4] = (u16) e->loopCount;
+    out[5] = (u16) e->loopLimit;
+    out[6] = e->frame;
+    ((f32 *) out)[7] = e->frac;
 }
 #else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */

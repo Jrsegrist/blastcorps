@@ -9,14 +9,14 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802F49F4 ((Font *) D_802F49F4)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gYoshiHeapItems (*(MenuItem * N64P *) &gYoshiHeapItems)
 #endif
 /* end of views */
 
 /*
- * Two parts: the academy/level-select yoshi window builder (academy_build_window
+ * Two parts: the academy marker-found yoshi window builder (window 0x15) (academy_build_window
  * and helpers), then a second copy of the INFLATE decompressor that init/
  * carries (init/0050.c, init/0E30.c), compiled from the same source:
  *   hd_huft_build huft_build, hd_inflate_codes inflate_codes,
@@ -25,11 +25,7 @@
  *   hd_inflate inflate.
  */
 
-typedef struct {
-    u8 pad0[0x90];
-    u8 academy; /* 0x90 */
-    u8 pad91[0x100 - 0x91];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
 /* Yoshi window item, 0x1C bytes */
 typedef struct {

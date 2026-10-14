@@ -110,12 +110,17 @@ documented implementation before decompiling these from scratch.
 function of the three code segments by category. Permanent hand-written assembly is listed in
 `tools_port/hand_asm.txt`; `-v` lists the functions that are not matched C.
 
-| segment | functions | matched C | hand asm + NM C | hand asm, no C | near-miss | unmatched IDO C | IDO C matched |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| init | 43 | 31 | 0 | 12 | 0 | 0 | 100.0% |
-| hd_code | 1417 | 709 | 681 | 27 | 0 | 0 | 100.0% |
-| hd_front_end | 155 | 147 | 6 | 0 | 2 | 0 | 98.7% |
-| total | 1615 | 887 | 687 | 39 | 2 | 0 | 99.8% |
+| segment | functions | matched C | hand asm + NM C | hand asm, no C | near-miss | unmatched IDO C | IDO C matched | named |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| init | 43 | 31 | 0 | 12 | 0 | 0 | 100.0% | 43 (100%) |
+| hd_code | 1400 | 692 | 681 | 27 | 0 | 0 | 100.0% | 1400 (100%) |
+| hd_front_end | 155 | 147 | 6 | 0 | 2 | 0 | 98.7% | 155 (100%) |
+| total | 1598 | 870 | 687 | 39 | 2 | 0 | 99.8% | 1598 (100%) |
+
+(Earlier counts included 17 leftover SDK alias symbols, func_802D4020 = osInitialize and
+the like, as matched hd_code functions: 1615 / 887.)  `--naming` adds the rename map's size,
+the shared structs' named fields and the named constants (game modes, sounds, the vehicle
+state offsets).
 
 - **matched C**: compiled from C in the byte-matching build (game code and the ultralib-based SDK).
 - **hand asm**: Rare's hand-written game code (hd_code 56040–8DDB0, the front end's 1B100
@@ -154,6 +159,15 @@ its segment's `symbol_addrs` file at its address, and is safe to re-run. Tools t
 address-name prefix (`func_` = game function, `D_` = N64 data) ask `tools_port/names.py` for the old name
 first, so a rename changes nothing they do. Names never change code: after a rename the matching ROMs,
 the NON_MATCHING ROM and every check must come out the same.
+
+**Shared structs and views.** The records several files read (PlayerInfo, LevelInfo, LevelObject,
+VehShadow, AnimChannel, VehState) have one definition in `include/game/types.h` / `object.h`. A file
+whose code reads the same memory with other offsets or types keeps a view type named for what it does
+(e.g. 26570.c `PlayerHintView`, 01C40.c `LevelTimesView`), with the shared field names where they
+overlap. Two lessons from naming phase 3: keep a view macro's form (`#define gX (*(T * N64P *) &gX)`
+compiles differently in the NON_MATCHING build from a plain declaration of the same type, so the NM ROM
+changes), and remove the C objects before a header-only check (the Makefile does not track header
+dependencies: `rm build*/src.us.v11/*/*.c.o`).
 
 **Applying the map on another branch** (before merging it with one that renamed):
 ```

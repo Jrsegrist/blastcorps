@@ -3,41 +3,26 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
-#define gGlobeLevels ((LevelInfo *) gGlobeLevels)
+#define gGlobeLevels ((GlobeLevel *) gGlobeLevels)
 #define gLvlselMarkerFrames ((u16 * N64P *) gLvlselMarkerFrames)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
-#define gLevelInfo ((LevelFlags *) gLevelInfo)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define gDynamicBufs ((u8 *) gDynamicBufs)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
 /* front-end level select: level availability, the level icon display list
  * and the starfield background */
 
-typedef struct {
-    u8 pad0[0x18];
-    s8 unk18[4];
-    s8 unk1C[8];
-    u8 pad24[0xC];
-} LevelInfo; /* 0x30 */
+/* (gGlobeLevels[]: GlobeLevel, game/types.h) */
 
-typedef struct {
-    u8 pad0[0x18];
-    u8 unk18[0x3C]; /* per level */
-    u8 unk54[0x3C]; /* per level bit flags */
-    u8 unk90;
-    u8 pad91[0x6F];
-} Player; /* 0x100 */
+/* (players[]: PlayerInfo, game/types.h) */
 
 typedef struct {
     u8 unk0; /* level */
     u8 pad1[7];
 } Entry8;
 
-typedef struct {
-    u8 unk0; /* flags */
-    u8 pad1[0x43];
-} LevelFlags; /* 0x44 */
 
 typedef struct {
     Gfx * N64P dl[9];
@@ -276,12 +261,12 @@ Gfx *fe_lvlsel_build_globe_dl(void) {
 }
 
 /* hd.c's LEVEL_DONE */
-#define LEVEL_DONE(l) (players[playerNumber].unk18[l] > 0 && players[playerNumber].unk18[l] < 6) ? 1 : 0
+#define LEVEL_DONE(l) (players[playerNumber].medal[l] > 0 && players[playerNumber].medal[l] < 6) ? 1 : 0
 
 /* A level can be picked: done, level 0, or unlocked (0x801F1DA8).
  * is the level available: done, level 0, or unlocked by a done level */
 s32 fe_lvlsel_level_open(s32 level) {
-    LevelInfo *info;
+    GlobeLevel *info;
     s32 i;
     s32 j;
 
@@ -303,7 +288,7 @@ s32 fe_lvlsel_level_open(s32 level) {
                 }
             }
             for (j = 0; j < 4 && info->unk18[j] != -1; j++) {
-                if (info->unk18[j] == level && (players[playerNumber].unk54[i] & (1 << j))) {
+                if (info->unk18[j] == level && (players[playerNumber].commPts[i] & (1 << j))) {
                     return 1;
                 }
             }
@@ -352,7 +337,7 @@ Gfx *fe_lvlsel_build_academy_dl(void) {
                 }
             }
             /* j is one past the match here, so bit (j + 31) & 31 = j - 1 */
-            if (found && (players[playerNumber].unk90 & (1 << PORT_SHAMT(j + 31)))) {
+            if (found && (players[playerNumber].academy & (1 << PORT_SHAMT(j + 31)))) {
                 fe_globe_quad_at_level(vtx, i, pass * 1.5 + 2.5, pass * 1.5 + 4.0, 32, 32, 2.25f, 1);
                 gSPVertex(gfx++, vtx, 4, 0);
                 gSP1Triangle(gfx++, 0, 1, 2, 0);
@@ -372,7 +357,7 @@ Gfx *fe_lvlsel_build_academy_dl(void) {
  * display list of the level select icons, one category (colour/combiner) at a time,
  * flushing vertices 16 at a time */
 Gfx *fe_lvlsel_build_level_icons_dl(void) {
-    LevelInfo *info;
+    GlobeLevel *info;
     Vtx *vtx;
     Gfx *gfx;
     Gfx *dl;
@@ -440,13 +425,13 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
                 break;
         }
         for (lvl = 0; lvl < 60; lvl++) {
-            avail = (cat == 6 || cat == 7) && (LEVEL_DONE(lvl)) && players[playerNumber].unk18[lvl] != 4;
-            if (players[playerNumber].unk18[lvl] == cat || avail) {
+            avail = (cat == 6 || cat == 7) && (LEVEL_DONE(lvl)) && players[playerNumber].medal[lvl] != 4;
+            if (players[playerNumber].medal[lvl] == cat || avail) {
                 info = &gGlobeLevels[lvl];
                 if (fe_lvlsel_level_open(lvl)) {
                     if (avail) {
                         for (j = 0, found = 0; j < 4 && info->unk18[j] != -1 && !found; j++) {
-                            if (!(players[playerNumber].unk54[lvl] & (1 << j))) {
+                            if (!(players[playerNumber].commPts[lvl] & (1 << j))) {
                                 found = 1;
                             }
                         }
@@ -454,7 +439,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
                             continue;
                         }
                     }
-                    if (gLevelInfo[lvl].unk0 & 0x81) {
+                    if (gLevelInfo[lvl].kind & 0x81) {
                         scale = 1.75f;
                     } else {
                         scale = 1.0f;

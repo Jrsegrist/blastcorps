@@ -5,31 +5,15 @@
 #define gYoshiFeItems ((MenuItem *) gYoshiFeItems)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
 /* academy.c: each player's progress state machine (players[].gameState):
  * which levels/messages unlock next, and the jingles/menus that go with it */
 
-typedef struct {
-    u8 pad0[8];
-    u8 levelno;  /* 0x08 */
-    u8 pad9;
-    u16 f0A;     /* 0x0A */
-    u8 f0C;      /* 0x0C */
-    u8 padD[0x18 - 0xD];
-    u8 rank[0x3C];  /* 0x18 */
-    u8 flags[0x3C]; /* 0x54 */
-    u8 academy;     /* 0x90 */
-    u8 gameState;   /* 0x91 */
-    u8 pad92[0x100 - 0x92];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
-typedef struct {
-    u8 type;
-    u8 state;
-    u8 pad[0x42];
-} LevelInfo;
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
 typedef struct {
     u8 a;
@@ -53,7 +37,7 @@ extern Entry30 D_8020D7E4[];
 extern char D_8036EBA0[];
 
 
-#define LEVEL_DONE(l) ((players[playerNumber].rank[l] > 0 && players[playerNumber].rank[l] < 6) ? 1 : 0)
+#define LEVEL_DONE(l) ((players[playerNumber].medal[l] > 0 && players[playerNumber].medal[l] < 6) ? 1 : 0)
 #define ACADEMY_ASSERT_S(EX, text, line) \
     if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", text, "academy.c", line); }
 #define ACADEMY_ASSERT(EX, line) \
@@ -70,7 +54,7 @@ void academy_announce_state(void) {
 
     if (players[playerNumber].gameState != 13 && players[playerNumber].gameState != 8 &&
         players[playerNumber].gameState != 1) {
-        gNextGameMode = 0x800000000000;
+        gNextGameMode = MODE_ACADEMY_MESSAGE;
         hd_mode_setup();
         fe_bg_load(D_802FDA60[players[playerNumber].gameState]);
         switch (players[playerNumber].gameState) {
@@ -122,7 +106,7 @@ void academy_next_mode(void) {
             ACADEMY_ASSERT_S(levelno == 50, "levelno==50", 140);
             ACADEMY_ASSERT(players[playerNumber].levelno==50, 141);
             ACADEMY_ASSERT(frontEndPresent, 142);
-            gNextGameMode = 0x800;
+            gNextGameMode = MODE_INTRO_FLY;
             D_803643D5 = 0;
             fe_best_clear_times(playerNumber);
             break;
@@ -135,7 +119,7 @@ void academy_next_mode(void) {
             gNextGameMode = MODE_GLOBE_SEQ;
             break;
         case 10:
-            gNextGameMode = 0x4000000000000;
+            gNextGameMode = MODE_REGRADE_NOTICE;
             break;
         case 11:
             gNextGameMode = MODE_WORLD;
@@ -151,7 +135,7 @@ void academy_next_mode(void) {
  * whether it changed */
 u8 academy_advance_state(void) {
     s32 i;
-    Player *p;
+    PlayerInfo *p;
     u8 advance;
     u8 stop;
     u8 oldState;
@@ -174,8 +158,8 @@ u8 academy_advance_state(void) {
             case 2:
             case 3:
                 for (i = 0; i < 60 && advance; i++) {
-                    if (gLevelInfo[i].state == players[playerNumber].gameState && !LEVEL_DONE(i) &&
-                        gLevelInfo[i].type == 1) {
+                    if (gLevelInfo[i].gameState == players[playerNumber].gameState && !LEVEL_DONE(i) &&
+                        gLevelInfo[i].kind == 1) {
                         advance = 0;
                     }
                 }
@@ -201,12 +185,12 @@ u8 academy_advance_state(void) {
                 }
                 break;
             case 8:
-                if (p->f0A < 0xDE) {
+                if (p->units < 0xDE) {
                     advance = 0;
                 }
                 break;
             case 9:
-                if (p->f0A >= 0xEA || D_802FA26C) {
+                if (p->units >= 0xEA || D_802FA26C) {
                     music_fade_to(0.0f);
                     hd_load_front_end();
                     fe_player_regrade_missions();
@@ -218,7 +202,7 @@ u8 academy_advance_state(void) {
             case 10:
                 break;
             case 11:
-                if (p->f0A < 0x129 || D_802FA26C) {
+                if (p->units < 0x129 || D_802FA26C) {
                     advance = 0;
                 } else {
                     music_fade_to(0.0f);
@@ -227,9 +211,9 @@ u8 academy_advance_state(void) {
                 }
                 break;
             case 12:
-                if (p->f0A >= 0x162 || D_802FA26C) {
-                    p->f0A = 0x168;
-                    p->f0C = 0x1E;
+                if (p->units >= 0x162 || D_802FA26C) {
+                    p->units = 0x168;
+                    p->title = 0x1E;
                     debug_printf(" ***** YOU CAN STOP NOW!! ***** \n");
                 } else {
                     advance = 0;

@@ -211,7 +211,7 @@ void thunderfist_enter(void) {
     gThunderfistState[0x99] = 0;
     gCamDistance = 0x1068;
     gCamHeightBase = 0xBB8;
-    snd_play(gSfxBank, 0x50, &gThunderfistEngineSound);
+    snd_play(gSfxBank, SFX_ENGINE_MECH, &gThunderfistEngineSound);
     anim_tex_set_speed((s32) D_802C2308, 0x19);
     anim_tex_set_reverse((s32) D_802C2308, 0);
     anim_tex_set_loop_mode((s32) D_802C2308, 0);
@@ -463,9 +463,9 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         gThunderfistStepPose = o[6];
         if (o[6] != r) {
             if (o[6] == 6) {
-                snd_play(gSfxBank, 0x4E, NULL);
+                snd_play(gSfxBank, SFX_MECH_STEP_A, NULL);
             } else if (o[6] == 2) {
-                snd_play(gSfxBank, 0x4F, NULL);
+                snd_play(gSfxBank, SFX_MECH_STEP_B, NULL);
             }
         }
     }
@@ -628,7 +628,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
 
         case 1:
             if (gEngineSound == NULL) {
-                snd_play(gSfxBank, 0x51, &gEngineSound);
+                snd_play(gSfxBank, SFX_ROLL_LOOP, &gEngineSound);
             }
             if (gThunderfistState[0x9C] != 0) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
@@ -691,7 +691,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
         case 3:
             if (gEngineSound != NULL) {
                 veh_stop_engine_sounds();
-                snd_play(gSfxBank, 0x4B, NULL);
+                snd_play(gSfxBank, SFX_ROLL_CRASH, NULL);
             }
             io.a3 = 1;
             io.t6 = t6;

@@ -62,13 +62,13 @@ void ateam_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *
     gHeapPtr = p + 0x200;
     veh_add_record(0xE, 0, (s32) gAteamMtxA, (s32) gAteamMtxB, hdr);
     veh_reset_state(gAteamState);
-    VEH14_S16(0x52) = 250;
+    VEH14_S16(VS_WHEEL_OFFSETS) = 250;
     VEH14_S16(0x54) = 400;
     VEH14_S16(0x56) = -250;
     VEH14_S16(0x58) = 400;
     VEH14_S16(0x5A) = 250;
     VEH14_S16(0x5C) = -400;
-    VEH14_S16(0x5E) = 320;
+    VEH14_S16(VS_STAND_OFFSETS) = 320;
     VEH14_S16(0x60) = 500;
     VEH14_S16(0x62) = -320;
     VEH14_S16(0x64) = 500;
@@ -77,9 +77,9 @@ void ateam_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *
     gAteamPos[0] = x;
     gAteamPos[1] = y;
     gAteamPos[2] = z;
-    VEH14_S16(0x4C) = heading;
-    VEH14_S16(0x4E) = heading;
-    VEH14_S16(0x74) = heading;
+    VEH14_S16(VS_HEADING) = heading;
+    VEH14_S16(VS_MOVE_HEADING) = heading;
+    VEH14_S16(VS_MOMENTUM_HEADING) = heading;
     veh_init_ground((s16 *) (gAteamState + 0x52), gAteamPos[1], x, z, (s32 *) (gAteamState + 4),
                   (s32 *) &gAteamPos[1], (s16 *) (gAteamState + 0x4C), 0xE, fp, gAteamState, f);
     copyA = (u8 *) gAteamMtxA;
@@ -94,7 +94,7 @@ void ateam_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *
     anim_rewind(0, (AnimChannel *) gAteamAnim);
     anim_play((AnimChannel *) gAteamAnim, 0, 1);
     anim_update_model(copyB, copyA, (AnimChannel *) gAteamAnim);
-    VEH14_S16(0x78) = -180;
+    VEH14_S16(VS_BANDS) = -180;
     VEH14_S16(0x7A) = 0;
     VEH14_S16(0x7C) = 8;
     VEH14_S16(0x7E) = 0;
@@ -282,11 +282,11 @@ s32 ateam_ride_follow(s32 id, TriSideOut *f) {
     s32 dist;
 
     r.f24 = f->sideZ;
-    heading = veh_follow_heading((s16 *) (gAteamState + 0x52), VEH14_S16(0x6A), (u16 *) (gAteamState + 0x6E), id,
-                            VEH14_S16(0x6C), VEH14_S16(0x70), VEH14_S16(0x72), &dist, &r);
-    VEH14_S16(0x4E) = heading;
-    VEH14_S16(0x4C) = heading;
-    veh_deck_to_world(id, VEH14_S16(0x6A), VEH14_S16(0x6C), &r);
+    heading = veh_follow_heading((s16 *) (gAteamState + 0x52), VEH14_S16(VS_DECK_POS), (u16 *) (gAteamState + 0x6E), id,
+                            VEH14_S16(0x6C), VEH14_S16(VS_DECK_FRONT), VEH14_S16(0x72), &dist, &r);
+    VEH14_S16(VS_MOVE_HEADING) = heading;
+    VEH14_S16(VS_HEADING) = heading;
+    veh_deck_to_world(id, VEH14_S16(VS_DECK_POS), VEH14_S16(0x6C), &r);
     ateam_set_physics();
     gBounceSound = 1;
     f->pz = r.f12;
@@ -396,7 +396,7 @@ void ateam_update(void) {
         anim_update_model((u8 *) gAteamMtxB, (u8 *) gAteamMtxA, (AnimChannel *) gAteamAnim);
     }
     ateam_build_model();
-    veh_collision_setup(gAteamPos[2], (s32) D_80306440, 1, 1, gAteamPos[0], gAteamPos[1], 7, VEH14_S16(0x76), 0x96, 0,
+    veh_collision_setup(gAteamPos[2], (s32) D_80306440, 1, 1, gAteamPos[0], gAteamPos[1], 7, VEH14_S16(VS_SPEED), 0x96, 0,
                   0xE, gAteamState);
     veh_collide_spheres(0xE, gAteamState);
     veh_collide_world(0xE);
@@ -417,7 +417,7 @@ void ateam_update(void) {
                           (s32 *) &gAteamPos[2], gAteamMtxA, gAteamMtxB, 0x100, &end);
         }
         D_803F9314 = 5;
-        v = VEH14_S16(0x76);
+        v = VEH14_S16(VS_SPEED);
         if (v >= 0) {
             if (v < 50) {
                 v = 50;
@@ -425,7 +425,7 @@ void ateam_update(void) {
         } else if (!(v < -49)) {
             v = -50;
         }
-        VEH14_S16(0x76) = -v >> 1;
+        VEH14_S16(VS_SPEED) = -v >> 1;
         ateam_build_model();
         goto publish;
     }
@@ -445,8 +445,8 @@ void ateam_update(void) {
     veh_reverse_if_behind(gAteamState);
     turn = veh_turn_into_free_arc(gAteamState, *(u16 *) (gAteamState + 0x4E), *(u16 *) (gAteamState + 0x4C), &cur, D_8030D9C0);
     D_803F9310 = cur;
-    VEH14_S16(0x4E) = cur;
-    VEH14_S16(0x74) = cur;
+    VEH14_S16(VS_MOVE_HEADING) = cur;
+    VEH14_S16(VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(gAteamState, turn, d, &target);
     veh_hit_slowdown(gAteamState, 0);
     D_803F77D0 = gAteamAnim;
@@ -455,7 +455,7 @@ publish:
     gPlayerX = gAteamPos[0];
     gPlayerY = gAteamPos[1];
     gPlayerZ = gAteamPos[2];
-    D_8036443C = VEH14_S16(0x76);
+    D_8036443C = VEH14_S16(VS_SPEED);
     D_8036443E = *(u16 *) (gAteamState + 0x4E);
     D_80364440 = *(u16 *) (gAteamState + 0x4C);
     veh_set_record(gAteamPos[2], 0xE, gAteamPos[0], gAteamPos[1], gAteamState);

@@ -90,7 +90,7 @@ void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     }
     while (n < arg5 && i < 20) {
         if (n == 2) {
-            snd_play(gSfxBank, 0x24, 0);
+            snd_play(gSfxBank, SFX_PEOPLE_SCREAM, 0);
         }
         found = 0;
         while (i < 20 && !found) {
@@ -260,7 +260,7 @@ void people_flee(void) {
                 gPeople[i].unk1A = 1;
             }
             if (i == 1 && gPeople[i].state != 4) {
-                snd_play(gSfxBank, 0x24, 0);
+                snd_play(gSfxBank, SFX_PEOPLE_SCREAM, 0);
             }
             if (gPeople[i].state == 2) {
                 gChopperMode = 6;
@@ -427,7 +427,7 @@ void people_dispatch_chopper(void) {
                 vol = 35000 - util_dist2d(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2;
             }
             if (vol > 4000) {
-                snd_modify(snd_play(gSfxBank, 0x25, 0), 8, vol);
+                snd_modify(snd_play(gSfxBank, SFX_CHOPPER_DISPATCH, 0), 8, vol);
             }
         }
     }

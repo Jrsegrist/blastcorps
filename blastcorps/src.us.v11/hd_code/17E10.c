@@ -11,7 +11,7 @@
 void hud_attract_messages(void) {
     switch (((u32) D_802E8BEC)) {
         case 0:
-            if (gGameMode == 2) {
+            if (gGameMode == MODE_ATTRACT) {
                 if (((s32) gFramesInMode) == 0x96) {
                     yoshi_demand(0x803E);
                 }
@@ -105,7 +105,7 @@ Gfx *title_draw_attract(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
 
     time = D_803156C4;
     gfx = arg0;
-    if (D_802E8BF0 != 0 && (gGameMode & 2)) {
+    if (D_802E8BF0 != 0 && (gGameMode & MODE_ATTRACT)) {
         if (arg2) {
             buf = D_80366BA4;
         } else {
@@ -248,7 +248,7 @@ extern s16 gLogoPicAlpha;
 
 /* The logo state, positions and images for the next mode (0x8025D184). */
 void title_setup_logo(void) {
-    if (gNextGameMode & 2) {
+    if (gNextGameMode & MODE_ATTRACT) {
         title_load_logo_image(1);
         title_load_logo_image(0);
         gLogoPicAlpha = 0xFF;
@@ -325,12 +325,12 @@ Gfx *title_draw_logo(Gfx *arg0, s32 arg1, s32 *arg2) {
     s16 top;
 
     gfx = arg0;
-    if (gGameMode & 0x08040E2110418002LL) {
+    if (gGameMode & (MODE_ATTRACT | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_ERASE_MENU | MODE_PAK_CHECK | MODE_PAK_FILES | MODE_PAK_MANAGER_CHECKED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_REGRADE_NOTICE | MODE_NO_CONTROLLER)) {
         gLogoAlpha += 10;
         if (gLogoAlpha > 0xFF) {
             gLogoAlpha = 0xFF;
         }
-    } else if (gGameMode & 0x0188004203160000LL) {
+    } else if (gGameMode & (MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_PLAYER_CHOSEN | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_UNUSED_33 | MODE_PAK_FILE_CHOSEN | MODE_REGRADE_NOTICE_END | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER)) {
         if ((gLogoAlpha -= 10) <= 0) {
             gLogoAlpha = 0;
         }
@@ -362,7 +362,7 @@ Gfx *title_draw_logo(Gfx *arg0, s32 arg1, s32 *arg2) {
                 } else {
                     gLogoPicAlpha += 4;
                 }
-            } else if (gGameMode == 0x200000) {
+            } else if (gGameMode == MODE_LOAD_GAME_RETURN) {
                 if (gLogoPicAlpha - 6 < 0) {
                     gLogoPicAlpha = 0;
                 } else {
@@ -379,7 +379,7 @@ Gfx *title_draw_logo(Gfx *arg0, s32 arg1, s32 *arg2) {
     gDPSetRenderMode(gfx++, 0x00504240, 0);
     gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
 
-    if (gGameMode == 2 && yoshiState != 1) {
+    if (gGameMode == MODE_ATTRACT && yoshiState != 1) {
         top = gLogoY - (0xFF - gPadDisplayAlpha) / 4;
         if (top + 0x3F == gLogoY) {
             top = -100;
@@ -423,7 +423,7 @@ Gfx *title_draw_logo(Gfx *arg0, s32 arg1, s32 *arg2) {
                                            (i + step + 0x1F) << 2, (top + 0x45) << 2, 0, i << 5, 0,
                                            1 << 10, 1 << 10);
                 gDPPipeSync(gfx++);
-                if (gLogoAlpha == 0xFF && (gGameMode & 0xC9FD0FE79BFF80B0LL)) {
+                if (gLogoAlpha == 0xFF && (gGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2 | MODE_LEVEL_STATUS | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_33 | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_DELETE_CONFIRM | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_BOOT_CHECK | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_NO_CONTROLLER | MODE_QUIT_GAME | MODE_LOAD_GAME_EXIT))) {
                     gDPSetRenderMode(gfx++, 0x0F0A7008, 0);
                 }
                 gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
@@ -489,7 +489,7 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
                         break;
                     case 0x32:
                         snd_stop_all_looping();
-                        music_push_tune(0x25);
+                        music_push_tune(MUS_FINALE);
                         gLevelDoneWindow = 0x23;
                         D_80366BC4 = 0;
                         break;
@@ -504,7 +504,7 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
             yoshi_demand(gLevelDoneWindow | 0x8000 | 0x2000);
             gYoshiPendingWindow = -1;
             if (gLevelDoneWindow == 5) {
-                snd_play(gSfxBank, snd_random_id(2), NULL);
+                snd_play(gSfxBank, snd_random_id(SND_GROUP_LEVEL_DONE), NULL);
             }
         }
         gLevelDoneSeen = gLevelDone;
@@ -512,12 +512,12 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
             if (yoshiState == 8 && currentYoshiWindow == gLevelDoneWindow) {
                 gEndSeqTime = D_803156C4;
                 hud_panel_stop();
-                hud_panel_start(2, 1, 2, snd_random_id(3));
+                hud_panel_start(2, 1, 2, snd_random_id(SND_GROUP_DONE_PANEL));
             }
         } else if (alCSPGetState(gMusicPlayer) == 0 ||
                    (D_80366BC4 != 0 && D_803156C4 - gDoneTuneStartTime >= 0x1E1) ||
                    (D_80366BC4 == 0 && D_803156C4 - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
-            fade_to_mode_speed(0x08000000, 0.75f);
+            fade_to_mode_speed(MODE_RESULTS, 0.75f);
             gEndSeqTime = 0;
             gLevelDoneSeen = 0;
         }
@@ -545,7 +545,7 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
             obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
             switch (levelno) {
                 case 0x31:
-                    snd_play(gSfxBank, 0x31, NULL);
+                    snd_play(gSfxBank, SFX_FAIL_CRASH, NULL);
                     music_fade_to(0.0f);
                     break;
                 case 0x32:
@@ -554,7 +554,7 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                     music_fade_to(0.0f);
                     break;
                 default:
-                    snd_play(gSfxBank, 0x31, NULL);
+                    snd_play(gSfxBank, SFX_FAIL_CRASH, NULL);
                     gPauseRequest = 1;
                     if (currentYoshiWindow != -1 || yoshi_get_demand() != 0) {
                         yoshi_demand(0x4000);
@@ -571,7 +571,7 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
             switch (levelno) {
                 case 0x31:
                     if (gFailSoundPlayed == 0) {
-                        snd_play(gSfxBank, 0x32, NULL);
+                        snd_play(gSfxBank, SFX_MISSION_FAILED, NULL);
                         gFailSoundPlayed = 1;
                     }
                     break;
@@ -579,15 +579,15 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                     if (yoshiState == 1 && areWeFading() == 0) {
                         if ((players[playerNumber][levelno + 0x18] > 0 &&
                              players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
-                            fade_to_mode(0x08000000);
+                            fade_to_mode(MODE_RESULTS);
                         } else {
-                            fade_to_mode(0x40);
+                            fade_to_mode(MODE_REPLAY);
                         }
                     }
                     break;
                 default:
                     if (gFailSoundPlayed == 0) {
-                        snd_play(gSfxBank, 0x32, NULL);
+                        snd_play(gSfxBank, SFX_MISSION_FAILED, NULL);
                         gFailSoundPlayed = 1;
                     }
                     gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -610,13 +610,13 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                                 }
                             }
                         } else if (time - gEndSeqTime - 0x10E >= 0x2E) {
-                            if (gGameMode == 0x100000000000LL) {
-                                gNextGameMode = 0x200000000000LL;
+                            if (gGameMode == MODE_GLOBE_SEQ) {
+                                gNextGameMode = MODE_SEQ_END;
                             } else if ((players[playerNumber][levelno + 0x18] > 0 &&
                                         players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
-                                fade_to_mode(0x08000000);
+                                fade_to_mode(MODE_RESULTS);
                             } else {
-                                fade_to_mode(0x40);
+                                fade_to_mode(MODE_REPLAY);
                             }
                         } else {
                             for (i = 0; i < 4; i++) {

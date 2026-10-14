@@ -25,54 +25,7 @@
  * prototypes below: math_dist3 (62740), veh_tri_is_solid (56040),
  * mtx_translate and mtx_to_n64 (679E0), and this file's own helpers. */
 
-/* A level object's model header (the `info` of a LevelObject): mostly byte offsets
- * (from the header) of its tables. */
-typedef struct {
-    /* 0x00 */ u16 unk0;  /* number of s16 entries at unk3C (obj_part_outranked) */
-    /* 0x02 */ u8 pad2[2];
-    /* 0x04 */ u8 type;   /* toughness: the damage divisor; 0xFF = not tallied, 1 = flimsy (not counted) */
-    /* 0x05 */ u8 unk5;   /* scale of the debris records (obj_spawn_random_effects, obj_spawn_random_landing_effect) */
-    /* 0x06 */ u8 unk6;   /* passed to people_spawn (obj_spawn_people) */
-    /* 0x07 */ u8 unk7;   /* parts topple (obj_start_topple); clear: they fade (obj_start_part_fade) */
-    /* 0x08 */ s32 value; /* summed */
-    /* 0x0C */ u8 padC;
-    /* 0x0D */ u8 unkD;   /* 1-based index of the part obj_check_destroyed ignores */
-    /* 0x0E */ u8 padE[0xE];
-    /* 0x1C */ s32 unk1C; /* byte offset from this record (obj_find_nearest_target) */
-    /* 0x20 */ s32 unk20; /* offset of an s16[4] box x0, z0, x1, z1 (obj_set_sink_quad) */
-    /* 0x24 */ s32 unk24; /* offsets of a table of 0x14-byte records (obj_mark_part_gone) */
-    /* 0x28 */ s32 unk28; /*   and its end */
-    /* 0x2C */ s32 unk2C; /* offset of 8-byte s16 x, y, z points (obj_spawn_random_effects) */
-    /* 0x30 */ s32 unk30; /* offsets of 0x38-byte records (obj_spawn_break_effects) */
-    /* 0x34 */ s32 unk34; /*   their end = start of more (obj_spawn_landing_effects) */
-    /* 0x38 */ s32 unk38; /*   their end = start of the conditional DL records (obj_start_part_fade) */
-    /* 0x3C */ s32 unk3C; /* offset of an s16 table (obj_part_outranked); end of the DL records */
-    /* 0x40 */ s32 unk40; /* offset of an s16 table indexed 1-based (obj_part_exposed) */
-    /* 0x44 */ s32 unk44; /* offsets of variable-length records (obj_part_exposed) */
-    /* 0x48 */ s32 unk48; /*   and their end */
-} ObjectModel;
-
-/* A level object (gObjects): a building or another destructible object, 0xFC bytes (built by
- * lvl_add_object, 5CB60.c). */
-typedef struct LevelObject {
-    /* 0x00 */ ObjectModel * N64P info;
-    /* 0x04 */ void * N64P unk4;  /* its collision triangles (CollisionTri), obj_drop_unsupported_parts */
-    /* 0x08 */ void * N64P unk8;  /*   and their end */
-    /* 0x0C */ s32 unkC;
-    /* 0x10 */ s32 pos[3];
-    /* 0x1C */ u8 pad1C[0xC];
-    /* 0x28 */ s32 unk28;
-    /* 0x2C */ s32 unk2C;
-    /* 0x30 */ s32 unk30;
-    /* 0x34 */ u8 pad34[0x14];
-    /* 0x48 */ u16 unk48[0x50]; /* one per part (obj_check_destroyed) */
-    /* 0xE8 */ u8 cell;            /* the level grid cell (matched against gVisibleCells) */
-    /* 0xE9 */ u8 numParts;        /* number of parts */
-    /* 0xEA */ u8 destroyed;       /* every part down (obj_check_destroyed) */
-    /* 0xEB */ u8 pathBuilding;    /* one of the level's path buildings (obj_path_buildings_destroyed) */
-    /* 0xEC */ u8 unkEC[0x10]; /* per part; 100 = done. Indexed by D_803BE708's byte lists (0..0xFF) */
-} LevelObject; /* size 0xFC */
-STATIC_ASSERT_SIZE(LevelObject, 0xFC);
+/* ObjectModel, LevelObject, CollisionTri, LevelObjectHead: game/object.h */
 
 
 typedef struct {
@@ -92,34 +45,7 @@ typedef struct {
 
 extern Unk80306480 D_80306480[];
 
-/* A collision triangle (obj_move_model keeps its plane up to date). */
-typedef struct CollisionTri {
-    /* 0x00 */ s64 normal[3]; /* unnormalised: cross product of two edges */
-    /* 0x18 */ s64 d;         /* -(normal . vertex 1) */
-    /* 0x20 */ f32 len;       /* |normal| */
-    /* 0x24 */ f32 lenSq;
-    /* 0x28 */ s32 v[3][3];   /* vertices x, y, z */
-    /* 0x4C */ u16 unk4C;  /* ring index (obj_tri_clip_free_arc) */
-    /* 0x4E */ u8 axis;       /* dominant normal axis: 0 = z, 1 = y, 2 = x */
-    /* 0x4F */ u8 pad4F;
-    /* 0x50 */ u8 id;
-    /* 0x51 */ u8 unk51;
-    /* 0x52 */ u16 unk52;
-    /* 0x54 */ u8 pad54;
-    /* 0x55 */ u8 unk55;
-    /* 0x56 */ u8 unk56;
-    /* 0x57 */ u8 unk57;
-    /* 0x58 */ u8 unk58;
-    /* 0x59 */ u8 pad59[7];
-} CollisionTri; /* size 0x60 */
 
-/* What obj_disable_landed_part_tris/obj_move_model get in v0: a model header and a range of
- * its triangles. */
-typedef struct LevelObjectHead {
-    /* 0x00 */ u8 * N64P data;
-    /* 0x04 */ CollisionTri * N64P start;
-    /* 0x08 */ CollisionTri * N64P end;
-} LevelObjectHead;
 
 
 /* Callees in other files (C rewrites; see conventions.txt for their asm registers). */
@@ -238,14 +164,14 @@ void obj_check_level_end(void) {
     if (gHaveCarrier != 0) {
         return;
     }
-    if (gGameMode == 0x40) {
-        fade_to_mode(0x40);
+    if (gGameMode == MODE_REPLAY) {
+        fade_to_mode(MODE_REPLAY);
     } else {
         /* The asm stores 1 with sb into the s32 D_803649E8, i.e. into its
          * most significant byte (readers only test it against 0). Done on
          * the word so either byte order gets the same value. */
         D_803649E8 = (D_803649E8 & 0x00FFFFFF) | 0x01000000;
-        gNextGameMode = 8;
+        gNextGameMode = MODE_LEVEL_CLEAR;
     }
 }
 #else
@@ -437,11 +363,11 @@ void obj_update_delayed_damage(void) {
                 obj_start_part_fade(part, e);
             }
             obj_start_sinking_part(part, e);
-            if (gGameMode != 0x200 && gGameMode != 0x400) {
+            if (gGameMode != MODE_CARRIER_END && gGameMode != MODE_REPLAY_CARRIER_END) {
                 obj_spawn_people(e);
             }
-            end = e->unk8;
-            for (t = e->unk4; t != end; t++) {
+            end = e->trisEnd;
+            for (t = e->tris; t != end; t++) {
                 if (t->unk52 == part) {
                     t->unk51 = 0;
                 }
@@ -696,7 +622,7 @@ s32 obj_find_nearest_target(void) {
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Returns 1 if the gObjects entry just before `next` is in D_803BE708's
- * table and every unkEC byte its record lists is 100, else 0 (also 0 when
+ * table and every partPct byte its record lists is 100, else 0 (also 0 when
  * D_803BE708 is NULL). The asm callers pass their loop pointer already
  * advanced past the entry (t0 = entry + 0xFC), so this takes that pointer too.
  * Table: s32 count, then count 0x18-byte records {LevelObject *entry;
@@ -811,9 +737,9 @@ void obj_draw_toppling_parts(u32 **gfxA, u32 **gfxB);
  *   limit}, 4 words}, the u16 at +4 being the record's (1-based) part p too.
  *   A record whose conditions all hold (part's percentage < limit fails for
  *   mode != 0, > limit for mode 0) is drawn: with a moving part
- *   (e->unk48[p - 1]), its counter unk68[p - 1] advances, dy = c * c * -30000;
+ *   (e->partFalling[p - 1]), its counter partFallTime[p - 1] advances, dy = c * c * -30000;
  *   if dy <= -(table u16 at unk3C + 2(p - 1) << 16) the part drops
- *   (unk48 = 0, obj_spawn_landing_effects, shake 10/300, percentage 100,
+ *   (partFalling = 0, obj_spawn_landing_effects, shake 10/300, percentage 100,
  *   obj_disable_landed_part_tris); its matrix (obj_falling_part_mtx) is pushed in gC; the
  *   record's gC and gD command ranges (words 0-1 / 2-3, offsets from info)
  *   are copied (through obj_copy_dl_tex_anim / obj_copy_dl_tex_anim2 when the texture table
@@ -847,7 +773,7 @@ static void port_obj_draw_only(LevelObject *o, u32 **pA, u32 **pB, u32 **pC, u32
         if (*s == -1) return;
         if (*s == o->cell) break;
     }
-    if (o->unk30 == 0x38 && obj_end_object_hidden() != 0) return;
+    if (o->kind == 0x38 && obj_end_object_hidden() != 0) return;
     PORT_ITAG(gA, PORT_ITAG_BUILDING, o - gObjects);
     PORT_ITAG(gB, PORT_ITAG_BUILDING, o - gObjects);
     gA[0] = gB[0] = 0xBC002406;
@@ -960,7 +886,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
                 break;
             }
         }
-        if (o->unk30 == 0x38 && obj_end_object_hidden() != 0) {
+        if (o->kind == 0x38 && obj_end_object_hidden() != 0) {
             goto tail;
         }
         PORT_ITAG(gA, PORT_ITAG_BUILDING, o - gObjects);
@@ -1311,7 +1237,7 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
 
 /* Steps the objects' texture animation records (timed, clock, heading) (0x802BDDB4).
  * Steps the animation channel records rec..end (each 0xC + n * 4 bytes) of
- * object `obj`. Objects with unk30 == 0x38 are skipped while gHaveCarrier or
+ * object `obj`. Objects with kind == 0x38 are skipped while gHaveCarrier or
  * gHaveShuttle is set unless gPathBuildingsDestroyed, obj_box_targets_done() and obj_tri_targets_ahead_done()
  * all say otherwise. Type 0: the u16 tick counter (+0xE) counts up to the
  * period (+0xC), then restarts at 0 and the frame (+5) advances (wrapping at
@@ -1329,7 +1255,7 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
  * Divisors (period, n, the spans) of 0 trap (break 7); the object can't sit
  * exactly at the player (0 / 0). */
 void obj_step_tex_anims(LevelObject *obj, u8 *rec, u8 *end) {
-    if (obj->unk30 == 0x38 && (gHaveCarrier != 0 || gHaveShuttle != 0)) {
+    if (obj->kind == 0x38 && (gHaveCarrier != 0 || gHaveShuttle != 0)) {
         if (gPathBuildingsDestroyed == 0 || obj_box_targets_done() == 0 || obj_tri_targets_ahead_done() == 0) {
             return;
         }
@@ -1672,10 +1598,10 @@ void obj_collide_vehicle(s32 id, u8 *vehicle) {
         LevelObject *o;
 
         for (o = gObjects; o != end; o++) {
-            if (math_spheres_overlap(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->unkC) == 0) {
+            if (math_spheres_overlap(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->radius) == 0) {
                 continue;
             }
-            if (o->unk30 == 0x38 && obj_end_object_hidden() != 0) {
+            if (o->kind == 0x38 && obj_end_object_hidden() != 0) {
                 continue;
             }
             if (obj_is_solid_for_vehicle(o, id) != 0) {
@@ -1709,12 +1635,12 @@ typedef struct {
 
 /* D_803059F0: this object kind is solid (no damage) for the vehicle (0x802BE944).
  * Returns 1 if D_803059F0 has an entry for the current level (or any level)
- * whose key is e->unk30 and whose mask has bit `bit` (taken mod 32, as sllv
- * does), else 0; always 0 when unk30 is 0x38. The asm takes e in t3 and bit
+ * whose key is e->kind and whose mask has bit `bit` (taken mod 32, as sllv
+ * does), else 0; always 0 when kind is 0x38. The asm takes e in t3 and bit
  * in t8, returns in t9 and saves v0, v1 and a0-a2; asm caller obj_collide_vehicle
  * keeps a0, a1, t3, t4, t6, t8, f12 and f14 live across the call. */
 s32 obj_is_solid_for_vehicle(LevelObject *e, s32 bit) {
-    s32 key = e->unk30;
+    s32 key = e->kind;
     s32 level = levelno;
     Unk803059F0 *p;
 
@@ -1789,7 +1715,7 @@ s32 obj_hits_has(s32 a, s32 b) {
 /* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* A vehicle sphere against the object's live triangles (0x802BEADC).
- * For every collision triangle of e (e->unk4 up to e->unk8, read once; walked
+ * For every collision triangle of e (e->tris up to e->trisEnd, read once; walked
  * with `!=`) whose unk51 is set, runs the sphere-vs-triangle test with the
  * sphere (x, y, z, r) >> 2 (arithmetic shifts) and, on a hit, obj_hit_tri
  * (id, e, triangle).
@@ -1801,8 +1727,8 @@ s32 obj_hits_has(s32 a, s32 b) {
  * (t6, s1, s3, s4, f12-f26) are dead there: overwritten or only saved and
  * restored. */
 void obj_collide_sphere(s32 x, s32 y, s32 z, s32 r, LevelObject *e, s32 id) {
-    CollisionTri *t = e->unk4;
-    CollisionTri *end = e->unk8;
+    CollisionTri *t = e->tris;
+    CollisionTri *end = e->trisEnd;
 
     x >>= 2;
     y >>= 2;
@@ -1839,12 +1765,12 @@ extern u16 gLastHitDamage;
  * gVehPartSpheres spheres (until flag -1) that are in use and belong to vehicle id,
  * counting them; the first whose sphere ((x, y, z, r) >> 2) hits tri wins
  * (none: returns). Then: stamps gObjHitFrame and records e in D_8036B974 /
- * D_8036B971 (id != 0xFF; e countable, pathBuilding clear, unk30 != 0x38, new),
+ * D_8036B971 (id != 0xFF; e countable, pathBuilding clear, kind != 0x38, new),
  * obj_check_mars_fail, and unless gFailTrigger is set: adds the count to buffer A
  * (veh_contacts_add); if (e, part = tri->unk52) isn't in the hit list yet (and,
  * for a vehicle with gFullDamage clear, buffer B has the count or D_803F7812 is
  * clear and obj_detect_rocking_hits didn't set D_803F780C), it is added, the damage
- * (0 for unk30 0x38, which also sets gEndObjectTouched for vehicle 0; else
+ * (0 for kind 0x38, which also sets gEndObjectTouched for vehicle 0; else
  * obj_calc_damage) goes into the screen shake (10, min(damage, 500)), the part's
  * percentage (capped at 100) and gLastHitDamage, obj_spawn_break_effects updates the part,
  * and a part reaching 100 collapses (obj_mark_part_gone, obj_start_topple,
@@ -1882,7 +1808,7 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
     if (id != 0xFF) {
         gObjHitFrame = gUnpausedFrames;
     }
-    if (id != 0xFF && e->info->type != 1 && e->pathBuilding == 0 && e->unk30 != 0x38 && D_8036B974 != e) {
+    if (id != 0xFF && e->info->type != 1 && e->pathBuilding == 0 && e->kind != 0x38 && D_8036B974 != e) {
         D_8036B971 = 1;
         D_8036B974 = e;
     }
@@ -1908,7 +1834,7 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
     }
 add:
     obj_hits_add((s32) e, part);
-    if (e->unk30 == 0x38) {
+    if (e->kind == 0x38) {
         if (id == 0) {
             gEndObjectTouched = 1;
         }
@@ -1940,8 +1866,8 @@ add:
         obj_spawn_people(e);
         gShakeTime = 15;
         gShakeSize = 400;
-        end = e->unk8;
-        for (t = e->unk4; t != end; t++) {
+        end = e->trisEnd;
+        for (t = e->tris; t != end; t++) {
             if (t->unk52 == part) {
                 t->unk51 = 0;
             }
@@ -1978,11 +1904,11 @@ tail:
 #ifdef NON_MATCHING
 
 /* On Mars (level 0x2D), touching an object of kind 0xE7..0xE9 fails the mission (0x802BEF9C).
- * On level 0x2D, sets gFailTrigger when e->unk30 is 0xE7..0xE9 (signed). The asm
+ * On level 0x2D, sets gFailTrigger when e->kind is 0xE7..0xE9 (signed). The asm
  * takes e in t9 and saves v0; asm caller obj_hit_tri keeps a0, a1, t8, t9,
  * f12 and f14 live. */
 void obj_check_mars_fail(LevelObject *e) {
-    if (levelno == 0x2D && e->unk30 >= 0xE7 && e->unk30 < 0xEA) {
+    if (levelno == 0x2D && e->kind >= 0xE7 && e->kind < 0xEA) {
         gFailTrigger = 1;
     }
 }
@@ -2105,7 +2031,7 @@ void obj_tri_clip_free_arc(CollisionTri *t) {
     }
     s = t->normal[0] * (gCollX >> 2) + t->normal[1] * (gCollY >> 2) + t->normal[2] * (gCollZ >> 2) +
         t->d;
-    h = t->unk4C;
+    h = t->heading;
     if ((t->d > 0) ? (s > 0) : (s < 0)) {
         /* same side as d */
         if (t->unk55 == 1 || t->unk56 != 0) {
@@ -2127,7 +2053,7 @@ void obj_tri_clip_free_arc(CollisionTri *t) {
  * unsliced shifted words, so it is declared with full words here. */
 
 /* First part destroyed: the people inside run out (people_spawn) (0x802BF384).
- * If exactly one of e's numParts parts is done (unkEC byte == 100), calls
+ * If exactly one of e's numParts parts is done (partPct byte == 100), calls
  * people_spawn(x >> 5, y >> 5, z >> 5, unkC >> 5, cell, info->unk6), the
  * shifts logical. The asm takes e in t9 and preserves every register (all of
  * them saved around the call); asm callers keep a0, t3, t5, t9, f12 and f14
@@ -2135,7 +2061,7 @@ void obj_tri_clip_free_arc(CollisionTri *t) {
 void obj_spawn_people(LevelObject *e) {
     s32 n;
     s32 count = 0;
-    u8 *p = e->unkEC;
+    u8 *p = e->partPct;
 
     for (n = e->numParts; n != 0; n--) {
         if (*p++ == 100) {
@@ -2143,7 +2069,7 @@ void obj_spawn_people(LevelObject *e) {
         }
     }
     if (count == 1) {
-        people_spawn((u32) e->pos[0] >> 5, (u32) e->pos[1] >> 5, (u32) e->pos[2] >> 5, (u32) e->unkC >> 5,
+        people_spawn((u32) e->pos[0] >> 5, (u32) e->pos[1] >> 5, (u32) e->pos[2] >> 5, (u32) e->radius >> 5,
                       e->cell, e->info->unk6);
     }
 }
@@ -2156,8 +2082,8 @@ void obj_spawn_people(LevelObject *e) {
 
 /* All parts down: destroyed, value message and score, zones off (0x802BF534).
  * Unless e is already finished (destroyed), finishes it when every part other
- * than the 1-based part info->unkD is either done (unkEC byte == 100) or has
- * a nonzero unk48 halfword: sets destroyed, posts info->value as message
+ * than the 1-based part info->unkD is either done (partPct byte == 100) or has
+ * a nonzero partFalling halfword: sets destroyed, posts info->value as message
  * D_80364A40 and adds it to D_803649F0, and clears byte 0x12 of every 0x24-byte
  * record at gAlphaZones (up to gAlphaZonesEnd, walked with `!=`) whose byte 0x11 is
  * e's 1-based index in gObjects. The asm takes e in t9 and saves t4-t7, s0
@@ -2178,8 +2104,8 @@ void obj_check_destroyed(LevelObject *e) {
         return;
     }
     skip = e->info->unkD;
-    p = e->unkEC;
-    q = e->unk48;
+    p = e->partPct;
+    q = e->partFalling;
     for (part = 0, n = e->numParts; n != 0; n--, p++, q++) {
         part++;
         if (part != skip && *p != 100 && *q == 0) {
@@ -2213,7 +2139,7 @@ void obj_check_destroyed(LevelObject *e) {
 /* Parts whose supports' weights fall below the threshold start falling (0x802BF668).
  * Makes parts of e fall. Each record of info's unk44..unk48 list is
  * {u8 part; u8 threshold; u8 n; n x {u8 support; u8 weight}} (parts 1-based).
- * A part that hasn't fallen (u16 flag at 0x48 clear) and isn't done (unkEC
+ * A part that hasn't fallen (u16 flag at 0x48 clear) and isn't done (partPct
  * byte != 100) falls when the weights of its supports that are neither done
  * nor fallen sum to less than the threshold: obj_mark_part_gone(e, part), its flag
  * is set to 1 and D_803649E0/E2/E4 are stored as its x, y, z; then each of
@@ -2262,7 +2188,7 @@ void obj_drop_unsupported_parts(LevelObject *e) {
                 ENTRY_U16(e, 0xA8, part) = ((u16) D_803649E2);
                 ENTRY_U16(e, 0xC8, part) = ((u16) D_803649E4);
                 part++;
-                for (r = e->unk4, rend = e->unk8; r != rend; r++) {
+                for (r = e->tris, rend = e->trisEnd; r != rend; r++) {
                     if (r->unk52 == part) {
                         r->unk51 = 0;
                     }
@@ -2769,7 +2695,7 @@ s32 obj_full_damage_rule(s32 bit, s32 flag, s32 *out) {
 /* 0 if an intact support covers the part or it is too high (0x802C038C).
  * Returns 0 if part `id` of e is blocked, else 1. Blocked: a record in
  * e->info's unk44..unk48 list ({u8 part; u8 pad; u8 n; n x {u8 id; u8 pad}})
- * lists id (compared as a full word) while e's unkEC byte for its 1-based
+ * lists id (compared as a full word) while e's partPct byte for its 1-based
  * part isn't 100 (part 0 reads pathBuilding); or the s16 height
  * info->unk40[id - 1] << 5 is above gCollY + 0x578. A record whose part is
  * done skips the rest of its ids. The record walk stops with `!=`. The asm
@@ -2973,7 +2899,7 @@ u64 obj_fade_substitute_cmd(u64 cmd);
  * {s32 n; n x {u16 part; u8 atLeast; u8 limit}; s32 a0, a1, b0, b1}. A record
  * counts only if its first condition's part (the u16 at +4, read even when
  * n is 0) is `id`; then every condition must hold, with v = 90 for part id
- * itself, else e's unkEC byte for that (1-based) part: v >= limit when
+ * itself, else e's partPct byte for that (1-based) part: v >= limit when
  * atLeast is set, else v <= limit. A record that holds has its two ranges of
  * 8-byte commands [info + a0, info + a1) and [info + b0, info + b1) copied,
  * through obj_fade_substitute_cmd when `substitute` is set. Each command uses up one of
@@ -2982,7 +2908,7 @@ u64 obj_fade_substitute_cmd(u64 cmd);
 static s32 dl_cond_copy_802C09B8(u32 **gfxp, LevelObject *e, s32 id, s32 *budget, s32 substitute) {
     ObjectModel *info = e->info;
     u8 *rec = (u8 *) info + info->unk38;
-    u8 *end = (u8 *) info + info->unk3C;
+    u8 *end = (u8 *) info + info->toppleKeys;
     u64 *gfx = (u64 *) *gfxp;
     u64 *src;
     u64 *srcEnd;
@@ -3198,7 +3124,7 @@ extern u64 D_802F4780[6]; /* fixed render-state commands */
 
 /* Kinds in D_80305E38: the collapsing part sinks its own height (0x802C0E8C).
  * Starts the rising piece of debris for part `id` of e: unless the game mode
- * gGameMode has 0x440 set, e->unk30 is in the list D_80305E38 (an equal
+ * gGameMode has 0x440 set, e->kind is in the list D_80305E38 (an equal
  * value is found before the negative terminator) and the gSinkingPart entry is
  * idle (unkA2A and unkA2B zero). Then obj_set_sink_quad sets its 4 vertices, and
  * its display list is built in place: segment 9 (0xBC002406) = info + 0x50,
@@ -3219,10 +3145,10 @@ void obj_start_sinking_part(s32 id, LevelObject *e) {
     s32 budget = 0x121;
     s32 i;
 
-    if ((u32) gGameMode & 0x440) {
+    if ((u32) gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) {
         return;
     }
-    for (k = D_80305E38; *k != e->unk30; k++) {
+    for (k = D_80305E38; *k != e->kind; k++) {
         if (*k < 0) {
             return;
         }
@@ -3390,7 +3316,7 @@ static s32 heading_802C1438(s32 num, f32 d) {
  * condition count, then count x {u16 part, u8 mode, u8 limit}, then 4
  * offsets; the record belongs to the part named by its first condition) of
  * this part whose conditions all hold (the state of the
- * named part, e->unkEC[part - 1], or 0x5A for this part itself, >= limit
+ * named part, e->partPct[part - 1], or 0x5A for this part itself, >= limit
  * when mode != 0, <= limit when mode == 0), the 8-byte commands
  * info + off0 .. off1 go to list A and off2 .. off3 to list B, at most 0x42
  * per list (running out returns at once, the slot left inactive). Both
@@ -3450,7 +3376,7 @@ void obj_start_topple(LevelObject *e, s32 index) {
     budgetA = 0x43;
     budgetB = 0x43;
     rec = base + info->unk38;
-    recEnd = base + info->unk3C;
+    recEnd = base + info->toppleKeys;
     while (rec != recEnd) {
         u32 n = *(u32 *) rec;
         s32 ok = *(u16 *) (rec + 4) == index;
@@ -3464,7 +3390,7 @@ void obj_start_topple(LevelObject *e, s32 index) {
 
             n--;
             rec += 4;
-            state = (part == index) ? 0x5A : e->unkEC[part - 1];
+            state = (part == index) ? 0x5A : e->partPct[part - 1];
             ok = (mode != 0) ? (state >= limit) : (state <= limit);
         }
         if (!ok) {
@@ -3547,9 +3473,9 @@ void obj_add_delayed_damage(s32 kind, s32 id, s32 amount);
 
 /* Radius damage: every live part in range, delayed (0x802C18D4).
  * Blast damage: for every gObjects entry (up to gObjectsEnd, walked with
- * `!=`) whose sphere (pos, unkC) overlaps the sphere at (x, y, z) >> 11
- * (logical shifts) with radius radius << 5 (math_spheres_overlap), unless its unk30
- * is 0x38, every part that isn't done (unkEC byte != 100) gets
+ * `!=`) whose sphere (pos, radius) overlaps the sphere at (x, y, z) >> 11
+ * (logical shifts) with radius radius << 5 (math_spheres_overlap), unless its kind
+ * is 0x38, every part that isn't done (partPct byte != 100) gets
  * obj_add_delayed_damage(part (1-based), e, amount / info->type (unsigned; the asm
  * traps on a zero type)). The asm takes x, y, z in t3, t4, t5, radius in a1
  * and amount in t6, and preserves every register it touches; asm callers
@@ -3566,13 +3492,13 @@ void obj_blast_damage(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
     u8 *p;
 
     for (e = gObjects; e != end; e++) {
-        if (math_spheres_overlap(pz, r, e->pos[0], e->pos[1], px, py, e->pos[2], e->unkC) == 0) {
+        if (math_spheres_overlap(pz, r, e->pos[0], e->pos[1], px, py, e->pos[2], e->radius) == 0) {
             continue;
         }
-        if (e->unk30 == 0x38) {
+        if (e->kind == 0x38) {
             continue;
         }
-        for (n = e->numParts, p = e->unkEC, part = 1; n != 0; n--, p++, part++) {
+        for (n = e->numParts, p = e->partPct, part = 1; n != 0; n--, p++, part++) {
             if (*p != 100) {
                 obj_add_delayed_damage(part, (s32) e, (u32) amount / e->info->type);
             }
@@ -3592,9 +3518,9 @@ void obj_blast_damage(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
  * live. */
 s32 obj_part_outranked(LevelObject *e, s32 index) {
     ObjectModel *info = e->info;
-    s16 *tbl = (s16 *) ((u8 *) info + info->unk3C);
+    s16 *tbl = (s16 *) ((u8 *) info + info->toppleKeys);
     s32 key = tbl[index - 1];
-    s32 n = info->unk0;
+    s32 n = info->numToppleKeys;
 
     while (n != 0 && *tbl >= key) {
         tbl++;
@@ -3665,7 +3591,7 @@ s32 obj_count_destroyed_path_buildings(void) {
  * obj_find_nearest_target (a later candidate wins only when strictly closer):
  *   1: gObjects entries with pathBuilding set, destroyed clear and not yet done
  *      (obj_parts_destroyed), skipping one whose z is below the player's when its
- *      unkC is below the distance; records unk28, y, unk2C;
+ *      radius is below the distance; records centreX, y, centreZ;
  *   2: gBoxTargets entries with unk26 clear; records x, z;
  *   3: D_80306480 entries of the current level whose z isn't below the
  *      player's, with an id whose gCollTris unk51 is set; records x, z.
@@ -3693,13 +3619,13 @@ u32 obj_find_carrier_target(void) {
         if (obj_parts_destroyed(e + 1) != 0) {
             continue;
         }
-        if (e->pos[2] < gCarrierZ && e->unkC < dist) {
+        if (e->pos[2] < gCarrierZ && e->radius < dist) {
             continue;
         }
-        gCarrierTargetX = e->unk28;
+        gCarrierTargetX = e->centreX;
         bestDist = dist;
         gCarrierTargetY = e->pos[1];
-        gCarrierTargetZ = e->unk2C;
+        gCarrierTargetZ = e->centreZ;
     }
     for (i = gBoxTargetCount, t = gBoxTargets; i != 0; i--, t++) {
         if (t->unk26 != 0) {
@@ -3743,7 +3669,7 @@ u32 obj_find_carrier_target(void) {
 /* The level's totals: objects, nss.bd destroyed, nss.ip value (0x802C1DD0).
  * Tallies the entries gObjects..gObjectsEnd (0xFC bytes each). With
  * onlyFlagged set, only entries whose pathBuilding is nonzero count, and each of
- * those stores its unk30 into gPathBuilding (so the last one wins). Of the
+ * those stores its kind into gPathBuilding (so the last one wins). Of the
  * counted entries whose info->type isn't 0xFF: those with type != 1 are
  * counted into D_8036EB92; if the entry's destroyed or gCheatAllDestroyed is nonzero,
  * type != 1 entries are also counted into nss.bd (Score) and every such
@@ -3764,7 +3690,7 @@ void obj_tally(s32 onlyFlagged) {
             if (e->pathBuilding == 0) {
                 continue;
             }
-            gPathBuilding = e->unk30;
+            gPathBuilding = e->kind;
         }
         if (info->type == 0xFF) {
             continue;

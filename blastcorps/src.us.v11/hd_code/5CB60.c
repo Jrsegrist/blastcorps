@@ -290,18 +290,18 @@ void initlevel(u8 *obj, s32 arg1) {
     lvl_spawn_objects(obj, fp, &s1);
     obj_clear_effect_queue();
     block_spawn_all(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40), s1);
-    if (gNextGameMode != 0x80) {
+    if (gNextGameMode != MODE_LEVEL_STATUS) {
         fp = (u8 *) N64_IPTR(lvl_spawn_vehicles(obj, (s32) fp));
     }
     gHaveShuttle = 0;
     gHaveCarrier = 0;
     gHaveChopper = 0;
-    if (gNextGameMode == 2) {
+    if (gNextGameMode == MODE_ATTRACT) {
         if (D_802E8BEC == 0) {
             lvl_spawn_carrier(obj, (s32) fp);
         }
     } else {
-        if (gNextGameMode != 0x80 && D_803BE6F4 == 0) {
+        if (gNextGameMode != MODE_LEVEL_STATUS && D_803BE6F4 == 0) {
             lvl_spawn_carrier(obj, (s32) fp);
             lvl_spawn_shuttle();
         }
@@ -319,7 +319,7 @@ void initlevel(u8 *obj, s32 arg1) {
     tnt_spawn_all(OBJ_PTR(obj, 0x38), OBJ_PTR(obj, 0x3C));
     crate_spawn_all((struct BoxSpawn *) (OBJ_PTR(obj, 0x20)), (struct BoxSpawn *) (OBJ_PTR(obj, 0x24)));
     frontEndPresent = 0;
-    if (gNextGameMode != 2 && gNextGameMode != D_8030D880 && D_803BE6F4 != 0) {
+    if (gNextGameMode != MODE_ATTRACT && gNextGameMode != D_8030D880 && D_803BE6F4 != 0) {
         apply_status((void *) N64_IPTR(D_803BE6F4));
     }
 }
@@ -733,7 +733,7 @@ void lvl_tint_path_building_red(u8 *obj, s32 flag) {
     u8 *p;
     u8 *end;
 
-    if (flag != 0 && gNextGameMode == 0x800) {
+    if (flag != 0 && gNextGameMode == MODE_INTRO_FLY) {
         end = OBJ_PTR(obj, 0x1C);
         for (p = obj + 0x50; p != end; p += 0x10) {
             p[0xC] = 0xFF;
@@ -1569,7 +1569,7 @@ s32 lvl_spawn_vehicles(u8 *obj, s32 fp) {
     end = OBJ_PTR(obj, 0x54);
     while (p != end) {
         type = p[0];
-        if (gNextGameMode == 2 && gNextGameMode == D_8030D888 && D_8036698C != type) {
+        if (gNextGameMode == MODE_ATTRACT && gNextGameMode == D_8030D888 && D_8036698C != type) {
             p += 9;
             continue;
         }
@@ -2202,7 +2202,7 @@ void lvl_build_ground_grid(u8 *obj) {
  * f32) makes IDO spill it into the delay slot anyway (`sw`/`swc1` at
  * 0(sp), no actual stack frame reserved for it) - the inverse of the
  * usual "unused argument still gets a dead stack home" pattern seen
- * elsewhere (backdrop_unused_stub in init/26570.c): there the target WANTS the
+ * elsewhere (backdrop_unused_stub in hd_code/2D810.c): there the target WANTS the
  * dead spill and plain C gives it one; here the target doesn't want it
  * and plain C can't be talked out of it. Logic confirmed correct. */
 #ifdef NON_MATCHING

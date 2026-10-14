@@ -13,7 +13,7 @@
 #define gYoshiWindows ((s16 *) gYoshiWindows)
 #define gMainThread ((u8 *) &gMainThread)
 #define gScheduler ((u8 *) &gScheduler)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 #define pakBuffer ((u8 *) pakBuffer)
 #ifdef NON_MATCHING
 #define gEepromPresent (*(s32 *) &gEepromPresent)
@@ -55,18 +55,9 @@ typedef struct {
     u8 game_name[16];
 } OldPfsState; /* the old SDK's OSPfsState: no pad after company_code */
 
-typedef struct {
-    u8 pad0[0x18];
-    u8 rank[0x3C];     /* 0x18 */
-    u8 pad54[0x92 - 0x54];
-    u8 timeSlot[0x3C]; /* 0x92: best-time slot per level */
-    u8 padCE[0x100 - 0xCE];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
-typedef struct {
-    u8 type; /* 1: no status save */
-    u8 pad[0x43];
-} LevelInfo; /* 0x44 */
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
 typedef struct {
     u8 pad0[0xC];
@@ -482,7 +473,7 @@ void fe_pak_thread(void *arg) {
             debug_printf("pak command %d returned %d\n", cmd, ret);
             switch (ret) {
                 case 0x6E382:
-                    if ((gGameMode & 0x10E18000) || (gNextGameMode & MODE_BOOT_CHECK)) {
+                    if ((gGameMode & (MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_PAK_CHECK)) || (gNextGameMode & MODE_BOOT_CHECK)) {
                         done = 1;
                         break;
                     }
@@ -512,7 +503,7 @@ void fe_pak_thread(void *arg) {
                     done = 1;
                     break;
                 case 8:
-                    if (!(gGameMode & 0x10E18000) || fe_pak_is_missing() != 0) {
+                    if (!(gGameMode & (MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_PAK_CHECK)) || fe_pak_is_missing() != 0) {
                         break;
                     }
                     // fallthrough
@@ -540,7 +531,7 @@ void fe_pak_thread(void *arg) {
                     break;
                 case 2:
                     /* never true: lastRet is reset at the top of every pass */
-                    if (lastRet == 8 && !(gGameMode & 0x10E18000)) {
+                    if (lastRet == 8 && !(gGameMode & (MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_PAK_CHECK))) {
                         PFS_ASSERT(1==0, 342);
                         done = 1;
                     }
@@ -759,7 +750,7 @@ s32 fe_pak_rw_eeprom_times(u8 pn, u8 level, u8 rw) {
     if (gUseEeprom != 0) {
         PFS_ASSERT(pn==playerNumberAtStart, 604);
         if (rw == 1) {
-            gEepTimes[idx] = gBestTimes[pn][D_802E8C44[players[pn].timeSlot[level]]];
+            gEepTimes[idx] = gBestTimes[pn][D_802E8C44[players[pn].bestVehicle[level]]];
             gEepTimes[idx + 1] = gEepTimes[idx] ^ 0x55AA;
             debug_printf("%d %d EEWRITE %x %x\n", level, gEepTimes[idx], (u32) (idx * 2 + 0x100) >> 3, p);
             PORT_SAVE_BEGIN(p, PORT_SAVE_EETIMES, 8);
@@ -770,9 +761,9 @@ s32 fe_pak_rw_eeprom_times(u8 pn, u8 level, u8 rw) {
             osEepromRead(&gSiMesgQueue, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
             PORT_SAVE_END(p, PORT_SAVE_EETIMES, 8);
             for (i = 0; i < 2; i++, level++) {
-                if (((players[pn].rank[level] > 0 && players[pn].rank[level] < 6) ? 1 : 0)
+                if (((players[pn].medal[level] > 0 && players[pn].medal[level] < 6) ? 1 : 0)
                     && level != 0x31 && level != 0x2F && level != 0x26) {
-                    gBestTimes[pn][D_802E8C44[players[pn].timeSlot[level]]] = gEepTimes[level * 2];
+                    gBestTimes[pn][D_802E8C44[players[pn].bestVehicle[level]]] = gEepTimes[level * 2];
                     debug_printf("%d EETIMES: %d %d\n", level, gEepTimes[level * 2], gEepTimes[level * 2 + 1] ^ 0x55AA);
                     if (gEepTimes[level * 2] != (gEepTimes[level * 2 + 1] ^ 0x55AA)) {
                         ret = 0x6E382;
@@ -835,7 +826,7 @@ s32 fe_pak_rw_status(u8 player, u8 nlevels, u8 rw) {
     ret = 0;
     count = 0;
     for (i = 0; i < nlevels; i++) {
-        if (gLevelInfo[i].type == 1 && i != 0x31 && i != 0x2F && i != 0x26) {
+        if (gLevelInfo[i].kind == 1 && i != 0x31 && i != 0x2F && i != 0x26) {
             count++;
         }
     }

@@ -366,7 +366,7 @@ void commpt_burst(s32 *pos) {
         d->unk35 = 0;
         obj_queue_effect((u32 *) d);
     }
-    snd_play(gSfxBank, 0x5E, NULL);
+    snd_play(gSfxBank, SFX_COMMPT_BURST, NULL);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/commpt_burst.s")

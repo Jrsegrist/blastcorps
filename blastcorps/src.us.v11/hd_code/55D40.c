@@ -72,10 +72,10 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
     }
     if (gCreditsEndTimer == 0x7D) {
         yoshi_demand(0x8037);
-        music_push_tune(0x25);
+        music_push_tune(MUS_FINALE);
     }
     if (gCreditsEndTimer >= 0x7E && yoshiState == 1 && areWeFading() == 0) {
-        fade_to_mode_speed(0x200000000000, 0.75f);
+        fade_to_mode_speed(MODE_SEQ_END, 0.75f);
     }
     return ret;
 }

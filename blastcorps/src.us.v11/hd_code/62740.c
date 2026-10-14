@@ -27,9 +27,9 @@
  * fixed global). The C versions take it as an explicit `u8 *veh` argument
  * (convention `in gp=a0`). Known fields:
  *   0x00 f32, 0x28..0x48 s32 x9, 0x4C u16 heading (12-bit angle),
- *   0x4E u16 target heading, 0x50 u8 gear-ish index, 0x76 s16 signed speed,
+ *   0x4E u16 target heading, 0x50 u8 surface class, 0x76 s16 signed speed,
  *   0x78 5 x {s16 lo, s16 hi, s16 value} band table, 0x96..0xA5 u8 flags
- *   (0x9F mode byte, 0xA5 s8 direction). The record is 0xA6 bytes long as far
+ *   (0x9F highest surface class, 0xA5 s8 direction). The record is 0xA6 bytes long as far
  *   as veh_snapshot/veh_rollback (save/restore) are concerned. */
 #define VEH_U8(v, off) (*(u8 *) ((u8 *) (v) + (off)))
 #define VEH_S8(v, off) (*(s8 *) ((u8 *) (v) + (off)))
@@ -126,7 +126,7 @@ void veh_widen_bands(u8 *veh) {
     s32 i;
 
     if (gWideFovLevel != 0) {
-        band = &VEH_S16(veh, 0x78);
+        band = &VEH_S16(veh, VS_BANDS);
         for (i = 5; i != 0; i--) {
             band[0] = band[0] << 1;
             band[1] = band[1] << 1;
@@ -183,8 +183,8 @@ void veh_hit_slowdown(u8 *veh, s32 limit) {
     s32 speed;
 
     if (D_80358064 != 0) {
-        speed = VEH_S16(veh, 0x76);
-        VEH_S8(veh, 0xA5) = (speed > 0) ? 1 : -1;
+        speed = VEH_S16(veh, VS_SPEED);
+        VEH_S8(veh, VS_LAST_DIR) = (speed > 0) ? 1 : -1;
         if (speed >= 0) {
             speed -= 3;
             if (!(limit < speed)) {
@@ -196,7 +196,7 @@ void veh_hit_slowdown(u8 *veh, s32 limit) {
                 speed = -limit;
             }
         }
-        VEH_S16(veh, 0x76) = speed;
+        VEH_S16(veh, VS_SPEED) = speed;
     }
 }
 #else
@@ -211,10 +211,10 @@ void veh_hit_slowdown(u8 *veh, s32 limit) {
  * wrapping by +0xFFF). Asm callers keep a0-a3, t6 and f12 live (the asm saves
  * v0/v1). */
 void veh_set_target_heading(u8 *veh, s16 *angle) {
-    s32 dir = (VEH_S16(veh, 0x76) > 0) ? 1 : -1;
+    s32 dir = (VEH_S16(veh, VS_SPEED) > 0) ? 1 : -1;
     s32 target;
 
-    if (VEH_S8(veh, 0xA5) == dir) {
+    if (VEH_S8(veh, VS_LAST_DIR) == dir) {
         target = *angle;
     } else {
         target = *angle - 0x800;
@@ -222,7 +222,7 @@ void veh_set_target_heading(u8 *veh, s16 *angle) {
             target += 0xFFF;
         }
     }
-    VEH_U16(veh, 0x4E) = target;
+    VEH_U16(veh, VS_MOVE_HEADING) = target;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/veh_set_target_heading.s")
@@ -237,7 +237,7 @@ void veh_set_target_heading(u8 *veh, s16 *angle) {
  * and B forward by 0x800 (mod 0xFFF). Asm callers keep a3, t6, f12 and f14
  * live (the asm saves v0, v1, a0, a1). */
 void veh_reverse_if_behind(u8 *veh) {
-    s32 heading = VEH_U16(veh, 0x4C);
+    s32 heading = VEH_U16(veh, VS_HEADING);
     s32 lo = heading - 0x400;
     s32 hi = heading + 0x400;
     s32 t;
@@ -248,7 +248,7 @@ void veh_reverse_if_behind(u8 *veh) {
     if (hi >= 0x1000) {
         hi -= 0xFFF;
     }
-    t = VEH_U16(veh, 0x4E);
+    t = VEH_U16(veh, VS_MOVE_HEADING);
     if (hi < lo) {
         if (!(t < lo && hi < t)) {
             return;
@@ -260,8 +260,8 @@ void veh_reverse_if_behind(u8 *veh) {
     if (t >= 0x1000) {
         t -= 0xFFF;
     }
-    VEH_U16(veh, 0x4E) = t;
-    VEH_S16(veh, 0x76) = -VEH_S16(veh, 0x76);
+    VEH_U16(veh, VS_MOVE_HEADING) = t;
+    VEH_S16(veh, VS_SPEED) = -VEH_S16(veh, VS_SPEED);
     t = ((u16) gFreeArcStart) - 0x800;
     if (t < 0) {
         t += 0xFFF;
@@ -363,7 +363,7 @@ s32 veh_turn_into_free_arc(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale)
             cur = veh_free_arc_mid();
         }
     }
-    speed = VEH_S16(veh, 0x76);
+    speed = VEH_S16(veh, VS_SPEED);
     if (speed < 0) {
         speed = -speed;
     }
@@ -393,8 +393,8 @@ s32 veh_turn_into_free_arc(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale)
  * (The asm also leaves the old heading in v0.) Asm callers keep a3, t6, f12
  * and f14 live. */
 s32 veh_step_heading(u8 *veh, s32 delta, s32 v1, s32 *targetOut) {
-    s32 heading = VEH_U16(veh, 0x4C);
-    s32 target = VEH_U16(veh, 0x4E);
+    s32 heading = VEH_U16(veh, VS_HEADING);
+    s32 target = VEH_U16(veh, VS_MOVE_HEADING);
     s32 next;
     s32 snap;
 
@@ -422,7 +422,7 @@ s32 veh_step_heading(u8 *veh, s32 delta, s32 v1, s32 *targetOut) {
             snap = (heading < target) && (next < target) && (heading < next);
         }
     }
-    VEH_U16(veh, 0x4C) = snap ? target : next;
+    VEH_U16(veh, VS_HEADING) = snap ? target : next;
     return next;
 }
 #else
@@ -436,31 +436,31 @@ s32 veh_step_heading(u8 *veh, s32 delta, s32 v1, s32 *targetOut) {
  * speed and most flag bytes; set +0x50 and +0xA0 to 1. Asm callers keep a1,
  * a3, t0, t1, t6, t7, f12 and f14 live (the asm saves t1; it zeroes f0). */
 void veh_reset_state(u8 *veh) {
-    VEH_U8(veh, 0x96) = 0;
+    VEH_U8(veh, VS_SLOT_AIRBORNE) = 0;
     VEH_U8(veh, 0x97) = 0;
     VEH_U8(veh, 0x98) = 0;
-    VEH_U8(veh, 0x50) = 1;
-    VEH_U8(veh, 0xA0) = 1;
-    VEH_S32(veh, 0x28) = 0;
+    VEH_U8(veh, VS_SURFACE) = 1;
+    VEH_U8(veh, VS_PUSH_DIVISOR) = 1;
+    VEH_S32(veh, VS_SLOT_LAUNCH_VEL) = 0;
     VEH_S32(veh, 0x2C) = 0;
     VEH_S32(veh, 0x30) = 0;
-    VEH_S32(veh, 0x34) = 0;
+    VEH_S32(veh, VS_SLOT_LAUNCH_Y) = 0;
     VEH_S32(veh, 0x38) = 0;
     VEH_S32(veh, 0x3C) = 0;
-    VEH_S32(veh, 0x40) = 0;
+    VEH_S32(veh, VS_SLOT_AIR_TIME) = 0;
     VEH_S32(veh, 0x44) = 0;
     VEH_S32(veh, 0x48) = 0;
-    VEH_S16(veh, 0x76) = 0;
-    VEH_U8(veh, 0x99) = 0;
-    VEH_U8(veh, 0x9B) = 0;
-    VEH_U8(veh, 0x9C) = 0;
-    VEH_U8(veh, 0x9D) = 0;
-    VEH_U8(veh, 0x9E) = 0;
-    VEH_U8(veh, 0xA1) = 0;
-    VEH_U8(veh, 0xA2) = 0;
-    VEH_U8(veh, 0xA3) = 0;
+    VEH_S16(veh, VS_SPEED) = 0;
+    VEH_U8(veh, VS_SKIDDING) = 0;
+    VEH_U8(veh, VS_ON_MOVING_PART) = 0;
+    VEH_U8(veh, VS_HIT_PART_DOWN) = 0;
+    VEH_U8(veh, VS_HIT_OBJECT) = 0;
+    VEH_U8(veh, VS_HIT_IMMUNE_PART) = 0;
+    VEH_U8(veh, VS_ACTION) = 0;
+    VEH_U8(veh, VS_ACTION_AUX) = 0;
+    VEH_U8(veh, VS_MOVING) = 0;
     VEH_U8(veh, 0xA4) = 0;
-    VEH_U8(veh, 0xA5) = 0;
+    VEH_U8(veh, VS_LAST_DIR) = 0;
     VEH_F32(veh, 0x00) = 0.0f;
 }
 #else
@@ -582,7 +582,7 @@ void veh_coast(u8 *veh) {
     s32 speed;
 
     if (gPadStickY == 0) {
-        speed = VEH_S16(veh, 0x76);
+        speed = VEH_S16(veh, VS_SPEED);
         if (speed >= 0) {
             speed -= 8;
             if (speed < 0) {
@@ -594,7 +594,7 @@ void veh_coast(u8 *veh) {
                 speed = 0;
             }
         }
-        VEH_S16(veh, 0x76) = speed;
+        VEH_S16(veh, VS_SPEED) = speed;
     }
 }
 #else
@@ -800,7 +800,7 @@ void veh_throttle_lr(u8 *veh, s16 *speed, s16 *bands, s32 delta) {
  * Register convention: gp, x in t2, bands in s1 (advanced: s1 is clobbered),
  * result in t4. Asm callers keep t2, t3 and t6 live (the asm saves t1). */
 s32 veh_band_accel(u8 *veh, s32 x, s16 *band) {
-    s32 n = VEH_U8(veh, 0x50);
+    s32 n = VEH_U8(veh, VS_SURFACE);
 
     if (n == 1) {
         n = 5;
@@ -835,12 +835,12 @@ s32 veh_band_accel(u8 *veh, s32 x, s16 *band) {
  * bound of band 0. Register convention: gp, range in v1, result in v0 (the asm
  * saves t1, t2, t4). Asm callers keep a1-a3, f12 and f14 live. */
 s32 veh_near_top_speed(u8 *veh, s32 range) {
-    s32 speed = VEH_S16(veh, 0x76);
+    s32 speed = VEH_S16(veh, VS_SPEED);
     s32 i;
     s32 d;
 
     if (speed >= 0) {
-        i = VEH_U8(veh, 0x50);
+        i = VEH_U8(veh, VS_SURFACE);
         if (i == 1) {
             i = 4;
         } else {
@@ -848,7 +848,7 @@ s32 veh_near_top_speed(u8 *veh, s32 range) {
         }
         d = speed - *(s16 *) (veh + 0x78 + i * 6 + 2);
     } else {
-        d = speed - VEH_S16(veh, 0x78);
+        d = speed - VEH_S16(veh, VS_BANDS);
     }
     if (d < 0) {
         d = -d;
@@ -993,7 +993,7 @@ void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target,
     h = *heading;
     t = *target;
     if (speed != 0) {
-        rate = (s32) (rate * VEH_U8(veh, 0x50)) / speed;
+        rate = (s32) (rate * VEH_U8(veh, VS_SURFACE)) / speed;
     }
     d = h - t;
     if (rate < 0) {
@@ -1055,7 +1055,7 @@ void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target,
             D_803ED3F8 = 0;
             pitch = 0.5f + (f32) speed * D_8030D890;
             D_803ED3FC = *(s32 *) &pitch;
-            snd_modify(snd_play(gSfxBank, 10, NULL), 0x10, D_803ED3FC);
+            snd_modify(snd_play(gSfxBank, SFX_SKID, NULL), 0x10, D_803ED3FC);
             n = 0;
         }
         D_803ED3F8 = n;
@@ -1161,7 +1161,7 @@ void veh_apply_slope(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f3
                 *speed = lim;
             }
         } else {
-            lim = VEH_S16(veh, 0x78);
+            lim = VEH_S16(veh, VS_BANDS);
             lim += lim >> 1;
             if (s < lim) {
                 *speed = lim;
@@ -1353,7 +1353,7 @@ void veh_ground_contact(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z
     D_803ED404 = divA;
     D_803ED406 = *angle;
     D_803ED40E = flags[0];
-    VEH_U8(veh, 0x9B) = 0;
+    VEH_U8(veh, VS_ON_MOVING_PART) = 0;
     veh_check_no_wheels((u16 *) tbl);
     veh_diamond_sands_damping(veh);
     veh_rider_gravity();
@@ -1398,8 +1398,8 @@ void veh_ground_contact(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z
     veh_ground_surface(veh, flags, id);
     r->s4 = angle;
     if (gRiderPass == 0 && id != 0xFF && gHaveRideables != 0) {
-        r->s4 = &VEH_S16(veh, 0x4C);
-        veh_update_stand_on(*px, *pz, &VEH_S16(veh, 0x5E), &VEH_S16(veh, 0x4C), &VEH_S32(veh, 4), id, veh, fp, f);
+        r->s4 = &VEH_S16(veh, VS_HEADING);
+        veh_update_stand_on(*px, *pz, &VEH_S16(veh, VS_STAND_OFFSETS), &VEH_S16(veh, VS_HEADING), &VEH_S32(veh, 4), id, veh, fp, f);
     }
     r->s3 = s3;
     r->fp = fp;
@@ -1506,7 +1506,7 @@ void veh_respawn_if_out(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC 
         VEH_S32(veh, i * 4) = y;
     }
     fx_spawn_at_late(x, y, z, 0x13, 1000000);
-    hud_panel_start(1, 1, 4, 0x6C);
+    hud_panel_start(1, 1, 4, SFX_PANEL_WARNING);
     pos->t0 = x;
     pos->t1 = z;
 }
@@ -1533,11 +1533,11 @@ void veh_rider_gravity(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* If the vehicle's mode byte (veh+0x9F) is 0x67 and levelno == 12, set
+/* If the highest surface class under the vehicle (veh+0x9F, VehState.surfaceMax) is 0x67 and levelno == 12, set
  * gBounceDamping = 8. (The asm clobbers v0.) Asm callers keep a1-a3, t0, t1,
  * t7-t9, f12 and f14 live. */
 void veh_diamond_sands_damping(u8 *veh) {
-    if (VEH_U8(veh, 0x9F) == 0x67 && levelno == 12) {
+    if (VEH_U8(veh, VS_SURFACE_MAX) == 0x67 && levelno == 12) {
         gBounceDamping = 8;
     }
 }
@@ -1561,13 +1561,13 @@ void veh_copy_slot0(u8 *veh) {
     D_803ED3A0 = gSlotY;
     D_803ED3AC = gSlotGroundY;
     D_803ED3B0 = gSlotGroundY;
-    w = VEH_S32(veh, 0x34);
+    w = VEH_S32(veh, VS_SLOT_LAUNCH_Y);
     VEH_S32(veh, 0x38) = w;
     VEH_S32(veh, 0x3C) = w;
-    w = VEH_S32(veh, 0x28);
+    w = VEH_S32(veh, VS_SLOT_LAUNCH_VEL);
     VEH_S32(veh, 0x2C) = w;
     VEH_S32(veh, 0x30) = w;
-    w = VEH_S32(veh, 0x40);
+    w = VEH_S32(veh, VS_SLOT_AIR_TIME);
     VEH_S32(veh, 0x44) = w;
     VEH_S32(veh, 0x48) = w;
     (&gSlotSurface)[1] = gSlotSurface;
@@ -1626,7 +1626,7 @@ void veh_ground_surface(u8 *veh, u8 *f, s32 kind) {
         x = 2;
     }
     sum += x;
-    VEH_U8(veh, 0x50) = (u32) sum / 3;
+    VEH_U8(veh, VS_SURFACE) = (u32) sum / 3;
     max = 0;
     if (max < v[0]) {
         max = v[0];
@@ -1637,7 +1637,7 @@ void veh_ground_surface(u8 *veh, u8 *f, s32 kind) {
     if (max < v[2]) {
         max = v[2];
     }
-    VEH_U8(veh, 0x9F) = max;
+    VEH_U8(veh, VS_SURFACE_MAX) = max;
     gSurfaceMax = max;
     if (gSurfaceMax == 0x66 && f[0] != 1) {
         gFailTrigger = 1;
@@ -1858,7 +1858,7 @@ s32 veh_slot_land(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 pos, s32 s3)
         return s3;
     }
     if (gBounceSound != 0) {
-        snd_play(gSfxBank, 0xC, NULL);
+        snd_play(gSfxBank, SFX_THUD, NULL);
     }
     return veh_slot_launch(index, a, b, c, extra, (u32) d / gBounceDamping);
 }
@@ -1906,7 +1906,7 @@ s32 *veh_init_ground(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *ang
         (&gSlotSurface)[i] = fp;
     }
     *mid = (u32) (dst[3] + dst[6]) >> 1;
-    VEH_U8(veh, 0x50) = (u32) ((&gSlotSurface)[0] + (&gSlotSurface)[1] + (&gSlotSurface)[2]) / 3;
+    VEH_U8(veh, VS_SURFACE) = (u32) ((&gSlotSurface)[0] + (&gSlotSurface)[1] + (&gSlotSurface)[2]) / 3;
     PORT_STORE_KINDS(key);
     return dst;
 }
@@ -1937,7 +1937,7 @@ s32 veh_reground(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, 
 
     for (i = 0; i < 3; i++) {
         dx = veh_wheel_offset(i, tbl, angle, &dz);
-        VEH_U8(veh, 0x9B) = 0;
+        VEH_U8(veh, VS_ON_MOVING_PART) = 0;
         h = ground_slot_height(i, x + dx, z + dz, y, key, veh, fp, f);
         p[0] = h;
         p[1] = h;
@@ -1946,7 +1946,7 @@ s32 veh_reground(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, 
         (&gSlotSurface)[i] = fp;
     }
     *mid = (u32) (dst[3] + dst[6]) >> 1;
-    VEH_U8(veh, 0x50) = (u32) ((&gSlotSurface)[0] + (&gSlotSurface)[1] + (&gSlotSurface)[2]) / 3;
+    VEH_U8(veh, VS_SURFACE) = (u32) ((&gSlotSurface)[0] + (&gSlotSurface)[1] + (&gSlotSurface)[2]) / 3;
     gModelRot = 0;
     D_803ED394_ = 0;
     out->s1 = p;
@@ -2022,7 +2022,7 @@ s32 ground_slot_height(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fp
         flag = 1;
         kind = id;
     } else {
-        VEH_U8(veh, 0x9B) = 1;
+        VEH_U8(veh, VS_ON_MOVING_PART) = 1;
         res = h1;
         flag = fp1;
     }

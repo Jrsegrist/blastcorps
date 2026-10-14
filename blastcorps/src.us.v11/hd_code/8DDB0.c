@@ -85,7 +85,7 @@ void shuttle_spawn(u8 *hdr) {
     anim_play((AnimChannel *) gShuttleAnim, 0, 1);
     anim_update_model(gShuttleMtxB, gShuttleMtxA, (AnimChannel *) gShuttleAnim);
     if (D_803FCD75 == 0) {
-        snd = snd_play(gSfxBank, 0x6A, &gShuttleSound);
+        snd = snd_play(gSfxBank, SFX_SHUTTLE_LOOP, &gShuttleSound);
         snd_modify(snd, 8, 0);
         anim_set_frame(0.0f, (AnimChannel *) gShuttleAnim, 2, 1);
     } else {
@@ -273,19 +273,19 @@ void shuttle_update_events(void) {
             anim_set_speed((AnimChannel *) gShuttleAnim, 1, 1);
             anim_set_reverse((AnimChannel *) gShuttleAnim, 1, 0);
             anim_play((AnimChannel *) gShuttleAnim, 1, 1);
-            snd_play(gSfxBank, 0x66, NULL);
+            snd_play(gSfxBank, SFX_SHUTTLE_EVENT2, NULL);
             break;
         case 3:
-            snd_play(gSfxBank, 0x78, NULL);
+            snd_play(gSfxBank, SFX_SHUTTLE_EVENT3, NULL);
             break;
         case 0xB:
             D_803FCD77 = 1;
             D_803FCD7A = 1;
             D_803FCD78 = 1;
-            snd_play(gSfxBank, 0x83, NULL);
+            snd_play(gSfxBank, SFX_SHUTTLE_ROAR, NULL);
             break;
         case 0xC:
-            snd_play(gSfxBank, 0x7F, &gShuttleSound);
+            snd_play(gSfxBank, SFX_SHUTTLE_LOOP2, &gShuttleSound);
             D_803FCD7A = 0;
             break;
         case 0xD:
@@ -298,21 +298,21 @@ void shuttle_update_events(void) {
         if (D_803FCD72 == 0) {
             veh_find_point(0xFD, 1, &rec);
             if (!(level < ((s32 *) rec)[1])) {
-                snd_play(gSfxBank, 6, NULL);
+                snd_play(gSfxBank, SFX_SHUTTLE_POINT, NULL);
                 D_803FCD72 = 1;
             }
         }
         if (D_803FCD73 == 0) {
             veh_find_point(0xFD, 2, &rec);
             if (!(level < ((s32 *) rec)[1])) {
-                snd_play(gSfxBank, 6, NULL);
+                snd_play(gSfxBank, SFX_SHUTTLE_POINT, NULL);
                 D_803FCD73 = 1;
             }
         }
         if (D_803FCD74 == 0) {
             veh_find_point(0xFD, 3, &rec);
             if (!(level < ((s32 *) rec)[1])) {
-                snd_play(gSfxBank, 8, NULL);
+                snd_play(gSfxBank, SFX_SHUTTLE_POINT3, NULL);
                 D_803FCD74 = 1;
             }
         }

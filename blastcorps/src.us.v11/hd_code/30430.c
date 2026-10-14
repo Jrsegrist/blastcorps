@@ -23,9 +23,9 @@ Gfx *fade_draw(s32 arg0, Gfx *gfx) {
     Gfx *gdl = gfx;
 
     if (!((s32) gFramesInMode)) {
-        if ((gGameMode & 0x4055800100040000) || ((gGameMode & 0x1801) && levelno == 50)) {
+        if ((gGameMode & (MODE_NAME_ENTRY | MODE_PAK_FILES | MODE_ACADEMY_MESSAGE | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_UNUSED_52 | MODE_ERASE_SAVE | MODE_QUIT_GAME)) || ((gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) && levelno == 50)) {
             D_8036C784 = 0xFF;
-            if (gGameMode & 0x0051800100040000) {
+            if (gGameMode & (MODE_NAME_ENTRY | MODE_PAK_FILES | MODE_ACADEMY_MESSAGE | MODE_ATTRACT_PICTURE | MODE_UNUSED_52 | MODE_ERASE_SAVE)) {
                 D_8036C770 = yoshi_get_demand();
                 yoshi_demand(0);
             }

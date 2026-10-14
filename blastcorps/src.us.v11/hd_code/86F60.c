@@ -72,13 +72,13 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gHeapPtr = p + 0x200;
     veh_add_record(0xD, 0, (s32) gPoliceMtxA, (s32) gPoliceMtxB, hdr);
     veh_reset_state(gPoliceState);
-    VEH13_S16(0x52) = 200;
+    VEH13_S16(VS_WHEEL_OFFSETS) = 200;
     VEH13_S16(0x54) = 350;
     VEH13_S16(0x56) = -200;
     VEH13_S16(0x58) = 350;
     VEH13_S16(0x5A) = 200;
     VEH13_S16(0x5C) = -350;
-    VEH13_S16(0x5E) = 320;
+    VEH13_S16(VS_STAND_OFFSETS) = 320;
     VEH13_S16(0x60) = 500;
     VEH13_S16(0x62) = -320;
     VEH13_S16(0x64) = 500;
@@ -87,9 +87,9 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gPolicePos[0] = x;
     gPolicePos[1] = y;
     gPolicePos[2] = z;
-    VEH13_S16(0x4C) = heading;
-    VEH13_S16(0x4E) = heading;
-    VEH13_S16(0x74) = heading;
+    VEH13_S16(VS_HEADING) = heading;
+    VEH13_S16(VS_MOVE_HEADING) = heading;
+    VEH13_S16(VS_MOMENTUM_HEADING) = heading;
     veh_init_ground((s16 *) (gPoliceState + 0x52), gPolicePos[1], x, z, (s32 *) (gPoliceState + 4),
                   (s32 *) &gPolicePos[1], (s16 *) (gPoliceState + 0x4C), 0xD, fp, gPoliceState, f);
     copyA = (u8 *) gPoliceMtxA;
@@ -104,7 +104,7 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     anim_rewind(0, (AnimChannel *) gPoliceAnim);
     anim_play((AnimChannel *) gPoliceAnim, 0, 1);
     anim_update_model(copyB, copyA, (AnimChannel *) gPoliceAnim);
-    VEH13_S16(0x78) = -180;
+    VEH13_S16(VS_BANDS) = -180;
     VEH13_S16(0x7A) = 0;
     VEH13_S16(0x7C) = 2;
     VEH13_S16(0x7E) = 0;
@@ -317,11 +317,11 @@ s32 police_ride_follow(s32 id, TriSideOut *f) {
     s32 dist;
 
     r.f24 = f->sideZ;
-    heading = veh_follow_heading((s16 *) (gPoliceState + 0x52), VEH13_S16(0x6A), (u16 *) (gPoliceState + 0x6E), id,
-                            VEH13_S16(0x6C), VEH13_S16(0x70), VEH13_S16(0x72), &dist, &r);
-    VEH13_S16(0x4E) = heading;
-    VEH13_S16(0x4C) = heading;
-    veh_deck_to_world(id, VEH13_S16(0x6A), VEH13_S16(0x6C), &r);
+    heading = veh_follow_heading((s16 *) (gPoliceState + 0x52), VEH13_S16(VS_DECK_POS), (u16 *) (gPoliceState + 0x6E), id,
+                            VEH13_S16(0x6C), VEH13_S16(VS_DECK_FRONT), VEH13_S16(0x72), &dist, &r);
+    VEH13_S16(VS_MOVE_HEADING) = heading;
+    VEH13_S16(VS_HEADING) = heading;
+    veh_deck_to_world(id, VEH13_S16(VS_DECK_POS), VEH13_S16(0x6C), &r);
     police_set_physics();
     gBounceSound = 1;
     f->pz = r.f12;
@@ -447,7 +447,7 @@ void police_update(void) {
         anim_update_model((u8 *) gPoliceMtxB, (u8 *) gPoliceMtxA, (AnimChannel *) gPoliceAnim);
     }
     police_build_model();
-    veh_collision_setup(gPolicePos[2], (s32) D_80306430, 1, 1, gPolicePos[0], gPolicePos[1], 7, VEH13_S16(0x76), 0x96, 0,
+    veh_collision_setup(gPolicePos[2], (s32) D_80306430, 1, 1, gPolicePos[0], gPolicePos[1], 7, VEH13_S16(VS_SPEED), 0x96, 0,
                   0xD, gPoliceState);
     veh_collide_spheres(0xD, gPoliceState);
     veh_collide_world(0xD);
@@ -468,7 +468,7 @@ void police_update(void) {
                           (s32 *) &gPolicePos[2], gPoliceMtxA, gPoliceMtxB, 0x100, &end);
         }
         D_803F8F44 = 5;
-        v = VEH13_S16(0x76);
+        v = VEH13_S16(VS_SPEED);
         if (v >= 0) {
             if (v < 50) {
                 v = 50;
@@ -476,7 +476,7 @@ void police_update(void) {
         } else if (!(v < -49)) {
             v = -50;
         }
-        VEH13_S16(0x76) = -v >> 1;
+        VEH13_S16(VS_SPEED) = -v >> 1;
         police_build_model();
         goto publish;
     }
@@ -496,8 +496,8 @@ void police_update(void) {
     veh_reverse_if_behind(gPoliceState);
     turn = veh_turn_into_free_arc(gPoliceState, *(u16 *) (gPoliceState + 0x4E), *(u16 *) (gPoliceState + 0x4C), &cur, D_8030D9B0);
     D_803F8F40 = cur;
-    VEH13_S16(0x4E) = cur;
-    VEH13_S16(0x74) = cur;
+    VEH13_S16(VS_MOVE_HEADING) = cur;
+    VEH13_S16(VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(gPoliceState, turn, d, &target);
     veh_hit_slowdown(gPoliceState, 0);
     D_803F77D0 = gPoliceAnim;
@@ -506,7 +506,7 @@ publish:
     gPlayerX = gPolicePos[0];
     gPlayerY = gPolicePos[1];
     gPlayerZ = gPolicePos[2];
-    D_8036443C = VEH13_S16(0x76);
+    D_8036443C = VEH13_S16(VS_SPEED);
     D_8036443E = *(u16 *) (gPoliceState + 0x4E);
     D_80364440 = *(u16 *) (gPoliceState + 0x4C);
     veh_set_record(gPolicePos[2], 0xD, gPolicePos[0], gPolicePos[1], gPoliceState);

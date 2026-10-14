@@ -35,17 +35,18 @@ typedef struct {
     /* 0x1A */ u8 unk1A[2];
 } YoshiArg;
 
-/* Per-player state, 0x100 bytes */
+/* players[] seen from +0xF0 (D_80364BE0 = players + 0xF0): PlayerInfo.controlModes
+ * starts each 0x100-byte record (game/types.h) */
 typedef struct {
-    /* 0x00 */ u32 flags;
+    /* 0x00 */ u32 controlModes; /* PlayerInfo +0xF0: bit per vehicle type, the other controller mode */
     /* 0x04 */ u8 unk4[0xFC];
-} Player;
+} PlayerCtlView;
 
 extern OSContPad gContPad; /* this frame's pad */
 extern OSMesg gSiMesgBuf;
 extern OSContStatus gContStatus;
 extern u8 gContReadPending; /* a read is in flight */
-extern Player D_80364BE0[];
+extern PlayerCtlView D_80364BE0[];
 
 /* stick x/y: this frame and last frame */
 /* one flag per button, set while held */
@@ -142,10 +143,10 @@ void cont_update(void) {
         gPrevHeldCUp = gHeldCUp;
         gPrevHeldCRight = gHeldCRight;
         switch (gGameMode) {
-            case 2:
-            case 0x40:
-            case 0x400:
-            case 0x100000000000:
+            case MODE_ATTRACT:
+            case MODE_REPLAY:
+            case MODE_REPLAY_CARRIER_END:
+            case MODE_GLOBE_SEQ:
                 if (levelno != 0x26 && levelno != 0x31) {
                     do {
                         rec_next();
@@ -161,35 +162,35 @@ void cont_update(void) {
                 pad->stick_y = gRecStickY;
                 pad->button &= ~U_CBUTTONS;
                 break;
-            case 4:
-            case 0x100:
+            case MODE_LEVEL:
+            case MODE_MAP_VIEW:
                 if (!gPaused || gGameMode == MODE_LEVEL_START) {
                     rec_record(pad->button & ~START_BUTTON, pad->stick_x, pad->stick_y);
                 }
                 break;
-            case 1:
-            case 8:
-            case 0x200:
-            case 0x800:
-            case 0x1000:
-            case 0x4000000:
+            case MODE_INTRO_APPROACH:
+            case MODE_LEVEL_CLEAR:
+            case MODE_CARRIER_END:
+            case MODE_INTRO_FLY:
+            case MODE_INTRO_LANDING:
+            case MODE_TIMED_END:
                 pad->button = 0;
                 pad->stick_x = 0;
                 pad->stick_y = 0;
                 break;
         }
         D_80370C34 = 0;
-        if (gGameMode & 0x2000100000002546) {
+        if (gGameMode & (MODE_ATTRACT | MODE_LEVEL | MODE_REPLAY | MODE_MAP_VIEW | MODE_REPLAY_CARRIER_END | MODE_LEVEL_START | MODE_GLOBE_SEQ | MODE_YOSHI_PAGES)) {
             D_803ED40A = 0;
             D_803F7C34 = 0;
-            if (gGameMode & 0x440) {
+            if (gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) {
                 mode = D_80370C40;
-            } else if (D_80364BE0[playerNumber].flags & (1 << gCurVehicle)) {
+            } else if (D_80364BE0[playerNumber].controlModes & (1 << gCurVehicle)) {
                 mode = 1;
             } else {
                 mode = 0;
             }
-            if (gGameMode == 2 || gGameMode == MODE_GLOBE_SEQ) {
+            if (gGameMode == MODE_ATTRACT || gGameMode == MODE_GLOBE_SEQ) {
                 mode = 0;
             }
             gControlMethod = mode;
@@ -453,7 +454,7 @@ void cont_show_method_option(void) {
     gYoshiGameItems[421].jtext = NULL;
     gYoshiGameItems[422].text = tbl[i];
     gYoshiGameItems[422].unk6 = 0x13;
-    if ((D_80364BE0[playerNumber].flags ^ 0x10205) & (1 << gCurVehicle)) {
+    if ((D_80364BE0[playerNumber].controlModes ^ 0x10205) & (1 << gCurVehicle)) {
         gYoshiWindows[88].unk18 = 0x1A8;
     } else {
         gYoshiWindows[88].unk18 = 0x1A7;

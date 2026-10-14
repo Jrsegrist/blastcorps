@@ -4,18 +4,18 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_gVehicleShadows
-#define LEGACY_gVehicleShadowsEnd
 #define LEGACY_gObjectsEnd
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 (*(VtxBuf *) D_02000000)
-#define gObjects ((Object *) gObjects)
+#define gObjects ((LevelObject *) gObjects)
 #ifdef NON_MATCHING
-#define gVehicleShadows (*(Struct13A70 * N64P *) &gVehicleShadows)
-#define gVehicleShadowsEnd (*(Struct13A70 * N64P *) &gVehicleShadowsEnd)
-#define gObjectsEnd (*(Object * N64P *) &gObjectsEnd)
+/* (the same type as variables.h's, but reading the pointers through their
+ * address keeps IDO's NON_MATCHING code, and so the NM ROM, as it was) */
+#define gVehicleShadows (*(VehShadow * N64P *) &gVehicleShadows)
+#define gVehicleShadowsEnd (*(VehShadow * N64P *) &gVehicleShadowsEnd)
+#define gObjectsEnd (*(LevelObject * N64P *) &gObjectsEnd)
 #endif
 /* end of views */
 
@@ -29,49 +29,15 @@
 #define RM_ZB_XLU_SAVE(clk) (RM_ZB_XLU_SURF(clk) | CVG_DST_SAVE)
 #define RM_XLU_SAVE(clk) (RM_XLU_SURF(clk) | CVG_DST_SAVE)
 
-typedef struct {
-    u8 pad[0x1000];
-    f32 unk1000;
-    s32 unk1004;
-    s32 unk1008;
-    s32 unk100C;
-    s32 unk1010;
-    s32 unk1014;
-    s16 unk1018;
-    s16 unk101A;
-    s16 unk101C;
-    s16 unk101E;
-    s16 unk1020;
-    u8 unk1022;
-    u8 unk1023;
-    u8 pad1024[0x1C];
-} Struct13A70; /* size 0x1040 */
+/* (the shadow records are VehShadow, game/types.h) */
 
-typedef struct {
-    u8 pad0[0x10];
-    s32 x;
-    s32 y;
-    s32 z;
-    u8 pad1C[0x14];
-    s32 type;
-    u8 pad34[0x10];
-    s32 unk44;
-    u8 pad48[0xA2];
-    u8 unkEA;
-    u8 padEB[0x11];
-} Object; /* size 0xFC */
+/* (gObjects records: LevelObject, game/object.h) */
 
 typedef struct VtxBuf {
     u8 pad[0x3900];
     Vtx vtx[1];
 } VtxBuf;
 
-#ifndef NON_MATCHING
-extern Struct13A70 *gVehicleShadows;
-#ifndef NON_MATCHING
-extern Struct13A70 *gVehicleShadowsEnd;
-#endif
-#endif
 extern Gfx gShadowRenderDl[];
 extern Vp gShadowViewport;
 extern Mtx D_803651F0;
@@ -80,27 +46,27 @@ extern Mtx D_80365270;
 extern Mtx D_803652B0;
 extern Mtx D_803652F0;
 #ifndef NON_MATCHING
-extern Object *gObjectsEnd;
+extern LevelObject *gObjectsEnd;
 #endif
 
 
 /* Appends a gVehicleShadows record for a vehicle type (0x80258230). */
 void veh_add_shadow(u8 id, s32 arg1, s16 arg2, s16 arg3) {
-    gVehicleShadowsEnd->unk1022 = id;
-    gVehicleShadowsEnd->unk1023 = 0;
-    gVehicleShadowsEnd->unk1000 = arg1;
-    gVehicleShadowsEnd->unk1018 = arg2;
-    gVehicleShadowsEnd->unk101A = arg3;
-    gVehicleShadowsEnd->unk101C = 0;
-    gVehicleShadowsEnd->unk101E = 0;
-    gVehicleShadowsEnd->unk1020 = 0;
+    gVehicleShadowsEnd->type = id;
+    gVehicleShadowsEnd->layer = 0;
+    gVehicleShadowsEnd->renderDist = arg1;
+    gVehicleShadowsEnd->halfWidth = arg2;
+    gVehicleShadowsEnd->halfDepth = arg3;
+    gVehicleShadowsEnd->rotX = 0;
+    gVehicleShadowsEnd->rotY = 0;
+    gVehicleShadowsEnd->rotZ = 0;
     gVehicleShadowsEnd++;
 }
 
 /* Sets the type's shadow position (J-Bomb's: the floor below) (0x802582C4). */
 void veh_update_shadow(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
     u8 found = 0;
-    Struct13A70 *p;
+    VehShadow *p;
     u8 hit = 0;
     u8 mode = 0;
     u8 ok;
@@ -130,20 +96,20 @@ void veh_update_shadow(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6,
         }
     }
     for (p = gVehicleShadows; !found;) {
-        if (p->unk1022 == id) {
-            p->unk1004 = x;
+        if (p->type == id) {
+            p->x = x;
             if (mode) {
-                p->unk1008 = gObjectFloorY;
+                p->floorY = gObjectFloorY;
             } else {
-                p->unk1008 = y;
+                p->floorY = y;
             }
-            p->unk100C = z;
-            p->unk1014 = y;
-            p->unk101C = arg5;
-            p->unk101E = arg7;
-            p->unk1020 = arg6;
-            p->unk1010 = arg4;
-            p->unk1023 = mode;
+            p->z = z;
+            p->groundY = y;
+            p->rotX = arg5;
+            p->rotY = arg7;
+            p->rotZ = arg6;
+            p->bodyY = arg4;
+            p->layer = mode;
             found = 1;
         } else {
             p++;
@@ -153,11 +119,11 @@ void veh_update_shadow(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6,
 
 /* The type's shadow y (0x802584BC). */
 s32 veh_shadow_floor_y(u8 id) {
-    Struct13A70 *p = gVehicleShadows;
+    VehShadow *p = gVehicleShadows;
 
     while (TRUE) {
-        if (p->unk1022 == id) {
-            return p->unk1008;
+        if (p->type == id) {
+            return p->floorY;
         }
         p++;
     }
@@ -165,11 +131,11 @@ s32 veh_shadow_floor_y(u8 id) {
 
 /* The type's y as last given to veh_update_shadow (0x80258500). */
 s32 veh_shadow_src_y(u8 id) {
-    Struct13A70 *p = gVehicleShadows;
+    VehShadow *p = gVehicleShadows;
 
     while (TRUE) {
-        if (p->unk1022 == id) {
-            return p->unk1014;
+        if (p->type == id) {
+            return p->groundY;
         }
         p++;
     }
@@ -235,18 +201,18 @@ void obj_draw_ground_shadows(Gfx **gdlp, VtxBuf *buf) {
     gDPSetCombineMode(gdl++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
     gDPSetPrimColor(gdl++, 0, 0, 200, 200, 200, 200);
     while (&gObjects[i] != gObjectsEnd) {
-        if (gObjects[i].unkEA == 0) {
-            switch (gObjects[i].type) {
+        if (gObjects[i].destroyed == 0) {
+            switch (gObjects[i].kind) {
                 case 0xBA:
                 case 0xBB:
                 case 0xBC:
-                    h = 60 - (gObjects[i].y - gObjects[i].unk44) / 800;
+                    h = 60 - (gObjects[i].pos[1] - gObjects[i].groundY) / 800;
                     if (h < 0) {
                         h = 0;
                     }
-                    x = gObjects[i].x >> 5;
-                    y = gObjects[i].unk44 >> 5;
-                    z = gObjects[i].z >> 5;
+                    x = gObjects[i].pos[0] >> 5;
+                    y = gObjects[i].groundY >> 5;
+                    z = gObjects[i].pos[2] >> 5;
                     buf->vtx[n].v.ob[0] = x - h;
                     buf->vtx[n].v.ob[1] = y;
                     buf->vtx[n].v.ob[2] = z - h;

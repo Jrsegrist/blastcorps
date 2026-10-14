@@ -3,16 +3,10 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F38 ((D_802E8F38_s *) D_802E8F38)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
-/* Per-player state, 0x100 bytes */
-typedef struct {
-    /* 0x00 */ u8 unk0[0x90];
-    /* 0x90 */ u8 unk90;
-    /* 0x91 */ u8 unk91;
-    /* 0x92 */ u8 unk92[0x6E];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
 /* 8 bytes */
 typedef struct {
@@ -45,7 +39,7 @@ void academy_place_marker(arg0)
     } else {
         found = 0;
     }
-    gAcademyBits = players[playerNumber].unk90;
+    gAcademyBits = players[playerNumber].academy;
     if (found) {
         gAcademyMarkerOn = 1;
         D_8039CAB0 = D_802E8F38[idx].x;
@@ -98,7 +92,7 @@ void academy_draw_marker(Gfx **arg0) {
 
 /* Within 0x50: the bit set, mode switch (0x80297804). */
 void academy_check_marker(s32 x, s32 y, s32 z) {
-    if (gAcademyMarkerOn && players[playerNumber].unk91 < 5) {
+    if (gAcademyMarkerOn && players[playerNumber].gameState < 5) {
         if (D_8039CAB8) {
             if (util_dist3d(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) >= 0x8D) {
                 D_8039CAB8 = 0;
@@ -106,7 +100,7 @@ void academy_check_marker(s32 x, s32 y, s32 z) {
         } else if (util_dist3d(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) < 0x50) {
             D_8039CAB8 = 1;
             gAcademyBits |= 1 << D_8039CAB6;
-            gNextGameMode = 0x1000000000LL;
+            gNextGameMode = MODE_ACADEMY_MARKER;
         }
     }
 }
@@ -116,5 +110,5 @@ void academy_save_markers(void) {
     if (gDebugCheats && (gContButtons & 0x2000) && gAcademyMarkerOn) {
         gAcademyBits |= 1 << D_8039CAB6;
     }
-    players[playerNumber].unk90 = gAcademyBits;
+    players[playerNumber].academy = gAcademyBits;
 }

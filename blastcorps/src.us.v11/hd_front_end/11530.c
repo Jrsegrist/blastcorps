@@ -13,7 +13,7 @@
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define gDynamicBufs ((Dynamic *) gDynamicBufs)
 #define gFrameBufferPhys ((u16 * N64P *) gFrameBufferPhys)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gSolarNodeMtx ((Mtx *) gSolarNodeMtx)
 #define gDepthBufferPhys (*(u16 * N64P *) &gDepthBufferPhys)
@@ -103,26 +103,9 @@ Lights1 gGlobeLights[2] = {
 
 f32 gGlobeStickAngle = 0.0f;
 
-/* hd_code: one entry per level in gLevelInfo (0x44 bytes), as in hd_code 1D990.c */
-typedef struct {
-    /* 0x00 */ u8 type;
-    /* 0x01 */ u8 unk1; /* needed (save) progress */
-    /* 0x02 */ u8 pad2[0x2A];
-    /* 0x2C */ u32 unk2C; /* collectables present (bit per gVehicleIcons entry) */
-    /* 0x30 */ u8 pad30[0x14];
-} LevelInfo;
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
-/* hd_code: save/player records (players, 0x100 bytes), as in hd_code 1D990.c */
-typedef struct {
-    /* 0x00 */ u8 pad0[0x10];
-    /* 0x10 */ u32 unk10; /* collectables found */
-    /* 0x14 */ u8 pad14[4];
-    /* 0x18 */ u8 rank[0x3C]; /* per level: 0 = locked, 1-5 = medal, ... */
-    /* 0x54 */ u8 unk54[0x3C]; /* per level: bit n opens unk18[n] */
-    /* 0x90 */ u8 pad90;
-    /* 0x91 */ u8 unk91;
-    /* 0x92 */ u8 pad92[0x100 - 0x92];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
 /* hd_code gDynamicBufs: per-frame-buffer dynamic data (0x21498 bytes each) */
 typedef struct {
@@ -183,7 +166,7 @@ extern Gfx * N64P gGlobeMeshDl;
 extern Gfx * N64P D_8021A8FC;
 extern Gfx * N64P D_8021A900;
 extern u8 gGlobeOverlayAlpha;
-extern Player * N64P gGlobePlayer;
+extern PlayerInfo * N64P gGlobePlayer;
 extern LevelInfo * N64P gGlobeLevelInfo;
 extern f32 gPlaneX;
 extern f32 gPlaneY;
@@ -284,17 +267,17 @@ void fe_globe_select_level(s32 arg0) {
         gGlobeCamDist = 6250.0f;
         if (gGlobePlanet != 6) {
             if (gGlobePlanet == 3) {
-                music_start_tune(0x13);
+                music_start_tune(MUS_WORLD_SPACE);
             } else if (tune == 3) {
-                music_start_tune(0xC);
+                music_start_tune(MUS_WORLD_EARTH);
             }
         }
     }
     if (gGlobePlanet != 6) {
         if (tune == 3 && gGlobePlanet == 3) {
-            snd_play(gSfxBank, 0x1D, 0);
+            snd_play(gSfxBank, SFX_MENU_MOVE, 0);
         } else {
-            snd_play(gSfxBank, 0x3F, 0);
+            snd_play(gSfxBank, SFX_GLOBE_PLANET_MOVE, 0);
         }
     }
     gGlobePlanet = tune;
@@ -327,7 +310,7 @@ void fe_globe_frame(void) {
     if (gGlobeSelectPending || (!areWeFading() && gGlobeState == 1 && (gContButtons & 0x9000) && !(gContPrevButtons & 0x9000))) {
         if (gFlightState == 0) {
             snd_stop_all_looping();
-            snd_play(gSfxBank, 0x1E, 0);
+            snd_play(gSfxBank, SFX_SELECT, 0);
             gGlobeState = 2;
             debug_printf("selected level %d\n", gGlobeSelLevel);
             levelno = gGlobeSelLevel;
@@ -339,8 +322,8 @@ void fe_globe_frame(void) {
     }
     if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gGlobeState == 1) {
         D_80364A87 = 0;
-        snd_play(gSfxBank, 0xDE, 0);
-        fade_to_mode(0x4000000000000000);
+        snd_play(gSfxBank, SFX_BACK, 0);
+        fade_to_mode(MODE_QUIT_GAME);
         levelno = gGlobeSelLevel;
     }
     dist = gPadStickX * gPadStickX + gPadStickY * gPadStickY;
@@ -470,7 +453,7 @@ Gfx *fe_globe_build_scene_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
         gdl = spr_begin(gdl);
         y = 0xDA;
         for (i = 0, alt = 0; i < 0x13 && y > 0x28; i++) {
-            if ((info->unk2C & (1 << i)) && (info->type == 1 || (gGlobePlayer->unk10 & (1 << i))) &&
+            if ((info->vehicles & (1 << i)) && (info->kind == 1 || (gGlobePlayer->vehiclesUnlocked & (1 << i))) &&
                 gVehicleIcons[i * 2] != 0) {
                 if (alt) {
                     gdl = spr_draw(gdl, gVehicleIconTex + i, 0x16 - (0xFF - gGlobeNameAlpha) / 6, y, gGlobeNameAlpha, 0, 0.8125f);
@@ -600,7 +583,7 @@ Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     }
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
-        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
                 gdl = fe_globe_draw_route(dyn, gdl, i, e->unk1C[j], &out, &lon, 0, 0, 0, 0, 0, 0, 0);
             }
@@ -611,9 +594,9 @@ Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     }
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
-        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
             for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
-                if (players[playerNumber].unk54[i] & (1 << j)) {
+                if (players[playerNumber].commPts[i] & (1 << j)) {
                     gdl = fe_globe_draw_route(dyn, gdl, i, e->unk18[j], &out, &lon, 1, 0, 0xFF, 0, 0xFF, 0xFF, 0);
                     if (out != -1) {
                         f32 d;
@@ -631,7 +614,7 @@ Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     }
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
-        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
                 gdl = fe_globe_draw_route(dyn, gdl, i, e->unk1C[j], &out, &lon, 1, 0xFF, 0, 0, 0xFF, 0x80, 0x80);
                 if (out != -1) {
@@ -734,7 +717,7 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
     lit = 0;
     gdl = arg1;
     scale = 1.0f;
-    if (to == gGlobeSelLevel || players[playerNumber].rank[from] == 0) {
+    if (to == gGlobeSelLevel || players[playerNumber].medal[from] == 0) {
         u8 tmp;
 
         tmp = to;
@@ -760,15 +743,15 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
     }
     if (lvl_planet(from) == 3 && lvl_planet(to) == 3) {
         if (D_80364A87 &&
-            (players[playerNumber].rank[to] == 0 ||
+            (players[playerNumber].medal[to] == 0 ||
              ((D_80364A87 & 1) && from == gGlobeSelLevel &&
-              !((players[playerNumber].rank[to] > 0 && players[playerNumber].rank[to] < 6) ? 1 : 0)))) {
+              !((players[playerNumber].medal[to] > 0 && players[playerNumber].medal[to] < 6) ? 1 : 0)))) {
             if (gGlobeState) {
                 progress = MIN2(1.0, (gRouteRevealMin > (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0) ? gRouteRevealMin : (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0);
                 if (progress == 1.0 && gRouteRevealSound) {
                     snd_stop(gRouteRevealSound);
                 } else if (!gRouteRevealSound && progress != 1.0 && gGlobePlanet == 3) {
-                    snd_play(gSfxBank, 0x7C, &gRouteRevealSound);
+                    snd_play(gSfxBank, SFX_ROUTE_REVEAL_LOOP, &gRouteRevealSound);
                 }
             } else {
                 progress = 0.0f;
@@ -1201,18 +1184,18 @@ void fe_open_reachable_levels(u8 rank) {
 
     gGlobePlayer = &players[playerNumber];
     for (i = 0; i < 60; i++) {
-        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
             e = &gGlobeLevels[i];
             info = &gLevelInfo[i];
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
-                if (gGlobePlayer->rank[e->unk1C[j]] == 0 && fe_globe_level_locked(e->unk1C[j]) == 0) {
-                    gGlobePlayer->rank[e->unk1C[j]] = rank;
+                if (gGlobePlayer->medal[e->unk1C[j]] == 0 && fe_globe_level_locked(e->unk1C[j]) == 0) {
+                    gGlobePlayer->medal[e->unk1C[j]] = rank;
                 }
             }
             for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
-                if (gGlobePlayer->unk54[i] & (1 << j)) {
-                    if (gGlobePlayer->rank[e->unk18[j]] == 0) {
-                        gGlobePlayer->rank[e->unk18[j]] = rank;
+                if (gGlobePlayer->commPts[i] & (1 << j)) {
+                    if (gGlobePlayer->medal[e->unk18[j]] == 0) {
+                        gGlobePlayer->medal[e->unk18[j]] = rank;
                     }
                 }
             }
@@ -1278,36 +1261,36 @@ s32 fe_globe_level_locked(level, arg1)
     u8 locked = 0;
 #endif
 
-    if (gLevelInfo[level].unk1 > players[playerNumber].unk91 &&
-        ((gLevelInfo[level].type & 0x81) || (level >= 0x2B && level < 0x2F))) {
+    if (gLevelInfo[level].gameState > players[playerNumber].gameState &&
+        ((gLevelInfo[level].kind & 0x81) || (level >= 0x2B && level < 0x2F))) {
         locked = 1;
     }
     if (level == 0xA) {
-        arg1 = (players[playerNumber].rank[0x37] > 0 && players[playerNumber].rank[0x37] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].medal[0x37] > 0 && players[playerNumber].medal[0x37] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 0xF) {
-        arg1 = (players[playerNumber].rank[0x1C] > 0 && players[playerNumber].rank[0x1C] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].medal[0x1C] > 0 && players[playerNumber].medal[0x1C] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 0x3A) {
-        arg1 = (players[playerNumber].rank[0x35] > 0 && players[playerNumber].rank[0x35] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].medal[0x35] > 0 && players[playerNumber].medal[0x35] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 5) {
-        arg1 = (players[playerNumber].rank[0x07] > 0 && players[playerNumber].rank[0x07] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].medal[0x07] > 0 && players[playerNumber].medal[0x07] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 0x10) {
-        arg1 = (players[playerNumber].rank[0x13] > 0 && players[playerNumber].rank[0x13] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].medal[0x13] > 0 && players[playerNumber].medal[0x13] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }

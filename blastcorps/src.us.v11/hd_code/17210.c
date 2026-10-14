@@ -154,27 +154,27 @@ void rec_restore_start_vehicle(void) {
 void rec_next(void) {
     s32 pad[2];
 
-    if (D_80366994 > D_80366998 || (gHaveCarrier && gCarrierHit && (gGameMode & 0x440))) {
-        if (yoshiState != 1 || ((gGameMode & 0x440) && !D_80364A50)) {
+    if (D_80366994 > D_80366998 || (gHaveCarrier && gCarrierHit && (gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)))) {
+        if (yoshiState != 1 || ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && !D_80364A50)) {
             if (!gPaused) {
                 gPauseRequest = 1;
             }
         } else if (!areWeFading()) {
             switch (gGameMode) {
-                case 2:
-                    fade_to_mode_speed(2, 0.25f);
+                case MODE_ATTRACT:
+                    fade_to_mode_speed(MODE_ATTRACT, 0.25f);
                     break;
-                case 0x100000000000:
+                case MODE_GLOBE_SEQ:
                     debug_printf("sequence playback over\n");
-                    fade_to_mode(0x200000000000);
+                    fade_to_mode(MODE_SEQ_END);
                     break;
-                case 0x40:
-                case 0x400:
+                case MODE_REPLAY:
+                case MODE_REPLAY_CARRIER_END:
                     gPauseRequest = 1;
-                    if (gGameMode == 0x400) {
-                        fade_to_mode_speed(0x40, 1.25f);
+                    if (gGameMode == MODE_REPLAY_CARRIER_END) {
+                        fade_to_mode_speed(MODE_REPLAY, 1.25f);
                     } else {
-                        fade_to_mode_speed(0x40, 0.5f);
+                        fade_to_mode_speed(MODE_REPLAY, 0.5f);
                     }
                     break;
                 default:

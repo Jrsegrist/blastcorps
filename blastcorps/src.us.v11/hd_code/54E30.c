@@ -8,16 +8,10 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
-typedef struct {
-    u8 pad0[0x18];
-    u8 rank[0x3C];  /* 0x18 */
-    u8 pad54[0xEE - 0x54];
-    u8 f0EE;        /* 0xEE */
-    u8 padEF[0x100 - 0xEF];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
 #ifndef NON_MATCHING
 extern s32 gSfxBank;
@@ -32,7 +26,7 @@ u8 gSeqNumber;  /* current sequence number */
 u8 D_803A6B04;
 
 
-#define LEVEL_DONE(l) ((players[playerNumber].rank[l] > 0 && players[playerNumber].rank[l] < 6) ? 1 : 0)
+#define LEVEL_DONE(l) ((players[playerNumber].medal[l] > 0 && players[playerNumber].medal[l] < 6) ? 1 : 0)
 
 /* "prepare sequence %d" (0x802995F0).
  * Set up level sequence seq: its start level, exit levels and loop masks.
@@ -217,26 +211,26 @@ void seq_finish(s32 arg0) {
         case 38:
         case 47:
         case 49:
-            players[playerNumber].rank[levelno] = 5;
+            players[playerNumber].medal[levelno] = 5;
             break;
         case 55:
-            players[playerNumber].f0EE |= 1;
+            players[playerNumber].demosSeen |= 1;
             break;
         case 28:
-            players[playerNumber].f0EE |= 2;
+            players[playerNumber].demosSeen |= 2;
             break;
         case 53:
-            players[playerNumber].f0EE |= 4;
+            players[playerNumber].demosSeen |= 4;
             break;
         case 7:
-            players[playerNumber].f0EE |= 8;
+            players[playerNumber].demosSeen |= 8;
             break;
         case 19:
-            players[playerNumber].f0EE |= 0x10;
+            players[playerNumber].demosSeen |= 0x10;
             break;
     }
     if (arg0) {
-        snd_play(gSfxBank, 0x1E, 0);
+        snd_play(gSfxBank, SFX_SELECT, 0);
         gNextGameMode = gSeqDoneMode;
         levelno = gSeqDoneLevel;
     } else {

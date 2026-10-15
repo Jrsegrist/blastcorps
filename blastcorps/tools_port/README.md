@@ -1,8 +1,8 @@
 # tools_port: NON_MATCHING builds and the equivalence harness
 
 The native port needs real C for the roughly 660 hand-written asm functions in
-hd_code (56040 through 8DDB0), and for the front end's hand-written 1B100 and
-its parked near-misses. That C can't byte-match, so it is checked for
+hd_code (56040 through 8DDB0), and for the front end's hand-written 1B100
+(the front end's former near-misses are matched C now). That C can't byte-match, so it is checked for
 *functional* equivalence instead. Two pieces support this:
 
 * `make NON_MATCHING=1` builds `#ifdef NON_MATCHING` rewrites into `build_nm/`.

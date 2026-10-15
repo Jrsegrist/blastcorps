@@ -114,8 +114,8 @@ function of the three code segments by category. Permanent hand-written assembly
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | init | 43 | 31 | 0 | 12 | 0 | 0 | 100.0% | 43 (100%) |
 | hd_code | 1400 | 692 | 681 | 27 | 0 | 0 | 100.0% | 1400 (100%) |
-| hd_front_end | 155 | 147 | 6 | 0 | 2 | 0 | 98.7% | 155 (100%) |
-| total | 1598 | 870 | 687 | 39 | 2 | 0 | 99.8% | 1598 (100%) |
+| hd_front_end | 155 | 149 | 6 | 0 | 0 | 0 | 100.0% | 155 (100%) |
+| total | 1598 | 872 | 687 | 39 | 0 | 0 | 100.0% | 1598 (100%) |
 
 (Earlier counts included 17 leftover SDK alias symbols, func_802D4020 = osInitialize and
 the like, as matched hd_code functions: 1615 / 887.)  `--naming` adds the rename map's size,
@@ -128,7 +128,10 @@ state offsets).
   matching build; the port uses the `NON_MATCHING` C versions where they exist ("+ NM C"), and its
   platform layer replaces the SDK ones.
 - **near-miss**: IDO-compiled functions still `GLOBAL_ASM` in the matching build, with
-  `NON_MATCHING` C that the port uses (front end fe_pak_thread and fe_globe_draw_route).
+  `NON_MATCHING` C that the port uses. None are left: the last two (front end fe_pak_thread and
+  fe_globe_draw_route) were matched in Oct 2026, so every IDO-compiled function is now matched C.
+  The 39 "hand asm, no C" are the boot entry, the libultra `.s` routines (COP0/cache/TLB, exceptasm,
+  bcopy/bzero, sqrtf) and hd_set_cop0_compare (an `sd $ra` mtc0 stub in Rare's asm range).
 
 ## Naming conventions
 

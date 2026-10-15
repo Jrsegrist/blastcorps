@@ -107,9 +107,11 @@ def level_starts():
     src = open("src.us.v11/hd_code/00000.c").read()
     body = src[src.index("void lvl_load_file(s32 level"):]
     body = body[:body.index("\n}\n")]
+    sys.path.insert(0, "tools_port")
+    from names import addr_of      # the ROM symbols are named (romLagpRaw = D_004A5660)
     res = {}
-    for m in re.finditer(r"case (\d+):\s*start = D_00([0-9A-F]{6});\s*\*size = D_00([0-9A-F]{6})", body):
-        res[int(m.group(1))] = (int(m.group(2), 16), int(m.group(3), 16))
+    for m in re.finditer(r"case (\d+):\s*start = (\w+);\s*\*size = (\w+) - \2;", body):
+        res[int(m.group(1))] = (addr_of(m.group(2)), addr_of(m.group(3)))
     return res
 
 

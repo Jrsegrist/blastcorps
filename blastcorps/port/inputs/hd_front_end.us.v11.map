@@ -13,7 +13,7 @@ Discarded input sections
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/11530.c.o
  .gptab.data    0x00000000       0x38 build_nm/src.us.v11/hd_front_end/11530.c.o
  .gptab.bss     0x00000000       0x18 build_nm/src.us.v11/hd_front_end/11530.c.o
- .mdebug        0x00000000     0x31a0 build_nm/src.us.v11/hd_front_end/11530.c.o
+ .mdebug        0x00000000     0x31e0 build_nm/src.us.v11/hd_front_end/11530.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
@@ -44,7 +44,7 @@ Discarded input sections
  .mdebug        0x00000000      0xcd8 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
- .mdebug        0x00000000     0x1f18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+ .mdebug        0x00000000     0x1f28 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
  .mdebug        0x00000000      0xf34 build_nm/src.us.v11/hd_front_end/10850.c.o

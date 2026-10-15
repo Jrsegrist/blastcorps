@@ -108,7 +108,7 @@ def level_starts():
     body = src[src.index("void lvl_load_file(s32 level"):]
     body = body[:body.index("\n}\n")]
     sys.path.insert(0, "tools_port")
-    from names import addr_of      # the ROM symbols are named (romLagpRaw = D_004A5660)
+    from names import addr_of      # the ROM symbols are named (romLagpRaw): their address names
     res = {}
     for m in re.finditer(r"case (\d+):\s*start = (\w+);\s*\*size = (\w+) - \2;", body):
         res[int(m.group(1))] = (addr_of(m.group(2)), addr_of(m.group(3)))

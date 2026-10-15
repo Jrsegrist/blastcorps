@@ -18,7 +18,7 @@
 
 /* The digger code (this file's .bss starts at 0x8036C8D0) */
 
-/* 50-entry ring buffer of digger samples, indexed D_8036CB28..D_8036CB29 */
+/* 50-entry ring buffer of digger samples, indexed gDigSampleTail..gDigSampleHead */
 typedef struct {
     /* 0x00 */ s16 unk0;
     /* 0x02 */ s16 unk2;
@@ -42,33 +42,33 @@ extern DigTrigger *gDigTriggers; /* first */
 extern DigTrigger *gDigTriggersEnd; /* end */
 #endif
 #endif
-extern u8 D_8036CB35;
-extern u8 D_8036CB36;
-extern u8 D_8036CB37;
-extern u8 D_8036CB38;
-extern u8 D_8036CB39;
-extern u8 D_8036CB3A;
-extern u8 D_8036CB3B;
-extern u8 D_8036CB3C;
-extern s16 * N64P D_8036CB40; /* event animation frame ids */
-extern u8 D_8036CB44;
-extern u8 D_8036CB50;
-extern u8 D_8036CB51;      /* event panel alpha */
-extern s16 D_802FBDD0[];
-extern s16 D_802FBDEC[];
-extern s16 D_802FBE18[];
-extern s16 D_802FBE44[];
-extern s16 D_802FBE80[];
-extern Vtx D_802FBD50[8];
+extern u8 gHudPanelLoops;
+extern u8 gHudPanelLoopCount;
+extern u8 gHudPanelReversing;
+extern u8 gHudPanelPingPong;
+extern u8 gHudPanelFrame;
+extern u8 gHudPanelFrameTick;
+extern u8 gHudPanelFrameDelay;
+extern u8 gHudPanelFrameCount;
+extern s16 * N64P gHudPanelFrameIds; /* event animation frame ids */
+extern u8 gHudPanelType;
+extern u8 gHudPanelStaticTimer;
+extern u8 gHudPanelStaticAlpha;      /* event panel alpha */
+extern s16 gHudPanelAnim0[];
+extern s16 gHudPanelAnim1[];
+extern s16 gHudPanelAnim2[];
+extern s16 gHudPanelAnim3[];
+extern s16 gHudPanelAnim4[];
+extern Vtx gHudPanelVtx[8];
 
 extern DigEntry gDigSamples[50];
-extern u8 D_8036CB32;
-extern void * N64P D_8036CB48[2];
-extern u8 D_8036CB28;
-extern u8 D_8036CB29;
-extern u8 D_8036CB30;
-extern u8 D_8036CB31;
-extern u8 D_8036CB33;
+extern u8 gDigWeakPartHits;
+extern void * N64P gHudPanelImageBufs[2];
+extern u8 gDigSampleTail;
+extern u8 gDigSampleHead;
+extern u8 gDigStrongPartHits;
+extern u8 gDigStrongHits;
+extern u8 gDigWeakHits;
 extern u8 gPanelActive;
 
 s32 dig_hit_is_weak(void);
@@ -81,11 +81,11 @@ void dig_check_misuse(void);
 /* The message panel's two 40x40 frame buffers (0x802775C0). */
 void hud_panel_init(void) {
     gPanelActive = 0;
-    D_8036CB48[0] = gHeapPtr;
-    D_8036CB48[1] = gHeapPtr = (u8 *) gHeapPtr + 0xC80;
+    gHudPanelImageBufs[0] = gHeapPtr;
+    gHudPanelImageBufs[1] = gHeapPtr = (u8 *) gHeapPtr + 0xC80;
     gHeapPtr = (u8 *) gHeapPtr + 0xC80;
-    D_8036CB28 = 0;
-    D_8036CB29 = 0;
+    gDigSampleTail = 0;
+    gDigSampleHead = 0;
 }
 
 /* Samples digger hits, the coaching checks, the timed panel events (0x80277620). */
@@ -94,23 +94,23 @@ void dig_coach_update(s32 now) {
     DigTrigger *p = gDigTriggers;
     s16 limit;
 
-    while (!done && D_8036CB28 != D_8036CB29) {
-        if (now - gDigSamples[D_8036CB28].time > 1000) {
-            if (++D_8036CB28 == 50) {
-                D_8036CB28 = 0;
+    while (!done && gDigSampleTail != gDigSampleHead) {
+        if (now - gDigSamples[gDigSampleTail].time > 1000) {
+            if (++gDigSampleTail == 50) {
+                gDigSampleTail = 0;
             }
         } else {
             done = 1;
         }
     }
     if (gDigHit) {
-        if (D_8036CB29 + 1 != D_8036CB28 && !(D_8036CB29 == 49 && D_8036CB28 == 0)) {
-            gDigSamples[D_8036CB29].unk0 = dig_hit_is_weak();
-            gDigSamples[D_8036CB29].unk2 = dig_part_hit_is_weak();
-            gDigSamples[D_8036CB29].unk4 = gDigHitVehicle;
-            gDigSamples[D_8036CB29].time = now;
-            if (++D_8036CB29 == 50) {
-                D_8036CB29 = 0;
+        if (gDigSampleHead + 1 != gDigSampleTail && !(gDigSampleHead == 49 && gDigSampleTail == 0)) {
+            gDigSamples[gDigSampleHead].unk0 = dig_hit_is_weak();
+            gDigSamples[gDigSampleHead].unk2 = dig_part_hit_is_weak();
+            gDigSamples[gDigSampleHead].unk4 = gDigHitVehicle;
+            gDigSamples[gDigSampleHead].time = now;
+            if (++gDigSampleHead == 50) {
+                gDigSampleHead = 0;
             }
         }
     }
@@ -140,34 +140,34 @@ void dig_coach_update(s32 now) {
 void dig_check_doing_well(void) {
     switch (gCurVehicle) {
         case 5:
-            if (D_8036CB31 >= 16 && D_8036CB30 >= 16) {
+            if (gDigStrongHits >= 16 && gDigStrongPartHits >= 16) {
                 hud_panel_start(3, 1, 1, SFX_COACH_WELL_BACKLASH);
-                D_8036CB28 = 0;
-                D_8036CB29 = 0;
+                gDigSampleTail = 0;
+                gDigSampleHead = 0;
                 debug_printf("DOING REALLY WELL\n");
             }
             break;
         case 4:
-            if (D_8036CB31 >= 41 && D_8036CB30 >= 41) {
+            if (gDigStrongHits >= 41 && gDigStrongPartHits >= 41) {
                 hud_panel_start(4, 1, 1, snd_random_id(SND_GROUP_DOING_WELL));
-                D_8036CB28 = 0;
-                D_8036CB29 = 0;
+                gDigSampleTail = 0;
+                gDigSampleHead = 0;
                 debug_printf("DOING REALLY WELL\n");
             }
             break;
         case 3:
-            if (D_8036CB31 >= 11 && D_8036CB30 >= 11) {
+            if (gDigStrongHits >= 11 && gDigStrongPartHits >= 11) {
                 hud_panel_start(0, 1, 3, SFX_COACH_WELL_SKYFALL);
-                D_8036CB28 = 0;
-                D_8036CB29 = 0;
+                gDigSampleTail = 0;
+                gDigSampleHead = 0;
                 debug_printf("DOING REALLY WELL\n");
             }
             break;
         case 9:
-            if (D_8036CB31 >= 26 && D_8036CB30 >= 26) {
+            if (gDigStrongHits >= 26 && gDigStrongPartHits >= 26) {
                 hud_panel_start(4, 1, 1, snd_random_id(SND_GROUP_DOING_WELL));
-                D_8036CB28 = 0;
-                D_8036CB29 = 0;
+                gDigSampleTail = 0;
+                gDigSampleHead = 0;
                 debug_printf("DOING REALLY WELL\n");
             }
             break;
@@ -181,10 +181,10 @@ void dig_check_wrong_digger(void) {
         case 4:
         case 5:
         case 9:
-            if (D_8036CB31 >= 6 && D_8036CB30 < 2) {
+            if (gDigStrongHits >= 6 && gDigStrongPartHits < 2) {
                 hud_panel_start(1, 1, 3, SFX_COACH_WRONG_DIGGER);
-                D_8036CB28 = 0;
-                D_8036CB29 = 0;
+                gDigSampleTail = 0;
+                gDigSampleHead = 0;
                 debug_printf("USING WRONG DIGGER\n");
             }
             break;
@@ -197,10 +197,10 @@ void dig_check_misuse(void) {
         case 3:
         case 4:
         case 5:
-            if (D_8036CB33 >= 31 && D_8036CB30 < 6) {
+            if (gDigWeakHits >= 31 && gDigStrongPartHits < 6) {
                 hud_panel_start(2, 1, 2, SFX_COACH_MISUSE);
-                D_8036CB28 = 0;
-                D_8036CB29 = 0;
+                gDigSampleTail = 0;
+                gDigSampleHead = 0;
                 debug_printf("USING DIGGER INCORRECTLY\n");
             }
             break;
@@ -211,21 +211,21 @@ void dig_check_misuse(void) {
 void dig_count_samples(void) {
     u8 i;
 
-    D_8036CB30 = 0;
-    i = D_8036CB28;
-    D_8036CB31 = 0;
-    D_8036CB32 = 0;
-    D_8036CB33 = 0;
-    while (i != D_8036CB29) {
+    gDigStrongPartHits = 0;
+    i = gDigSampleTail;
+    gDigStrongHits = 0;
+    gDigWeakPartHits = 0;
+    gDigWeakHits = 0;
+    while (i != gDigSampleHead) {
         if (!gDigSamples[i].unk2) {
-            D_8036CB30++;
+            gDigStrongPartHits++;
         } else {
-            D_8036CB32++;
+            gDigWeakPartHits++;
         }
         if (!gDigSamples[i].unk0) {
-            D_8036CB31++;
+            gDigStrongHits++;
         } else {
-            D_8036CB33++;
+            gDigWeakHits++;
         }
         if (++i == 50) {
             i = 0;
@@ -311,44 +311,44 @@ void hud_panel_start(type, arg1, arg2, sound)
             snd_play(gSfxBank, sound, NULL);
         }
         gPanelActive = 1;
-        D_8036CB35 = arg2;
-        D_8036CB36 = 0;
-        D_8036CB37 = 0;
-        D_8036CB39 = 0;
-        D_8036CB3A = 0;
-        D_8036CB38 = arg1;
-        D_8036CB44 = type;
-        D_8036CB50 = 0;
+        gHudPanelLoops = arg2;
+        gHudPanelLoopCount = 0;
+        gHudPanelReversing = 0;
+        gHudPanelFrame = 0;
+        gHudPanelFrameTick = 0;
+        gHudPanelPingPong = arg1;
+        gHudPanelType = type;
+        gHudPanelStaticTimer = 0;
         switch (type) {
             case 0:
                 pos = 0;
-                D_8036CB3C = 13;
-                D_8036CB40 = D_802FBDD0;
-                D_8036CB3B = 1;
+                gHudPanelFrameCount = 13;
+                gHudPanelFrameIds = gHudPanelAnim0;
+                gHudPanelFrameDelay = 1;
                 break;
             case 1:
                 pos = 1;
-                D_8036CB3C = 21;
-                D_8036CB40 = D_802FBDEC;
-                D_8036CB3B = 1;
+                gHudPanelFrameCount = 21;
+                gHudPanelFrameIds = gHudPanelAnim1;
+                gHudPanelFrameDelay = 1;
                 break;
             case 2:
                 pos = 0;
-                D_8036CB3C = 21;
-                D_8036CB40 = D_802FBE18;
-                D_8036CB3B = 2;
+                gHudPanelFrameCount = 21;
+                gHudPanelFrameIds = gHudPanelAnim2;
+                gHudPanelFrameDelay = 2;
                 break;
             case 3:
                 pos = 1;
-                D_8036CB3C = 30;
-                D_8036CB40 = D_802FBE44;
-                D_8036CB3B = 1;
+                gHudPanelFrameCount = 30;
+                gHudPanelFrameIds = gHudPanelAnim3;
+                gHudPanelFrameDelay = 1;
                 break;
             case 4:
                 pos = 0;
-                D_8036CB3C = 34;
-                D_8036CB40 = D_802FBE80;
-                D_8036CB3B = 1;
+                gHudPanelFrameCount = 34;
+                gHudPanelFrameIds = gHudPanelAnim4;
+                gHudPanelFrameDelay = 1;
                 break;
         }
         if (gLevelKind != 1) {
@@ -356,24 +356,24 @@ void hud_panel_start(type, arg1, arg2, sound)
         }
         switch (pos) {
             case 0:
-                D_802FBD50[0].v.ob[0] = 32, D_802FBD50[0].v.ob[1] = 68;
-                D_802FBD50[1].v.ob[0] = 78, D_802FBD50[1].v.ob[1] = 68;
-                D_802FBD50[2].v.ob[0] = 78, D_802FBD50[2].v.ob[1] = 23;
-                D_802FBD50[3].v.ob[0] = 32, D_802FBD50[3].v.ob[1] = 23;
-                D_802FBD50[4].v.ob[0] = 26, D_802FBD50[4].v.ob[1] = 73;
-                D_802FBD50[5].v.ob[0] = 84, D_802FBD50[5].v.ob[1] = 73;
-                D_802FBD50[6].v.ob[0] = 84, D_802FBD50[6].v.ob[1] = 13;
-                D_802FBD50[7].v.ob[0] = 26, D_802FBD50[7].v.ob[1] = 13;
+                gHudPanelVtx[0].v.ob[0] = 32, gHudPanelVtx[0].v.ob[1] = 68;
+                gHudPanelVtx[1].v.ob[0] = 78, gHudPanelVtx[1].v.ob[1] = 68;
+                gHudPanelVtx[2].v.ob[0] = 78, gHudPanelVtx[2].v.ob[1] = 23;
+                gHudPanelVtx[3].v.ob[0] = 32, gHudPanelVtx[3].v.ob[1] = 23;
+                gHudPanelVtx[4].v.ob[0] = 26, gHudPanelVtx[4].v.ob[1] = 73;
+                gHudPanelVtx[5].v.ob[0] = 84, gHudPanelVtx[5].v.ob[1] = 73;
+                gHudPanelVtx[6].v.ob[0] = 84, gHudPanelVtx[6].v.ob[1] = 13;
+                gHudPanelVtx[7].v.ob[0] = 26, gHudPanelVtx[7].v.ob[1] = 13;
                 break;
             case 1:
-                D_802FBD50[0].v.ob[0] = 238, D_802FBD50[0].v.ob[1] = 222;
-                D_802FBD50[1].v.ob[0] = 284, D_802FBD50[1].v.ob[1] = 222;
-                D_802FBD50[2].v.ob[0] = 284, D_802FBD50[2].v.ob[1] = 177;
-                D_802FBD50[3].v.ob[0] = 238, D_802FBD50[3].v.ob[1] = 177;
-                D_802FBD50[4].v.ob[0] = 232, D_802FBD50[4].v.ob[1] = 227;
-                D_802FBD50[5].v.ob[0] = 290, D_802FBD50[5].v.ob[1] = 227;
-                D_802FBD50[6].v.ob[0] = 290, D_802FBD50[6].v.ob[1] = 167;
-                D_802FBD50[7].v.ob[0] = 232, D_802FBD50[7].v.ob[1] = 167;
+                gHudPanelVtx[0].v.ob[0] = 238, gHudPanelVtx[0].v.ob[1] = 222;
+                gHudPanelVtx[1].v.ob[0] = 284, gHudPanelVtx[1].v.ob[1] = 222;
+                gHudPanelVtx[2].v.ob[0] = 284, gHudPanelVtx[2].v.ob[1] = 177;
+                gHudPanelVtx[3].v.ob[0] = 238, gHudPanelVtx[3].v.ob[1] = 177;
+                gHudPanelVtx[4].v.ob[0] = 232, gHudPanelVtx[4].v.ob[1] = 227;
+                gHudPanelVtx[5].v.ob[0] = 290, gHudPanelVtx[5].v.ob[1] = 227;
+                gHudPanelVtx[6].v.ob[0] = 290, gHudPanelVtx[6].v.ob[1] = 167;
+                gHudPanelVtx[7].v.ob[0] = 232, gHudPanelVtx[7].v.ob[1] = 167;
                 break;
         }
     }
@@ -390,62 +390,62 @@ void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
     Gfx *gdl = *gfx;
 
     /* widescreen HUD sides (port.h): the top-left or bottom-right panel */
-    PORT_WTAG(gdl, PORT_WTAG_SPAN, D_802FBD50[4].v.ob[0], D_802FBD50[5].v.ob[0]);
+    PORT_WTAG(gdl, PORT_WTAG_SPAN, gHudPanelVtx[4].v.ob[0], gHudPanelVtx[5].v.ob[0]);
     if (gPanelActive) {
-        tex_queue_load(D_8036CB40[D_8036CB39], D_8036CB48[buf], 0);
-        switch (D_8036CB38) {
+        tex_queue_load(gHudPanelFrameIds[gHudPanelFrame], gHudPanelImageBufs[buf], 0);
+        switch (gHudPanelPingPong) {
             case 1:
-                if (!D_8036CB37) {
-                    D_8036CB3A++;
-                    if (D_8036CB3A == D_8036CB3B) {
-                        D_8036CB3A = 0;
-                        D_8036CB39++;
-                        if (D_8036CB39 + 1 == D_8036CB3C) {
-                            D_8036CB37 = 1;
-                            D_8036CB36++;
+                if (!gHudPanelReversing) {
+                    gHudPanelFrameTick++;
+                    if (gHudPanelFrameTick == gHudPanelFrameDelay) {
+                        gHudPanelFrameTick = 0;
+                        gHudPanelFrame++;
+                        if (gHudPanelFrame + 1 == gHudPanelFrameCount) {
+                            gHudPanelReversing = 1;
+                            gHudPanelLoopCount++;
                         }
                     }
                 } else {
-                    D_8036CB3A++;
-                    if (D_8036CB3A == D_8036CB3B) {
-                        D_8036CB3A = 0;
-                        D_8036CB39--;
-                        if (D_8036CB39 == 0) {
-                            D_8036CB37 = 0;
-                            D_8036CB36++;
+                    gHudPanelFrameTick++;
+                    if (gHudPanelFrameTick == gHudPanelFrameDelay) {
+                        gHudPanelFrameTick = 0;
+                        gHudPanelFrame--;
+                        if (gHudPanelFrame == 0) {
+                            gHudPanelReversing = 0;
+                            gHudPanelLoopCount++;
                         }
                     }
                 }
                 break;
             case 0:
-                D_8036CB3A++;
-                if (D_8036CB3A == D_8036CB3B) {
-                    D_8036CB3A = 0;
-                    D_8036CB39++;
-                    if (D_8036CB39 == D_8036CB3C) {
-                        D_8036CB39 = 0;
-                        D_8036CB36++;
+                gHudPanelFrameTick++;
+                if (gHudPanelFrameTick == gHudPanelFrameDelay) {
+                    gHudPanelFrameTick = 0;
+                    gHudPanelFrame++;
+                    if (gHudPanelFrame == gHudPanelFrameCount) {
+                        gHudPanelFrame = 0;
+                        gHudPanelLoopCount++;
                     }
                 }
                 break;
         }
-        if (D_8036CB36 == D_8036CB35) {
+        if (gHudPanelLoopCount == gHudPanelLoops) {
             gPanelActive = 0;
         }
-        if (D_8036CB36 == 0 && D_8036CB39 < 5) {
-            if (D_8036CB39 == 0) {
+        if (gHudPanelLoopCount == 0 && gHudPanelFrame < 5) {
+            if (gHudPanelFrame == 0) {
                 snd_play(gSfxBank, SFX_STATIC, NULL);
             }
-            D_8036CB51 = 0x50;
-        } else if (D_8036CB50) {
-            D_8036CB51 -= 15;
-            D_8036CB50--;
+            gHudPanelStaticAlpha = 0x50;
+        } else if (gHudPanelStaticTimer) {
+            gHudPanelStaticAlpha -= 15;
+            gHudPanelStaticTimer--;
         } else if (!util_rand_range(0, 20)) {
-            D_8036CB50 = 5;
-            D_8036CB51 = 0x50;
+            gHudPanelStaticTimer = 5;
+            gHudPanelStaticAlpha = 0x50;
             snd_play(gSfxBank, SFX_STATIC, NULL);
         } else {
-            D_8036CB51 = 0;
+            gHudPanelStaticAlpha = 0;
         }
         gSPMatrix(gdl++, (u32) seg2Base + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPMatrix(gdl++, (u32) seg2Base + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -456,18 +456,18 @@ void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
         gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPSetCombine(gdl++, 0xFC757E44, 0xFFFFF83C);
-        gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, D_8036CB51);
-        gDPLoadTextureBlock(gdl++, (u32) D_8036CB48[buf] - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 40, 40, 0,
+        gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gHudPanelStaticAlpha);
+        gDPLoadTextureBlock(gdl++, (u32) gHudPanelImageBufs[buf] - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 40, 40, 0,
                             G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                             G_TX_NOLOD);
-        gSPVertex(gdl++, (u32) D_802FBD50 - 0x80000000, 8, 0);
+        gSPVertex(gdl++, (u32) gHudPanelVtx - 0x80000000, 8, 0);
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
         gDPPipeSync(gdl++);
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
         gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
-        gDPLoadTextureBlock(gdl++, (u32) D_802FAD50 - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
+        gDPLoadTextureBlock(gdl++, (u32) gHudFrameTex - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
                             G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                             G_TX_NOLOD);
         gSP1Triangle(gdl++, 4, 5, 6, 0);

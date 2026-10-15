@@ -33,7 +33,7 @@ typedef struct {
     /* 0xEC */ u8 partPct[0x10]; /* 100 = part destroyed */
 } Rec7FB50; /* size 0xFC */
 
-extern u8 D_803063F0[];
+extern u8 gStatusLevelPercents[];
 
 
 /* Bit writer used by the status packers below: MSB-first into whole bytes.
@@ -75,18 +75,18 @@ extern u8 gJbombState[];
  * +0x78..0x95: 15 s16 tuning values
  * +0x96..0x98: u8 flags; +0x9F: u8 (100 = ...); +0xA1: u8 mode (0..5); +0xA2: u8 previous mode */
 
-extern s32 D_803F7BFC;
+extern s32 gJbombPosY;
 extern void * N64P gJbombThrustSound;
 extern void * N64P gJbombAirSound;
-extern f32 D_803F7C28;
-extern f32 D_803F7C2C;
-extern u8 D_803F7C3C;
+extern f32 gJbombPitch;
+extern f32 gJbombRoll;
+extern u8 gJbombAirSteerRate;
 extern u8 gJbombThrusting;
-extern u8 D_803F7C48;
-extern f32 D_8030D968;
-extern f32 D_8030D96C;
-extern f32 D_8030D970;
-extern f32 D_8030D974;
+extern u8 gJbombThrottleStep;
+extern f32 gJbombRollMax;
+extern f32 gJbombRollMaxClamp;
+extern f32 gJbombRollMin;
+extern f32 gJbombRollMinClamp;
 
 
 /* This vehicle's animation channel table and the channel-field setters /
@@ -262,13 +262,13 @@ void apply_status(void *in) {
 #define REC7FB50_ELIGIBLE(r) ((r)->kind != 0x38 && (r)->info[4] != 1)
 
 /* create_status: build a status bitstream in the format record_status writes,
- * for difficulty/percentage level `level` (1-based index into D_803063F0, a
+ * for difficulty/percentage level `level` (1-based index into gStatusLevelPercents, a
  * table of percentages).
  * Section 1: for every record in use, numParts copies of one bit. The bit is
  * 1 for eligible records that are already done (unkEB), plus enough further
- * eligible records, in order, to make D_803063F0[level-1] percent of the
+ * eligible records, in order, to make gStatusLevelPercents[level-1] percent of the
  * eligible ones, plus one (none at all when level == 5).
- * Section 2: gRduCount bits, the first D_803063F0[level-1] percent of them 1.
+ * Section 2: gRduCount bits, the first gStatusLevelPercents[level-1] percent of them 1.
  * Each section is padded to a whole byte. Returns the number of bytes written. */
 u32 create_status(void *outp, u8 level) {
     BitWriter7FB50 w;
@@ -282,7 +282,7 @@ u32 create_status(void *outp, u8 level) {
     u32 bit;
     s32 n;
 
-    pct = D_803063F0[level - 1];
+    pct = gStatusLevelPercents[level - 1];
 
     eligible = 0;
     for (r = gObjects; r != gObjectsEnd; r++) {
@@ -352,23 +352,23 @@ extern u32 gJbombPos[]; /* x, y, z */
 extern u8 * N64P gJbombModel;   /* its model */
 extern u64 * N64P gJbombMtxA;  /* save copy pair */
 extern u64 * N64P gJbombMtxB;
-extern s32 D_803F7C20;
-extern s32 D_803F7C24;
-extern u8 D_803F7C36;
-extern u8 D_803F7C37;
-extern u8 D_803F7C38;
-extern u8 D_803F7C39;
-extern u8 D_803F7C3A;
-extern s8 D_803F7C3B;
-extern u8 D_803F7C3D;
-extern u8 D_803F7C40;
-extern u8 D_803F7C41;
-extern u8 D_803F7C42;
-extern u8 D_803F7C43;
-extern u8 D_803F7C45;
-extern u8 D_803F7C47;
-extern u8 D_803F7C4A;
-extern u8 D_803F7C4B;
+extern s32 gJbombSinceStomp2;
+extern s32 gJbombSinceStomp4;
+extern u8 gJbombEscaping;
+extern u8 gJbombBounced;
+extern u8 gJbombThrottleHold;
+extern u8 gJbombKnocked;
+extern u8 gJbombFlameTimer;
+extern s8 gJbombJetRamp;
+extern u8 gJbombThrustHold;
+extern u8 gJbombStompTimer;
+extern u8 gJbombStompDelay;
+extern u8 gJbombPrevHeldB;
+extern u8 gJbombPrevAirborne;
+extern u8 gJbombTapTimerL;
+extern u8 gJbombTapTimerR;
+extern u8 gJbombStompDropPending;
+extern u8 gJbombIdleTimer;
 
 /* Sets up J-Bomb (type 9) (0x802C5120).
  * Load vehicle 9 (the 5CB60 dispatcher lvl_spawn_vehicles, record type 9): model
@@ -379,7 +379,7 @@ extern u8 D_803F7C4B;
  * key 9, fp), the model's animation channels (anim_init_model, channel 0 set
  * to 100 / 0 / 0 / 0.0 / restart, run on both copies with anim_update_model and
  * anim_rewind between), its flags, counters and mode (+0xA1/+0xA2 = 0),
- * D_803F7C28/2C = 0.5, D_803F7C20/24 = 999999, parts (veh_register_parts, scale
+ * gJbombPitch/Roll = 0.5, gJbombSinceStomp2/4 = 999999, parts (veh_register_parts, scale
  * 0x4268), veh_add_shadow(9, 100, 45, 45), channel 6 (0.0 with 2, restart
  * with -1), one update with +0x9A set (jbomb_update), the save copy pair
  * (veh_sync_buffers(gJbombMtxB, gJbombMtxA, 0x1000)), copy the model matrix
@@ -433,29 +433,29 @@ void jbomb_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     anim_rewind(0, (AnimChannel *) gJbombAnim);
     anim_play((AnimChannel *) gJbombAnim, 0, 1);
     anim_update_model((u8 *) gJbombMtxB, (u8 *) gJbombMtxA, (AnimChannel *) gJbombAnim);
-    D_803F7C36 = 0;
-    D_803F7C37 = 0;
-    D_803F7C39 = 0;
-    D_803F7C3D = 0;
-    D_803F7C38 = 0;
-    D_803F7C45 = 0;
-    D_803F7C47 = 0;
-    D_803F7C4A = 0;
-    D_803F7C3A = 0;
-    D_803F7C3B = 0;
-    D_803F7C28 = 0.5f;
-    D_803F7C2C = 0.5f;
+    gJbombEscaping = 0;
+    gJbombBounced = 0;
+    gJbombKnocked = 0;
+    gJbombThrustHold = 0;
+    gJbombThrottleHold = 0;
+    gJbombTapTimerL = 0;
+    gJbombTapTimerR = 0;
+    gJbombStompDropPending = 0;
+    gJbombFlameTimer = 0;
+    gJbombJetRamp = 0;
+    gJbombPitch = 0.5f;
+    gJbombRoll = 0.5f;
     VEH_U8(VS_ACTION) = 0;
     VEH_U8(VS_ACTION_AUX) = 0;
-    D_803F7C3C = 0x14;
-    D_803F7C43 = 0;
-    D_803F7C4B = 0x1E;
-    D_803F7C20 = 999999;
-    D_803F7C24 = 999999;
-    D_803F7C40 = 0;
-    D_803F7C41 = 0;
-    D_803F7C34 = 0;
-    D_803F7C42 = 0;
+    gJbombAirSteerRate = 0x14;
+    gJbombPrevAirborne = 0;
+    gJbombIdleTimer = 0x1E;
+    gJbombSinceStomp2 = 999999;
+    gJbombSinceStomp4 = 999999;
+    gJbombStompTimer = 0;
+    gJbombStompDelay = 0;
+    gContSteerError = 0;
+    gJbombPrevHeldB = 0;
     m = gJbombModel;
     veh_register_parts(9, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x4268);
     veh_add_shadow(9, 0x64, 0x2D, 0x2D);
@@ -583,7 +583,7 @@ void jbomb_build_model(MtxChainRegs *regs);
 /* Placed J-Bomb on a moving level part: re-ground it (0x802C5860).
  * Move this vehicle while it isn't the player's (veh_update_others, case 9):
  * ground heights for its three slots (veh_reground with table +0x52, angle
- * +0x4C, heights to +4.., the middle y to D_803F7BFC, key 9), place the
+ * +0x4C, heights to +4.., the middle y to gJbombPosY, key 9), place the
  * model (jbomb_build_model), then veh_set_record(z, 9, x, y, block).
  * Register convention (conventions.txt): `fp` is the asm's $fp, which goes
  * on to veh_reground (which stores it into gSlotSurface[0..2], so the
@@ -696,14 +696,14 @@ void jbomb_ride_follow(s32 id, s32 *s3, InterpRegs *r) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 * N64P gJbombModel; /* this vehicle's model */
-extern u8 D_803F7C36;  /* "turning back to the ring" flag */
-extern u8 D_803F7C37;  /* bounced off the ring end (the bounce code is unreachable here) */
-extern u8 D_803F7C38;  /* throttle hold-off countdown */
-extern s16 D_803F7C30; /* ring target heading */
-extern u8 D_803F7C39;
-extern s32 D_803F7C20;
-extern s32 D_803F7C24;
-extern u8 D_80306400[];
+extern u8 gJbombEscaping;  /* "turning back to the ring" flag */
+extern u8 gJbombBounced;  /* bounced off the ring end (the bounce code is unreachable here) */
+extern u8 gJbombThrottleHold;  /* throttle hold-off countdown */
+extern s16 gJbombEscapeHeading; /* ring target heading */
+extern u8 gJbombKnocked;
+extern s32 gJbombSinceStomp2;
+extern s32 gJbombSinceStomp4;
+extern u8 gJbombNonBlockingParts[];
 void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r);
 void jbomb_slow_down(void);
 void jbomb_check_overhead(s32 x, s32 z, TriSideOut *f);
@@ -716,24 +716,24 @@ s32 jbomb_steer_rate(void);
  * (jbomb_set_gravity), unless +0x9A is set the mode machine (jbomb_update_modes) and
  * the gCamDistance pair (jbomb_update_cam_distance), the tuning values (jbomb_set_tuning),
  * steering (veh_steer at rate jbomb_steer_rate()), throttle (veh_throttle
- * with delta D_803F7C48, unless D_803F7C37; held off while D_803F7C38 counts
+ * with delta gJbombThrottleStep, unless gJbombBounced; held off while gJbombThrottleHold counts
  * down), braking (veh_coast in mode 0, else jbomb_slow_down), heading
  * target = heading, slope (veh_slope unless +0x96 is 1) and drag
  * (veh_apply_slope in mode 0; other modes move the speed 1 toward 0) unless
- * D_803F7C37, ring turn-back (veh_set_target_heading when D_803F7C36), the forward
+ * gJbombBounced, ring turn-back (veh_set_target_heading when gJbombEscaping), the forward
  * step (veh_move_along_heading), the ceiling check jbomb_check_overhead and ground contact
  * (veh_ground_contact), the model (anim_update_model on the current copy pair,
  * jbomb_build_model). Outside mode 5: collision (veh_collision_setup with the mode
- * class 1 (modes 1-3) / 2 (mode 4, or modes 0/6+ while D_803F7C24 < 3) / 0,
+ * class 1 (modes 1-3) / 2 (mode 4, or modes 0/6+ while gJbombSinceStomp4 < 3) / 0,
  * veh_collide_spheres, veh_collide_world; a hit, gTrainContact, in modes 1-4 -> mode 2,
- * D_803F7C39 = 1), then either the collision pass obj_collide_vehicle (no ring
+ * gJbombKnocked = 1), then either the collision pass obj_collide_vehicle (no ring
  * hit) whose ring-end hit (gCollHit, or +0x9C) sends modes 1-3 (and modes
- * 0/5+ while D_803F7C20 < 3 or with +0x96 == 1) to mode 2 and otherwise
+ * 0/5+ while gJbombSinceStomp2 < 3 or with +0x96 == 1) to mode 2 and otherwise
  * falls into the turn back, or (ring hit) the turn back toward the ring
- * midpoint (veh_prepare_escape, D_803F7C36 = 1, veh_reverse_if_behind, veh_turn_into_free_arc,
+ * midpoint (veh_prepare_escape, gJbombEscaping = 1, veh_reverse_if_behind, veh_turn_into_free_arc,
  * veh_step_heading, veh_hit_slowdown(0)). Mode 4 and the quiet paths clear
- * D_803F7C36/37. Finally the position, speed and angles go to gPlayerX.. /
- * D_8036443C.., veh_set_record(z, 9, x, y, block), and gJbombAirborne = mode in
+ * gJbombEscaping/Bounced. Finally the position, speed and angles go to gPlayerX.. /
+ * gPlayerSpeed.., veh_set_record(z, 9, x, y, block), and gJbombAirborne = mode in
  * 1..4. (The asm also holds a bounce-off-the-ring-end block like
  * ballista_update's, but nothing branches to it.)
  * Register notes (FIDELITY, see tools_port/port_followups.md): jbomb_zone_alpha's
@@ -786,11 +786,11 @@ void jbomb_update(void) {
     }
     jbomb_set_tuning();
     veh_steer(jbomb_steer_rate(), (u16 *) &VEH_S16(VS_HEADING));
-    if (D_803F7C37 == 0) {
-        if (D_803F7C38 == 0) {
-            veh_throttle(gJbombState, &VEH_S16(VS_SPEED), 4, &VEH_U8(VS_SLOT_AIRBORNE), &VEH_S16(VS_BANDS), D_803F7C48);
+    if (gJbombBounced == 0) {
+        if (gJbombThrottleHold == 0) {
+            veh_throttle(gJbombState, &VEH_S16(VS_SPEED), 4, &VEH_U8(VS_SLOT_AIRBORNE), &VEH_S16(VS_BANDS), gJbombThrottleStep);
         } else {
-            D_803F7C38--;
+            gJbombThrottleHold--;
         }
     }
     if (VEH_U8(VS_ACTION) == 0) {
@@ -804,7 +804,7 @@ void jbomb_update(void) {
     } else {
         slope = veh_slope(&VEH_S16(VS_SPEED), &VEH_U8(VS_SLOT_AIRBORNE), &VEH_S32(4), (f32 *) &VEH_S32(0));
     }
-    if ((s8) D_803F7C37 == 0) {
+    if ((s8) gJbombBounced == 0) {
         if (VEH_U8(VS_ACTION) == 0) {
             veh_apply_slope(gJbombState, &VEH_S16(VS_SPEED), 9, (s8 *) &VEH_U8(VS_SLOT_AIRBORNE), &VEH_S32(4), 1, 120.0f);
         } else {
@@ -817,8 +817,8 @@ void jbomb_update(void) {
             VEH_S16(VS_SPEED) = v;
         }
     }
-    if ((s8) D_803F7C36 != 0) {
-        veh_set_target_heading(gJbombState, &D_803F7C30);
+    if ((s8) gJbombEscaping != 0) {
+        veh_set_target_heading(gJbombState, &gJbombEscapeHeading);
     }
     x = veh_move_along_heading(slope, *(u16 *) &VEH_S16(VS_MOVE_HEADING), &VEH_S16(VS_SPEED), (s32 *) &gJbombPos[0],
                       (s32 *) &gJbombPos[2], &o860c);
@@ -838,30 +838,30 @@ void jbomb_update(void) {
     regs.s0 = (s32) &VEH_U8(VS_SLOT_AIRBORNE);
     regs.s1 = (s32) &gJbombPos[2];
     jbomb_build_model(&regs);
-    D_803F7C39 = 0;
+    gJbombKnocked = 0;
     mode = VEH_U8(VS_ACTION);
     if (mode == 5) {
         goto quiet;
     }
     if (mode == 1 || mode == 2 || mode == 3) {
         cls = 1;
-    } else if (mode == 4 || D_803F7C24 < 3) {
+    } else if (mode == 4 || gJbombSinceStomp4 < 3) {
         cls = 2;
     } else {
         cls = 0;
     }
     mdl = gJbombModel; /* t2 as veh_points_transform (in jbomb_build_model) leaves it */
-    veh_collision_setup(gJbombPos[2], (s32) D_80306400, 1, 0, gJbombPos[0], gJbombPos[1], 9, VEH_S16(VS_SPEED),
+    veh_collision_setup(gJbombPos[2], (s32) gJbombNonBlockingParts, 1, 0, gJbombPos[0], gJbombPos[1], 9, VEH_S16(VS_SPEED),
                   (s32) (mdl + *(s32 *) (mdl + 4)), cls, 9, gJbombState);
     veh_collide_spheres(9, gJbombState);
     veh_collide_world(9);
     if (gTrainContact != 0 && VEH_U8(VS_ACTION) != 0 && VEH_U8(VS_ACTION) != 5) {
         VEH_U8(VS_ACTION) = 2;
-        D_803F7C39 = 1;
+        gJbombKnocked = 1;
     }
     if (gCollBlocked == 0) {
         gCollHit = 0;
-        D_803F77D0 = gJbombAnim;
+        gCollVehicleAnim = gJbombAnim;
         obj_collide_vehicle(9, gJbombState);
         if (gCollHit == 0 && VEH_U8(VS_HIT_PART_DOWN) == 0) {
             goto quiet;
@@ -873,13 +873,13 @@ void jbomb_update(void) {
         if (mode == 4) {
             goto quiet;
         }
-        if (D_803F7C20 < 3 || VEH_U8(VS_SLOT_AIRBORNE) == 1) {
+        if (gJbombSinceStomp2 < 3 || VEH_U8(VS_SLOT_AIRBORNE) == 1) {
             goto toMode2;
         }
     }
     /* turn back toward the ring */
     veh_prepare_escape(gJbombState);
-    D_803F7C36 = 1;
+    gJbombEscaping = 1;
     mid = veh_free_arc_mid();
     v = *(u16 *) &VEH_S16(VS_MOVE_HEADING) - 0x800;
     if (v < 0) {
@@ -894,7 +894,7 @@ void jbomb_update(void) {
     }
     veh_reverse_if_behind(gJbombState);
     turn = veh_turn_into_free_arc(gJbombState, *(u16 *) &VEH_S16(VS_MOVE_HEADING), *(u16 *) &VEH_S16(VS_HEADING), &cur, 0.25f);
-    D_803F7C30 = cur;
+    gJbombEscapeHeading = cur;
     VEH_S16(VS_MOVE_HEADING) = cur;
     VEH_S16(VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(gJbombState, turn, v, &tgt);
@@ -902,18 +902,18 @@ void jbomb_update(void) {
     goto done;
 toMode2:
     VEH_U8(VS_ACTION) = 2;
-    D_803F7C39 = 1;
+    gJbombKnocked = 1;
     goto done;
 quiet:
-    D_803F7C36 = 0;
-    D_803F7C37 = 0;
+    gJbombEscaping = 0;
+    gJbombBounced = 0;
 done:
     gPlayerX = gJbombPos[0];
     gPlayerY = gJbombPos[1];
     gPlayerZ = gJbombPos[2];
-    D_8036443C = VEH_S16(VS_SPEED);
-    D_8036443E = *(u16 *) &VEH_S16(VS_MOVE_HEADING);
-    D_80364440 = *(u16 *) &VEH_S16(VS_HEADING);
+    gPlayerSpeed = VEH_S16(VS_SPEED);
+    gPlayerMoveHeading = *(u16 *) &VEH_S16(VS_MOVE_HEADING);
+    gPlayerHeading = *(u16 *) &VEH_S16(VS_HEADING);
     veh_set_record(gJbombPos[2], 9, gJbombPos[0], gJbombPos[1], gJbombState);
     mode = VEH_U8(VS_ACTION);
     gJbombAirborne = (mode != 0 && mode != 5) ? 1 : 0;
@@ -955,21 +955,21 @@ void jbomb_slow_down(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803F7C20; /* frames since the countdown D_803F7C40 was at 2/3 */
-extern s32 D_803F7C24; /* frames since it was at 4 */
-extern s16 D_803F7C32; /* channel 6's last field 0x18 */
-extern u8 D_803F7C39;
-extern u8 D_803F7C3D; /* countdown */
-extern u8 D_803F7C40; /* countdown */
-extern u8 D_803F7C41; /* countdown (reloaded with 9 outside modes 1-3) */
-extern u8 D_803F7C42; /* previous frame's gHeldB */
-extern u8 D_803F7C43; /* previous frame's +0x96 */
-extern u8 D_803F7C44;
-extern u8 D_803F7C45;
-extern u8 D_803F7C46;
-extern u8 D_803F7C47;
-extern u8 D_803F7C4A;
-extern f32 D_8030D950;
+extern s32 gJbombSinceStomp2; /* frames since the countdown gJbombStompTimer was at 2/3 */
+extern s32 gJbombSinceStomp4; /* frames since it was at 4 */
+extern s16 gJbombStepFrame; /* channel 6's last field 0x18 */
+extern u8 gJbombKnocked;
+extern u8 gJbombThrustHold; /* countdown */
+extern u8 gJbombStompTimer; /* countdown */
+extern u8 gJbombStompDelay; /* countdown (reloaded with 9 outside modes 1-3) */
+extern u8 gJbombPrevHeldB; /* previous frame's gHeldB */
+extern u8 gJbombPrevAirborne; /* previous frame's +0x96 */
+extern u8 gJbombTapPhaseL;
+extern u8 gJbombTapTimerL;
+extern u8 gJbombTapPhaseR;
+extern u8 gJbombTapTimerR;
+extern u8 gJbombStompDropPending;
+extern f32 gJbombIdleTakeoffPitch;
 s32 jbomb_thrust_speed(void);
 s32 jbomb_check_surface_above(TriSideOut *f, TriScanRegs *r);
 void jbomb_lift_off_water(void);
@@ -1015,35 +1015,35 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
     VEH_U8(VS_ACTION_AUX) = mode;
     if (mode == 1 || mode == 2 || mode == 3) {
-        if (D_803F7C41 != 0) {
-            D_803F7C41--;
+        if (gJbombStompDelay != 0) {
+            gJbombStompDelay--;
         }
     } else {
-        D_803F7C41 = 9;
+        gJbombStompDelay = 9;
     }
-    v = D_803F7C40;
+    v = gJbombStompTimer;
     if (v != 0) {
         v--;
-        D_803F7C40 = v;
+        gJbombStompTimer = v;
     }
     if (v == 2 || v == 3) {
-        D_803F7C20 = 0;
+        gJbombSinceStomp2 = 0;
     } else {
-        D_803F7C20++;
+        gJbombSinceStomp2++;
     }
     if (v == 4) {
-        D_803F7C24 = 0;
+        gJbombSinceStomp4 = 0;
     } else {
-        D_803F7C24++;
+        gJbombSinceStomp4++;
     }
 
     gJbombThrusting = 0;
-    if (!(gJbombMaxY < D_803F7BFC) && VEH_U8(VS_ACTION) != 4 && VEH_U8(VS_ACTION) != 2) {
-        if (D_803F7C3D != 0) {
-            D_803F7C3D--;
+    if (!(gJbombMaxY < gJbombPosY) && VEH_U8(VS_ACTION) != 4 && VEH_U8(VS_ACTION) != 2) {
+        if (gJbombThrustHold != 0) {
+            gJbombThrustHold--;
         } else if (gHeldA != 0 || gHeldL != 0 || gHeldR != 0) {
             if (VEH_U8(VS_SLOT_AIRBORNE) != 1) {
-                VEH_TRIPLE(0x34, D_803F7BFC);
+                VEH_TRIPLE(0x34, gJbombPosY);
                 VEH_TRIPLE(0x40, 1);
                 VEH_TRIPLE(0x28, 30);
                 VEH_U8(VS_SLOT_AIRBORNE) = 1;
@@ -1053,7 +1053,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
                 v = jbomb_thrust_speed();
                 VEH_TRIPLE(0x40, 1);
                 VEH_TRIPLE(0x28, v);
-                VEH_TRIPLE(0x34, D_803F7BFC);
+                VEH_TRIPLE(0x34, gJbombPosY);
             }
             gJbombThrusting = 1;
         }
@@ -1074,18 +1074,18 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
     if (VEH_U8(VS_HIT_IMMUNE_PART) != 0) {
         VEH_U8(VS_ACTION) = 3;
-        D_803F7C39 = 1;
-    } else if (D_803F7C43 != 1) {
+        gJbombKnocked = 1;
+    } else if (gJbombPrevAirborne != 1) {
         if (VEH_U8(VS_SLOT_AIRBORNE) == 1) {
             anim_stop(6, (AnimChannel *) gJbombAnim);
             anim_stop(9, (AnimChannel *) gJbombAnim);
-            D_803F7C28 = (VEH_U8(VS_ACTION_AUX) == 5) ? D_8030D950 : 0.5f;
-            D_803F7C2C = 0.5f;
+            gJbombPitch = (VEH_U8(VS_ACTION_AUX) == 5) ? gJbombIdleTakeoffPitch : 0.5f;
+            gJbombRoll = 0.5f;
             VEH_U8(VS_ACTION) = 1;
         }
-    } else if (VEH_U8(VS_SLOT_AIRBORNE) == 0 && D_803F7C39 == 0) {
+    } else if (VEH_U8(VS_SLOT_AIRBORNE) == 0 && gJbombKnocked == 0) {
         /* landed: reset the position triples */
-        v = D_803F7BFC;
+        v = gJbombPosY;
         VEH_S32(VS_SLOT_Y) = v;
         VEH_S32(0x08) = v;
         VEH_S32(0x0C) = v;
@@ -1135,7 +1135,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
         io.a3 = 0;
         io.t6 = 0;
         io.s1 = 0;
-        fx_spawn(&io, D_802C28E4, 0x222E0, 0, ((s32 *) gJbombPos)[0] << 11, D_803F7BFC << 11,
+        fx_spawn(&io, gFxDefKind04, 0x222E0, 0, ((s32 *) gJbombPos)[0] << 11, gJbombPosY << 11,
                       ((s32 *) gJbombPos)[2] << 11, 0, 0, 0, 0, 0, 0);
         t6 = io.t6;
         s1 = io.s1;
@@ -1165,16 +1165,16 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             break;
 
         case 4:
-            if (D_803F7C4A != 0) {
+            if (gJbombStompDropPending != 0) {
                 anim_get_state(5, (AnimChannel *) gJbombAnim, ch);
                 if (ch[0] != 1) {
-                    VEH_TRIPLE(0x34, D_803F7BFC);
+                    VEH_TRIPLE(0x34, gJbombPosY);
                     VEH_TRIPLE(0x40, 1);
                     VEH_TRIPLE(0x28, -0x4B0);
-                    D_803F7C4A = 0;
+                    gJbombStompDropPending = 0;
                 }
             }
-            D_803F7C3D = 10;
+            gJbombThrustHold = 10;
             break;
 
         case 0:
@@ -1198,8 +1198,8 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             anim_play((AnimChannel *) gJbombAnim, 6, -1);
             anim_get_state(6, (AnimChannel *) gJbombAnim, ch);
             /* ch[6] is the asm's t1 (the whole word; the store keeps 16 bits) */
-            old = D_803F7C32;
-            D_803F7C32 = ch[6];
+            old = gJbombStepFrame;
+            gJbombStepFrame = ch[6];
             if (ch[6] != old) {
                 if (ch[6] == 0) {
                     snd_play(gSfxBank, SFX_JBOMB_STEP_A, NULL);
@@ -1210,12 +1210,12 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             break;
 
         case 2:
-            D_803F7C3D = 10;
+            gJbombThrustHold = 10;
             if (gHeldA != 0 || gHeldL != 0 || gHeldR != 0) {
                 v = jbomb_thrust_speed();
                 VEH_TRIPLE(0x40, 1);
                 VEH_TRIPLE(0x28, v);
-                VEH_TRIPLE(0x34, D_803F7BFC);
+                VEH_TRIPLE(0x34, gJbombPosY);
                 gJbombThrusting = 1;
                 VEH_U8(VS_ACTION) = 1;
             }
@@ -1227,7 +1227,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             anim_play((AnimChannel *) gJbombAnim, 4, -1);
             anim_play((AnimChannel *) gJbombAnim, 3, -1);
             jbomb_update_tilt(&s2);
-            if (D_803F7C39 != 0) {
+            if (gJbombKnocked != 0) {
                 if (VEH_U8(VS_HIT_PART_DOWN) == 0) {
                     v = VEH_S16(VS_SPEED);
                     if (v >= 0x15) {
@@ -1238,7 +1238,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
                     }
                     VEH_S16(VS_SPEED) = v;
                 }
-                VEH_TRIPLE(0x34, D_803F7BFC);
+                VEH_TRIPLE(0x34, gJbombPosY);
                 VEH_TRIPLE(0x40, 1);
                 VEH_TRIPLE(0x28, 0x14A);
                 VEH_U8(VS_SLOT_AIRBORNE) = 1;
@@ -1246,23 +1246,23 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
                 VEH_U8(0x98) = 1;
                 break;
             }
-            if (D_803F7C40 != 0 || D_803F7C41 != 0 || VEH_U8(VS_SURFACE_MAX) == 100) {
+            if (gJbombStompTimer != 0 || gJbombStompDelay != 0 || VEH_U8(VS_SURFACE_MAX) == 100) {
                 break;
             }
             jbomb_track_lr_taps();
-            if (D_803F7C44 != 3 && (D_803F7C42 != 0 || gHeldB == 0)) {
+            if (gJbombTapPhaseL != 3 && (gJbombPrevHeldB != 0 || gHeldB == 0)) {
                 break;
             }
             /* both press/release trackers done, or a new gHeldB press: mode 4 */
-            D_803F7C45 = 0;
-            D_803F7C44 = 0;
-            D_803F7C47 = 0;
-            D_803F7C46 = 0;
-            D_803F7C40 = 20;
-            D_803F7C4A = 1;
+            gJbombTapTimerL = 0;
+            gJbombTapPhaseL = 0;
+            gJbombTapTimerR = 0;
+            gJbombTapPhaseR = 0;
+            gJbombStompTimer = 20;
+            gJbombStompDropPending = 1;
             VEH_U8(VS_ACTION) = 4;
             VEH_TRIPLE(0x28, 0);
-            VEH_TRIPLE(0x34, D_803F7BFC);
+            VEH_TRIPLE(0x34, gJbombPosY);
             VEH_TRIPLE(0x40, 1);
             anim_stop(4, (AnimChannel *) gJbombAnim);
             anim_stop(3, (AnimChannel *) gJbombAnim);
@@ -1282,8 +1282,8 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
     jbomb_update_jet_effects(t6, t7, s0, s1, s2, s3, s4);
     jbomb_check_idle();
     jbomb_update_jet_sounds();
-    D_803F7C43 = VEH_U8(VS_SLOT_AIRBORNE);
-    D_803F7C42 = gHeldB;
+    gJbombPrevAirborne = VEH_U8(VS_SLOT_AIRBORNE);
+    gJbombPrevHeldB = gHeldB;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/jbomb_update_modes.s")
@@ -1291,11 +1291,11 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7C4B; /* idle countdown */
+extern u8 gJbombIdleTimer; /* idle countdown */
 
 /* 30 still frames walking: the idle animation (mode 5) (0x802C6DAC).
  * Idle check: while the vehicle moves (+0x76 != 0) or is in a mode
- * (+0xA1 != 0) the countdown D_803F7C4B is reloaded with 30, else it counts
+ * (+0xA1 != 0) the countdown gJbombIdleTimer is reloaded with 30, else it counts
  * down to 0. In mode 0, stopped, with the countdown at 0: mode 5, channel 6
  * stopped and channel 7 armed (0.0 / 0, 3, 0, 0.0 / 0, 1, restart with 1).
  * The asm reads the block through $gp (= gJbombState, set by its caller);
@@ -1303,11 +1303,11 @@ extern u8 D_803F7C4B; /* idle countdown */
  * thunk; the native port won't). */
 void jbomb_check_idle(void) {
     if (VEH_S16(VS_SPEED) != 0 || VEH_U8(VS_ACTION) != 0) {
-        D_803F7C4B = 30;
-    } else if (D_803F7C4B != 0) {
-        D_803F7C4B--;
+        gJbombIdleTimer = 30;
+    } else if (gJbombIdleTimer != 0) {
+        gJbombIdleTimer--;
     }
-    if (VEH_U8(VS_ACTION) != 0 || VEH_S16(VS_SPEED) != 0 || D_803F7C4B != 0) {
+    if (VEH_U8(VS_ACTION) != 0 || VEH_S16(VS_SPEED) != 0 || gJbombIdleTimer != 0) {
         return;
     }
     VEH_U8(VS_ACTION) = 5;
@@ -1366,8 +1366,8 @@ void jbomb_update_jet_sounds(void) {
 /* The next upward speed, fading with height (0x802C6FD8).
  * With a = +0x28, n = +0x40 of the vehicle block and k = gGravity:
  * (a*n + round(k*n*n)) - (a*(n-1) + round(k*(n-1)^2)) + bonus, where bonus
- * is 30 when D_803F7BFC < gJbombLiftFadeY, else
- * 30 - (u32)((D_803F7BFC - gJbombLiftFadeY) * 30) / (u32)(gJbombMaxY - gJbombLiftFadeY).
+ * is 30 when gJbombPosY < gJbombLiftFadeY, else
+ * 30 - (u32)((gJbombPosY - gJbombLiftFadeY) * 30) / (u32)(gJbombMaxY - gJbombLiftFadeY).
  * Products are 32-bit; round() is cvt.w.s (nearest, ties to even).
  * The asm returns the value in s6 and also changes s7 and a1 (scratch);
  * asm caller jbomb_update_modes keeps a2, a3, t6, t7, f12 and f14 live (a mixed
@@ -1385,10 +1385,10 @@ s32 jbomb_thrust_speed(void) {
     a = VEH_S32(VS_SLOT_LAUNCH_VEL);
     CVT_W_S(r, gGravity * (f32) (n * n));
     sum -= a * n + r;
-    if (D_803F7BFC < gJbombLiftFadeY) {
+    if (gJbombPosY < gJbombLiftFadeY) {
         bonus = 30;
     } else {
-        bonus = 30 - (u32) ((D_803F7BFC - gJbombLiftFadeY) * 30) / (u32) (gJbombMaxY - gJbombLiftFadeY);
+        bonus = 30 - (u32) ((gJbombPosY - gJbombLiftFadeY) * 30) / (u32) (gJbombMaxY - gJbombLiftFadeY);
     }
     return sum + bonus;
 }
@@ -1401,7 +1401,7 @@ s32 jbomb_thrust_speed(void) {
 extern u32 gJbombPos[]; /* x, y, z */
 
 /* A surface 0..3000 above: pushed up (mode 1) (0x802C70E8).
- * Ground check below the vehicle (gJbombPos x/z, D_803F7BFC y) with
+ * Ground check below the vehicle (gJbombPos x/z, gJbombPosY y) with
  * ground_scan_guard_tris: when a triangle was found whose height h >= y, and h - y is
  * below 200, the vehicle snaps to mode 1 (+0xA1 = 1, triples +0x34.. = y,
  * +0x40.. = 1, +0x28.. = 30, flags +0x96..0x98 = 1, gJbombThrusting = 1); below
@@ -1411,14 +1411,14 @@ extern u32 gJbombPos[]; /* x, y, z */
  * registers (a3, t6, t7, fp, s1-s4) pass through to the caller, here through
  * f and r (conventions.txt); $gp (= gJbombState) is read as the global. */
 s32 jbomb_check_surface_above(TriSideOut *f, TriScanRegs *r) {
-    s32 best = ground_scan_guard_tris(gJbombPos[0], gJbombPos[2], D_803F7BFC, f, r);
+    s32 best = ground_scan_guard_tris(gJbombPos[0], gJbombPos[2], gJbombPosY, f, r);
     s32 d;
     s32 w;
 
-    if (r->a1 == 0 || D_803EBBFC < D_803F7BFC) {
+    if (r->a1 == 0 || gGuardTrisBestY < gJbombPosY) {
         return best;
     }
-    d = D_803EBBFC - D_803F7BFC;
+    d = gGuardTrisBestY - gJbombPosY;
     if (d < 200) {
         w = 30;
     } else if (d < 3000) {
@@ -1427,9 +1427,9 @@ s32 jbomb_check_surface_above(TriSideOut *f, TriScanRegs *r) {
         return best;
     }
     VEH_U8(VS_ACTION) = 1;
-    VEH_S32(VS_SLOT_LAUNCH_Y) = D_803F7BFC;
-    VEH_S32(0x38) = D_803F7BFC;
-    VEH_S32(0x3C) = D_803F7BFC;
+    VEH_S32(VS_SLOT_LAUNCH_Y) = gJbombPosY;
+    VEH_S32(0x38) = gJbombPosY;
+    VEH_S32(0x3C) = gJbombPosY;
     VEH_S32(VS_SLOT_AIR_TIME) = 1;
     VEH_S32(0x44) = 1;
     VEH_S32(0x48) = 1;
@@ -1452,8 +1452,8 @@ s32 jbomb_check_surface_above(TriSideOut *f, TriScanRegs *r) {
 #ifdef NON_MATCHING
 
 /* A surface >= 200 above the new x/z (0x802C71FC).
- * D_803F7C49 = 1 when ground_scan_guard_tris at (x, z, D_803F7BFC) finds ground at
- * least 200 above D_803F7BFC, else 0.
+ * gJbombCeilingAbove = 1 when ground_scan_guard_tris at (x, z, gJbombPosY) finds ground at
+ * least 200 above gJbombPosY, else 0.
  * Register convention: x t0, z t1; ground_scan_guard_tris's FP results (f12-f26) are
  * left for the caller, here through f (in/out; conventions.txt). The asm
  * saves and restores every integer register; asm caller jbomb_update keeps
@@ -1472,10 +1472,10 @@ void jbomb_check_overhead(s32 x, s32 z, TriSideOut *f) {
     r.s2 = 0;
     r.s3 = 0;
     r.s4 = 0;
-    D_803F7C49 = 0;
-    ground_scan_guard_tris(x, z, D_803F7BFC, f, &r);
-    if (r.a1 != 0 && D_803EBBFC >= D_803F7BFC && D_803EBBFC - D_803F7BFC >= 200) {
-        D_803F7C49 = 1;
+    gJbombCeilingAbove = 0;
+    ground_scan_guard_tris(x, z, gJbombPosY, f, &r);
+    if (r.a1 != 0 && gGuardTrisBestY >= gJbombPosY && gGuardTrisBestY - gJbombPosY >= 200) {
+        gJbombCeilingAbove = 1;
     }
 }
 #else
@@ -1484,11 +1484,11 @@ void jbomb_check_overhead(s32 x, s32 z, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* J-Bomb on surface 100 (water): outside mode 1 resets D_803F7C28/2C to 0.5; below the shadow height + 2500
+/* J-Bomb on surface 100 (water): outside mode 1 resets gJbombPitch/Roll to 0.5; below the shadow height + 2500
  * it is lifted into mode 1 with thrust on (0x802C7354).
  * When +0x9F of the vehicle block is 100: outside mode 1, resets
- * D_803F7C28/D_803F7C2C to 0.5; then, if D_803F7BFC < veh_shadow_src_y(9) +
- * 2500, switches to mode 1 (triples +0x34.. = D_803F7BFC, +0x40.. = 1,
+ * gJbombPitch/gJbombRoll to 0.5; then, if gJbombPosY < veh_shadow_src_y(9) +
+ * 2500, switches to mode 1 (triples +0x34.. = gJbombPosY, +0x40.. = 1,
  * +0x28.. = 30, flags +0x96..0x98 = 1, gJbombThrusting = 1).
  * The survey lists v1, t6, t7 as outputs read by jbomb_update_modes: v1 is only
  * scratch on the taken path and t6/t7 are untouched. Asm caller
@@ -1502,11 +1502,11 @@ void jbomb_lift_off_water(void) {
         return;
     }
     if (VEH_U8(VS_ACTION) != 1) {
-        D_803F7C28 = 0.5f;
-        D_803F7C2C = 0.5f;
+        gJbombPitch = 0.5f;
+        gJbombRoll = 0.5f;
     }
     limit = veh_shadow_src_y(9) + 2500;
-    cur = D_803F7BFC;
+    cur = gJbombPosY;
     if (cur < limit) {
         VEH_S32(VS_SLOT_LAUNCH_Y) = cur;
         VEH_S32(0x38) = cur;
@@ -1531,13 +1531,13 @@ void jbomb_lift_off_water(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* GCamDistance and gCamHeightBase by altitude (0x802C7410).
- * Sets the pair gCamDistance / gCamHeightBase from where D_803F7BFC lies in
+ * Sets the pair gCamDistance / gCamHeightBase from where gJbombPosY lies in
  * [gJbombLiftFadeY, gJbombMaxY): (0xD48, 0x258) below it, (1000, 3000) at or
  * past the end, else interpolated (0xD48 - 2400*t, 0x258 + 2400*t with
  * t = (cur - lo) / (hi - lo), signed division). The survey lists a0-a3 as
  * outputs read by jbomb_update: they're scratch (a0 = gJbombMaxY). */
 void jbomb_update_cam_distance(void) {
-    s32 cur = D_803F7BFC;
+    s32 cur = gJbombPosY;
     s32 lo = gJbombLiftFadeY;
     s32 hi = gJbombMaxY;
 
@@ -1562,18 +1562,18 @@ void jbomb_update_cam_distance(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-extern u8 D_803F7C43; /* previous frame's +0x96 */
-extern s8 D_803F7C3B; /* 0..50 ramp */
-extern u8 D_803F7C3A; /* countdown */
+extern u8 gJbombPrevAirborne; /* previous frame's +0x96 */
+extern s8 gJbombJetRamp; /* 0..50 ramp */
+extern u8 gJbombFlameTimer; /* countdown */
 
 /* Touchdown dust, the jet ramp (channel 1), jet flames (0x802C7544).
- * When +0x96 just became 1 (D_803F7C43 == 0) with gJbombThrusting set:
+ * When +0x96 just became 1 (gJbombPrevAirborne == 0) with gJbombThrusting set:
  * ptcl_start(4, record (9, 1) of veh_find_point, veh_shadow_floor_y(9)). Then
- * the ramp D_803F7C3B steps up (to 50) in mode 5 or with gJbombThrusting set,
+ * the ramp gJbombJetRamp steps up (to 50) in mode 5 or with gJbombThrusting set,
  * else down (to 0), and channel 1 of gJbombAnim gets ramp / 4 (divu, as the
- * asm). The countdown D_803F7C3A, when nonzero, just counts down; at zero it
+ * asm). The countdown gJbombFlameTimer, when nonzero, just counts down; at zero it
  * restarts at 4 in mode 5 (1 with gJbombThrusting set, else nothing more happens)
- * and two fx_spawn records are set up (def D_802C3804, data 0x15F90,
+ * and two fx_spawn records are set up (def gFxDefJetFlame, data 0x15F90,
  * type 1 at (9, 1, 1) and (9, 2, 1)).
  * Register convention: the asm passes t6, t7, s0-s4 through to
  * fx_spawn (t6 and s1 in its in/out block; s3 is jbomb_roll_limit's 270);
@@ -1585,41 +1585,41 @@ void jbomb_update_jet_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s3
     s32 floor;
     s32 v;
 
-    if (D_803F7C43 == 0 && VEH_U8(VS_SLOT_AIRBORNE) == 1 && gJbombThrusting != 0) {
+    if (gJbombPrevAirborne == 0 && VEH_U8(VS_SLOT_AIRBORNE) == 1 && gJbombThrusting != 0) {
         floor = veh_shadow_floor_y(9);
         veh_find_point(9, 1, &rec);
         ptcl_start(4, ((s32 *) rec)[0], ((s32 *) rec)[1], ((s32 *) rec)[2], floor);
     }
     if (VEH_U8(VS_ACTION) == 5 || gJbombThrusting != 0) {
-        v = D_803F7C3B + 1;
+        v = gJbombJetRamp + 1;
         if (v >= 0x33) {
             v = 0x32;
         }
     } else {
-        v = D_803F7C3B - 1;
+        v = gJbombJetRamp - 1;
         if (v < 0) {
             v = 0;
         }
     }
-    D_803F7C3B = v;
-    anim_set_speed((AnimChannel *) gJbombAnim, 1, (u32) (s32) D_803F7C3B / 4);
-    if (D_803F7C3A != 0) {
-        D_803F7C3A--;
+    gJbombJetRamp = v;
+    anim_set_speed((AnimChannel *) gJbombAnim, 1, (u32) (s32) gJbombJetRamp / 4);
+    if (gJbombFlameTimer != 0) {
+        gJbombFlameTimer--;
         return;
     }
     if (VEH_U8(VS_ACTION) == 5) {
-        D_803F7C3A = 4;
+        gJbombFlameTimer = 4;
     } else if (gJbombThrusting != 0) {
-        D_803F7C3A = 1;
+        gJbombFlameTimer = 1;
     } else {
         return;
     }
     io.a3 = 1;
     io.t6 = t6;
     io.s1 = s1;
-    fx_spawn(&io, D_802C3804, 0x15F90, 1, 9, 1, 1, t7, s0, s2, s3, s4, 1);
+    fx_spawn(&io, gFxDefJetFlame, 0x15F90, 1, 9, 1, 1, t7, s0, s2, s3, s4, 1);
     io.a3 = 1;
-    fx_spawn(&io, D_802C3804, 0x15F90, 1, 9, 2, 1, t7, s0, s2, s3, s4, 1);
+    fx_spawn(&io, gFxDefJetFlame, 0x15F90, 1, 9, 2, 1, t7, s0, s2, s3, s4, 1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/jbomb_update_jet_effects.s")
@@ -1627,10 +1627,10 @@ void jbomb_update_jet_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s3
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7C44; /* phase 0 (odd = waiting for input 0 to be released) */
-extern u8 D_803F7C45; /* timer 0 */
-extern u8 D_803F7C46; /* phase 1 */
-extern u8 D_803F7C47; /* timer 1 */
+extern u8 gJbombTapPhaseL; /* phase 0 (odd = waiting for input 0 to be released) */
+extern u8 gJbombTapTimerL; /* timer 0 */
+extern u8 gJbombTapPhaseR; /* phase 1 */
+extern u8 gJbombTapTimerR; /* timer 1 */
 
 /* One step of a press/release tracker: when the timer has run out the phase
  * is reset; otherwise the phase advances (and the timer restarts at 4) once
@@ -1651,14 +1651,14 @@ extern u8 D_803F7C47; /* timer 1 */
     }
 
 /* Press/release trackers on gHeldL and gHeldR (0x802C770C).
- * Update the two press/release trackers (D_803F7C44/45 on gHeldL and
- * D_803F7C46/47 on gHeldR).
+ * Update the two press/release trackers (gJbombTapPhaseL/TimerL on gHeldL and
+ * gJbombTapPhaseR/TimerR on gHeldR).
  * Register note: the asm touches only at/v0/v1/a0; its caller jbomb_update_modes
  * keeps a1-a3, t6, t7, f12 and f14 live across the call (a mixed N64 build
  * would need a thunk, the native port does not). */
 void jbomb_track_lr_taps(void) {
-    PRESS_TRACKER_STEP(D_803F7C44, D_803F7C45, gHeldL);
-    PRESS_TRACKER_STEP(D_803F7C46, D_803F7C47, gHeldR);
+    PRESS_TRACKER_STEP(gJbombTapPhaseL, gJbombTapTimerL, gHeldL);
+    PRESS_TRACKER_STEP(gJbombTapPhaseR, gJbombTapTimerR, gHeldR);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/jbomb_track_lr_taps.s")
@@ -1666,11 +1666,11 @@ void jbomb_track_lr_taps(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_8030D954;
-extern f32 D_8030D958;
-extern f32 D_8030D95C;
-extern f32 D_8030D960;
-extern f32 D_8030D964;
+extern f32 gJbombRollStepLeft;
+extern f32 gJbombRollStepRight;
+extern f32 gJbombRollRecentreStep;
+extern f32 gJbombPitchStep;
+extern f32 gJbombPitchRecentreStep;
 f32 jbomb_pitch_limit(void);
 f32 jbomb_roll_limit(s32 up);
 
@@ -1692,33 +1692,33 @@ f32 jbomb_roll_limit(s32 up);
     }
 
 /* Roll (channel 4, stick x) and pitch (channel 3, stick y) (0x802C7864).
- * Steering / tilt animation (0.5 = centred). D_803F7C2C: while steering
- * (gControlMethod set or |D_803F7C34| large: >= 4000 or < -3999) with
- * gPadStickX >= 31 it rises by D_8030D958 up to jbomb_roll_limit(1), with
- * gPadStickX < -30 it falls by D_8030D954 down to jbomb_roll_limit(0) (the up
+ * Steering / tilt animation (0.5 = centred). gJbombRoll: while steering
+ * (gControlMethod set or |gContSteerError| large: >= 4000 or < -3999) with
+ * gPadStickX >= 31 it rises by gJbombRollStepRight up to jbomb_roll_limit(1), with
+ * gPadStickX < -30 it falls by gJbombRollStepLeft down to jbomb_roll_limit(0) (the up
  * flag is left in *up, the asm's s2); otherwise it steps back to 0.5 by
- * D_8030D95C. Channel 4 of gJbombAnim then gets 1 - it as (2x, 1) below
- * 0.5 or (2(x - 0.5), 2) above. D_803F7C28 likewise with step
- * D_8030D960 * (1 - 2|x - 0.5|): gPadStickY > 0 raises it up to
+ * gJbombRollRecentreStep. Channel 4 of gJbombAnim then gets 1 - it as (2x, 1) below
+ * 0.5 or (2(x - 0.5), 2) above. gJbombPitch likewise with step
+ * gJbombPitchStep * (1 - 2|x - 0.5|): gPadStickY > 0 raises it up to
  * 1 - jbomb_pitch_limit() (if not already above), < 0 lowers it down to
  * jbomb_pitch_limit() (if not already below), else (or when outside) it centres
- * by D_8030D964; channel 3 gets it in the same two-range form.
- * The asm also computes round(100 * (1 - D_803F7C2C)) into t2 and drops it,
+ * by gJbombPitchRecentreStep; channel 3 gets it in the same two-range form.
+ * The asm also computes round(100 * (1 - gJbombRoll)) into t2 and drops it,
  * clobbers s5, and keeps jbomb_roll_limit's s3 = 270 (conventions.txt:
  * clobbers s3, s5). Asm caller jbomb_update_modes keeps a1-a3, t6, t7, f12, f14
  * live (a mixed N64 build would need a thunk; the native port won't). */
 void jbomb_update_tilt(s32 *up) {
-    f32 f = D_803F7C2C;
+    f32 f = gJbombRoll;
     f32 lim;
     f32 step;
     f32 w;
     s32 s;
 
-    if (gControlMethod != 0 || D_803F7C34 >= 0xFA0 || D_803F7C34 < -0xF9F) {
+    if (gControlMethod != 0 || gContSteerError >= 0xFA0 || gContSteerError < -0xF9F) {
         s = gPadStickX;
         if (s >= 0x1F) {
             *up = 1;
-            f += D_8030D958;
+            f += gJbombRollStepRight;
             lim = jbomb_roll_limit(1);
             if (!(f <= lim)) {
                 f = lim;
@@ -1727,7 +1727,7 @@ void jbomb_update_tilt(s32 *up) {
         }
         if (s < -0x1E) {
             *up = 0;
-            f -= D_8030D954;
+            f -= gJbombRollStepLeft;
             lim = jbomb_roll_limit(0);
             if (f < lim) {
                 f = lim;
@@ -1735,10 +1735,10 @@ void jbomb_update_tilt(s32 *up) {
             goto store1;
         }
     }
-    step = D_8030D95C;
+    step = gJbombRollRecentreStep;
     CENTER_STEP(f, step);
 store1:
-    D_803F7C2C = f;
+    gJbombRoll = f;
     f = 1.0f - f;
     if (f <= 0.5f) {
         anim_set_frame(f * 2.0f, (AnimChannel *) gJbombAnim, 4, 1);
@@ -1746,13 +1746,13 @@ store1:
         anim_set_frame((f - 0.5f) * 2.0f, (AnimChannel *) gJbombAnim, 4, 2);
     }
 
-    f = D_803F7C28;
+    f = gJbombPitch;
     if (f <= 0.5f) {
         w = 0.5f - (0.5f - f);
     } else {
         w = 0.5f - (f - 0.5f);
     }
-    step = D_8030D960 * (w * 2.0f);
+    step = gJbombPitchStep * (w * 2.0f);
     s = gPadStickY;
     if (s > 0) {
         lim = 1.0f - jbomb_pitch_limit();
@@ -1773,10 +1773,10 @@ store1:
             goto store2;
         }
     }
-    step = D_8030D964;
+    step = gJbombPitchRecentreStep;
     CENTER_STEP(f, step);
 store2:
-    D_803F7C28 = f;
+    gJbombPitch = f;
     if (f <= 0.5f) {
         anim_set_frame(f * 2.0f, (AnimChannel *) gJbombAnim, 3, 1);
     } else {
@@ -1809,8 +1809,8 @@ f32 jbomb_pitch_limit(void) {
 #ifdef NON_MATCHING
 /* 0.5 +- |speed|/270/2, clamped (0x802C7C1C).
  * f = |+0x76 of the vehicle block| / 270 * 0.5, then 0.5 + f if `up`
- * else 0.5 - f, capped at D_8030D968 (-> D_8030D96C) and floored at
- * D_8030D970 (-> D_8030D974). The asm takes `up` in s2 and returns the value
+ * else 0.5 - f, capped at gJbombRollMax (-> gJbombRollMaxClamp) and floored at
+ * gJbombRollMin (-> gJbombRollMinClamp). The asm takes `up` in s2 and returns the value
  * in f2; it also leaves s3 = 270 (scratch, not read by its caller
  * jbomb_update_tilt). */
 f32 jbomb_roll_limit(s32 up) {
@@ -1826,11 +1826,11 @@ f32 jbomb_roll_limit(s32 up) {
     } else {
         f = 0.5f - f;
     }
-    if (!(f <= D_8030D968)) {
-        f = D_8030D96C;
+    if (!(f <= gJbombRollMax)) {
+        f = gJbombRollMaxClamp;
     }
-    if (f < D_8030D970) {
-        f = D_8030D974;
+    if (f < gJbombRollMin) {
+        f = gJbombRollMinClamp;
     }
     return f;
 }
@@ -1896,8 +1896,8 @@ void jbomb_build_model(MtxChainRegs *regs) {
 #ifdef NON_MATCHING
 /* J-Bomb's steering rate (0x802C7DFC).
  * Modes 0 and 5 (+0xA1): returns round(+0x76 / 1.5) (cvt.w.s, nearest).
- * Modes 1-4: if |gPadStickX| is large (>= 51 or < -50) D_803F7C3C climbs by
- * 2 up to 100, else it is reset to 20; returns the new D_803F7C3C. Any other
+ * Modes 1-4: if |gPadStickX| is large (>= 51 or < -50) gJbombAirSteerRate climbs by
+ * 2 up to 100, else it is reset to 20; returns the new gJbombAirSteerRate. Any other
  * mode hits a `syscall` in the asm (a deliberate crash) and, if that
  * returned, would continue as modes 1-4, which is what this does.
  * The asm returns the value in s3; asm caller jbomb_update keeps a0-a3
@@ -1913,14 +1913,14 @@ s32 jbomb_steer_rate(void) {
     }
     v = gPadStickX;
     if (v >= 0x33 || v < -0x32) {
-        r = D_803F7C3C + 2;
+        r = gJbombAirSteerRate + 2;
         if (r >= 0x65) {
             r = 100;
         }
-        D_803F7C3C = r;
+        gJbombAirSteerRate = r;
         return r;
     }
-    D_803F7C3C = 20;
+    gJbombAirSteerRate = 20;
     return 20;
 }
 #else
@@ -1951,7 +1951,7 @@ void jbomb_set_gravity(void) {
 #ifdef NON_MATCHING
 /* Speed bands and throttle step for the mode (0x802C7F28).
  * Sets gBounceThreshold / gBounceDamping to 0xFF and loads the 15 s16 tuning values at
- * +0x78 of the vehicle block plus D_803F7C48 for the mode (+0xA1 nonzero or
+ * +0x78 of the vehicle block plus gJbombThrottleStep for the mode (+0xA1 nonzero or
  * zero). Asm callers keep registers live across the call (jbomb_ride_follow t3,
  * t4, f12, f14; jbomb_update a0-a3): a mixed N64 build would need a thunk. */
 void jbomb_set_tuning(void) {
@@ -1970,7 +1970,7 @@ void jbomb_set_tuning(void) {
     for (i = 0; i < 15; i++) {
         VEH_S16(0x78 + i * 2) = src[i];
     }
-    D_803F7C48 = (VEH_U8(VS_ACTION) != 0) ? 4 : 12;
+    gJbombThrottleStep = (VEH_U8(VS_ACTION) != 0) ? 4 : 12;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/jbomb_set_tuning.s")
@@ -2015,29 +2015,29 @@ void jbomb_load_state(void *src) {
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
  * bin. Code reaches it through the absolute D_ symbols. */
 typedef struct {
-    /* 802C48A0 */ ParticleDef pd802C48A0; /* D_802C48A0 */
+    /* 802C48A0 */ ParticleDef pd802C48A0; /* gPtclDefBreak0 */
     /* 802C48C4 */ s16 sq802C48C4[5];
     /* 802C48CE */ u16 sq802C48C4_pad;
     /* 802C48D0 */ s16 sq802C48D0[3];
     /* 802C48D6 */ u16 sq802C48D0_pad;
     /* 802C48D8 */ s16 sq802C48D8[19];
     /* 802C48FE */ u16 sq802C48D8_pad;
-    /* 802C4900 */ ParticleDef pd802C4900; /* D_802C4900 */
+    /* 802C4900 */ ParticleDef pd802C4900; /* gPtclDefBreak1 */
     /* 802C4924 */ s16 sq802C4924[7];
     /* 802C4932 */ u16 sq802C4924_pad;
     /* 802C4934 */ s16 sq802C4934[2];
     /* 802C4938 */ s16 sq802C4938[8];
-    /* 802C4948 */ ParticleDef pd802C4948; /* D_802C4948 */
+    /* 802C4948 */ ParticleDef pd802C4948; /* gPtclDefBreak2 */
     /* 802C496C */ s16 sq802C496C[7];
     /* 802C497A */ u16 sq802C496C_pad;
     /* 802C497C */ s16 sq802C497C[2];
     /* 802C4980 */ s16 sq802C4980[8];
-    /* 802C4990 */ ParticleDef pd802C4990; /* D_802C4990 */
+    /* 802C4990 */ ParticleDef pd802C4990; /* gPtclDefBreak3 */
     /* 802C49B4 */ s16 sq802C49B4[7];
     /* 802C49C2 */ u16 sq802C49B4_pad;
     /* 802C49C4 */ s16 sq802C49C4[2];
     /* 802C49C8 */ s16 sq802C49C8[8];
-    /* 802C49D8 */ ParticleDef pd802C49D8; /* D_802C49D8 */
+    /* 802C49D8 */ ParticleDef pd802C49D8; /* gPtclDefJbombDust */
     /* 802C49FC */ s16 sq802C49FC[6];
     /* 802C4A08 */ s16 sq802C4A08[2];
     /* 802C4A0C */ s16 sq802C4A0C[9];

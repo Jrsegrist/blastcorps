@@ -93,7 +93,7 @@ u16 gVehicleIcons[38] = {
     0x0000, 0x0000, 0x0571, 0x0570, 0x0918, 0x0917, 0x090C, 0x090B, 0x070A, 0x0709, 0x0772, 0x0713, 0x0000, 0x0000, 0x0000, 0x0000, 0x0912, 0x0911, 0x0916, 0x0915, 0x090A, 0x0909, 0x0000, 0x0000, 0x0000, 0x0000, 0x090E, 0x090D, 0x0908, 0x0907, 0x091A, 0x0919, 0x0712, 0x0711, 0x0000, 0x0000, 0x0000, 0x0000
 };
 
-u16 D_8020E39C[4] = { 0x0A98, 0x0A99, 0x0A9A, 0x0A9B };
+u16 gGlobeExtraSprites[4] = { 0x0A98, 0x0A99, 0x0A9A, 0x0A9B };
 
 /* one per frame buffer (gBufferIndex) */
 Lights1 gGlobeLights[2] = {
@@ -146,7 +146,7 @@ extern f32 gGlobeLatStep;
 extern u16 gFlightState;
 extern s32 gRouteVtxBufs[];
 extern u8 gGlobeStickCentred;
-extern u8 D_8021AB20;
+extern u8 gGlobeExtraSpriteBase;
 extern f32 gRouteRevealMin;
 extern s16 gGlobeNameAlpha;
 extern u8 gGlobeSelectPending;
@@ -163,8 +163,8 @@ Gfx *fe_globe_draw_stars(Gfx *arg0, Dynamic *dyn);
 Gfx *fe_globe_draw_plane(Dynamic *dyn, Gfx *gdl, u8 from, u8 to);
 void fe_globe_set_light(void);
 extern Gfx * N64P gGlobeMeshDl;
-extern Gfx * N64P D_8021A8FC;
-extern Gfx * N64P D_8021A900;
+extern Gfx * N64P gGlobeLevelIconsDl;
+extern Gfx * N64P gGlobeAcademyIconsDl;
 extern u8 gGlobeOverlayAlpha;
 extern PlayerInfo * N64P gGlobePlayer;
 extern LevelInfo * N64P gGlobeLevelInfo;
@@ -218,8 +218,8 @@ void fe_globe_init(s32 level) {
     gGlobeCamLon = fe_globe_angle_diff(90.0f, gGlobeLevels[level].unk14, 180.0f);
     gGlobeCamLat = fe_globe_angle_diff(90.0f, gGlobeLevels[level].unk10, 180.0f);
     gGlobeMeshDl = fe_lvlsel_build_globe_dl();
-    D_8021A8FC = fe_lvlsel_build_level_icons_dl();
-    D_8021A900 = fe_lvlsel_build_academy_dl();
+    gGlobeLevelIconsDl = fe_lvlsel_build_level_icons_dl();
+    gGlobeAcademyIconsDl = fe_lvlsel_build_academy_dl();
     for (i = 0; i < 2; i++) {
         gRouteVtxBufs[i] = gHeapPtr;
         gHeapPtr += 0x17000;
@@ -246,7 +246,7 @@ void fe_globe_init(s32 level) {
     dmm = 0.009f;
     mmm = 26100.0f;
     fe_load_vehicle_icons();
-    D_8021AB20 = spr_load(D_8020E39C, 0, 4, 1, 1, 1.0f);
+    gGlobeExtraSpriteBase = spr_load(gGlobeExtraSprites, 0, 4, 1, 1, 1.0f);
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
         lat = e->unk10;
@@ -321,7 +321,7 @@ void fe_globe_frame(void) {
         }
     }
     if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gGlobeState == 1) {
-        D_80364A87 = 0;
+        gRouteRevealFlags = 0;
         snd_play(gSfxBank, SFX_BACK, 0);
         fade_to_mode(MODE_QUIT_GAME);
         levelno = gGlobeSelLevel;
@@ -354,7 +354,7 @@ void fe_globe_frame(void) {
             if (gGlobeCamDist <= 925.0) {
                 gGlobeState = 1;
                 gGlobeCamDist = 925.0f;
-                gGlobeZoomDoneTime = D_803156C4;
+                gGlobeZoomDoneTime = gSchedFrameCount;
             }
             break;
         case 2:
@@ -526,7 +526,7 @@ Gfx *fe_globe_build_plane_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gdl = fade_draw((s32) &dyn[gBufferIndex], gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    if (D_802FA264) {
+    if (gDebugRamEeprom) {
         if (gContButtons & 0x800) {
             angd += 0.01;
         }
@@ -742,12 +742,12 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
         *out = to;
     }
     if (lvl_planet(from) == 3 && lvl_planet(to) == 3) {
-        if (D_80364A87 &&
+        if (gRouteRevealFlags &&
             (players[playerNumber].medal[to] == 0 ||
-             ((D_80364A87 & 1) && from == gGlobeSelLevel &&
+             ((gRouteRevealFlags & 1) && from == gGlobeSelLevel &&
               !((players[playerNumber].medal[to] > 0 && players[playerNumber].medal[to] < 6) ? 1 : 0)))) {
             if (gGlobeState) {
-                progress = MIN2(1.0, (gRouteRevealMin > (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0) ? gRouteRevealMin : (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0);
+                progress = MIN2(1.0, (gRouteRevealMin > (f32) (gSchedFrameCount - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0) ? gRouteRevealMin : (f32) (gSchedFrameCount - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0);
                 if (progress == 1.0 && gRouteRevealSound) {
                     snd_stop(gRouteRevealSound);
                 } else if (!gRouteRevealSound && progress != 1.0 && gGlobePlanet == 3) {
@@ -901,7 +901,7 @@ Gfx *fe_globe_draw_plane(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
     gPlaneZ = (a * gFlightFromZ + b * gFlightToZ) * gFlightAltitude;
     fe_globe_quad_at(v, gPlaneX, gPlaneY, gPlaneZ, 0x20, 0x20, 1.75f, 1);
     osWritebackDCache(v, sizeof(Vtx) * 4);
-    gDPLoadTextureBlock(gdl++, gLvlselMarkerFrames[D_803156C4 / 3 % 3], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
+    gDPLoadTextureBlock(gdl++, gLvlselMarkerFrames[gSchedFrameCount / 3 % 3], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
                         G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     gSPVertex(gdl++, v, 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
@@ -1223,8 +1223,8 @@ Gfx *fe_globe_draw_earth(Gfx *arg0, s32 arg1) {
     gSPClearGeometryMode(gdl++, G_LIGHTING);
     gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gGlobeOverlayAlpha);
     gDPSetEnvColor(gdl++, 0, 0, 0, gGlobeOverlayAlpha * 2 / 3);
-    gSPDisplayList(gdl++, D_8021A8FC);
-    gSPDisplayList(gdl++, D_8021A900);
+    gSPDisplayList(gdl++, gGlobeLevelIconsDl);
+    gSPDisplayList(gdl++, gGlobeAcademyIconsDl);
     gSPEndDisplayList(gdl++);
     return gdl;
 }

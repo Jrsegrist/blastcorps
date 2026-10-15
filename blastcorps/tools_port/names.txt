@@ -2702,3 +2702,894 @@ D_00788000 = romStaticSegmentEnd       # hd_mode_setup: end of the static segmen
 D_01000010 = seg1RspInitDl             # first DL after gSPSegment 1; alone in cull_start before mtx/tris
 D_01000038 = seg1RdpInitDl             # called before seg1RspInitDl in every frame DL, before FILL clear
 D_02000000 = seg2Base                  # segment 2 = per-frame dynamic buffer (Mtx/Vtx/LookAt by index)
+# --- datanames group 2: front end, init gzip/inflate, hd_code inflate/kiunzip ---
+# keep D_80208048: .data word 0xFFFF0000 after gDiggerTitleGlyphs; no user anywhere
+D_8020804C = gDiggerAnimLoopMode           # per vehicle: fe_anim_start_channel loop mode (00000.c)
+D_80208060 = gDiggerAnimInterp             # per vehicle {interp mode, tension} for fe_anim_start_channel
+D_802080F8 = gDiggerAnimChannel            # per vehicle: the anim channel the digger screen plays
+D_8020810C = gDiggerAnimSpeed              # per vehicle: fe_anim_start_channel speed (3; 12 for #10)
+D_802082E8 = gMedalExtraSprites            # sprite ids {0x576,0x575} spr_load'ed in fe_player_medals_init
+D_80208470 = gPanelLightsPurple            # Lights2 after gPanelLights (purple); never referenced
+D_8020BC88 = gLvlselAcademyIconDl          # DL called before pass 0 of fe_lvlsel_build_academy_dl
+D_8020BD08 = gLvlselIconDls                # 9 DLs, one per medal category, fe_lvlsel_build_level_icons_dl
+D_8020BDE4 = gSolarEarthSize               # gSolarNodes[3].unk0: reference size for node scale/sprites
+D_8020BDEC = gSolarEarthPeriod             # gSolarNodes[3].unk8: reference orbit period (fe_solar_build_mtx)
+D_8020BE98 = gSolarSunNode                 # gSolarNodes[6]: root of fe_solar_build_mtx; fe_solar_draw_sun
+D_8020D800 = gBestRowPrefix                # char[4] per player, prefixed to a best-times row (10850.c)
+D_8020E39C = gGlobeExtraSprites            # sprite ids 0xA98-0xA9B spr_load'ed in globe init (11530.c)
+D_8020E3E0 = gAttractPicSounds             # sound per attract picture, played when it has faded in
+D_8020E3E8 = gAttractPicTitles             # char[18] title per attract picture (window item 175 text)
+D_8020E430 = gAttractPicTitleJText         # per picture: u16 glyph list of the title (item 175 unk10)
+# keep D_8020EFA4: 8 unreferenced zero bytes before a 07800 double (comment in 07800.c)
+D_80211AC0 = gDiggerAnimTables             # [slot][0x300] anim channel tables of the digger models
+D_80215464 = gNameFlyBoxW                  # name entry box +6 (width) when a char flies; written only
+D_80215468 = gNameFlyCharSize              # f32 copy of gNameEntryWidth; the flying char's w/h goal
+D_80215A84 = gLvlselSunTex                 # heap-1000 32x32 RGBA32 texture of fe_solar_draw_sun
+D_802182A8 = gSolarCamHold                 # s16; ==1 keeps eye/at instead of the camera node's; never set
+D_80218430 = gCommPointAnim                # anim channel table of the comm point model (0DE70.c)
+D_80219FD0 = gBestRowText                  # char[0x20] per best-times row: "name time" (sprintf)
+D_8021A8FC = gGlobeLevelIconsDl            # = fe_lvlsel_build_level_icons_dl(), drawn over the globe
+D_8021A900 = gGlobeAcademyIconsDl          # = fe_lvlsel_build_academy_dl(), drawn over the globe
+D_8021AB20 = gGlobeExtraSpriteBase         # spr_load(gGlobeExtraSprites) handle; written only
+D_8021AB72 = gUnlockCountText              # sprintf "%d" of D_80364A71 (fe_stats_count_unlocks), 17990.c
+D_8021AB7C = gPakCheckTickSound            # SFX_TICK_LOOP handle while the pak check runs (back_loop)
+D_8021ABA8 = gAttractStaticSound           # SFX_STATIC handle of fe_attract_pic_draw
+D_80222740 = border                        # inflate.c border[]: bit-length code order (inflate_dynamic)
+D_80222834 = lbits                         # inflate.c lbits: lit/length table lookup bits
+D_80222838 = dbits                         # inflate.c dbits: distance table lookup bits
+D_80222840 = method                        # gzip.c method: set by gzip_get_method, must be 8
+D_80222844 = exit_code                     # gzip.c exit_code: 1 on an unknown method
+D_802228D0 = gGzipUnknownMethodMsg         # printf format of gzip_get_method's unknown-method error
+D_802229E0 = gInflateHuftArena             # huft_build bump-allocates its tables here (gzip_unzip arg2)
+D_802229E4 = bb                            # inflate.c bb: bit buffer
+D_802229E8 = bk                            # inflate.c bk: bits in the bit buffer
+D_802229EC = hufts                         # inflate.c hufts: huft entries used (also the arena index)
+D_802229F0 = inbuf                         # gzip inbuf: the compressed input (*arg0 of gzip_unzip)
+D_802229F4 = slide                         # inflate.c slide (=window): output, written at outcnt
+D_802229FC = header_bytes                  # gzip.c header_bytes: header length + 8 (gzip_get_method)
+D_80222A08 = bytes_in                      # gzip bytes_in: zeroed by gzip_clear_bufs only
+D_80222A0C = bytes_out                     # gzip bytes_out: zeroed by gzip_clear_bufs only
+D_80222A18 = insize                        # gzip insize: zeroed by gzip_clear_bufs only
+D_80222A1C = inptr                         # gzip inptr: read position in inbuf
+D_80222A20 = outcnt                        # gzip outcnt (inflate.c wp): write position in slide
+D_80224D00 = __osHwIntTable                # libultra: {handler, sp} per interrupt (__osSetHWIntrRoutine)
+D_802E8C44 = gVehicleTimeSlot              # vehicle -> gBestTimes slot index (many fe users, 409D0.c)
+D_802E8C94 = gTextSpace                    # per language: blank char (ticker fill; drawn as nothing)
+D_802E8CC0 = hd_method                     # kiunzip copy of gzip.c method
+D_802E8CC4 = hd_exit_code                  # kiunzip copy of gzip.c exit_code
+D_802FDAC0 = gDiggerModelScale             # f32 per vehicle: guScale of the digger screen models
+D_802FF180 = gAcademyMarkerLevels          # the 6 levels with an academy marker, page order (53220.c)
+D_802FF188 = gAcademyPageText              # MenuText[7][20]: academy window pages (undefined_syms)
+D_802FF5E8 = gAcademyPageSelectable        # [page*5]: selectable item indices; [0] = initial cursor
+D_802FF630 = hd_border                     # hd copy of inflate.c border[]
+D_802FF644 = hd_cplens                     # hd copy of inflate.c cplens[]
+D_802FF684 = hd_cplext                     # hd copy of inflate.c cplext[]
+D_802FF6A4 = hd_cpdist                     # hd copy of inflate.c cpdist[]
+D_802FF6E0 = hd_cpdext                     # hd copy of inflate.c cpdext[]
+D_802FF700 = hd_mask_bits                  # hd copy of inflate.c mask_bits[]
+D_802FF724 = hd_lbits                      # hd copy of inflate.c lbits
+D_802FF728 = hd_dbits                      # hd copy of inflate.c dbits
+D_80301080 = gDeleteFileJText              # u16 glyph list of "DELETE THIS FILE?" (0E7B0.c item 10)
+D_80303B3C = gNewBestJText                 # glyphs of "YOUR NEW BEST!" (gBestBannerGlyphs[0])
+D_80303B48 = gBestToDateJText              # glyphs of "BEST TO DATE" (gBestBannerGlyphs[1])
+D_80303B58 = gBestStaysJText               # glyphs of "YOUR BEST STAYS" (gBestBannerGlyphs[2])
+D_80303B68 = gGuestBestJText               # glyphs of "GUEST BEST IS" (gBestBannerGlyphs[3])
+D_80303B78 = gPromoTitle1JText             # glyphs of "CONGRATULATIONS" (gPromoTitle1Glyphs)
+D_80303B88 = gPromoTitle2JText             # glyphs of "ON YOUR PROMOTION!" (gPromoTitle2Glyphs)
+D_803046F8 = gEraseGameJText               # glyphs of "ERASE GAME" (01C40.c item 6)
+D_80304710 = gIgnorePakJText               # glyphs of "IGNORE PAK" (01C40.c item 6)
+D_80304730 = gGoBackJText                  # glyphs of "GO BACK" (01C40.c item 6)
+D_80304954 = gDiggerTitleJText             # glyphs of "SELECT VEHICLE!" (gDiggerTitleGlyphs)
+D_80364A64 = gPromoCueDelay                # 0xDC on a promotion; counts down, then SFX_PROMOTION_CUE
+D_80364A87 = gRouteRevealFlags             # 1: level newly medalled, 2: comm point found; globe routes
+D_803669C0 = hd_inbuf                      # kiunzip copy of gzip inbuf
+D_803669C4 = hd_slide                      # kiunzip copy of inflate.c slide (output)
+D_803669CC = hd_header_bytes               # kiunzip copy of gzip.c header_bytes
+D_803669D8 = hd_bytes_in                   # kiunzip copy of gzip bytes_in (clear_bufs only)
+D_803669DC = hd_bytes_out                  # kiunzip copy of gzip bytes_out (clear_bufs only)
+D_803669E8 = hd_insize                     # kiunzip copy of gzip insize (clear_bufs only)
+D_803669EC = hd_inptr                      # kiunzip copy of gzip inptr
+D_803669F0 = hd_outcnt                     # kiunzip copy of gzip outcnt
+D_8036B980 = gStatsLevelName               # sprintf of the level's name in the stats grader; written only
+# alias D_8036BB1C: same address as yoshiState (symbol_addrs.hd_code); use yoshiState, no new name
+D_8039CAD0 = gAcademyPage                  # academy window page 0-5 (next unfound marker) or 6 (all found)
+D_8039CAE0 = gHdInflateHuftArena           # hd copy of the huft arena (kiunzip arg2)
+D_8039CAE4 = hd_bb                         # hd copy of inflate.c bb
+D_8039CAE8 = hd_bk                         # hd copy of inflate.c bk
+D_8039CAEC = hd_hufts                      # hd copy of inflate.c hufts
+# --- datanames group 3: hd.c main thread / frame / camera / popups, sequences, title, recording, ghost ---
+# manual D_80000300 -> osTvType (alias in undefined_syms)                  # SDK name; already an alias in undefined_syms (see notes)
+D_8021ED00 = gDepthBuffer              # hd_init: gDepthBufferPhys = PHYS(D_8021ED00)
+D_802E8BEC = gRecDemoNumber            # recording played (rec_start_playback idx): attract 0..8, seqs 9..13
+D_802E8BF0 = gRecDemoNoLogo            # attract demo w/o logo: title draws vehicles, eye zooms + fades
+D_802E8BF4 = gCamFixedIconSprIds       # spr_load ids -> gCamFixedIconSprite (blinks while gCamFixedEye)
+D_802E8CB0 = gRecReplaySprIds          # rec_start_replay: spr_load ids -> gRecReplaySprite
+D_802F4868 = gYoshiResultsWindowByKind # [lowest_set_bit(level kind)]: status/results window id
+D_802F4870 = gYoshiReplayWindowByKind  # [lowest_set_bit(level kind)]: replay window id
+D_802FA254 = gDebugFlagD               # parse_cmdline "-d": hd_idle_thread starts the main thread once
+D_802FA8B0 = gFadeVtx                  # Vtx[2][4] full-screen fade quad (attract end, mission failed)
+# keep D_802FDB14: u8 in 45BB0 .data, only zeroed by hd_setup_level, never read
+D_802FF0D0 = gGhostVehicleScales       # [vehicle type]: model scale for mtx_build_model_rot (ghost_draw)
+D_802FF11C = gGhostRenderModeMap       # 6 {from, to} render modes (ghost_make_translucent_dl)
+D_802FF150 = gCullOverrideQuads        # GhostQuad: level id, quad, fixed visible-cell list (cull_override_visible_cells)
+D_803047A0 = gEnterNameGlyphs          # glyph list of "ENTER NAME!"
+D_803047B4 = gEraseSaveGlyphs          # glyph list of "ERASE SAVED GAME!"
+D_803047CC = gQuitGameGlyphs           # glyph list of "QUIT GAME!"
+D_803047DC = gGuestPlayerGlyphs        # glyph list of "BECOME GUEST PLAYER:"
+D_80304904 = gShuttleViewGlyphs        # glyph list of "SHUTTLE VIEW"
+D_80304910 = gMissileViewGlyphs        # glyph list of "MISSILE VIEW"
+D_8030491C = gTurnPagesGlyphs          # glyph list of "USE Z/R TO TURN PAGES"
+D_80304938 = gMoveMapGlyphs            # glyph list of "USE Z/R TO MOVE MAP"
+D_8030F668 = gCamOnEndObject           # cam_update: level clear / window 0x4B: look at gEndObjectX..
+D_8030F669 = gCamOnMarkedTarget        # cam_update: window 0x4D: look at gMarkedTargetPts
+D_8030F66A = gCamOnCarrierTarget       # cam_update: window 0x49: look at gCarrierTargetX..
+D_80314D80 = gPiMesgQueue              # osCreatePiManager's command queue (hd_idle_thread)
+D_80314D98 = gPiMesgBuf                # osCreatePiManager's message buffer
+D_803150B8 = gDmaMesgBuf               # gDmaMesgQueue's 50 messages (hd_init)
+D_80315198 = gTextureDmaMesgBuf        # textureDmaMessageQ's 0x90 messages (hd_init)
+D_803153F0 = gCarrierDangerPrev        # carrier_update_proximity: last frame's gCarrierDanger
+D_803153F8 = gTaskDoneMesgBuf          # gTaskDoneQueue's 16 messages (hd_init)
+D_80315438 = gResultsGrade             # fe_stats_grade_level's result -> fe_player_medals_init
+D_803156F4 = gPausedBufferIndex        # gBufferIndex ^ 1 when the pause starts (held picture)
+D_803156F5 = gVehDrawBufferIndex       # buffer veh_draw_layer takes segment 7 from (held while paused)
+D_80358064 = gPlayFrames               # frames since mode setup / level start; 0 = first frame (pad not read)
+D_80358088 = gVehicleShadowPool        # gVehicleShadows = this + 0x40, 64-aligned (hd_mode_setup)
+D_803643D4 = gDiggerVehicle            # vehicle chosen on the select screen; nss.bdn, ghost, demo vehicle
+D_803643D5 = gLevelFirstClear          # results: level not done before this run (units +3, new best)
+D_803643D8 = gCarrierHitSeen           # gCarrierHit latched at the frame's end (first-frame test)
+D_80364424 = gCamLift                  # LevelInfo camLift: raise the eye when the probe hits geometry
+D_80364428 = gCamLiftMax               # LevelInfo camLiftMax << 5: highest gCamEyeHeight
+D_8036442C = gCamLiftStep              # LevelInfo camLiftStep: gCamEyeHeight step per frame
+D_80364430 = gCamLiftRadius            # LevelInfo camLiftRadius << 5: coll_probe_tris radius
+D_80364434 = gCamLiftBlocked           # cam_update: last probe hit (keep raising the eye)
+D_8036443C = gPlayerSpeed              # the player vehicle's speed (VehState speed, each frame)
+D_8036443E = gPlayerMoveHeading        # the player vehicle's move heading (VS_MOVE_HEADING, 0..0xFFF)
+D_803649D8 = gFrameDrawTime            # osGetTime() at the frame's draw (shake, part jitter)
+D_803649E2 = gPartJitterY              # gFrameDrawTime / 100 % 40 - 20 (stored for a falling part)
+D_803649E4 = gPartJitterZ              # gFrameDrawTime / 10000 % 40 - 20
+D_803649E8 = gDriverHidden             # driver (type 0) skipped: in a vehicle / level end (draw, coll)
+D_803649EC = gVehEntered               # a vehicle has been entered since level setup (camera defaults)
+D_803649EE = gVehJustSwitched          # set by veh_apply_switch, cleared each frame
+D_803649F0 = gLevelMoney               # the level's money total ($); objects' values added
+D_803649F4 = gHudMoney                 # the shown money, eased toward gLevelMoney (hud_tick_money_counter)
+D_803649F8 = gAttractCamZoom           # demo end: eye pulled toward the target, 1.0 down to 0.4
+D_80364A00 = gValuePopups              # Message[5]: "$value" popup queue (hud_update_value_popups)
+D_80364A3C = gValuePopupHead           # queue read index (0..4)
+D_80364A3D = gValuePopupTail           # queue write index (0..4)
+D_80364A40 = gValuePopupNew            # value to queue (a destroyed object's value; 0 = none)
+D_80364A44 = gValuePopupValue          # value of the popup shown (0 = none)
+D_80364A48 = gValuePopupAlpha          # its fade alpha
+D_80364A4A = gValuePopupX              # its text x
+D_80364A4C = gValuePopupY              # its text y
+D_80364A4E = gValuePopupForward        # its text_print forward flag (by camera quadrant)
+D_80364A50 = gReplayMenuShown          # replay: its window was demanded (160 ticks in)
+D_80364A54 = gReplayStartTime          # D_803156C4 when the replay started
+D_80364A58 = gLevelStartTime           # D_803156C0 at level start (time left, laps, turbo)
+D_80364A5C = gTimeInLevel              # hd.c prints "TIME IN LEVEL=%d"
+D_80364A60 = gRankGained               # fe_stats_grade_level's *arg0: a rank was gained
+D_80364A6B = gHaveBallista             # set by the ballista spawn; the missile HUD icon
+D_80364A6F = gCarrierDanger            # 0 far, 1 near, 2 very near (carrier_update_proximity)
+D_80364A71 = gUnlockCount              # fe_stats_count_unlocks (-1 none); drawn on the results
+D_80364A78 = gMapViewScrollZ           # map view: z offset along the carrier's route (Z/R)
+D_80364A7C = gCamZoomInLock            # set leaving map view with C-down; no zoom-in until released
+D_80364A80 = gMapViewScrollSpeed       # map view scroll speed, +100 per frame up to 800
+D_80364A84 = gPlayerHidden             # shuttle event 1: player not updated, only the shuttle drawn
+D_80364A85 = gCamWindowView            # window 0x58 up: eye swung relative to the player's heading
+D_80364A86 = gCamFixedIconSprite       # fixed-camera icon sprite (spr_load of gCamFixedIconSprIds)
+D_80364AB4 = gFailSpinAngle            # veh_update_fail_spin: rotation, degrees
+D_80364AB8 = gFailSpinRate             # its rate, +3 per frame
+D_80364ABC = gFailSpinScale            # its scale, 1.0 down to 0
+D_80364AC0 = gFailSpinDone             # explosion spawned
+D_80364AC4 = gAttractPicIndex          # attract pictures shown (& 3 selects the picture)
+D_80364AE9 = gLoadedPlayer             # player whose status is loaded ("switching to new player")
+D_80365065 = gWorldEntered             # world screen already entered since attract start
+D_80365066 = gCheatResultPending       # debug cheat: results take nss.bd from D_8036EB92
+D_8036506C = gShadowVtxCount           # veh_draw_shadows: next shadow vertex in the dyn buffer
+D_80365580 = gRecReplaySprite          # the replay's blinking sprite (rec_start_replay)
+D_80365588 = gRecBuffer                # RecEntry[0x400]: the RAM recording (rec_record)
+D_8036698C = gRecVehicle               # the recording's start vehicle (header byte 0xB)
+D_80366990 = gRecCount                 # entries recorded in gRecBuffer
+D_80366994 = gRecIndex                 # playback entry
+D_80366998 = gRecLength                # last playback entry
+D_8036699C = gRecRunCount              # frames the current pad state has been held (recording)
+D_803669A0 = gRecRunLeft               # frames left of the current entry (playback)
+D_803669A4 = gRecLastButtons           # last recorded buttons
+D_803669A6 = gRecLastStickX            # last recorded stick x
+D_803669A7 = gRecLastStickY            # last recorded stick y
+D_803669A8 = gRecSkipFirst             # rec_start_recording: skip the first rec_record
+D_803669AC = gRecPlayback              # entries being played back
+D_803669B0 = gRecVehicleState          # the recording's saved vehicle state (*_load_state)
+D_803669B4 = gRecVehiclePending        # rec_restore_start_vehicle due at level setup
+D_80366A04 = gRecDemoLength            # recording header word 0: frames before the demo's end fade
+# keep D_80366A10: only zeroed at frame 0 by title_draw_attract
+# keep D_80366A11: only zeroed at frame 0 by title_draw_attract
+D_80366A18 = gAttractStartOk           # set at attract frame 0x82: START now leaves the attract mode
+D_80366BA0 = gAttractQuadVtx           # title_alloc_attract_bufs (no callers): 4 Vtx on the heap
+D_80366BA4 = gAttractBufs              # 0x780 heap bytes, two halves by buffer (title_draw_attract)
+# keep D_80366BA8: only zeroed by title_draw_attract
+D_80366BC4 = gLevelDoneTuneOn          # hud_level_complete: the done tune plays (wait on it)
+D_8036B965 = gShuttleCamFollow         # shuttle path event 1: the camera follows the shuttle
+D_8036EA60 = gScoreOld                 # Score; hd.c prints it as "sold", 07800.c as "old"
+D_8036EA7C = gScoreRdus                # nss.rt (Score at 0x8036EA70 + 0xC): RDUs lit this run
+D_8036EA80 = gScoreRes                 # Score; printed "sres" / "res"
+D_8036EA90 = gScoreRs2                 # Score; printed "srs2" / "rs2" (the run kept for the replay)
+D_8036EB99 = gBonusLevelExit           # stats_finish_bonus_level: fading out, effects run while paused
+D_8039C4F8 = gReplayStatus             # 0x40-byte copy of pakBuffer: the status the replay starts from
+D_8039CA60 = gGhostRetry               # ghost-race retry from the results: keep the ghost (no ghost_init)
+D_8039CA78 = gGhostSampleIndex         # ghost_get_pose: current sample
+D_8039CA80 = gGhostRecStartTime        # D_803156C0 at the first recorded sample (-1 = not yet)
+D_8039CA84 = gGhostPlayStartTime       # D_803156C0 at playback start (-1 = not yet)
+D_803A6B04 = gSeqSkippable             # seq_prepare: START skips the sequence (MODE_SEQ_SKIP)
+D_803BE739 = gLevelDlProfile           # level header +0x1C: lvl_alloc_dl_buffers size set (0 / 1)
+D_803FCD4C = gShuttlePosY              # shuttle y (gShuttlePos is x)
+D_803FCD50 = gShuttlePosZ              # shuttle z
+D_803FCD68 = gShuttleHeading           # copy of the shuttle's y angle D_803FCD6C (cam heading * 16)
+D_803FF600 = gStaticSegmentBuf         # static segment (segment 1) load address, gStaticSegment
+# --- datanames group 4: vehicles (skyfall/ramdozer, backlash, amdream/chopper, carrier/crane, train, driver, sideswipe, thunderfist) ---
+D_802C2190 = gRamdozerTrackTexAnimA         # tex anim, 4 frames: reverse/speed from speed, or stick when standing
+D_802C21A4 = gRamdozerTrackTexAnimB         # the other track: reverse = (stick >= 0) when turning on the spot
+D_802C21B8 = gRamdozerHeadingTexAnim        # tex anim, 19 frames: frame = (heading - 0x355) / 76 (ramdozer_update_anims)
+D_802C2208 = gBacklashYawTexAnimA           # tex anim, 24 frames: frame = (heading + cam yaw - base) / 0x55
+D_802C226C = gBacklashYawTexAnimB           # second entry, same frame as A (backlash_update_anims)
+D_802C2308 = gThunderfistTexAnim            # tex anim, 2 frames; speed 25 set in thunderfist_enter
+D_802C2314 = gSkyfallBoostTexAnim           # tex anim, 3 frames: frame 1 while boosting, 0 otherwise
+D_802C236C = gCarrierTexAnim                # tex anim, 8 frames, looping at speed 100 (carrier_spawn)
+D_802C2390 = gSideswipeTexAnim              # tex anim, 8 frames, looping at speed 100 (sideswipe_enter)
+D_802C2954 = gFxExhaustSmoke                # EffectDef (15 frames): every vehicle's smoke-cooldown fx_spawn
+D_802C2984 = gFxSparks                      # EffectDef (30): veh_spawn_impact_effect, train brake sparks
+D_802C37C0 = gFxSkyfallBoost                # EffectDef (10): spawned each skyfall boost frame
+D_802C3B44 = gFxCarrierExplosion            # EffectDef (96): the carrier's hit/explosion effect
+D_80305CB0 = gDriverNonBlockingParts        # veh_collision_setup part list of the driver (1 byte: end only)
+D_80305CB1 = gDriverExitWalks               # 5-byte {level, vehicle, dir, mul, zone}, level -1 ends
+D_80305CE0 = gSideswipeNonBlockingParts     # veh_collision_setup a1 -> gNonBlockingParts
+D_80305CF0 = gThunderfistNonBlockingParts   # veh_collision_setup a1 -> gNonBlockingParts
+D_80305D00 = gSkyfallNonBlockingParts       # port_veh_move -> veh_collision_setup a1
+D_80305D10 = gRamdozerNonBlockingParts      # port_veh_move -> veh_collision_setup a1
+D_80305D20 = gBacklashNonBlockingParts      # veh_collision_setup / veh_maze_object_hits a1
+D_80305D30 = gAmdreamNonBlockingParts       # veh_collision_setup a1 (amdream_update)
+D_80305D40 = gChopperMovingToZoomMsg        # debug_printf text "moving to zoom" (chopper, -> MODE_INTRO_APPROACH)
+D_80305D60 = gCarrierNonBlockingParts       # veh_collision_setup a1 (2 bytes)
+D_80305D62 = gCarrierSpeedZones             # ZoneEntry {z, level, value}: per-level z -> gCarrierTargetSpeed
+D_80305D74 = gCarrierCollideDists           # {level, world dist, obj dist}, level < 0 ends (carrier_load_collide_dists)
+D_80305DF0 = gCraneNonBlockingParts         # veh_collision_setup a1 (crane_update)
+D_80305E00 = gTrainNonBlockingParts         # veh_collision_setup a1 (train)
+D_8030D8A0 = gSideswipeDeflectTurnRate      # port_veh_turn scale after a collision report
+D_8030D8A4 = gSideswipeYawThirdWidth        # divisor of (yaw % 0x555) for channel 2's frame (likely 1365.0)
+D_8030D8A8 = gSideswipeSteerRateDiv         # sideswipe_steer_rate: speed / this (else 6.0)
+D_8030D8B0 = gThunderfistRollBlurScale      # mb_start(6, this, 100) when the roll (state 1) starts
+D_8030D8C0 = gSkyfallDeflectTurnRate        # port_veh_turn scale after a collision report
+D_8030D8C4 = gSkyfallThrottleDownStep       # gSkyfallThrottleAnim -= this with B/Z
+D_8030D8C8 = gSkyfallThrottleUpStep         # gSkyfallThrottleAnim += this with A
+D_8030D8CC = gSkyfallThrottleReturnStep     # step back toward 0.5 otherwise
+D_8030D8D0 = gRamdozerDeflectTurnRate       # port_veh_turn scale after a collision report
+D_8030D8D4 = gRamdozerThrottleDownStep      # gRamdozerThrottleAnim -= this with B/Z
+D_8030D8D8 = gRamdozerThrottleUpStep        # gRamdozerThrottleAnim += this with A
+D_8030D8DC = gRamdozerThrottleReturnStep    # step back toward 0.5 otherwise
+D_8030D8E0 = gBacklashDeflectTurnRate       # veh_turn_into_free_arc scale after a hit
+D_8030D8E4 = gBacklashLeanLeftStep          # gBacklashLean -= this with Left
+D_8030D8E8 = gBacklashLeanRightStep         # gBacklashLean += this with Right
+D_8030D8EC = gBacklashLeanReturnStep        # gBacklashLean toward 0.5 otherwise
+D_8030D8F0 = gBacklashTiltDownStep          # gBacklashTilt -= this with B/Z
+D_8030D8F4 = gBacklashTiltUpStep            # gBacklashTilt += this with A
+D_8030D8F8 = gBacklashTiltReturnStep        # gBacklashTilt toward 0.5 otherwise
+D_8030D8FC = gBacklashSteerRateDiv          # backlash_steer_rate: speed / this (else 6.0)
+D_8030D900 = gAmdreamDeflectTurnRate        # veh_turn_into_free_arc scale (ring steering)
+D_8030D904 = gAmdreamSteerRateDiv           # amdream_steer_rate: speed / this (else 11.0)
+D_8030D910 = gChopperPitchBase              # sound param 0x10 = this + v * gChopperPitchScale
+D_8030D914 = gChopperPitchScale             # v = 160 - speed (chopper_update_anims)
+D_8030D920 = gCarrierPitchScale             # sound param 0x10 = 1.5 + speed * this
+D_8030D924 = gCarrierYawThirdWidth          # divisor of (yaw % 0x555) for channel 2's frame (likely 1365.0)
+D_8030D928 = gCarrierWheelAnimScale         # channel 1 speed = round(speed * this)
+D_8030D930 = gCraneArmMaxPos                # channel 5 runs forward with A while its pos <= this
+D_8030D934 = gCraneArmMinPos                # channel 5 runs backward with B while its pos >= this
+D_80364440 = gPlayerHeading                 # every vehicle publishes VS_HEADING (+0x4C); 00000.c rotates by it
+D_803ED80C = gDriverY                       # gDriverPos + 4 (veh_reground middle height; -> gPlayerY)
+D_803ED810 = gDriverZ                       # gDriverPos + 8 (-> gPlayerZ)
+D_803EDFD9 = gThunderfistUnusedFlag         # only cleared in thunderfist_spawn, never read
+# keep D_803EEB3C: = gBacklashPos[1]; appears only in a 71140.c comment (rewrite it)
+D_803EEB5C = gBacklashYawBase               # heading + cam yaw at spawn; subtracted for the yaw tex anims
+# keep D_803EEF1C: = gAmdreamPos[1]; appears only in a 72B80.c comment (rewrite it)
+D_803EF2E6 = gChopperLastSoundValue         # last v (160 - speed) sent to gChopperSound
+D_803EF310 = gChopperDropX                  # chopper model point 1 (veh_find_point); the driver is put here
+D_803EF314 = gChopperDropY                  # also the camera target height in the intro
+D_803EF318 = gChopperDropZ
+D_803EF320 = gChopperBestDist               # closest target distance so far (state 3 approach)
+D_803EF326 = gChopperShadowHeading          # +0x4C copy; 00000.c rotates the 0xFE shadow by it
+D_803EF328 = gChopperCamSpeed               # +0x76 copy; the 0xFE camera's tilt input
+D_803EF32A = gChopperCamHeading             # +0x4E copy; -> D_8036443E in the 0xFE camera
+D_803EF32E = gChopperLiftAnimDone           # mode 5: channel 4 finished; hides the people marker (20460.c)
+D_803EF6D6 = gCarrierLastSoundSpeed         # last speed sent to gCarrierSound
+D_803EF700 = gCarrierExplodeFrames          # counts to 0x12, then gCarrierExplodeDone
+D_803EF701 = gCarrierExplodeStarted         # gFxCarrierExplosion spawned
+# keep D_803EFACC: = gCranePos[1]; appears only in a 75490.c comment (rewrite it)
+D_803EFECA = gTrainUnusedFlag               # only cleared in the train spawn, never read
+D_803F77D0 = gCollVehicleAnim               # anim channel table of the vehicle in obj_collide_vehicle
+D_803F7812 = gCollExitProbe                 # 1 during driver_try_exit: obj hits skip obj_detect_rocking_hits
+# --- datanames group 5: vehicles (J-Bomb, barge, Ballista, police, A-Team, Starski, Cyclone, shuttle), fx/tex-anim/particle tables, util hints ---
+D_802C22D0 = gTexAnimCyclone             # 7D9D0 tex-anim entry id 0x10 (13 frames); cyclone_enter's anim_tex key
+D_802C2324 = gTexAnimPoliceLightsA       # tex-anim id 0x0D, 8 frames; police_update_effects: frame = light phase/2
+D_802C2348 = gTexAnimPoliceLightsB       # second siren-light tex-anim (id 0x0D, 8 frames), same use
+D_802C23F0 = gFxDefKind00                # EffectDef gFxDefsByKind[0] (2x2 32px, 29 frames); only via the list
+D_802C24E8 = gFxDefKind01                # EffectDef kind 1 (2x2 32px, 60 frames); only via gFxDefsByKind
+D_802C26D8 = gFxDefKind02                # EffectDef kind 2 (3x1 32x64, 15 frames); only via gFxDefsByKind
+D_802C2744 = gFxDefKind03                # EffectDef kind 3 (2x2 32px, 50 frames); only via gFxDefsByKind
+D_802C28E4 = gFxDefKind04                # EffectDef kind 4 (64px, 47 fr): J-Bomb stomp landing, shuttle point-4 burst
+D_802C29D0 = gFxDefKind07                # EffectDef kind 7 (64px, 61 frames); only via gFxDefsByKind
+D_802C2A80 = gFxDefKind09                # EffectDef kind 9 (2x2 32px, 60 frames); only via gFxDefsByKind
+D_802C2C70 = gFxDefKind10                # EffectDef kind 10 (2x2 32px, 60 frames); only via gFxDefsByKind
+D_802C2E60 = gFxDefKind11                # EffectDef kind 11 (2x2 32px, 60 frames); only via gFxDefsByKind
+D_802C3050 = gFxDefKind12                # EffectDef kind 12 (2x2 32px, 60 frames); only via gFxDefsByKind
+D_802C3240 = gFxDefKind13                # EffectDef kind 13 (2x2 32px, 60 frames); only via gFxDefsByKind
+D_802C3430 = gFxDefKind14                # EffectDef kind 14 (2x2 32px, 60 frames); only via gFxDefsByKind
+D_802C3620 = gFxDefKind15                # EffectDef kind 15 (2x2 32px, 50 frames); only via gFxDefsByKind
+D_802C37E4 = gFxDefKind17                # EffectDef kind 17 (32px, 7 frames); only via gFxDefsByKind
+D_802C3804 = gFxDefJetFlame              # kind 18: J-Bomb jet flames (jbomb_update_jet_effects), shuttle flames pts 4-6
+D_802C3888 = gFxDefKind22                # EffectDef kind 22 (3x1 32x64, 43 frames); only via gFxDefsByKind
+D_802C399C = gFxDefKind23                # EffectDef kind 23 (2x2 32px, 51 frames); only via gFxDefsByKind
+D_802C3C14 = gFxDefKind25                # EffectDef kind 25 (2x2 32px, 54 frames); only via gFxDefsByKind
+D_802C3DD4 = gFxDefKind26                # EffectDef kind 26 (2x2 32px, 26 frames); only via gFxDefsByKind
+D_802C3EB4 = gFxDefKind27                # EffectDef kind 27 (2x2 32px, 39 frames); only via gFxDefsByKind
+D_802C48A0 = gPtclDefBreak0              # gParticleDefs[0]; obj_start_emitter picks type rand % 4 (own textures)
+D_802C4900 = gPtclDefBreak1              # gParticleDefs[1]; break emitter variant (textures 0x7D0..)
+D_802C4948 = gPtclDefBreak2              # gParticleDefs[2]; break emitter variant
+D_802C4990 = gPtclDefBreak3              # gParticleDefs[3]; break emitter variant
+D_802C49D8 = gPtclDefJbombDust           # gParticleDefs[4]; ptcl_start(4, ..) = J-Bomb touchdown dust
+D_80303AF4 = gShuttleLandingAbortedJText # util_shuttle_path_step event 5: jtext of "LANDING ABORTED!"
+D_80303B00 = gShuttleDitchingJText       # event 6: jtext of "DITCHING IN SEA!"
+D_80303B10 = gShuttleFinalApproachJText  # event 4: jtext of "ON FINAL APPROACH!"
+D_80303B24 = gShuttleLandedJText         # event 7: jtext of "SUCCESSFUL LANDING!"
+D_803063F0 = gStatusLevelPercents        # create_status: percentage per level 1..5 (objects/RDUs preset done)
+D_80306400 = gJbombNonBlockingParts      # veh_collision_setup a1 -> gNonBlockingParts (jbomb_update)
+D_80306410 = gBargeNonBlockingParts      # same, shared by the three barges (83910)
+D_80306420 = gBallistaNonBlockingParts   # same (ballista_update)
+D_80306430 = gPoliceNonBlockingParts     # same (police_update)
+D_80306440 = gAteamNonBlockingParts      # same (ateam_update)
+D_80306460 = gStarskiNonBlockingParts    # same (starski_update)
+D_80306470 = gCycloneNonBlockingParts    # same (cyclone_update)
+D_8030D940 = gEnginePitchStep            # veh_set_engine_level: pitch = 0.5 + level * this
+D_8030D944 = gEnginePitchStepSideswipe   # the same step when gCurVehicle == 1 (Sideswipe)
+D_8030D950 = gJbombIdleTakeoffPitch      # jbomb_update_modes: gJbombPitch on takeoff from mode 5 (else 0.5)
+D_8030D954 = gJbombRollStepLeft          # jbomb_update_tilt: roll decrease per frame, stick x < -30
+D_8030D958 = gJbombRollStepRight         # roll increase per frame, stick x >= 31
+D_8030D95C = gJbombRollRecentreStep      # roll step back towards 0.5
+D_8030D960 = gJbombPitchStep             # pitch step (scaled by distance from the ends)
+D_8030D964 = gJbombPitchRecentreStep     # pitch step back towards 0.5
+D_8030D968 = gJbombRollMax               # jbomb_roll_limit: above this ...
+D_8030D96C = gJbombRollMaxClamp          # ... the limit becomes this
+D_8030D970 = gJbombRollMin               # below this ...
+D_8030D974 = gJbombRollMinClamp          # ... the limit becomes this
+D_8030D980 = gBargeSteerDivisor          # barge_steer_rate: speed / this
+D_8030D990 = gBallistaEscapeTurnRate     # ballista_update: veh_turn_into_free_arc rate (J-Bomb/Cyclone use 0.25)
+D_8030D994 = gBallistaLeanStepLeft       # ballista_update_actions: gBallistaLean step while gHeldLeft
+D_8030D998 = gBallistaLeanStepRight      # lean step while gHeldRight
+D_8030D99C = gBallistaLeanRecentreStep   # lean step back towards 0.5
+D_8030D9A0 = gBallistaJumpFullHeight     # jump height / this = channel 2 frame (capped at 1.0)
+D_8030D9A4 = gBallistaSteerDivisor       # ballista_steer_rate: speed / this on the ground (11.0 airborne)
+D_8030D9B0 = gPoliceEscapeTurnRate       # police_update: veh_turn_into_free_arc rate
+D_8030D9B4 = gPoliceSteerDivisor         # police_steer_rate: speed / this on the ground
+D_8030D9C0 = gAteamEscapeTurnRate        # ateam_update: veh_turn_into_free_arc rate
+D_8030D9C4 = gAteamSteerDivisor          # ateam_steer_rate: speed / this on the ground
+D_8030D9D0 = gStarskiEscapeTurnRate      # starski_update: veh_turn_into_free_arc rate
+D_8030D9D4 = gStarskiSteerDivisor        # starski_steer_rate: speed / this on the ground
+D_8030D9E0 = gCycloneBlurSpacing         # mb_start(6, this, 0x64) when the Cyclone special move starts
+D_80364AB0 = gEngineLevelForce           # veh_set_engine_level: nonzero forces the next pitch update (cleared)
+D_8036B958 = gShuttlePathAltBranch       # u8[4]: fallback branch per looked-up point (always 0)
+D_8036B960 = gShuttlePathWindow          # u8[4]: point indices point-1 .. point+2 being looked up
+D_8036B964 = gShuttleAborted             # event 1 with too few targets: branch 1; silences point sounds
+D_8036B966 = gShuttlePathInLevel         # 0 in MODE_INTRO_FLY, else 1: selects path / points set (unk4)
+D_8036B970 = gHintNearVehicle            # util_check_hint_events: hint 0x4C shown, cleared when > 400 away
+D_8036B971 = gHintBuildingHit            # set on the first hit of a new object; hint 0x4E/0x4F then clears
+D_8036B974 = gHintLastHitObject          # LevelObject* last hit (obj triangle damage), for gHintBuildingHit
+D_8036B978 = gHintPrevVehicle            # vehicle left last (no "near vehicle" hint for it)
+D_8036B979 = gHintLastVehicle            # last nonzero gCurVehicle
+D_803EBBFC = gGuardTrisBestY             # height of ground_scan_guard_tris's best triangle
+D_803F7830 = gKiunzipSrc                 # kiunzip_entry: source pointer handed to kiunzip by address
+D_803F7834 = gKiunzipDst                 # kiunzip_entry: destination pointer
+D_803F7BFC = gJbombPosY                  # = gJbombPos[1]; the asm/C read it as a scalar everywhere
+D_803F7C20 = gJbombSinceStomp2           # frames since gJbombStompTimer was 2/3 (< 3: ring hit -> mode 2)
+D_803F7C24 = gJbombSinceStomp4           # frames since it was 4 (< 3: stomp collision class)
+D_803F7C28 = gJbombPitch                 # pitch anim value, 0.5 = level (channel 3)
+D_803F7C2C = gJbombRoll                  # roll anim value, 0.5 = level (channel 4)
+D_803F7C30 = gJbombEscapeHeading         # ring target heading (veh_set_target_heading)
+D_803F7C32 = gJbombStepFrame             # channel 6's last field 0x18: footstep sounds at 0 / 3
+D_803F7C34 = gContSteerError             # cont_steer_toward: target - current heading; jbomb_update_tilt reads it
+D_803F7C36 = gJbombEscaping              # "turning back to the ring" flag
+D_803F7C37 = gJbombBounced               # bounced off the ring end (cf. gBarge0BBounced; bounce code unreachable)
+D_803F7C38 = gJbombThrottleHold          # throttle hold-off countdown
+D_803F7C39 = gJbombKnocked               # hit/train contact: forced to mode 2/3 and knocked up
+D_803F7C3A = gJbombFlameTimer            # countdown between jet-flame fx spawns
+D_803F7C3B = gJbombJetRamp               # 0..50 ramp; channel 1 speed = ramp / 4
+D_803F7C3C = gJbombAirSteerRate          # jbomb_steer_rate in modes 1-4: 20, climbs by 2 to 100
+D_803F7C3D = gJbombThrustHold            # countdown blocking thrust (10 in modes 2 and 4)
+D_803F7C40 = gJbombStompTimer            # 20 at a stomp (mode 4), counts down; blocks a new stomp
+D_803F7C41 = gJbombStompDelay            # 9 outside modes 1-3, counts down while airborne; blocks a stomp
+D_803F7C42 = gJbombPrevHeldB             # previous frame's gHeldB
+D_803F7C43 = gJbombPrevAirborne          # previous frame's +0x96
+D_803F7C44 = gJbombTapPhaseL             # press/release tracker on gHeldL: phase
+D_803F7C45 = gJbombTapTimerL             # its timer
+D_803F7C46 = gJbombTapPhaseR             # press/release tracker on gHeldR: phase
+D_803F7C47 = gJbombTapTimerR             # its timer
+D_803F7C48 = gJbombThrottleStep          # veh_throttle delta: 4 in a mode, 12 in mode 0
+D_803F7C49 = gJbombCeilingAbove          # jbomb_check_overhead: ground >= 200 above; 62740 landing test
+D_803F7C4A = gJbombStompDropPending      # set at a stomp; the downward launch once channel 5 ends
+D_803F7C4B = gJbombIdleTimer             # 30 still frames -> idle animation (mode 5)
+# keep D_803F7C00: gJbombPos[2]; only named in comments (s1 = &D_803F7C00)
+# keep D_803F874C: gBarge0BPos[1]; only in a comment
+# keep D_803F8750: gBarge0BPos[2]; only in a comment
+# keep D_803F8B4C: gBallistaPos[1]; only in comments
+# keep D_803F8B50: gBallistaPos[2]; only in comments
+D_803F8B64 = gBallistaJumpSpeed          # jump parabola: a (initial speed)
+D_803F8B68 = gBallistaJumpFrame          # jump parabola: n (frame)
+D_803F8B6C = gBallistaJumpBaseY          # jump parabola: base height
+D_803F8B70 = gBallistaJumpBoosts         # boosts taken this jump (max 0x17)
+D_803F8B74 = gBallistaEscapeHeading      # ring target heading
+D_803F8B76 = gBallistaDustTimer          # cooldown between dust fx (def D_802C2954) spawns
+# keep D_803F8B77: only written (0x32 in ballista_spawn); no reader in C
+D_803F8B78 = gBallistaEscaping           # "turning back to the ring" flag
+D_803F8B79 = gBallistaHitSound           # sound to start this frame (-1 = none)
+D_803F8B7A = gBallistaThrottleHold       # throttle hold-off countdown
+D_803F8B7B = gBallistaBounced            # bounced off the ring end
+D_803F8B7C = gBallistaJumping            # jump active (state byte 0xDC); blocks the exit check
+D_803F8B7D = gBallistaFireCooldown       # missile fire cooldown (5)
+D_803F8B7E = gBallistaFireSide           # alternates the missile launcher (channels 4 / 5)
+# keep D_803F8F2C: gPolicePos[1]; only in comments
+D_803F8F40 = gPoliceEscapeHeading        # ring target heading
+D_803F8F42 = gPoliceDustTimer            # cooldown between dust fx (def D_802C2954) spawns
+D_803F8F43 = gPoliceEscaping             # "turning back to the ring" flag
+D_803F8F44 = gPoliceThrottleHold         # throttle hold-off after a hit (5)
+D_803F9310 = gAteamEscapeHeading         # ring target heading
+D_803F9312 = gAteamDustTimer             # cooldown between dust fx spawns
+D_803F9313 = gAteamEscaping              # "turning back to the ring" flag
+D_803F9314 = gAteamThrottleHold          # throttle hold-off after a hit (5)
+D_803FC5C0 = gStarskiEscapeHeading       # ring target heading
+D_803FC5C2 = gStarskiDustTimer           # cooldown between dust fx (def D_802C2954) spawns
+D_803FC5C3 = gStarskiEscaping            # "turning back to the ring" flag
+D_803FC5C4 = gStarskiThrottleHold        # throttle hold-off after a hit (5)
+D_803FC994 = gCycloneEscapeHeading       # ring target heading
+D_803FC996 = gCycloneStepFrame           # last channel unk13 seen: footstep sounds at 6 / 2
+D_803FC998 = gCycloneEscaping            # "turning back to the ring" flag
+# keep D_803FC999: only cleared in cyclone_spawn; no reader in C
+D_803FC99A = gCycloneNearArcEnd          # ring hit with free-arc distance < 0x190; ends the special move
+D_803FCD60 = gShuttleTriggerY            # path's unkC << 5; point sounds fire when point 1..3 y <= this
+D_803FCD6A = gShuttleRotX                # path-evaluated angles (util_shuttle_path_step) -> gModelRot
+D_803FCD6C = gShuttleRotY                # also the heading (+0x4C)
+D_803FCD6E = gShuttleRotZ
+D_803FCD72 = gShuttlePoint1Sounded       # one-shot: point 1 sound played
+D_803FCD73 = gShuttlePoint2Sounded       # one-shot: point 2 sound played
+D_803FCD74 = gShuttlePoint3Sounded       # one-shot: point 3 sound played
+D_803FCD75 = gShuttlePathKind            # gShuttlePaths unk5: 1 = sequence (fades to MODE_SEQ_END, no loop)
+D_803FCD76 = gShuttleFlameTimer          # 5-frame countdown for the flame fx at points 4-6
+D_803FCD77 = gShuttleFlamesOn            # set by path event 0xB
+D_803FCD78 = gShuttleSmokeOn             # set by event 0xB, cleared by 0xD: kind-4 fx at point 4
+D_803FCD79 = gShuttleSmokeTimer          # its 5-frame countdown
+D_803FCD7A = gShuttleShakeOn             # event 0xB..0xC: camera shake each frame
+# --- datanames group 6: level load, objects, collision, culling, fx, math, comm points, blocks, TNT ---
+D_8020ED00 = gFxHeapEndKind20          # fx_alloc_texture_caches: cache heap limit when gLevelKind & 0x20 (60F60)
+D_8021DD00 = gFxHeapEnd                # fx_alloc_texture_caches: cache heap limit otherwise (60F60)
+D_802AE0F0 = gAsinSteepTableTail       # last 5 words of gAsinSteepTable, assembled into 69930's .text
+D_802C23B4 = gTexAnimDefList           # -1 ended list of the 12 tex-anim entries (anim_tex_init, 7D9D0 blob)
+D_802C2A5C = gFxDefNodeHit             # EffectDef kind 8: fx_spawn_node_hit's sparkle at a lit RDU
+D_802C382C = gFxDefBlast               # EffectDef kind 0x13: coll_spawn_blast_fx (TNT blast)
+D_802C3848 = gFxDefKind20              # EffectDef kind 0x14; only listed in gFxCachedDefs / gFxDefsByKind
+D_802C386C = gFxDefKind21              # EffectDef kind 0x15 (tag 1 in obj_run_effect_queue); gFxCachedDefs
+D_802D30D0 = gPathPartsLvl00           # lvl_pick_object_list: levelno 0x00's path-building part table
+D_802D3194 = gPathPartsLvl01           # levelno 0x01 (table: count, 0x18-byte {obj, n, idx[16]})
+D_802D32A0 = gPathPartsLvl02           # levelno 0x02
+D_802D331C = gPathPartsLvl03           # levelno 0x03
+D_802D33C8 = gPathPartsLvl04           # levelno 0x04
+D_802D3444 = gPathPartsLvl05           # levelno 0x05
+D_802D3538 = gPathPartsLvl09           # levelno 0x09
+D_802D3614 = gPathPartsLvl0A           # levelno 0x0A
+D_802D36C0 = gPathPartsLvl0C           # levelno 0x0C
+D_802D3784 = gPathPartsLvl0D           # levelno 0x0D
+D_802D3890 = gPathPartsLvl0E           # levelno 0x0E
+D_802D393C = gPathPartsLvl0F           # levelno 0x0F
+D_802D3A00 = gPathPartsLvl10           # levelno 0x10
+D_802D3A4C = gPathPartsLvl11           # levelno 0x11
+D_802D3BA0 = gPathPartsLvl12           # levelno 0x12
+D_802D3BD4 = gPathPartsLvl1A           # levelno 0x1A
+D_802D3CE0 = gPathPartsLvl1D           # levelno 0x1D
+D_802D3DD4 = gPathPartsLvl21           # levelno 0x21
+D_802D3EB0 = gPathPartsLvl39           # levelno 0x39
+D_802D3F74 = gPathPartsLvl3A           # levelno 0x3A
+D_802E77B0 = gCullUcodeText            # cull_rsp_test's task ucode (F3D writing RDP output to DRAM)
+D_802F46C0 = gObjFadeCmdSubs           # 12 {from, to} u64 DL command swaps (obj_fade_substitute_cmd)
+D_802F4780 = gObjSinkRenderCmds        # 6 fixed render-state commands for the sinking part's DL
+D_802FDB70 = gTntPushSpeedMax          # s16 per vehicle (update arg): cap on a pushed crate's speed (48D00)
+D_802FDBD0 = gBootPakManager           # START held at boot with pad 1 present -> MODE_PAK_MANAGER
+D_802FDBD4 = gBootEraseSave            # START held but not latched -> MODE_ERASE_SAVE
+D_802FDBE0 = gBlockPushSpeedMax        # s16 per vehicle (update arg): cap on a pushed block's speed (4B5E0)
+D_802FDC08 = gBlockModels              # 0x290-byte block models: DL, texture, radius, pickup range
+D_803059F0 = gObjSolidKinds            # {level, kind, vehicle mask}: object kinds solid (undamaged) per vehicle
+D_80305C34 = gFxTexCacheCountMsg       # "Num texture caches=" (fx_alloc_texture_caches debug_printf)
+D_80305C48 = gFxTexCacheCountFmt       # "%d\n" (the count after it)
+D_80305C50 = gGroundPlaneScale         # f64 2000.0: ground_tri_height's scale
+D_80305C58 = gBlockedTurnRates         # {level, rate, frames} for 10 frames after an arc clip (veh_blocked_turn_rate)
+D_80305C70 = gMathTwoPi                # 2*pi: math_cosf/math_sinf range reduction (69930)
+D_80305C74 = gMathPi                   # pi
+D_80305C78 = gMathHalfPi               # pi/2
+D_80305C7C = gMathInvFact2             # 1/2! (cosine series)
+D_80305C80 = gMathInvFact3             # 1/3! (sine series)
+D_80305C84 = gMathInvFact4             # 1/4!
+D_80305C88 = gMathInvFact5             # 1/5!
+D_80305C8C = gMathInvFact6             # 1/6!
+D_80305C90 = gMathInvFact7             # 1/7!
+D_80305C94 = gMathInvFact8             # 1/8!
+D_80305C9C = gMathFix16One             # 65536.0: float -> 16.16 for the fixed cos/sin
+D_80305CA0 = gMathAngleToRad           # 2*pi/4096: 12-bit angle -> radians
+D_80305E10 = gObjBlockedFullDamage     # {level, vehicle mask}: full damage the frame after an arc clip
+D_80305E38 = gObjSinkingKinds          # s16 object kinds whose collapsing part sinks, negative ends
+D_80305E50 = gObjDamageRules           # {vehicle bit, key, kind, n,...} records read by obj_calc_damage
+D_80306270 = gObjEffectDefLists        # per effect kind: {n, defIndex[n]} (obj_run_effect_queue)
+D_8030631F = gObjBreakFxRemap          # byte map applied to break-effect kinds (lvl_remap_break_fx_kinds)
+D_8030633C = gObjEmitterFxKinds        # s8 effect kinds that start a particle emitter, -1 ends
+D_80306344 = gObjDebrisKinds           # {threshold, kind, lo, hi} by 0..100 roll: part damaged
+D_80306350 = gObjDebrisKindsFull       # the same for a part at 100 (level >= 100)
+D_803063D4 = gObjLandingFxKinds        # the same for obj_spawn_random_landing_effect
+D_803063E0 = gObjDebrisCounts          # {threshold, count} pairs: how many debris records per hit
+D_80306450 = gProbeNonBlockingParts    # coll_begin_probe's gNonBlockingParts list
+D_80306480 = gTriTargets               # 0x30-byte {pos, s8 ids[] (gCollTris), level}: triangle targets
+D_8030D870 = gMathLerpFullTurn         # f32 full turn in 1/16 angle units (math_lerp_angle)
+D_8030D880 = gModeGlobeSeqU64          # u64 rodata copy of MODE_GLOBE_SEQ read by initlevel
+# keep D_8030D888: u64 mode constant in lvl_spawn_vehicles; value not shown in the C (comment implies 2)
+D_8030D890 = gSkidPitchPerSpeed        # skid sound pitch = 0.5 + |speed| * this (veh_turn_heading)
+D_8030EE60 = gCullUcodeData            # cull_rsp_test's ucode data (0x800)
+D_803649E0 = gPartJitterX              # per-frame -20..19 from the frame counter; stored for a falling part
+D_80365330 = gObjShadowTex             # blob-shadow texture 0xF81 for object types 0xBA-0xBC (13A70 draws)
+D_8036EB93 = gPeopleTotal              # people in the level's buildings (sum of counts); status % divisor
+D_80370C3C = gImpactEffectSpawned      # set to 1 by veh_spawn_impact_effect; never read
+D_8039B088 = gTntCrate0Live            # gTntCrates[0] byte 0x18 (live), split symbol
+D_8039B089 = gTntCrate0State           # gTntCrates[0] byte 0x19: 5 once exploded
+D_8039B094 = gTntCrate0Riding          # gTntCrates[0] byte 0x24: rides a vehicle (tnt_attach_to_vehicle)
+D_8039B0B0 = gTntCrate0TickSnd         # gTntCrates[0] word 0x40: fuse tick sound handle
+D_8039B0B4 = gTntCrate0Snd             # gTntCrates[0] word 0x44: second sound handle (stopped on explode)
+D_8039B614 = gTntPrevPlayerX           # gPlayerX at the end of the last TNT update
+D_8039B618 = gTntPrevPlayerY
+D_8039B61C = gTntPrevPlayerZ
+D_8039B620 = gTntPrevVehicle           # that update's vehicle argument
+D_8039C579 = gBlock0Riding             # gBlocks[0] byte 0x29: rides a vehicle, split symbol
+D_8039C944 = gBlockPrevPlayerX         # gPlayerX at the end of the last block update
+D_8039C948 = gBlockPrevPlayerY
+D_8039C94C = gBlockPrevPlayerZ
+D_8039C950 = gBlockPrevVehicle         # that update's vehicle argument
+D_8039C954 = gBlockPrevCarrierX        # gCarrierX at the end of the last block update
+D_8039C958 = gBlockPrevCarrierY
+D_8039C95C = gBlockPrevCarrierZ
+D_8039CA7E = gGhostModelType           # packed model to load for the ghost (= gGhostVehicle at playback)
+D_8039CABC = gAcademyMarkerDl          # the marker model's DL (lvl_load_scientist, academy_draw_marker)
+D_8039CAC0 = gAcademyMarkerVtx         # its vertices, segment 6
+D_803A742A = gProbeSkipPart            # coll_probe_tris's tag: kind-0xC8 hits skip dyn tris with this h52
+D_803BC1D0 = gCollObjGroups            # 0xDC-byte object groups (lvl_build_object_groups, veh_update_tris)
+D_803BD304 = gCollObjGroupsEnd
+D_803BD308 = gSwitchTris               # switch-group collision triangles on the heap (0x60 each)
+D_803BD30C = gSwitchTrisEnd
+D_803BD310 = gSwitchGroups             # 0xFC-byte switch groups (lvl_build_switch_groups)
+D_803BDAF0 = gSwitchGroupsEnd
+D_803BDAF4 = gGuardTris                # level header +0x24: 0x14-byte guard triangles (ground_scan_guard_tris)
+D_803BDAF8 = gGuardTrisEnd             # header +0x28
+D_803BDAFC = gGhostModel               # the ghost vehicle's loaded model data (lvl_load_ghost_model)
+D_803BDB00 = gGhostMtx                 # its matrices copied to the heap, segment 7
+D_803BDB04 = gGhostVtx                 # its vertices, segment 6
+D_803BDB08 = gGhostDl                  # its display list (made translucent)
+D_803BE6E0 = gLevelFileDl0             # level file header +0x90: DL drawn after gLevelDl0
+D_803BE6E4 = gLevelFileDl1             # header +0x94, after gLevelDl1
+D_803BE6E8 = gLevelFileDl2             # header +0x98, after gLevelDl2
+D_803BE6EC = gLevelFileDl3             # header +0x9C, after gLevelDl3
+D_803BE6F4 = gLevelStatusArg           # initlevel's arg1: saved-status stream for apply_status, or 0
+D_803BE704 = gPathPartsCursor          # append cursor into gPathParts (lvl_add_object, stride 0x18)
+D_803BE708 = gPathParts                # this level's path-building part table (obj_parts_destroyed)
+D_803BE72E = gCollRows                 # header u16 +0x12 (beside gCollCols); only written
+D_803BE740 = gCullTask                 # cull_rsp_test's scheduler task (OSTask at +0x10)
+D_803BE780 = gCullDramStack            # its dram stack (0x400)
+D_803BEB80 = gCullOutput               # its output buffer (first word 0xE8000000 = not visible)
+D_803C2B80 = gCullOutputEnd
+D_803C2B88 = gCullQuadTop              # top of the quad stack (cull_walk_grid)
+D_803C2B90 = gCullQuadStack            # the quad stack base
+D_803C2EB0 = gCullDlGroupIds           # s16 ids of DL groups already copied this pass (sorted)
+D_803C3170 = gCullCellsEnd             # end of the cells found visible so far
+D_803C3178 = gCullCells                # cells found visible, sorted into gVisibleCells
+D_803C3240 = gLevelTexAnimCur          # lvl_find_tex_anim: current frame's texture address (0 = keep)
+D_803C3244 = gLevelTexAnimNext         # next frame's texture address when fading
+D_803C324A = gLevelTexAnimFade         # fade flag
+D_803C324B = gLevelTexAnimAlpha        # fade alpha ORed into G_SETPRIMCOLOR
+D_803C4F30 = gFxScratchMtx             # 16.16 scratch matrix (fx billboard matrix)
+D_803C4F70 = gFxMtx0                   # effect matrices (0x40 each), frame 0
+D_803C5370 = gFxMtx1                   # frame 1
+D_803C8770 = gFxVtx0                   # effect quad vertices, frame 0
+D_803C9770 = gFxVtx1                   # frame 1
+D_803CA770 = gFxTexBuf0                # fallback texture buffers, frame 0
+D_803DA770 = gFxTexBuf1                # frame 1
+D_803EA770 = gFxLoadParams             # 0x100-byte texture load parameter per effect record
+D_803EB792 = gFxSpawnTag               # fx_spawn's io->a3, copied to the record's byte 0x3B
+D_803EBB58 = gMtxWork                  # scratch Mtx: mtx_build_model's factors, mtx_chain_transform's product
+D_803EBB98 = gMtxChainTemp             # mtx_chain_transform's product temp
+D_803EBBD8 = gGroundTriSwap            # 0x14-byte swap temp for ground cell triangles
+D_803ED392 = gModelRotY                # gModelRot[1] (mtx_build_model rotate_y)
+D_803ED394 = gModelRotZ                # gModelRot[2]; only in comments (C uses D_803ED394_ macro)
+D_803ED39C = gSlotY1                   # gSlotY[1]
+D_803ED3A0 = gSlotY2                   # gSlotY[2]
+D_803ED3AC = gSlotGroundY1             # gSlotGroundY[1]
+D_803ED3B0 = gSlotGroundY2             # gSlotGroundY[2]
+D_803ED3E8 = gVehWheelHeading          # scratch heading passed to veh_wheel_offset
+D_803ED3EB = gSlotStandOn1             # gSlotStandOn[1]
+D_803ED3EF = gSlotAirborne1            # gSlotAirborne[1]
+D_803ED3F8 = gSkidSoundTimer           # skid sound retrigger counter (every 7th call)
+D_803ED3FC = gSkidPitch                # f32 bits: the skid sound's pitch
+D_803ED402 = gVehTiltDivB              # veh_ground_contact's divB: wheel span for the tilt
+D_803ED404 = gVehTiltDivA              # its divA
+D_803ED406 = gVehContactAngle          # veh_ground_contact's *angle, handed to veh_update_shadow
+D_803ED408 = gSteerSnapAngle           # analog steering heading used while D_803ED40A (snap) is set
+D_803ED40E = gVehSlot0Flags            # veh_ground_contact's flags[0]; only written
+D_803ED420 = gMtxMulTemp               # mtx_mul's 4x4 product temp
+D_803EFECB = gTrainClosed              # train's tris all solid: riders can't switch to it
+D_803F7664 = gSplinePosX               # position spline_object_matrix gives a posed object (4EBE0)
+D_803F7801 = gVehDamageMode            # veh_collision_setup b4: 1 never / 2 always full damage
+D_803F780A = gObjRockSign              # last sign of gHitSpeed (-1, 0, 1) (obj_detect_rocking_hits)
+D_803F780B = gObjRockRun               # run length, 0..0x14
+D_803F780C = gObjRockHit               # set when a run of 0x14 completes with a stick change: damage 100
+D_803F780D = gObjRockChanged           # the stick flag changed during this run
+D_803F780E = gObjRockStartFlag         # stick flag value at the start of the run
+D_803F780F = gObjRockLatch             # once-per-frame latch
+D_803F7811 = gVehCollB2                # veh_collision_setup's b2; only written
+D_803F7820 = gObjPartMtx0              # part matrices, frame 0 (segment 10)
+D_803F7824 = gObjPartMtx1              # frame 1
+D_803F9320 = gCollStepX                # coll_step_xz result x
+D_803F9324 = gCollStepZ                # result z
+D_803F9328 = gCollStepLen              # its len argument
+D_803F9330 = gDynTris                  # 0x60-byte dynamic collision triangles (push blocks)
+D_803FB8B0 = gDynTrisEnd               # write cursor (coll_reset_dyn_tris / coll_add_dyn_tris)
+D_803FBAB0 = gCommPtVtx                # 8 vertices per comm point box
+D_803FBBD8 = gCommPtBoxModel           # the boxes' model 0x96 data
+D_803FBBE0 = gCommPtTakenAnims         # channel table of the taken-box model
+D_803FBEE0 = gCommPtFreeAnims          # channel table of the free-box model
+D_803FC1E0 = gCommPtTakenPose0         # 0x300-byte model state copies: taken, buffer 0
+D_803FC1E4 = gCommPtTakenPose1         # taken, buffer 1
+D_803FC1E8 = gCommPtFreePose0          # free, buffer 0
+D_803FC1EC = gCommPtFreePose1          # free, buffer 1
+# --- datanames group 7: HUD and effects (1D990, 20460, 2D810, 30430, 30C70, 32E00, 34430, 37530, 39050, 3E4C0, 42240, 4EBE0, 51690, 55970) ---
+D_802E8F68 = gTrainLineLevels            # {level, x0, z0, x1, z1}[1]: lvl_init_train_line's table (cf. gFixedEyeLevels)
+D_802E9F90 = gObjectiveBuildingsName     # "BUILDINGS": gObjectiveName for anim 6 (destroy-targets kinds)
+D_802E9F9C = gObjectiveBuildingsWord     # s32 after it, copied to gObjectiveWord (like TargetBuilding.unk10)
+D_802E9FA0 = gIntroPluralS               # " S": "%d MINUTE%c" picks [mins != 1]
+D_802E9FB0 = gPeopleQuadVtx              # Vtx[4] template of the 20x32 person billboard (people_draw)
+D_802E9FF0 = gPeopleMarkerTex            # 20x32 RGBA16: the marker at D_803EF310 while a person boards (state 3)
+D_802EA4F0 = gPeopleIdleTex0             # 20x32 RGBA16, 6-frame anim of states 1/2 and still state 4
+D_802EA9F0 = gPeopleIdleTex1
+D_802EAEF0 = gPeopleIdleTex2
+D_802EB3F0 = gPeopleIdleTex3
+D_802EB8F0 = gPeopleIdleTex4
+D_802EBDF0 = gPeopleIdleTex5
+D_802EC2F0 = gPeopleWalkATex0            # 20x32 RGBA16, 8-frame walk/run, relative heading 0x400..0x7FF
+D_802EC7F0 = gPeopleWalkATex1
+D_802ECCF0 = gPeopleWalkATex2
+D_802ED1F0 = gPeopleWalkATex3
+D_802ED6F0 = gPeopleWalkATex4
+D_802EDBF0 = gPeopleWalkATex5
+D_802EE0F0 = gPeopleWalkATex6
+D_802EE5F0 = gPeopleWalkATex7
+D_802EEAF0 = gPeopleWalkBTex0            # 20x32 RGBA16, 8-frame walk/run, relative heading >= 0xC00
+D_802EEFF0 = gPeopleWalkBTex1
+D_802EF4F0 = gPeopleWalkBTex2
+D_802EF9F0 = gPeopleWalkBTex3
+D_802EFEF0 = gPeopleWalkBTex4
+D_802F03F0 = gPeopleWalkBTex5
+D_802F08F0 = gPeopleWalkBTex6
+D_802F0DF0 = gPeopleWalkBTex7
+D_802F12F0 = gPeopleWalkSideTex0         # 20x32 RGBA16, 8-frame walk/run, side view (< 0x400; s-mirrored 0x800..0xBFF)
+D_802F17F0 = gPeopleWalkSideTex1
+D_802F1CF0 = gPeopleWalkSideTex2
+D_802F21F0 = gPeopleWalkSideTex3
+D_802F26F0 = gPeopleWalkSideTex4
+D_802F2BF0 = gPeopleWalkSideTex5
+D_802F30F0 = gPeopleWalkSideTex6
+D_802F35F0 = gPeopleWalkSideTex7
+D_802FA8A0 = gBackdropTileFormats        # u16[2]: the two backdrop layers' G_IM_FMT (backdrop_draw)
+D_802FA930 = gFadeInStep                 # f32: fade-in alpha step per retrace (fade_draw)
+D_802FA940 = gHudArrowTex                # 32x32 IA8: target-marker arrows, player locator, spin shadow
+D_802FAD50 = gHudFrameTex                # 32x32 RGBA32 frame: hud_panel_draw border, front-end 1A240 frame
+D_802FBD50 = gHudPanelVtx                # Vtx[8]: picture quad + frame quad, top-left or bottom-right
+D_802FBDD0 = gHudPanelAnim0              # s16 texture ids, panel type 0 (13 frames)
+D_802FBDEC = gHudPanelAnim1              # type 1 (21 frames)
+D_802FBE18 = gHudPanelAnim2              # type 2 (21 frames)
+D_802FBE44 = gHudPanelAnim3              # type 3 (30 frames)
+D_802FBE80 = gHudPanelAnim4              # type 4 (34 frames)
+D_802FBED0 = gMbViewport                 # Vp of the 120x90 motion-blur render (mb_render_view)
+D_802FBEE0 = gMbStripVtx                 # 6 x 4 points 100 units out, built by mb_start, drawn by mb_draw
+D_802FC060 = gMbRenderModeRemap          # {from, to}[3]: SetOtherMode_L swaps in mb_copy_dl
+D_802FC3F0 = gWaterLevels                # Water[] per level, 0x34 each (indexed by gWaterIndex)
+D_802FC48C = gWaterAnimTexIds            # s16[3]: texture ids cycled when Water.unk24 == 0
+D_802FC494 = gDriftQuadSpawns            # QuadSpawn[4]: per-level drifting-quad ranges (fx_init_drift_quads)
+D_802FC51C = gBridgeWaveClock            # s32 phase counter of bridge_wave_group (+1 per call)
+D_802FC520 = gPowerPillSpawns            # {level, x, y, z}[]: fx_init_power_pill's table
+D_802FC528 = gPowerPillVtx               # Vtx[4] template copied into each gPowerPills entry
+D_802FC568 = gVehOverlayVtx              # Vtx[4]: the vehicle overlay's quad (hud_draw_veh_overlay)
+D_802FC5B0 = gRadarDiscTex               # IA texture on tile 0 of the radar disc (mirrored 16x16)
+D_802FC6B0 = gRadarGridTex               # IA4 64x64 on tile 1, scaled by the zoom shift
+D_802FCEB0 = gTargetArrowTex             # 32x32 RGBA16 arrow (hud_draw_target_arrow)
+D_802FD6B0 = gRadarSweepTex              # 8x32 IA8 sweep beam
+D_802FD7B0 = gRadarDiscVtx               # Vtx[4]: the radar disc quad
+D_802FD7F0 = gRadarSweepVtx              # Vtx[4]: the sweep quad, rotated by gRadarSweepAngle
+D_802FD830 = gRadarBlipVtx               # Vtx[][12]: carrier blip, target blip, heading arrow quads
+D_802FD9B8 = gTargetArrowVtx             # Vtx[10] of the 3D target arrow
+D_802FFF38 = gBlastDomeSeg6              # segment-6 data of the carrier blast dome model
+D_80300A68 = gBlastDomeDl                # the dome's display list (fx_draw_carrier_blast)
+D_803156C0 = gSchedRetraceCount          # gScheduler.retraceCount: retraces while not paused (level clock)
+D_80367BD0 = gObjectiveAnim2             # second objective icon anim; always NULL (hud_init_objective)
+D_80367BD5 = gObjectiveSprite2           # its first sprite slot; never written
+D_80367C0C = gObjectiveWord              # yoshi_get_target_building's 2nd out (TargetBuilding.unk10); write-only
+D_80367D28 = gLapsLeftJText              # gYoshiGameItems[249], wide text beside gLapsLeftText [248]; never written
+D_80367D53 = gTurboBannerPrevImage       # gTurboBannerImage before state 4's update
+D_8036BFD0 = gBackdropUnderflow          # max(0, -scroll): rows the backdrop scroll went below 0
+D_8036C770 = gFadeHeldDemand             # yoshi demand held back until the fade-in ends
+D_8036C774 = gFadeOutStep                # alpha step per retrace, 4.25 / speed
+D_8036C780 = gFadeStartTime              # retrace count when the fade started
+D_8036C784 = gFadeAlpha                  # 0..255 black rectangle alpha
+D_8036C7D0 = gLocatorVtx                 # Vtx[][4]: player locator quads (hud_draw_player_locator)
+D_8036C850 = gLocatorMtx                 # Mtx[]: their rotation/translation
+D_8036CB28 = gDigSampleTail              # oldest gDigSamples entry (drops after 1000 frames)
+D_8036CB29 = gDigSampleHead              # next gDigSamples slot
+D_8036CB30 = gDigStrongPartHits          # samples whose per-part damage was not weak
+D_8036CB31 = gDigStrongHits              # samples whose damage was not weak
+D_8036CB32 = gDigWeakPartHits
+D_8036CB33 = gDigWeakHits
+D_8036CB35 = gHudPanelLoops              # plays to end after this many loops (hud_panel_start arg2)
+D_8036CB36 = gHudPanelLoopCount
+D_8036CB37 = gHudPanelReversing          # ping-pong: running backwards
+D_8036CB38 = gHudPanelPingPong           # 1 ping-pong, 0 loop (hud_panel_start arg1)
+D_8036CB39 = gHudPanelFrame              # index into gHudPanelFrameIds
+D_8036CB3A = gHudPanelFrameTick
+D_8036CB3B = gHudPanelFrameDelay         # ticks per frame (1 or 2)
+D_8036CB3C = gHudPanelFrameCount
+D_8036CB40 = gHudPanelFrameIds           # -> gHudPanelAnim0..4
+D_8036CB44 = gHudPanelType               # 0..4
+D_8036CB48 = gHudPanelImageBufs          # two 40x40 RGBA16 heap buffers (0xC80 each)
+D_8036CB50 = gHudPanelStaticTimer        # frames of the random static burst left
+D_8036CB51 = gHudPanelStaticAlpha        # prim alpha of the static
+D_8036CC70 = gMbCopyMtx                  # Mtx[slot][10]: per copy (mb_draw)
+D_8036D174 = gMbViewAngle                # degrees (25 if no sample)
+D_8036D184 = gMbSpacing                  # mb_start's scale (<= 1): path step between copies
+D_8036D188 = gMbViewDl                   # Gfx[40] for the blur render task
+D_8036D2C8 = gMbProjMtx                  # its guPerspective
+D_8036D388 = gMbLookAtMtx                # its guLookAt
+D_8036DC92 = gTrailSegCalls              # trail_add calls since the segment was closed (vs period)
+D_8036DC94 = gTrailLastFrame             # gFramesInMode of the last trail_add (-1 none)
+D_8036DCA8 = gWaterCullVtx               # [2] heap bbox vertex buffers for gSPCullDisplayList
+D_8036DCB8 = gWaterTextures              # [3] heap textures (1 if single-texture)
+D_8036DCC8 = gWaterDls                   # [2] heap sub display lists
+D_8036DCD0 = gWaterTexFrame              # 0..2 of the cycled textures
+D_8036DCD2 = gWaterTexBlend              # 0..255 LOD blend to the next texture (+15/frame)
+D_8036DCD5 = gWaterSingleTex             # Water.unk24 copy: one texture, no cycling
+D_8036DCE0 = gDriftQuads                 # Quad[]: the drifting quads
+D_8036DD70 = gDriftQuadVtx               # Vtx[2][12][4]
+D_8036E370 = gDriftQuadSpawn             # index of the level's gDriftQuadSpawns entry
+D_8036E374 = gDriftQuadCount             # 0 = none on this level
+D_8036E378 = gDriftQuadTex               # heap texture
+D_8036E4C4 = gPowerPillTex               # tex_get(0x546) result
+D_8036E4CC = gVehOverlayTex              # heap texture 0xA98
+D_8036E4D0 = gVehOverlayAlpha
+D_8036E4D2 = gVehOverlayOn
+D_8036E4D3 = gBlastDomeCount             # active domes 0..2
+D_8036E4D4 = gBlastDomeTime              # retrace count the last dome started
+D_8036E4D8 = gBlastDomeMtx               # Mtx[buf][2]
+D_8036E5E0 = gRadarArrowMtx              # Mtx[buf]: heading arrow rotation
+D_8036EA78 = gScoreBuildings              # = nss.bd (Score +8); obj_tally's destroyed count
+D_8036EB92 = gBuildingCount              # obj_tally's counted (type != 1) objects; the 100% target
+D_8036EC00 = gHudDialTex                 # 40x40 RGBA16, tex 0x760
+D_8036EC04 = gHudDialVtx                 # 4 dial + 4 needle vertices
+D_8036EC08 = gHudDialNeedleRotMtx        # Mtx[frame]
+D_8036EC0C = gHudDialNeedlePosMtx        # Mtx[frame]: translation
+D_8036EC10 = gHudDialAlpha
+D_8036EC14 = gHudMissileIconTex          # 32x32 RGBA16, tex 0x996
+D_8036EC18 = gHudMissileIconVtx
+D_8036EC1C = gHudMissileIconAlpha
+D_8036EC20 = gHudRamIconTex              # 32x32 RGBA16, tex 0x998
+D_8036EC24 = gHudRamIconVtx
+D_8036EC28 = gHudRamIconAlpha
+D_8039CA90 = gPadDisplayImage            # 80x80 RGBA16 pad picture (ROM 0x6A8DA0)
+D_8039CA94 = gPadDisplayButtonTex        # 12x10 IA16 button highlight
+D_8039CA98 = gPadDisplayTriggerTex       # 32x6 RGBA16 L/R highlight
+D_8039CA9C = gPadDisplayZTex             # 24x24 RGBA16 Z highlight
+D_803A6B10 = gDemoBannerTex              # 256x16 IA8 from ROM 0x48FA70
+D_803A6B14 = gDemoBannerAlpha            # +0x40 per frame to 0xFF
+D_803F7668 = gSplinePosY                 # spline_object_matrix: moved position y (pair of D_803F7664)
+D_803F766C = gSplinePosZ                 # ... z
+# --- datanames group 8: system / meta (sched, ucode, audio, yoshi, academy, stats, controller) ---
+# keep D_800243E4: only named in a 1A630.c comment as GoldenEye's address; not a Blast Corps symbol
+D_80207090 = gL3dText                  # slot-0 ucode text: the front end's Fast3D line build (405F0.c, port README)
+D_8020D7E4 = gGlobeLevelNameM1         # = &gGlobeLevels[-1].name (0x30 stride); academy "IN %s." (lvl overshoots 1)
+D_80210690 = gL3dData                  # slot-0 ucode data (L3D), rsp_init_ucode_table / live_rt64.cpp
+D_802AD7C0 = gAtanTableTail            # last 5 words of gAtanTable, assembled into 69000.c's .text
+D_802E53F0 = gF3dText                  # slots 1-3 ucode text: the game's F3D (rsp_init_ucode_table)
+D_802E6820 = gRspBootText              # RSP boot ucode (ucode_boot of every task), ends at D_802E68F0
+D_802E68F0 = gAspMainText              # audio ucode text (aspMain variant); also the end of rspboot
+D_802E8C8C = gFontNoAdvanceChar        # u16 per font: char that draws nothing and does not advance (drawtext)
+D_802E8C90 = gFontAltBlankChar         # u16 per font: drawn blank but advances; typing it plays SFX_TYPE_ALT
+D_802E8C9C = gYoshiTypeCursor          # u16 per language: blinking cursor char of the typewriter text
+D_802E8F38 = gAcademyMarkers           # 6 x 8 bytes {level id, s16 x, y, z}: academy marker per level
+D_802F47B0 = gYoshiColors              # [32][8]: top RGBA + bottom RGBA per colour id; 16-20 pulse
+D_802F4878 = gLevelKindSprites         # u8 per lowest_set_bit(level kind): sprite id of status items
+D_802F49F4 = gYoshiSprites             # 75 x 0x30 animated sprite defs (window items, objective icon)
+D_802FA250 = gDebugArgV                # set by the -v command-line switch; never read
+D_802FA258 = gDebugArgS                # set by -s; never read
+D_802FA25C = gDebugArgJ                # set by -j; never read
+D_802FA260 = gDebugArgM                # set by -m; never read
+D_802FA264 = gDebugRamEeprom           # -l: saves go to gDummyEeprom, not EEPROM; also globe light keys
+D_802FA26C = gDebugStepGameState       # -C: academy_advance_state steps one game state per save
+D_802FA270 = gSchedTimeGfxStart        # set when a frame task's RSP part ends; next gfx start is timed
+D_802FDA60 = gGameStateBackgrounds     # u8 per players[].gameState: fe_bg_load id of its message
+D_802FDA70 = gGameStateTunes           # u8 per players[].gameState: music_play_tune id
+# keep D_802FDB10: s32 defined in 45BB0.c (= 0), never referenced
+D_802FDB30 = gFeRomStartPtr            # points at the front end's ROM start word (hd_load_front_end)
+D_802FDB34 = gFeRomEndPtr              # points at the front end's ROM end word
+D_80306E70 = osViModeTable             # SDK VI mode table (28 OSViModes); sched_create picks [mode]
+D_80307840 = osViModeMpalLan1          # SDK name, already in symbol_addrs; D_ only in ul_vi.c's comment
+D_8030E390 = gF3dData                  # slots 1-3 ucode data (F3D)
+D_8030EB90 = gAspMainData              # audio ucode data (ucode_data of the M_AUDTASK, 22EE0.c)
+D_803156C4 = gSchedFrameCount          # = gScheduler.frameCount (BcSched +0x284): +1 every retrace
+D_80364411 = gCamNoHeightZone          # cam_apply_height_zone: the player is in no height zone
+D_80364B08 = gPlayerMedals             # = players[p].medal (players + 0x18), 0x100 stride view
+D_80364B44 = gPlayerCommPts            # = players[p].commPts (players + 0x54), 0x100 stride view
+D_80364BE0 = gPlayerControlModes       # = players[p].controlModes (players + 0xF0) view
+D_803651F0 = gShadowProjMtx            # veh_render_shadow_tex: guPerspective 45 deg
+D_80365230 = gShadowPosMtx             # veh_render_shadow_tex: translate by -(x, y, z) / 32
+D_80365270 = gShadowTiltMtx            # veh_render_shadow_tex: rotate -90 about x (look down)
+D_803652B0 = gShadowTurnMtx            # veh_render_shadow_tex: rotate 180 about y
+D_803652F0 = gShadowDistMtx            # veh_render_shadow_tex: translate (0, 0, -dist)
+# keep D_80368050: 22EE0.c .bss placeholder, unreferenced
+# keep D_80368054: 22EE0.c .bss placeholder, unreferenced
+D_8036B9A8 = gStatusLines              # status screen lines, 0x20 each (stats_print_status)
+D_8036BA48 = gYoshiSpriteTick          # per gYoshiSprites id: time-derived frame last seen
+D_8036BA98 = gYoshiSpriteFrame         # per gYoshiSprites id: frame drawn (steps when the tick changes)
+# keep D_8036BAE8: u8[18] cleared by yoshi_init, never read
+D_8036BB30 = gYoshiScrollY             # s32 copy of gYoshiScroll: y offset of scrolling items
+D_8036BB4A = gYoshiTypeBufNext         # = gYoshiTypeBuf + 1 (u16): terminator after the cursor
+D_8036BBB2 = gRduLitOrderNext          # = gRduLitOrder + 1 (u16): rdu_update writes the next slot too
+D_8036BEF0 = gSchedYieldStart          # osGetTime() when __scYield asked the gfx task to yield
+D_8036BEF8 = gSchedYieldMax            # longest yield (reset every 480 retraces)
+D_8036BF00 = gSchedYieldTime           # how long the last yield took
+# keep D_8036BF08: set from D_8036BF0C every 480 retraces, never read (dead statistic)
+# keep D_8036BF0C: only read (into D_8036BF08), never written
+D_8036BF14 = gSchedSwapFrame           # frameCount + 1 after a swap: a frame done before it defers
+D_8036BF18 = gSchedPrevSwapFrame       # the previous gSchedSwapFrame; only written
+D_8036BF20 = gSchedRdpTime             # last frame's RDP time, 1/100 retrace
+D_8036BF24 = gSchedRspTime             # last frame's RSP time, 1/100 retrace
+# keep D_8036BF28: sched.c .bss, unreferenced
+D_8036BF2C = gSchedGfxStartLag         # retrace to the frame task's start, 1/100 retrace
+# keep D_8036BF30: u8[8] sched.c .bss, unreferenced
+D_8036BF40 = gSchedAudioPrevStart      # start time of the last finished audio task
+D_8036BF48 = gSchedAudioStart          # osGetTime() when the audio task started
+D_8036BF50 = gSchedAudioEnd            # osGetTime() when the audio task finished
+# keep D_8036BF58: sched.c .bss, unreferenced
+# keep D_8036BF5C: sched.c .bss, unreferenced
+# keep D_8036BF60: sched.c .bss, unreferenced
+# keep D_8036BF64: sched.c .bss, unreferenced
+# keep D_8036BF68: sched.c .bss, unreferenced
+# keep D_8036BF6C: sched.c .bss, unreferenced
+# keep D_8036BF70: sched.c .bss, unreferenced
+# keep D_8036BF74: sched.c .bss, unreferenced
+# keep D_8036BF98: u8[0x20] sched.c .bss, unreferenced
+D_8036BFB8 = gSchedStatRetraces        # retrace messages counted; every 480 the yield max resets
+D_8036BFBC = gSchedTaskDone            # __scTaskComplete's result (1: the task had every part done)
+D_8036EA68 = gScoreOldBuildings            # best Score.bd (D_8036EA60 + 8): buildings destroyed
+D_8036EA69 = gScoreOldPeople               # best Score.cr (+9): people rescued
+D_8036EA6C = gScoreOldRdus                 # best Score.rt (+0xC): RDUs lit
+D_8036EA74 = gScoreTime                # nss.tc: the run's time in 1/10 s (stats_level_start)
+D_8036EA79 = gScorePeople              # nss.cr: people rescued (people.c adds, bonus vs D_8036EB93)
+D_8036EA7A = gScoreGrade               # nss.coin: players[].medal[level] % 8
+D_8036EA7B = gScoreVehicle             # nss.bdn: bestVehicle of the level (icon nss.bdn + 0x22)
+D_8036EBA0 = gAcademyNextLevelText     # "IN %s." buffer for the game-state-4 window (item 82)
+# keep D_80370BC0: s32 only cleared by the pad reset, never read
+D_80370C34 = gSteerAirborne            # J-Bomb airborne (method 0): turn-around rate 100 not 200
+D_80370C40 = gRecControlMethod         # control method in replays, from recorded buttons 0x40/0x80
+D_80370C70 = gSteerHeading             # veh_steer's resulting heading (0..0xFFF)
+D_80370C72 = gSteerRate                # veh_steer's turn rate this frame
+D_80370C74 = gSteerReverse             # s8 reverse flag flipped by cont_steer_toward
+D_80370C75 = gSteerTurnAround          # turn-around latch (cont_stick_to_steer)
+D_80370C76 = gSteerTurnTarget          # s16 heading the turn-around runs to
+D_8039CAB0 = gAcademyMarkerX           # s16 from gAcademyMarkers[idx]; marker model moved by it
+D_8039CAB2 = gAcademyMarkerY
+D_8039CAB4 = gAcademyMarkerZ
+D_8039CAB6 = gAcademyMarkerIndex       # gAcademyMarkers index: the gAcademyBits bit
+D_8039CAB8 = gAcademyMarkerTouched     # set within 0x50; cleared at >= 0x8D distance
+D_8039CAC4 = gAcademyMarkerMtx         # Mtx[2] on the heap (segment 7 of the marker)
+D_803ED40A = gSteerHeadingSnap         # within one frame's turn: veh_steer takes D_803ED408

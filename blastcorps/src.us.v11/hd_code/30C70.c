@@ -8,8 +8,8 @@
 /* This file's .bss starts at 0x8036C790 */
 extern s32 gMarkedTarget;
 extern s16 * N64P gShownTargets[10]; /* point lists to keep on screen */
-extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
-extern Mtx D_8036C850[];      /* off-screen marker matrices */
+extern Vtx gLocatorVtx[][4];   /* off-screen marker quads */
+extern Mtx gLocatorMtx[];      /* off-screen marker matrices */
 extern s32 gMarkerBounce; /* target bounce offset */
 extern s32 gMarkerBounceCount; /* target bounce count */
 extern u8 gMarkerBounceDir;  /* target bounce direction */
@@ -210,7 +210,7 @@ Gfx *hud_sprite_setup(Gfx *gfx, u8 arg1) {
     gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    gDPLoadTextureBlock(gdl++, (u32) D_802FA940 - 0x80000000, G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0, G_TX_CLAMP,
+    gDPLoadTextureBlock(gdl++, (u32) gHudArrowTex - 0x80000000, G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0, G_TX_CLAMP,
                         G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     return gdl;
 }
@@ -464,32 +464,32 @@ void hud_draw_player_locator(Gfx **gfxp, void *view, u8 idx, s32 x, s32 y, s32 z
         if (sy >= 216) {
             sy = 215;
         }
-        D_8036C7D0[idx][0].v.ob[0] = -15;
-        D_8036C7D0[idx][0].v.ob[1] = -15;
-        D_8036C7D0[idx][0].v.ob[2] = -10;
-        D_8036C7D0[idx][0].v.tc[0] = 0;
-        D_8036C7D0[idx][0].v.tc[1] = 0;
-        D_8036C7D0[idx][1].v.ob[0] = 15;
-        D_8036C7D0[idx][1].v.ob[1] = -15;
-        D_8036C7D0[idx][1].v.ob[2] = -10;
-        D_8036C7D0[idx][1].v.tc[0] = 0x3E0;
-        D_8036C7D0[idx][1].v.tc[1] = 0;
-        D_8036C7D0[idx][2].v.ob[0] = 15;
-        D_8036C7D0[idx][2].v.ob[1] = 15;
-        D_8036C7D0[idx][2].v.ob[2] = -10;
-        D_8036C7D0[idx][2].v.tc[0] = 0x3E0;
-        D_8036C7D0[idx][2].v.tc[1] = 0x3E0;
-        D_8036C7D0[idx][3].v.ob[0] = -15;
-        D_8036C7D0[idx][3].v.ob[1] = 15;
-        D_8036C7D0[idx][3].v.ob[2] = -10;
-        D_8036C7D0[idx][3].v.tc[0] = 0;
-        D_8036C7D0[idx][3].v.tc[1] = 0x3E0;
+        gLocatorVtx[idx][0].v.ob[0] = -15;
+        gLocatorVtx[idx][0].v.ob[1] = -15;
+        gLocatorVtx[idx][0].v.ob[2] = -10;
+        gLocatorVtx[idx][0].v.tc[0] = 0;
+        gLocatorVtx[idx][0].v.tc[1] = 0;
+        gLocatorVtx[idx][1].v.ob[0] = 15;
+        gLocatorVtx[idx][1].v.ob[1] = -15;
+        gLocatorVtx[idx][1].v.ob[2] = -10;
+        gLocatorVtx[idx][1].v.tc[0] = 0x3E0;
+        gLocatorVtx[idx][1].v.tc[1] = 0;
+        gLocatorVtx[idx][2].v.ob[0] = 15;
+        gLocatorVtx[idx][2].v.ob[1] = 15;
+        gLocatorVtx[idx][2].v.ob[2] = -10;
+        gLocatorVtx[idx][2].v.tc[0] = 0x3E0;
+        gLocatorVtx[idx][2].v.tc[1] = 0x3E0;
+        gLocatorVtx[idx][3].v.ob[0] = -15;
+        gLocatorVtx[idx][3].v.ob[1] = 15;
+        gLocatorVtx[idx][3].v.ob[2] = -10;
+        gLocatorVtx[idx][3].v.tc[0] = 0;
+        gLocatorVtx[idx][3].v.tc[1] = 0x3E0;
         guTranslateF(mf, sx, sy, 0.0f);
-        guRotateF(rot, 135.0 - (D_8036443E / 4095.0) * 360.0, 0.0f, 0.0f, 1.0f);
+        guRotateF(rot, 135.0 - (gPlayerMoveHeading / 4095.0) * 360.0, 0.0f, 0.0f, 1.0f);
         guMtxCatF(rot, mf, mf);
-        guMtxF2L(mf, &D_8036C850[idx]);
+        guMtxF2L(mf, &gLocatorMtx[idx]);
         gSPMatrix(gdl++, (u32) seg2Base + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-        gSPMatrix(gdl++, &D_8036C850[idx], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, &gLocatorMtx[idx], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
@@ -498,9 +498,9 @@ void hud_draw_player_locator(Gfx **gfxp, void *view, u8 idx, s32 x, s32 y, s32 z
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPSetCombine(gdl++, 0x119623, 0xFF2FFFFF);
         gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0x00, 0xFF);
-        gDPLoadTextureBlock(gdl++, (u32) D_802FA940 - 0x80000000, G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0, G_TX_CLAMP,
+        gDPLoadTextureBlock(gdl++, (u32) gHudArrowTex - 0x80000000, G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0, G_TX_CLAMP,
                             G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-        gSPVertex(gdl++, (u32) D_8036C7D0[idx] - 0x80000000, 4, 0);
+        gSPVertex(gdl++, (u32) gLocatorVtx[idx] - 0x80000000, 4, 0);
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
         gDPPipeSync(gdl++);

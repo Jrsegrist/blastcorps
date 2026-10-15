@@ -1,12 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
 
-extern u32 D_802229E4;
-extern u32 D_802229E8;
-extern u8 *D_802229F0;
-extern u8 *D_802229F4;
-extern s32 D_80222A1C;
-extern s32 D_80222A20;
+extern u32 bb;
+extern u32 bk;
+extern u8 *inbuf;
+extern u8 *slide;
+extern s32 inptr;
+extern s32 outcnt;
 
 /*
  * This whole file is Blast Corps' INFLATE (DEFLATE decompression, RFC 1951)
@@ -57,22 +57,22 @@ typedef struct Huft {
     } v;
 } Huft;
 
-extern s32 D_802229E0;
-extern s32 D_802229EC;
+extern s32 gInflateHuftArena;
+extern s32 hufts;
 
 #define BMAX 16
 #define N_MAX 288
 
 /* huft_build - builds a Huffman decode table from a list of code lengths.
  * An exact match for the reference source's huft_build(), except that each
- * new sub-table is bump-allocated from a fixed arena (D_802229E0 +
- * D_802229EC*sizeof(Huft)) instead of malloc'd, and the reference's
+ * new sub-table is bump-allocated from a fixed arena (gInflateHuftArena +
+ * hufts*sizeof(Huft)) instead of malloc'd, and the reference's
  * defensive error returns inside the main loop are absent.
  *
  * Matched by porting hd_code's copy (hd_huft_build in hd_code/53220.c).
  * What fixed the old near-miss: it returns `int`, not s32. s32 is `long`
  * in this ultra64.h, and with it IDO computes the `&&` into $s6 and adds a
- * `move v0,s6`. The arena address is written `D_802229EC * 8 + D_802229E0`
+ * `move v0,s6`. The arena address is written `hufts * 8 + gInflateHuftArena`
  * (that operand order), and `p = c + 1, xp = x + 2;` is a comma expression;
  * as separate statements the pair's instruction order was wrong.
  */
@@ -179,8 +179,8 @@ int huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
                 }
                 z = 1 << j;
 
-                q = (Huft *) (D_802229EC * 8 + D_802229E0);
-                D_802229EC += z + 1;
+                q = (Huft *) (hufts * 8 + gInflateHuftArena);
+                hufts += z + 1;
                 *t = q + 1;
                 *(t = (Huft **) &(q->v.t)) = NULL;
                 u[h] = ++q;
@@ -229,7 +229,7 @@ int huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
 
 /* inflate_codes - decodes Huffman-coded literals/lengths (via `tl`) and
  * distances (via `td`) and copies literal bytes / back-references straight
- * into the output buffer (D_802229F4). The reference's inflate_codes()
+ * into the output buffer (slide). The reference's inflate_codes()
  * minus its WSIZE sliding window (no flush_output, no `& (WSIZE-1)`) and
  * minus the defensive `if (e == 99) return 1;` checks.
  *
@@ -250,16 +250,16 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
     register u32 k;
     register u32 b;
 
-    b = D_802229E4;
-    k = D_802229E8;
-    w = D_80222A20;
+    b = bb;
+    k = bk;
+    w = outcnt;
 
     ml = mask_bits[bl];
     md = mask_bits[bd];
 
     for (;;) {
         while (k < bl) {
-            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            b |= (u32) inbuf[inptr++] << k;
             k += 8;
         }
         t = tl + (b & ml);
@@ -270,7 +270,7 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
                 k -= t->b;
                 e -= 16;
                 while (k < e) {
-                    b |= (u32) D_802229F0[D_80222A1C++] << k;
+                    b |= (u32) inbuf[inptr++] << k;
                     k += 8;
                 }
                 t = t->v.t + (b & mask_bits[e]);
@@ -280,7 +280,7 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
         b >>= t->b;
         k -= t->b;
         if (e == 16) {
-            D_802229F4[w++] = (u8) t->v.n;
+            slide[w++] = (u8) t->v.n;
             continue;
         }
         if (e == 15) {
@@ -288,7 +288,7 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
         }
 
         while (k < e) {
-            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            b |= (u32) inbuf[inptr++] << k;
             k += 8;
         }
         n = t->v.n + (b & mask_bits[e]);
@@ -296,7 +296,7 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
         b >>= e;
 
         while (k < bd) {
-            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            b |= (u32) inbuf[inptr++] << k;
             k += 8;
         }
         t = td + (b & md);
@@ -307,7 +307,7 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
                 k -= t->b;
                 e -= 16;
                 while (k < e) {
-                    b |= (u32) D_802229F0[D_80222A1C++] << k;
+                    b |= (u32) inbuf[inptr++] << k;
                     k += 8;
                 }
                 t = t->v.t + (b & mask_bits[e]);
@@ -318,7 +318,7 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
         k -= t->b;
 
         while (k < e) {
-            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            b |= (u32) inbuf[inptr++] << k;
             k += 8;
         }
         d = (w - t->v.n) - (b & mask_bits[e]);
@@ -328,14 +328,14 @@ s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
         do {
             n -= (e = n);
             do {
-                D_802229F4[w++] = D_802229F4[d++];
+                slide[w++] = slide[d++];
             } while (--e);
         } while (n);
     }
 
-    D_80222A20 = w;
-    D_802229E4 = b;
-    D_802229E8 = k;
+    outcnt = w;
+    bb = b;
+    bk = k;
     return 0;
 }
 
@@ -345,16 +345,16 @@ s32 inflate_stored(void) {
     register u32 k;
     register u32 b;
 
-    k = D_802229E8;
-    b = D_802229E4;
-    w = D_80222A20;
+    k = bk;
+    b = bb;
+    w = outcnt;
 
     n = k & 7;
     b >>= n;
     k -= n;
 
     while (k < 16) {
-        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        b |= (u32) inbuf[inptr++] << k;
         k += 8;
     }
     n = b & 0xffff;
@@ -362,7 +362,7 @@ s32 inflate_stored(void) {
     k -= 16;
 
     while (k < 16) {
-        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        b |= (u32) inbuf[inptr++] << k;
         k += 8;
     }
     b >>= 16;
@@ -370,17 +370,17 @@ s32 inflate_stored(void) {
 
     while (n--) {
         while (k < 8) {
-            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            b |= (u32) inbuf[inptr++] << k;
             k += 8;
         }
-        D_802229F4[w++] = (u8) b;
+        slide[w++] = (u8) b;
         b >>= 8;
         k -= 8;
     }
 
-    D_80222A20 = w;
-    D_802229E4 = b;
-    D_802229E8 = k;
+    outcnt = w;
+    bb = b;
+    bk = k;
     return 0;
 }
 

@@ -17,9 +17,9 @@ extern u64 * N64P gThunderfistMtxB;
 extern u8 gThunderfistAnim[]; /* animation channel table */
 extern s16 gThunderfistDeflectHeading;
 extern s8 gThunderfistDeflecting;
-extern u8 D_803EDFD9;
+extern u8 gThunderfistUnusedFlag;
 extern u8 gThunderfistHeadOnHit;
-extern u8 D_80305CF0[];
+extern u8 gThunderfistNonBlockingParts[];
 
 
 s32 thunderfist_zone_alpha(ZoneScanRegs *r);
@@ -125,7 +125,7 @@ void thunderfist_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s3
     *(s16 *) (v + 0x94) = 4;
     gThunderfistDeflecting = 0;
     gThunderfistHeadOnHit = 0;
-    D_803EDFD9 = 0;
+    gThunderfistUnusedFlag = 0;
     model = gThunderfistModel;
     veh_register_parts(2, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x6590);
     veh_add_shadow(2, 0x64, 0x2D, 0x2D);
@@ -196,13 +196,13 @@ void thunderfist_leave(void) {
 #ifdef NON_MATCHING
 extern u8 gThunderfistState[]; /* this vehicle's state block */
 extern void * N64P gThunderfistEngineSound; /* engine sound handle */
-extern u8 D_802C2308[]; /* key of this vehicle's anim_tex_find entry */
+extern u8 gThunderfistTexAnim[]; /* key of this vehicle's anim_tex_find entry */
 extern u8 gThunderfistAnim[]; /* this vehicle's animation channel table */
 
 /* Getting into Thunderfist: engine sound 0x50 (0x802B1228).
  * Vehicle-type 2 setup (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, gCamDistance / gCamHeightBase = 4200, 3000, starts the engine sound 0x50
- * (handle in gThunderfistEngineSound), sets the D_802C2308 entry's fields (25, 0, 0) and
+ * (handle in gThunderfistEngineSound), sets the gThunderfistTexAnim entry's fields (25, 0, 0) and
  * the animation channels 7, 8, 9 (and 1, 5, 3) of gThunderfistAnim.
  * The asm also points $gp at gThunderfistState and leaves it there (conventions.txt:
  * clobbers gp) and returns with v1 = 0 (the last setter's v1); C callers
@@ -212,9 +212,9 @@ void thunderfist_enter(void) {
     gCamDistance = 0x1068;
     gCamHeightBase = 0xBB8;
     snd_play(gSfxBank, SFX_ENGINE_MECH, &gThunderfistEngineSound);
-    anim_tex_set_speed((s32) D_802C2308, 0x19);
-    anim_tex_set_reverse((s32) D_802C2308, 0);
-    anim_tex_set_loop_mode((s32) D_802C2308, 0);
+    anim_tex_set_speed((s32) gThunderfistTexAnim, 0x19);
+    anim_tex_set_reverse((s32) gThunderfistTexAnim, 0);
+    anim_tex_set_loop_mode((s32) gThunderfistTexAnim, 0);
     anim_set_speed((AnimChannel *) gThunderfistAnim, 7, 2);
     anim_set_loop_mode((AnimChannel *) gThunderfistAnim, 7, 1);
     anim_set_interp(0.5f, (AnimChannel *) gThunderfistAnim, 7, 1);
@@ -368,11 +368,11 @@ void thunderfist_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, 
         anim_update_model((u8 *) gThunderfistMtxB, (u8 *) gThunderfistMtxA, (AnimChannel *) gThunderfistAnim);
     }
     tag = thunderfist_build_model((s32) (v + 0x34), (s32) (v + 0x96), (s32) &gThunderfistPos[2], &mo);
-    veh_collision_setup(gThunderfistPos[2], (s32) D_80305CF0, 0, 0, gThunderfistPos[0], gThunderfistPos[1], tag, *(s16 *) (v + 0x76),
+    veh_collision_setup(gThunderfistPos[2], (s32) gThunderfistNonBlockingParts, 0, 0, gThunderfistPos[0], gThunderfistPos[1], tag, *(s16 *) (v + 0x76),
                   mo.t2, 0, 2, v);
     veh_collide_spheres(2, v);
     veh_collide_world(2);
-    D_803F77D0 = gThunderfistAnim;
+    gCollVehicleAnim = gThunderfistAnim;
     obj_collide_vehicle(2, v);
     if (gCollBlocked != 0) {
         veh_prepare_escape(v);
@@ -408,9 +408,9 @@ void thunderfist_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, 
     gPlayerX = gThunderfistPos[0];
     gPlayerY = gThunderfistPos[1];
     gPlayerZ = gThunderfistPos[2];
-    D_8036443C = *(s16 *) (v + 0x76);
-    D_8036443E = *(u16 *) (v + 0x4E);
-    D_80364440 = *(u16 *) (v + 0x4C);
+    gPlayerSpeed = *(s16 *) (v + 0x76);
+    gPlayerMoveHeading = *(u16 *) (v + 0x4E);
+    gPlayerHeading = *(u16 *) (v + 0x4C);
     veh_set_record(gThunderfistPos[2], 2, gThunderfistPos[0], gThunderfistPos[1], v);
 }
 #else
@@ -421,7 +421,7 @@ void thunderfist_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, 
 #ifdef NON_MATCHING
 extern s16 gThunderfistStepPose;    /* last pose byte seen on channel 1/5 */
 extern u8 gThunderfistHeadOnHit;
-extern f32 D_8030D8B0;
+extern f32 gThunderfistRollBlurScale;
 
 #define VEH2_SPEED (*(s16 *) (gThunderfistState + 0x76))
 
@@ -542,16 +542,16 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
                 return; /* asm: syscall (+0xA2 is only ever 0 or 1) */
             }
             veh2_ch31_start(0x23);
-            mb_start(6, D_8030D8B0, 100);
+            mb_start(6, gThunderfistRollBlurScale, 100);
             return;
         }
     }
 
-    if ((((u32) D_803649D8 >> 8) & 0x2F) == 0) {
+    if ((((u32) gFrameDrawTime >> 8) & 0x2F) == 0) {
         io.a3 = 1;
         io.t6 = t6;
         io.s1 = s1;
-        fx_spawn(&io, D_802C2984, 0xEA60, 1, 2, 2, 0, t7, s0, s2, s3, s4, 1);
+        fx_spawn(&io, gFxSparks, 0xEA60, 1, 2, 2, 0, t7, s0, s2, s3, s4, 1);
     }
 
     /* drive anim on channel 1 (+0xA2 == 0) or 5 (+0xA2 == 1), switching at |speed| 120 */
@@ -696,7 +696,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
             io.a3 = 1;
             io.t6 = t6;
             io.s1 = s1;
-            fx_spawn(&io, D_802C2984, 0x222E0, 1, 2, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxSparks, 0x222E0, 1, 2, 1, 1, t7, s0, s2, s3, s4, 1);
             veh_prev_contacts_clear();
             if (veh2_ch_get(0x1F, o) == 1) {
                 return;
@@ -714,7 +714,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
             io.a3 = 1;
             io.t6 = t6;
             io.s1 = s1;
-            fx_spawn(&io, D_802C2984, 0x222E0, 1, 2, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxSparks, 0x222E0, 1, 2, 1, 1, t7, s0, s2, s3, s4, 1);
             veh_prev_contacts_clear();
             if (veh2_ch_get(3, o) == 1) {
                 return;

@@ -35,7 +35,7 @@ extern u8 gBacklashSmokeCooldown;
 extern u8 gBacklashSteerAnim;
 extern f32 gBacklashTilt;
 extern f32 gBacklashLean;
-extern s16 D_803EEB5C;
+extern s16 gBacklashYawBase;
 
 /* cvt.w.s under the FCSR's default rounding (nearest, ties to even). */
 #define CVT_W_S_5900(out, x)                                            \
@@ -67,7 +67,7 @@ extern s16 D_803EEB5C;
  * gBacklashLean = 0.5; parts (veh_register_parts, tag 5, scale 0x4268);
  * veh_add_shadow(5, 0x64, 0x2D, 0x2D); one update with +0x9A set
  * (backlash_update); the root matrix copied from buffer B to A
- * (mtx_copy_at); finally D_803EEB5C = heading + round(camera yaw *
+ * (mtx_copy_at); finally gBacklashYawBase = heading + round(camera yaw *
  * 4096 / 360), less 0xFFF when >= 0x1000. The asm's add/addi trap on
  * overflow.
  * Register convention (conventions.txt): model s2, x t7, y s3, z s0,
@@ -164,7 +164,7 @@ void backlash_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     if (a >= 0x1000) {
         a -= 0xFFF;
     }
-    D_803EEB5C = a;
+    gBacklashYawBase = a;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/backlash_spawn.s")
@@ -179,7 +179,7 @@ extern u8 gBacklashAnim[]; /* animation channel table (AnimChannel, 56040.c) */
  * Enter vehicle type 5 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
  * 4, 5 of gBacklashAnim (channel 2 also gets 0.5f / 0 via anim_set_frame) and
- * restarts each with -1, sets the D_802C2208 and D_802C226C entries' fields to
+ * restarts each with -1, sets the gBacklashYawTexAnimA and gBacklashYawTexAnimB entries' fields to
  * 0 and restarts them, gCamDistance / gCamHeightBase = 3400, 300, then veh_start_engine_sound(a0, 5)
  * with a0 = gBacklashAnim left over from the setters (veh_start_engine_sound ignores it).
  * The asm points $gp at gBacklashState and leaves it there (conventions.txt:
@@ -204,14 +204,14 @@ void backlash_enter(void) {
     anim_set_reverse((AnimChannel *) gBacklashAnim, 5, 0);
     anim_set_loop_mode((AnimChannel *) gBacklashAnim, 5, 1);
     anim_play((AnimChannel *) gBacklashAnim, 5, -1);
-    anim_tex_set_speed((s32) D_802C2208, 0);
-    anim_tex_set_reverse((s32) D_802C2208, 0);
-    anim_tex_set_loop_mode((s32) D_802C2208, 0);
-    anim_tex_play((s32) D_802C2208, -1);
-    anim_tex_set_speed((s32) D_802C226C, 0);
-    anim_tex_set_reverse((s32) D_802C226C, 0);
-    anim_tex_set_loop_mode((s32) D_802C226C, 0);
-    anim_tex_play((s32) D_802C226C, -1);
+    anim_tex_set_speed((s32) gBacklashYawTexAnimA, 0);
+    anim_tex_set_reverse((s32) gBacklashYawTexAnimA, 0);
+    anim_tex_set_loop_mode((s32) gBacklashYawTexAnimA, 0);
+    anim_tex_play((s32) gBacklashYawTexAnimA, -1);
+    anim_tex_set_speed((s32) gBacklashYawTexAnimB, 0);
+    anim_tex_set_reverse((s32) gBacklashYawTexAnimB, 0);
+    anim_tex_set_loop_mode((s32) gBacklashYawTexAnimB, 0);
+    anim_tex_play((s32) gBacklashYawTexAnimB, -1);
     gCamDistance = 0xD48;
     gCamHeightBase = 0x12C;
     veh_start_engine_sound((s32) gBacklashAnim, 5);
@@ -414,8 +414,8 @@ extern s16 gBacklashDeflectHeading;    /* heading kept while bouncing off */
 extern u8 gBacklashSmokeCooldown;     /* spawn cooldown */
 extern s8 gBacklashDeflecting;     /* collision flag */
 extern s8 gBacklashHitSound;     /* sound to start this frame (-1 = none) */
-extern u8 D_80305D20[];
-extern f32 D_8030D8E0;
+extern u8 gBacklashNonBlockingParts[];
+extern f32 gBacklashDeflectTurnRate;
 s32 backlash_zone_alpha(ZoneScanRegs *r);
 void backlash_update_anims(void);
 s32 backlash_steer_rate(void);
@@ -439,24 +439,24 @@ void backlash_add_tyre_trail(void);
  *    mb_start(6, 0.25, 100) unless mb_is_active, else mb_stop;
  *    the tyre trail backlash_add_tyre_trail; the spawn cooldown gBacklashSmokeCooldown (at 0 with
  *    +0x99 set: restart at 1 and, with fewer than 4 fx_spawn records,
- *    one more: def D_802C2954, data 0x30D40, type 1 at (5, 1, 1));
+ *    one more: def gFxExhaustSmoke, data 0x30D40, type 1 at (5, 1, 1));
  *    veh_check_wrap, the rebuild backlash_build_model.
- * 4. Collision: veh_collision_setup (table D_80305D20, 1, 1, b0 8, speed, 100, 0,
+ * 4. Collision: veh_collision_setup (table gBacklashNonBlockingParts, 1, 1, b0 8, speed, 100, 0,
  *    kind 5), veh_collide_spheres(5), veh_collide_world(5); gBacklashHitSound = 12. Without a
  *    hit (gCollBlocked == 0): gCollHit = 0, gBacklashHitSound = -1 and, unless
- *    gLevelKind == 0x40, obj_collide_vehicle(5) (D_803F77D0 = gBacklashAnim); if that
+ *    gLevelKind == 0x40, obj_collide_vehicle(5) (gCollVehicleAnim = gBacklashAnim); if that
  *    set gCollHit the vehicle bounces: gBacklashDeflecting = 0, veh_rollback
  *    (restore the saved state, 0x800 bytes), speed = -max(|v|, 80) / 2 with
  *    v's sign (0 counts as positive) and the model rebuilt; else gBacklashDeflecting
  *    = 0. With a hit: veh_prepare_escape, gBacklashDeflecting = 1, then the heading
  *    correction: d = |((+0x4E - 0x800) wrapped by +0xFFF) - veh_free_arc_mid()|
  *    folded to <= 0x800, veh_reverse_if_behind, veh_turn_into_free_arc(+0x4E -> +0x4C,
- *    D_8030D8E0) whose new heading goes to gBacklashDeflectHeading, +0x4E and +0x74,
+ *    gBacklashDeflectTurnRate) whose new heading goes to gBacklashDeflectHeading, +0x4E and +0x74,
  *    veh_step_heading(its turn, d), veh_hit_slowdown(0) and, unless gLevelKind ==
  *    0x40, obj_collide_vehicle(5).
- * 5. Player globals gPlayerX/Y/Z = the position, D_8036443C/3E/40 =
+ * 5. Player globals gPlayerX/Y/Z = the position, gPlayerSpeed/MoveHeading/Heading =
  *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); veh_maze_object_hits(z,
- *    D_80305D20, x, y, b0, 5, veh) with D_803F77D0 = gBacklashAnim; sound
+ *    gBacklashNonBlockingParts, x, y, b0, 5, veh) with gCollVehicleAnim = gBacklashAnim; sound
  *    gBacklashHitSound when >= 0 (snd_play).
  * Leaked registers (FIDELITY AUDIT): veh_maze_object_hits's b0 is the asm's t0 =
  * &gPlayerZ (kept). Passed as 0 here: the zone scan's t6/t7/s0-s4 inputs
@@ -548,7 +548,7 @@ void backlash_update(void) {
             io.a3 = 1;
             io.t6 = 0;
             io.s1 = 0;
-            fx_spawn(&io, D_802C2954, 0x30D40, 1, 5, 1, 1, 0, 0, 0, 0, 0, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x30D40, 1, 5, 1, 1, 0, 0, 0, 0, 0, 1);
         }
     }
     veh_check_wrap((s32 *) &gBacklashPos[0], (s32 *) &gBacklashPos[1], (s32 *) &gBacklashPos[2]);
@@ -558,7 +558,7 @@ void backlash_update(void) {
     backlash_build_model(&regs);
 
     /* 4. */
-    veh_collision_setup(gBacklashPos[2], (s32) D_80305D20, 1, 1, gBacklashPos[0], gBacklashPos[1], 8, VEH5(VS_SPEED, s16), 0x64, 0,
+    veh_collision_setup(gBacklashPos[2], (s32) gBacklashNonBlockingParts, 1, 1, gBacklashPos[0], gBacklashPos[1], 8, VEH5(VS_SPEED, s16), 0x64, 0,
                   5, gBacklashState);
     veh_collide_spheres(5, gBacklashState);
     veh_collide_world(5);
@@ -569,7 +569,7 @@ void backlash_update(void) {
         if (((s32) gLevelKind) == 0x40) {
             goto no_hit;
         }
-        D_803F77D0 = gBacklashAnim;
+        gCollVehicleAnim = gBacklashAnim;
         obj_collide_vehicle(5, gBacklashState);
         if (gCollHit == 0) {
             goto no_hit;
@@ -608,14 +608,14 @@ void backlash_update(void) {
         d = 0xFFF - d;
     }
     veh_reverse_if_behind(gBacklashState);
-    turn = veh_turn_into_free_arc(gBacklashState, VEH5(VS_MOVE_HEADING, u16), VEH5(VS_HEADING, u16), &cur, D_8030D8E0);
+    turn = veh_turn_into_free_arc(gBacklashState, VEH5(VS_MOVE_HEADING, u16), VEH5(VS_HEADING, u16), &cur, gBacklashDeflectTurnRate);
     gBacklashDeflectHeading = cur;
     VEH5(VS_MOVE_HEADING, s16) = cur;
     VEH5(VS_MOMENTUM_HEADING, s16) = cur;
     veh_step_heading(gBacklashState, turn, d, &tgt);
     veh_hit_slowdown(gBacklashState, 0);
     if (((s32) gLevelKind) != 0x40) {
-        D_803F77D0 = gBacklashAnim;
+        gCollVehicleAnim = gBacklashAnim;
         obj_collide_vehicle(5, gBacklashState);
     }
     goto globals;
@@ -627,12 +627,12 @@ globals:
     gPlayerX = gBacklashPos[0];
     gPlayerY = gBacklashPos[1];
     gPlayerZ = gBacklashPos[2];
-    D_8036443C = VEH5(VS_SPEED, s16);
-    D_8036443E = VEH5(VS_MOVE_HEADING, u16);
-    D_80364440 = VEH5(VS_HEADING, u16);
+    gPlayerSpeed = VEH5(VS_SPEED, s16);
+    gPlayerMoveHeading = VEH5(VS_MOVE_HEADING, u16);
+    gPlayerHeading = VEH5(VS_HEADING, u16);
     veh_set_record(gBacklashPos[2], 5, gBacklashPos[0], gBacklashPos[1], gBacklashState);
-    D_803F77D0 = gBacklashAnim;
-    veh_maze_object_hits(gBacklashPos[2], (s32) D_80305D20, gBacklashPos[0], gBacklashPos[1], (s32) &gPlayerZ, 5, gBacklashState);
+    gCollVehicleAnim = gBacklashAnim;
+    veh_maze_object_hits(gBacklashPos[2], (s32) gBacklashNonBlockingParts, gBacklashPos[0], gBacklashPos[1], (s32) &gPlayerZ, 5, gBacklashState);
     if (gBacklashHitSound >= 0) {
         snd_play(gSfxBank, gBacklashHitSound, NULL);
     }
@@ -701,15 +701,15 @@ void backlash_add_tyre_trail(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803EEB5C;   /* angle offset */
+extern s16 gBacklashYawBase;   /* angle offset */
 extern f32 gBacklashTilt;   /* channel-4 position, 0.5 = rest */
 extern u8 gBacklashSteerAnim;    /* level 0..100 */
-extern f32 D_8030D8E4;   /* balance / position steps */
-extern f32 D_8030D8E8;
-extern f32 D_8030D8EC;
-extern f32 D_8030D8F0;
-extern f32 D_8030D8F4;
-extern f32 D_8030D8F8;
+extern f32 gBacklashLeanLeftStep;   /* balance / position steps */
+extern f32 gBacklashLeanRightStep;
+extern f32 gBacklashLeanReturnStep;
+extern f32 gBacklashTiltDownStep;
+extern f32 gBacklashTiltUpStep;
+extern f32 gBacklashTiltReturnStep;
 f32 backlash_lean_limit(s32 side);
 
 /* Moves f by step towards 0.5, stopping at 0.5 (NaN stays NaN). */
@@ -730,13 +730,13 @@ f32 backlash_lean_limit(s32 side);
  * Per-frame animation/sound update of vehicle 5 (asm caller backlash_update;
  * the asm reads the state block through $gp = gBacklashState, read directly
  * here). The heading (+0x4C) plus the camera yaw in 4096ths, minus
- * D_803EEB5C, folded into 0..0x7FF, / 0x55 goes to the D_802C2208 and
- * D_802C226C entries (anim_tex_set_frame). The balance gBacklashLean moves by
- * D_8030D8E4 down to backlash_lean_limit(0) with gHeldLeft, by D_8030D8E8 up to
- * backlash_lean_limit(1) with gHeldRight, else by D_8030D8EC towards 0.5, and goes to
+ * gBacklashYawBase, folded into 0..0x7FF, / 0x55 goes to the gBacklashYawTexAnimA and
+ * gBacklashYawTexAnimB entries (anim_tex_set_frame). The balance gBacklashLean moves by
+ * gBacklashLeanLeftStep down to backlash_lean_limit(0) with gHeldLeft, by gBacklashLeanRightStep up to
+ * backlash_lean_limit(1) with gHeldRight, else by gBacklashLeanReturnStep towards 0.5, and goes to
  * channel 5. gBacklashTilt moves, unless veh_near_top_speed(veh, 10) (near a gear
- * bound), by D_8030D8F0 down to 0 with gHeldBOrZ or by D_8030D8F4 up to 1
- * with gHeldA, otherwise by D_8030D8F8 towards 0.5, and goes to channel
+ * bound), by gBacklashTiltDownStep down to 0 with gHeldBOrZ or by gBacklashTiltUpStep up to 1
+ * with gHeldA, otherwise by gBacklashTiltReturnStep towards 0.5, and goes to channel
  * 4. Channel 1 gets the direction (speed < 0) and |speed| / 14 (also passed to
  * veh_set_engine_level); the level gBacklashSteerAnim moves by 5 (down to 0 / up to 100) or
  * by 10 towards 50 and goes to channel 2 as level / 100.
@@ -756,7 +756,7 @@ void backlash_update_anims(void) {
     if (a >= 0x1000) {
         a -= 0xFFF;
     }
-    a -= D_803EEB5C;
+    a -= gBacklashYawBase;
     if (a < 0) {
         a += 0xFFF;
     }
@@ -764,24 +764,24 @@ void backlash_update_anims(void) {
         a -= 0x800;
     }
     a = (u32) a / 0x55;
-    anim_tex_set_frame(0.0f, (s32) D_802C2208, a);
-    anim_tex_set_frame(0.0f, (s32) D_802C226C, a);
+    anim_tex_set_frame(0.0f, (s32) gBacklashYawTexAnimA, a);
+    anim_tex_set_frame(0.0f, (s32) gBacklashYawTexAnimB, a);
 
     f = gBacklashLean;
     if (gHeldLeft != 0) {
-        f -= D_8030D8E4;
+        f -= gBacklashLeanLeftStep;
         lim = backlash_lean_limit(0);
         if (f < lim) {
             f = lim;
         }
     } else if (gHeldRight != 0) {
-        f += D_8030D8E8;
+        f += gBacklashLeanRightStep;
         lim = backlash_lean_limit(1);
         if (!(f <= lim)) {
             f = lim;
         }
     } else {
-        TOWARDS_HALF(f, D_8030D8EC);
+        TOWARDS_HALF(f, gBacklashLeanReturnStep);
     }
     gBacklashLean = f;
     anim_set_frame(f, (AnimChannel *) base, 5, 0);
@@ -789,17 +789,17 @@ void backlash_update_anims(void) {
     f = gBacklashTilt;
     near = veh_near_top_speed(gBacklashState, 10);
     if (near == 0 && gHeldBOrZ != 0) {
-        f -= D_8030D8F0;
+        f -= gBacklashTiltDownStep;
         if (f < 0.0f) {
             f = 0.0f;
         }
     } else if (near == 0 && gHeldA != 0) {
-        f += D_8030D8F4;
+        f += gBacklashTiltUpStep;
         if (!(f <= 1.0f)) {
             f = 1.0f;
         }
     } else {
-        TOWARDS_HALF(f, D_8030D8F8);
+        TOWARDS_HALF(f, gBacklashTiltReturnStep);
     }
     gBacklashTilt = f;
     anim_set_frame(f, (AnimChannel *) base, 4, 0);
@@ -856,7 +856,7 @@ extern u8 * N64P gBacklashModel;  /* this vehicle's model header */
  * +4 .. +8, the point list at +0 .. +4 and, at +0x18, a word whose +4 is the
  * root matrix's offset into the current matrix buffer (gBacklashMtxA when
  * gBufferIndex is set, else gBacklashMtxB). With rotation y = the heading (u16
- * +0x4C of gBacklashState, the asm's $gp) in D_803ED392, the root matrix is built
+ * +0x4C of gBacklashState, the asm's $gp) in gModelRotY, the root matrix is built
  * at position gBacklashPos[0..2] with scale 0x4268 (mtx_build_model); then the
  * parts are placed (veh_place_parts, tag 5) and the points transformed
  * (veh_points_transform, id 5) through the current buffer.
@@ -873,7 +873,7 @@ void backlash_build_model(MtxChainRegs *regs) {
     u8 *buf = gBufferIndex != 0 ? (u8 *) gBacklashMtxA : (u8 *) gBacklashMtxB;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
 
-    D_803ED392 = *(u16 *) (gBacklashState + 0x4C);
+    gModelRotY = *(u16 *) (gBacklashState + 0x4C);
     mtx_build_model(gBacklashPos[0], gBacklashPos[1], gBacklashPos[2], 0x4268, m);
     regs->s2 = (s32) m;
     buf = gBufferIndex != 0 ? (u8 *) gBacklashMtxA : (u8 *) gBacklashMtxB;
@@ -891,11 +891,11 @@ void backlash_build_model(MtxChainRegs *regs) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_8030D8FC;
+extern f32 gBacklashSteerRateDiv;
 
 /* Backlash's steering rate (by speed) (0x802B7168).
  * Speed (s16 at +0x76 of gBacklashState, the asm's $gp) / 6.0 when any of the
- * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D8FC, rounded to nearest.
+ * bytes at +0x96/+0x97/+0x98 is 1, else / gBacklashSteerRateDiv, rounded to nearest.
  * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
  * backlash_update keeps a0-a3 live (a mixed N64 build would need a thunk).
  * Same shape as sideswipe_steer_rate (6B4A0). */
@@ -906,7 +906,7 @@ s32 backlash_steer_rate(void) {
     if (gBacklashState[0x96] == 1 || gBacklashState[0x97] == 1 || gBacklashState[0x98] == 1) {
         div = 6.0f;
     } else {
-        div = D_8030D8FC;
+        div = gBacklashSteerRateDiv;
     }
     CVT_W_S(r, *(s16 *) (gBacklashState + 0x76) / div);
     return r;

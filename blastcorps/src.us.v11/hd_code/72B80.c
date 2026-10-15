@@ -35,14 +35,14 @@ extern u8 * N64P gChopperModel;  /* its model header */
 extern u8 * N64P gChopperMtxA;  /* its model buffers */
 extern u8 * N64P gChopperMtxB;
 extern s32 gChopperGroundY;
-extern s16 D_803EF2E6;
+extern s16 gChopperLastSoundValue;
 extern s16 gChopperTurn;
 extern u8 gAmdreamAnim[]; /* vehicle 8's 0x300-byte animation channel table (also saved/restored) */
 extern s16 gAmdreamDeflectHeading;  /* vehicle 8's last ring-steered heading */
 extern s8 gAmdreamDeflecting;   /* ring steering active */
 extern u8 gAmdreamThrottleLock;   /* throttle lockout frames */
-extern u8 D_80305D30[];
-extern f32 D_8030D900;
+extern u8 gAmdreamNonBlockingParts[];
+extern f32 gAmdreamDeflectTurnRate;
 s32 amdream_zone_alpha(ZoneScanRegs *r);
 void amdream_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 s32 amdream_steer_rate(void);
@@ -345,7 +345,7 @@ void amdream_ride_follow(s32 id, f32 *f24) {
 #ifdef NON_MATCHING
 /* Ring-steering branch of amdream_update (gCollBlocked set): veh_prepare_escape,
  * gAmdreamDeflecting = 1, then steer along the ring: veh_reverse_if_behind, veh_turn_into_free_arc
- * (heading +0x4E toward +0x4C, scale D_8030D900; the new index goes to
+ * (heading +0x4E toward +0x4C, scale gAmdreamDeflectTurnRate; the new index goes to
  * gAmdreamDeflectHeading, +0x4E and +0x74), veh_step_heading with that turn, veh_hit_slowdown
  * (limit 0) and the object collision pass (obj_collide_vehicle).
  * The asm also computes |(+0x4E - 0x800, wrapped) - ring midpoint| (folded
@@ -374,13 +374,13 @@ static void port_b7a88_ring(void) {
         d = 0xFFF - d;
     }
     veh_reverse_if_behind(gAmdreamState);
-    turn = veh_turn_into_free_arc(gAmdreamState, VEH8_U16(VS_MOVE_HEADING), VEH8_U16(VS_HEADING), &cur, D_8030D900);
+    turn = veh_turn_into_free_arc(gAmdreamState, VEH8_U16(VS_MOVE_HEADING), VEH8_U16(VS_HEADING), &cur, gAmdreamDeflectTurnRate);
     gAmdreamDeflectHeading = cur;
     VEH8_S16(VS_MOVE_HEADING) = cur;
     VEH8_S16(VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(gAmdreamState, turn, d, &target);
     veh_hit_slowdown(gAmdreamState, 0);
-    D_803F77D0 = gAmdreamAnim;
+    gCollVehicleAnim = gAmdreamAnim;
     obj_collide_vehicle(8, gAmdreamState);
 }
 
@@ -433,7 +433,7 @@ static void port_b7a88_crash(void) {
  * Without a ring hit (gCollBlocked clear): gCollHit = 0 and the object pass
  * (obj_collide_vehicle) - a hit there takes the crash branch, else gAmdreamDeflecting = 0;
  * with one: the ring-steering branch. Finally the player position/speed/
- * headings gPlayerX..Z / D_8036443C..40 are copied from the vehicle and
+ * headings gPlayerX..Z / gPlayerSpeed..40 are copied from the vehicle and
  * the position reported (veh_set_record(z, 8, x, y)).
  * Fidelity notes: the asm feeds amdream_zone_alpha its C caller's t6, t7, s0-s4
  * (scan registers, 0 here) and veh_ground_contact the FP registers left by
@@ -490,13 +490,13 @@ void amdream_update(void) {
         anim_update_model((u8 *) gAmdreamMtxB, (u8 *) gAmdreamMtxA, (AnimChannel *) gAmdreamAnim);
     }
     amdream_build_model();
-    veh_collision_setup(gAmdreamPos[2], (s32) D_80305D30, 1, 1, gAmdreamPos[0], gAmdreamPos[1], 7, VEH8_S16(VS_SPEED), 0x96, 0,
+    veh_collision_setup(gAmdreamPos[2], (s32) gAmdreamNonBlockingParts, 1, 1, gAmdreamPos[0], gAmdreamPos[1], 7, VEH8_S16(VS_SPEED), 0x96, 0,
                   8, gAmdreamState);
     veh_collide_spheres(8, gAmdreamState);
     veh_collide_world(8);
     if (gCollBlocked == 0) {
         gCollHit = 0;
-        D_803F77D0 = gAmdreamAnim;
+        gCollVehicleAnim = gAmdreamAnim;
         obj_collide_vehicle(8, gAmdreamState);
         if (gCollHit != 0) {
             port_b7a88_crash();
@@ -509,9 +509,9 @@ void amdream_update(void) {
     gPlayerX = gAmdreamPos[0];
     gPlayerY = gAmdreamPos[1];
     gPlayerZ = gAmdreamPos[2];
-    D_8036443C = VEH8_S16(VS_SPEED);
-    D_8036443E = VEH8_U16(VS_MOVE_HEADING);
-    D_80364440 = VEH8_U16(VS_HEADING);
+    gPlayerSpeed = VEH8_S16(VS_SPEED);
+    gPlayerMoveHeading = VEH8_U16(VS_MOVE_HEADING);
+    gPlayerHeading = VEH8_U16(VS_HEADING);
     veh_set_record(gAmdreamPos[2], 8, gAmdreamPos[0], gAmdreamPos[1], gAmdreamState);
 }
 #else
@@ -528,7 +528,7 @@ void amdream_add_tyre_trail(void);
  * global): the tyre trail (amdream_add_tyre_trail); then, if the cooldown
  * gAmdreamSmokeCooldown is nonzero it just counts down, else when byte +0x99 is set the
  * cooldown becomes 1 and, with fewer than 15 active fx_spawn records,
- * four are set up (def D_802C2954, type 1 at (8, 1..4, 1), data 0x29810
+ * four are set up (def gFxExhaustSmoke, type 1 at (8, 1..4, 1), data 0x29810
  * for the first two and 0x1D4C0 for the last two). Finally
  * veh_set_engine_level(|speed| >> 5) with speed the s16 at +0x76.
  * Register convention (conventions.txt): t6, t7, s0-s4 pass through to
@@ -547,13 +547,13 @@ void amdream_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 
             io.t6 = t6;
             io.s1 = s1;
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 8, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 8, 1, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 8, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 8, 2, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 8, 3, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x1D4C0, 1, 8, 3, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 8, 4, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x1D4C0, 1, 8, 4, 1, t7, s0, s2, s3, s4, 1);
         }
     }
     v = *(s16 *) (gAmdreamState + 0x76);
@@ -647,11 +647,11 @@ void amdream_build_model(void) {
         (out) = _r;                                                     \
     } while (0)
 
-extern f32 D_8030D904;
+extern f32 gAmdreamSteerRateDiv;
 
 /* Its steering rate (by speed) (0x802B83B0).
  * Speed (s16 at +0x76 of gAmdreamState, the asm's $gp) / 11.0 when any of the
- * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D904, rounded to nearest.
+ * bytes at +0x96/+0x97/+0x98 is 1, else / gAmdreamSteerRateDiv, rounded to nearest.
  * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
  * amdream_update keeps a0-a3 live (a mixed N64 build would need a thunk).
  * Same shape as sideswipe_steer_rate (6B4A0). */
@@ -662,7 +662,7 @@ s32 amdream_steer_rate(void) {
     if (gAmdreamState[0x96] == 1 || gAmdreamState[0x97] == 1 || gAmdreamState[0x98] == 1) {
         div = 11.0f;
     } else {
-        div = D_8030D904;
+        div = gAmdreamSteerRateDiv;
     }
     CVT_W_S(r, *(s16 *) (gAmdreamState + 0x76) / div);
     return r;
@@ -698,7 +698,7 @@ void amdream_set_physics(void) {
  * 0x800-byte buffers from the heap gHeapPtr (gChopperMtxA, gChopperMtxB; the
  * cursor moves 0x1000), the object record (veh_add_record(0xFE, a1Val, buf1,
  * buf2, hdr)), state block gChopperState: heading +0x4C/+0x4E = 0, speed +0x76 =
- * 20, D_803EF32A / D_803EF2E6 / D_803EF328 = 0; the animated model
+ * 20, gChopperCamHeading / gChopperLastSoundValue / gChopperCamSpeed = 0; the animated model
  * (anim_init_model(buf2, buf1, gChopperAnim, hdr)) and its channels (0: 100, 0,
  * 0, 0.0f/0, started; animated into each buffer in turn with channel 0
  * reset in between; 1: 9 looping; 2, 3 looping; 4: 1, 1, 1 started), state
@@ -722,10 +722,10 @@ void chopper_spawn(s32 a1Val, u8 *hdr) {
     veh_add_record(0xFE, a1Val, (s32) gChopperMtxA, (s32) gChopperMtxB, hdr);
     *(s16 *) (gChopperState + 0x4C) = 0;
     *(s16 *) (gChopperState + 0x4E) = 0;
-    D_803EF32A = 0;
+    gChopperCamHeading = 0;
     *(s16 *) (gChopperState + 0x76) = 0x14;
-    D_803EF2E6 = 0;
-    D_803EF328 = 0;
+    gChopperLastSoundValue = 0;
+    gChopperCamSpeed = 0;
     anim_init_model((u32 *) gChopperMtxB, (u32 *) gChopperMtxA, (AnimChannel *) gChopperAnim, gChopperModel);
     anim_set_speed((AnimChannel *) gChopperAnim, 0, 0x64);
     anim_set_reverse((AnimChannel *) gChopperAnim, 0, 0);
@@ -816,7 +816,7 @@ void chopper_update_sound(void) {
  * (chopper_update_anims), animate the model into the current buffer
  * (anim_update_model; gBufferIndex picks gChopperMtxA or gChopperMtxB), place it
  * (chopper_build_model), copy point record 1 of object 0xFE (veh_find_point) to the
- * marker position D_803EF310/14/18, and drop the marker on the ground
+ * marker position gChopperDropX/Y/Z, and drop the marker on the ground
  * (chopper_update_shadow).
  * chopper_update_shadow's t3 (the height when the marker is outside the level) is the
  * header pointer gChopperModel: chopper_build_model leaves it in t3 and nothing after
@@ -837,9 +837,9 @@ void chopper_update(void) {
     }
     chopper_build_model();
     veh_find_point(0xFE, 1, &rec);
-    D_803EF310 = ((s32 *) rec)[0];
-    D_803EF314 = ((s32 *) rec)[1];
-    D_803EF318 = ((s32 *) rec)[2];
+    gChopperDropX = ((s32 *) rec)[0];
+    gChopperDropY = ((s32 *) rec)[1];
+    gChopperDropZ = ((s32 *) rec)[2];
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
     chopper_update_shadow((s32) gChopperModel, 0, &f);
 }
@@ -853,21 +853,21 @@ extern u8 gChopperState[]; /* this vehicle's state block */
 extern s32 gChopperGroundY;
 
 /* Copies its state out; the game mode 0x1000/0x2000 steps (0x802B8AE4).
- * Copies two halfwords of the vehicle block (+0x4E, +0x76) to D_803EF32A /
- * D_803EF328, and the marker position D_803EF310..1C to gDriverPos..10 and
+ * Copies two halfwords of the vehicle block (+0x4E, +0x76) to gChopperCamHeading /
+ * gChopperCamSpeed, and the marker position gChopperDropX..1C to gDriverPos..10 and
  * gChopperLandY. Then, in game mode 0x1000: if gChopperMode == 5 or
- * gChopperGroundY >= D_803EF314, calls fade_to_mode(0x2000). In any other mode:
+ * gChopperGroundY >= gChopperDropY, calls fade_to_mode(0x2000). In any other mode:
  * if gChopperMode == 4, sets the next game mode to 0x1000.
  * The game-mode compare is a full 64-bit compare in the asm (ld/beq). */
 void chopper_update_mode(void) {
-    D_803EF32A = *(s16 *) (gChopperState + 0x4E);
-    D_803EF328 = *(s16 *) (gChopperState + 0x76);
-    gDriverPos = D_803EF310;
-    D_803ED80C = D_803EF314;
-    D_803ED810 = D_803EF318;
+    gChopperCamHeading = *(s16 *) (gChopperState + 0x4E);
+    gChopperCamSpeed = *(s16 *) (gChopperState + 0x76);
+    gDriverPos = gChopperDropX;
+    gDriverY = gChopperDropY;
+    gDriverZ = gChopperDropZ;
     gChopperLandY = gChopperGroundY;
     if (gGameMode == MODE_INTRO_LANDING) {
-        if (gChopperMode == 5 || !(gChopperGroundY < D_803EF314)) {
+        if (gChopperMode == 5 || !(gChopperGroundY < gChopperDropY)) {
             fade_to_mode(MODE_LEVEL_START);
         }
     } else if (gChopperMode == 4) {
@@ -888,7 +888,7 @@ void chopper_update_mode(void) {
  * ground_slot_height(slot 0, x, z, gChopperGroundY, skip 0xFE) and is stored to
  * gChopperGroundY; otherwise the height is the incoming t3 (whatever the asm
  * callers left there). Then veh_update_shadow(0xFE, x, height, z, gChopperY, 0,
- * 0, (s16) +0x4C) and D_803EF326 = +0x4C.
+ * 0, (s16) +0x4C) and gChopperShadowHeading = +0x4C.
  * Register convention (conventions.txt): t3 and fp (ground_slot_height's fp input)
  * come in from the asm callers, f12-f26 pass through ground_slot_height (here
  * through f). The asm's v1 (read by hd_game_frame via chopper_update) is just
@@ -903,7 +903,7 @@ void chopper_update_shadow(s32 t3, s32 fp, TriSideOut *f) {
         gChopperGroundY = y;
     }
     veh_update_shadow(0xFE, gChopperX, y, gChopperZ, gChopperY, 0, 0, *(s16 *) (gChopperState + 0x4C));
-    D_803EF326 = *(s16 *) (gChopperState + 0x4C);
+    gChopperShadowHeading = *(s16 *) (gChopperState + 0x4C);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/chopper_update_shadow.s")
@@ -911,9 +911,9 @@ void chopper_update_shadow(s32 t3, s32 fp, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803EF320; /* best distance so far */
+extern s32 gChopperBestDist; /* best distance so far */
 extern s16 gChopperTurn; /* turn rate */
-extern char D_80305D40[];
+extern char gChopperMovingToZoomMsg[];
 extern u8 gChopperAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 s32 chopper_target_distance(void);
 
@@ -982,7 +982,7 @@ static s32 port_state1(void) {
         }
         if (!(limit < dist)) {
             gNextGameMode = MODE_INTRO_APPROACH;
-            debug_printf(D_80305D40);
+            debug_printf(gChopperMovingToZoomMsg);
             gChopperTargetX = (&gChopperRetargetZ)[-1];
             bx = gChopperRetargetZ;
             gChopperTargetZ = bx;
@@ -1066,8 +1066,8 @@ static s32 port_state3(void) {
     gChopperX = port_step_axis(gChopperX, gChopperTargetX, dist, speed);
     gChopperZ = port_step_axis(gChopperZ, gChopperTargetZ, dist, speed);
     dist = chopper_target_distance();
-    if (dist < D_803EF320) {
-        D_803EF320 = dist;
+    if (dist < gChopperBestDist) {
+        gChopperBestDist = dist;
         return 0;
     }
     return 1;
@@ -1113,14 +1113,14 @@ static void port_state4(void) {
  *   0: gChopperTurn one step toward 4; heading update.
  *   1: approach gChopperTargetX/Z (port_state1); heading update.
  *   2: slow down by 4 to 0x14 (heading update while above), then state 3
- *      with D_803EF320 = distance, then as 3.
+ *      with gChopperBestDist = distance, then as 3.
  *   3: gChopperTurn one step toward 0, move straight at the target
  *      (port_state3); when reached: position = target, state 4 and channel 4
  *      restarted (anim_play).
  *   4: descend (gChopperY toward gChopperLandY + 0xFA0, 0x14 a frame); there,
  *      once channel 4 is done: gChopperTouchdown = 1, a landing sound outside game
  *      mode 0x1000, state 5, channel 4 restarted.
- *   5: wait for channel 4 (D_803EF32E = 1 when done), climb back to
+ *   5: wait for channel 4 (gChopperLiftAnimDone = 1 when done), climb back to
  *      gChopperCruiseY, then state 0 once both.
  * Heading update: heading +0x4E (and +0x4C) += gChopperTurn (wrapped by 0xFFF)
  * and the position gChopperX/Z advanced by the speed +0x76 along it
@@ -1173,7 +1173,7 @@ void chopper_fly(void) {
             }
             VEH8D04_S16(VS_SPEED) = 0x14;
             gChopperMode = 3;
-            D_803EF320 = chopper_target_distance();
+            gChopperBestDist = chopper_target_distance();
             /* fallthrough */
         case 3:
             if (port_state3()) {
@@ -1189,13 +1189,13 @@ void chopper_fly(void) {
         case 5:
             anim_get_state(4, (AnimChannel *) gChopperAnim, out);
             if (out[0] != 1) {
-                D_803EF32E = 1;
+                gChopperLiftAnimDone = 1;
             }
             if (gChopperCruiseY != gChopperY) {
                 gChopperY = port_approach_14(gChopperY, gChopperCruiseY);
-            } else if (D_803EF32E != 0) {
+            } else if (gChopperLiftAnimDone != 0) {
                 gChopperMode = 0;
-                D_803EF32E = 0;
+                gChopperLiftAnimDone = 0;
             }
             goto tail;
     }
@@ -1239,17 +1239,17 @@ s32 chopper_target_distance(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803EF2E6;  /* last value sent to the sound */
+extern s16 gChopperLastSoundValue;  /* last value sent to the sound */
 extern s16 gChopperTurn;
-extern f32 D_8030D910;
-extern f32 D_8030D914;
+extern f32 gChopperPitchBase;
+extern f32 gChopperPitchScale;
 extern u8 gChopperAnim[]; /* animation channel table (AnimChannel, 56040.c) */
 
 /* Engine pitch and channels 2/3 from speed and turn (0x802B98E0).
  * Sound and animation channels for vehicle gChopperState (the asm's $gp; s16 at
- * +0x76). v = 160 - that value. When v differs from D_803EF2E6 (which is set
+ * +0x76). v = 160 - that value. When v differs from gChopperLastSoundValue (which is set
  * to v) and the sound gChopperSound is playing, its parameter 0x10 is set to the
- * float D_8030D910 + v * D_8030D914 (passed as raw bits). Channel 2 of
+ * float gChopperPitchBase + v * gChopperPitchScale (passed as raw bits). Channel 2 of
  * gChopperAnim gets v / 320.0 (value 0) and channel 3 gets, from
  * t = gChopperTurn (with +-1 treated as 0), (32 - t) / 64.0 for t >= 0 or
  * -t / 64.0 + 0.5 for t < 0 (anim_set_frame). Returns v / 320.0 (the asm's
@@ -1257,13 +1257,13 @@ extern u8 gChopperAnim[]; /* animation channel table (AnimChannel, 56040.c) */
  * live (a mixed N64 build would need a thunk; the native port won't). */
 f32 chopper_update_anims(void) {
     s32 v = 0xA0 - *(s16 *) (gChopperState + 0x76);
-    s16 last = D_803EF2E6;
+    s16 last = gChopperLastSoundValue;
     f32 ratio = (f32) v / 320.0f;
     s32 t;
 
-    D_803EF2E6 = v;
+    gChopperLastSoundValue = v;
     if (last != v && gChopperSound != NULL) {
-        f32 p = D_8030D910 + (f32) v * D_8030D914;
+        f32 p = gChopperPitchBase + (f32) v * gChopperPitchScale;
 
         snd_modify(gChopperSound, 0x10, *(s32 *) &p);
     }

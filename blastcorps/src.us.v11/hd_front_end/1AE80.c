@@ -35,7 +35,7 @@ s32 fe_pak_restore_from_eeprom(void) {
                 osRecvMesg(&pakToGameMessageQ, NULL, 1);
             }
             fe_best_clear_times(playerNumber);
-            gBestTimes[playerNumber][D_802E8C44[players[playerNumber].bestVehicle[i]]] = gEepTimes[i * 2];
+            gBestTimes[playerNumber][gVehicleTimeSlot[players[playerNumber].bestVehicle[i]]] = gEepTimes[i * 2];
             osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 9 | (playerNumber << 16) | 0x01000000), 1);
             osRecvMesg(&pakToGameMessageQ, NULL, 1);
         }

@@ -101,14 +101,14 @@ void music_push_danger_tune(void) {
 
 /* The level-done tune at the old tempo; notes the start time (0x80260E2C). */
 void music_play_done_tune(void) {
-    gDoneTuneStartTime = ((s32) D_803156C4);
+    gDoneTuneStartTime = ((s32) gSchedFrameCount);
     gMusicSavedTempo = alCSPGetTempo(gMusicPlayer);
     music_start_tune(gLevelDoneTunes[levelno]);
 }
 
 /* The level's mode-8 tune (cleared, no carrier) (0x80260E80). */
 void music_play_clear_tune(void) {
-    gDoneTuneStartTime = ((s32) D_803156C4);
+    gDoneTuneStartTime = ((s32) gSchedFrameCount);
     music_start_tune(gLevelClearTunes[levelno]);
 }
 

@@ -3,7 +3,7 @@
  * - the object also defines osViClock and a copy of the boot-time TV type
  *   (its real name is unknown), and __osViInit picks the mode and the VI
  *   clock from that copy: NTSC, otherwise MPAL (no PAL support; the
- *   second mode table, D_80307840, has MPAL timing and burst values);
+ *   second mode table, osViModeMpalLan1, has MPAL timing and burst values);
  * - framep is left zero.
  * Otherwise this is ultralib's source. */
 #include "PRinternal/macros.h"

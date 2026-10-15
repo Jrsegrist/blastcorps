@@ -5,7 +5,7 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_gSfxBank
-#define LEGACY_D_8036EA60
+#define LEGACY_gScoreOld
 #define LEGACY_nss
 #endif /* legacy declarations */
 #include "game/game.h"
@@ -15,10 +15,10 @@
 #define gYoshiGameItems ((MenuItem *) gYoshiGameItems)
 #define gYoshiWindows ((MenuItem *) gYoshiWindows)
 #define players ((PlayerRec *) players)
-#define D_8036EA80 ((u32 *) &D_8036EA80)
-#define D_8036EA90 ((u32 *) &D_8036EA90)
+#define gScoreRes ((u32 *) &gScoreRes)
+#define gScoreRs2 ((u32 *) &gScoreRs2)
 #ifdef NON_MATCHING
-#define D_8036EA60 (*(u32 *) &D_8036EA60)
+#define gScoreOld (*(u32 *) &gScoreOld)
 #define nss (*(u32 *) &nss)
 #endif
 /* end of views */
@@ -47,23 +47,23 @@ typedef struct {
     u8 pad3[2];
 } MenuItem; /* 0x1C */
 
-extern u8 D_80364B08[][0x100]; /* = players[p].medal */
-extern u8 D_80364B44[][0x100]; /* = players[p].commPts */
+extern u8 gPlayerMedals[][0x100]; /* = players[p].medal */
+extern u8 gPlayerCommPts[][0x100]; /* = players[p].commPts */
 
-/* This level's results (nss) and the best (D_8036EA60), 16 bytes each:
+/* This level's results (nss) and the best (gScoreOld), 16 bytes each:
  * money, time, then three counts with their targets in gRduCount..93 */
 #ifndef NON_MATCHING
-extern u32 D_8036EA60;
+extern u32 gScoreOld;
 #endif
-extern u8 D_8036EA68;
-extern u8 D_8036EA69;
-extern u16 D_8036EA6C;
+extern u8 gScoreOldBuildings;
+extern u8 gScoreOldPeople;
+extern u16 gScoreOldRdus;
 #ifndef NON_MATCHING
 extern u32 nss;
 #endif
-extern s32 D_8036EA74;
-extern u8 D_8036EA7A;
-extern u8 D_8036EA7B;
+extern s32 gScoreTime;
+extern u8 gScoreGrade;
+extern u8 gScoreVehicle;
 extern u8 gBonusEarned[]; /* bonus earned, per bonus */
 extern u8 gBonusEarnedPrev[];
 
@@ -83,9 +83,9 @@ extern s32 gSfxBank;
 void stats_level_start(void) {
     s32 i;
 
-    D_8036EA7B = players[playerNumber].commPts[levelno + 0x3E];
-    D_8036EA74 = gBestTimes[playerNumber][D_802E8C44[(gLevelInfo[levelno].kind == 1) ? 1 : D_8036EA7B]];
-    D_8036EA7A = D_80364B08[playerNumber][levelno] % 8;
+    gScoreVehicle = players[playerNumber].commPts[levelno + 0x3E];
+    gScoreTime = gBestTimes[playerNumber][gVehicleTimeSlot[(gLevelInfo[levelno].kind == 1) ? 1 : gScoreVehicle]];
+    gScoreGrade = gPlayerMedals[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
         gBonusEarned[i] = 0;
     }
@@ -107,27 +107,27 @@ u32 stats_print_status(void) {
 
     f2 = 0;
     f1 = 0;
-    if (D_8036EB92) {
-        pctA = (D_8036EA78 * 100) / D_8036EB92;
+    if (gBuildingCount) {
+        pctA = (gScoreBuildings * 100) / gBuildingCount;
     } else {
         pctA = 100;
     }
-    if (D_8036EB93) {
-        pctB = (D_8036EA79 * 100) / D_8036EB93;
+    if (gPeopleTotal) {
+        pctB = (gScorePeople * 100) / gPeopleTotal;
     } else {
         pctB = 100;
     }
     if (gRduCount) {
-        pctC = (D_8036EA7C * 100) / gRduCount;
+        pctC = (gScoreRdus * 100) / gRduCount;
     } else {
         pctC = 100;
     }
-    sprintf(D_8036B9A8, "***%2d (%d%c)*", D_8036EA78, pctA, '%');
-    sprintf(D_8036B9A8 + 0x20, "***$%d*", nss);
-    sprintf(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
-    sprintf(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
-    hud_format_time(buf, D_8036EA74, 0);
-    sprintf(D_8036B9A8 + 0x80, "***%s*", buf);
+    sprintf(gStatusLines, "***%2d (%d%c)*", gScoreBuildings, pctA, '%');
+    sprintf(gStatusLines + 0x20, "***$%d*", nss);
+    sprintf(gStatusLines + 0x40, "***%2d (%d%c)*", gScorePeople, pctB, '%');
+    sprintf(gStatusLines + 0x60, "***%2d (%d%c)*", gScoreRdus, pctC, '%');
+    hud_format_time(buf, gScoreTime, 0);
+    sprintf(gStatusLines + 0x80, "***%s*", buf);
     for (i = 18; i < 23; i++) {
         gYoshiGameItems[i].flags = 0x400;
     }
@@ -140,28 +140,28 @@ u32 stats_print_status(void) {
     if (gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END)) {
         f1 = 0x100;
     }
-    if (D_8036EA78 > D_8036EA68) {
+    if (gScoreBuildings > gScoreOldBuildings) {
         f = f1 | 4;
     } else {
         f = 0;
     }
     gYoshiFeItems[14].flags |= f | 0x80;
     gYoshiGameItems[18].flags |= f | f2 | 0x80;
-    if (nss > D_8036EA60) {
+    if (nss > gScoreOld) {
         f = f1 | 4;
     } else {
         f = 0;
     }
     gYoshiFeItems[15].flags |= f | 0x80;
     gYoshiGameItems[19].flags |= f | f2 | 0x80;
-    if (D_8036EA79 > D_8036EA69) {
+    if (gScorePeople > gScoreOldPeople) {
         f = f1 | 4;
     } else {
         f = 0;
     }
     gYoshiFeItems[16].flags |= f | 0x80;
     gYoshiGameItems[20].flags |= f | f2 | 0x80;
-    if (D_8036EA7C > D_8036EA6C) {
+    if (gScoreRdus > gScoreOldRdus) {
         f = f1 | 4;
     } else {
         f = 0;
@@ -194,7 +194,7 @@ u8 stats_save_status(void) {
             if (pakBuffer[0] == 0x1234567887654321) {
                 hd_setup_level(NULL);
                 debug_printf("Creating status ...\n");
-                coin = D_80364B08[playerNumber][levelno];
+                coin = gPlayerMedals[playerNumber][levelno];
                 if (coin == 5) {
                     coin = 4;
                 }
@@ -212,9 +212,9 @@ u8 stats_save_status(void) {
     } else {
         hd_setup_level(NULL);
     }
-    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
-    stats_copy_result((u8 *) &nss, (u8 *) D_8036EA80);
-    stats_copy_result((u8 *) &nss, (u8 *) D_8036EA90);
+    stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
+    stats_copy_result((u8 *) &nss, (u8 *) gScoreRes);
+    stats_copy_result((u8 *) &nss, (u8 *) gScoreRs2);
     return saved;
 }
 
@@ -233,7 +233,7 @@ void stats_copy_result(u8 *src, u8 *dst) {
  * MIPS sllv uses its low 5 bits (bit 1 -> 1 << 0); C leaves it undefined,
  * so the port masks it (PORT_SHAMT). */
 void stats_set_level_flag(u8 bit) {
-    D_80364A87 |= 2;
+    gRouteRevealFlags |= 2;
     CUR.commPts[levelno] |= 1 << PORT_SHAMT(bit + 0x1F);
 }
 
@@ -242,7 +242,7 @@ void stats_set_level_flag(u8 bit) {
 s32 stats_test_level_flag(u8 bit) {
     s32 unused;
 
-    return (D_80364B44[playerNumber][levelno] & (1 << PORT_SHAMT(bit + 0x1F))) ? 1 : 0;
+    return (gPlayerCommPts[playerNumber][levelno] & (1 << PORT_SHAMT(bit + 0x1F))) ? 1 : 0;
 }
 
 /* A non-mission level done: fade to the world screen (0x80285B68).
@@ -257,7 +257,7 @@ void stats_finish_bonus_level(s32 arg0) {
                 gPauseRequest = 1;
                 fade_to_mode_speed(MODE_WORLD, 1.25f);
                 saveIt[playerNumber] = levelno + 1;
-                D_8036EB99 = 1;
+                gBonusLevelExit = 1;
             }
         }
     }
@@ -280,18 +280,18 @@ void stats_award_bonuses(void) {
         if (gBonusEarned[i] == 0) {
             switch (i) {
                 case 0:
-                    if (gBonusEarned[i] = (D_8036EA7C == gRduCount)) {
+                    if (gBonusEarned[i] = (gScoreRdus == gRduCount)) {
                         sfx = 0x39;
                     }
                     break;
                 case 1:
-                    if (gBonusEarned[i] = (D_8036EA79 == D_8036EB93)) {
+                    if (gBonusEarned[i] = (gScorePeople == gPeopleTotal)) {
                         sfx = 0x3A;
                     }
                     break;
                 case 2:
                     obj_tally(0);
-                    if (gBonusEarned[i] = (D_8036EA78 == D_8036EB92)) {
+                    if (gBonusEarned[i] = (gScoreBuildings == gBuildingCount)) {
                         sfx = 0x3B;
                     }
                     break;
@@ -304,7 +304,7 @@ void stats_award_bonuses(void) {
             }
         }
     }
-    if (D_80358064) {
+    if (gPlayFrames) {
         if (sfx != -1 && !(yoshi_get_demand() & 0x8000)) {
             yoshi_demand(sfx | 0x8000);
         }
@@ -320,12 +320,12 @@ void stats_award_bonuses(void) {
 void stats_finish_level(s32 start) {
     s32 t;
 
-    t = stats_frames_to_tenths(((s32) D_803156C0) - start);
+    t = stats_frames_to_tenths(((s32) gSchedRetraceCount) - start);
     obj_tally(0);
-    D_8036EA74 += t;
+    gScoreTime += t;
     stats_print_status();
-    D_8036EA74 -= t;
-    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+    gScoreTime -= t;
+    stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
     gYoshiGameItems[24].flags &= ~1;
     gYoshiGameItems[24].flags |= 0x800;
     gYoshiGameItems[23].flags &= ~1;

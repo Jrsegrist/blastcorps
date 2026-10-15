@@ -33,7 +33,7 @@ typedef struct {
 #ifndef NON_MATCHING
 extern Digger *gVehiclesEnd;
 #endif
-extern s32 D_802FC51C;
+extern s32 gBridgeWaveClock;
 
 f32 sinf(f32);
 s32 bridge_point_in_quad(s32 arg0, s32 arg1, void *arg2, void *arg3);
@@ -65,7 +65,7 @@ typedef struct {
     f32 rateZ; /* 0x18 */
     f32 lenX;  /* 0x1C */
     f32 lenZ;  /* 0x20 */
-    u8 unk24;  /* 0x24: nonzero = single texture (tex), else three (D_802FC48C) */
+    u8 unk24;  /* 0x24: nonzero = single texture (tex), else three (gWaterAnimTexIds) */
     u8 pad25;
     s16 tex;   /* 0x26 */
     s32 rm0;   /* 0x28: render mode, two-texture case */
@@ -75,20 +75,20 @@ typedef struct {
     u8 pad32[2];
 } Water;
 
-extern Water D_802FC3F0[];
-extern s16 D_802FC48C[];
+extern Water gWaterLevels[];
+extern s16 gWaterAnimTexIds[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* bump allocator for display memory */
 #endif
 extern Vtx * N64P gWaterVtx[2]; /* double-buffered water grid */
-extern s32 D_8036DCA8[2];
+extern s32 gWaterCullVtx[2];
 extern s32 gWaterClock; /* wave clock */
-extern s32 D_8036DCB8[3];
-extern s32 D_8036DCC8[2];
-extern u8 D_8036DCD0;
-extern s16 D_8036DCD2;
-extern u8 D_8036DCD5;
-extern u8 gWaterIndex; /* index into D_802FC3F0 */
+extern s32 gWaterTextures[3];
+extern s32 gWaterDls[2];
+extern u8 gWaterTexFrame;
+extern s16 gWaterTexBlend;
+extern u8 gWaterSingleTex;
+extern u8 gWaterIndex; /* index into gWaterLevels */
 
 void water_flat_normal(Vtx *v, s32 i0, s32 i1, s32 i2);
 void water_box_corners(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1);
@@ -118,12 +118,12 @@ typedef struct {
     s16 angle;
 } Quad;
 
-extern QuadSpawn D_802FC494[];
-extern Quad D_8036DCE0[];
-extern Vtx D_8036DD70[2][12][4];
-extern u8 D_8036E370;
-extern s32 D_8036E374;
-extern s32 D_8036E378;
+extern QuadSpawn gDriftQuadSpawns[];
+extern Quad gDriftQuads[];
+extern Vtx gDriftQuadVtx[2][12][4];
+extern u8 gDriftQuadSpawn;
+extern s32 gDriftQuadCount;
+extern s32 gDriftQuadTex;
 
 
 /* Level spawn table for the proximity objects below (one entry). */
@@ -141,11 +141,11 @@ typedef struct {
     u8 active; /* 0x48 */
 } Mine;
 
-extern MineSpawn D_802FC520[];
-extern Vtx D_802FC528[];
+extern MineSpawn gPowerPillSpawns[];
+extern Vtx gPowerPillVtx[];
 extern Mine gPowerPills[];
 extern s32 gPowerPillCount; /* number of placed objects */
-extern s32 D_8036E4C4;
+extern s32 gPowerPillTex;
 
 
 /* Levels 0, 4, 15, 16, 20: the bridges sag under the vehicles (0x8027D810). */
@@ -182,13 +182,13 @@ void bridge_wave_group(s32 arg0, s32 arg1, s32 arg2) {
 
     j = 1;
     step = 6.28318 / (arg1 + 1);
-    angle = D_802FC51C / 20.0;
-    for (i = D_802FC51C; i < arg1 + D_802FC51C; i++) {
+    angle = gBridgeWaveClock / 20.0;
+    for (i = gBridgeWaveClock; i < arg1 + gBridgeWaveClock; i++) {
         s = sinf(angle);
         lvl_group_move_part(arg0, j++, 0, -s * arg2, 0);
         angle += step;
     }
-    D_802FC51C++;
+    gBridgeWaveClock++;
 }
 
 /* Half-sine sag of a group's parts by load (0x8027DA10). */
@@ -227,7 +227,7 @@ f32 bridge_max_load(s32 *a, s32 *b, s32 arg2) {
     i = 0;
     max = 0.0f;
     while (&gVehicles[i] != gVehiclesEnd) {
-        if ((type = gVehicles[i].type) != 0xFE && (type != 0 || D_803649E8 == 0)) {
+        if ((type = gVehicles[i].type) != 0xFE && (type != 0 || gDriverHidden == 0)) {
             if (bridge_point_in_quad(gVehicles[i].unk64, gVehicles[i].unk6C, a, b) != 0) {
                 if (gVehicles[i].unk70 != 0) {
                     t = bridge_cross_fraction(gVehicles[i].unk64, gVehicles[i].unk6C, a, b);
@@ -382,7 +382,7 @@ void water_init(s32 id) {
     found = 0;
     gWaterIndex = 0;
     do {
-        if (D_802FC3F0[gWaterIndex].id == id) {
+        if (gWaterLevels[gWaterIndex].id == id) {
             found = 1;
         } else {
             gWaterIndex++;
@@ -394,50 +394,50 @@ void water_init(s32 id) {
     }
     gWaterOn = 1;
     gWaterVtx[0] = (Vtx *) N64_IPTR(gHeapPtr);
-    gHeapPtr += (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1) * sizeof(Vtx);
+    gHeapPtr += (gWaterLevels[gWaterIndex].nx + 1) * (gWaterLevels[gWaterIndex].nz + 1) * sizeof(Vtx);
     gWaterVtx[1] = (Vtx *) N64_IPTR(gHeapPtr);
-    gHeapPtr += (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1) * sizeof(Vtx);
+    gHeapPtr += (gWaterLevels[gWaterIndex].nx + 1) * (gWaterLevels[gWaterIndex].nz + 1) * sizeof(Vtx);
 #ifdef PORT_HOST
     {
         /* every vertex gets x, z, s, t here and y every frame; the flag and
          * colour bytes stay whatever the heap held on the N64 (the RSP shades
          * the water with them): give the native records those bytes */
         void port_vtx_stale(void *v, u32 n);
-        u32 nv = (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1);
+        u32 nv = (gWaterLevels[gWaterIndex].nx + 1) * (gWaterLevels[gWaterIndex].nz + 1);
         port_vtx_stale(gWaterVtx[0], nv);
         port_vtx_stale(gWaterVtx[1], nv);
     }
 #endif
-    D_8036DCA8[0] = gHeapPtr;
+    gWaterCullVtx[0] = gHeapPtr;
     gHeapPtr += 0x12C0;
-    D_8036DCA8[1] = gHeapPtr;
+    gWaterCullVtx[1] = gHeapPtr;
     gHeapPtr += 0x12C0;
-    size = D_802FC3F0[gWaterIndex].nx * D_802FC3F0[gWaterIndex].nz * 2 * 8;
-    size += (D_802FC3F0[gWaterIndex].nx / 8 + 1) * D_802FC3F0[gWaterIndex].nz * 8;
+    size = gWaterLevels[gWaterIndex].nx * gWaterLevels[gWaterIndex].nz * 2 * 8;
+    size += (gWaterLevels[gWaterIndex].nx / 8 + 1) * gWaterLevels[gWaterIndex].nz * 8;
     size += 0x1C20;
-    D_8036DCC8[0] = gHeapPtr;
+    gWaterDls[0] = gHeapPtr;
     gHeapPtr += size;
-    D_8036DCC8[1] = gHeapPtr;
+    gWaterDls[1] = gHeapPtr;
     gHeapPtr += size;
-    gWaterLayer = D_802FC3F0[gWaterIndex].unk31;
-    if ((D_8036DCD5 = D_802FC3F0[gWaterIndex].unk24) != 0) {
-        D_8036DCB8[0] = gHeapPtr;
-        tex_get(D_802FC3F0[gWaterIndex].tex, 0);
+    gWaterLayer = gWaterLevels[gWaterIndex].unk31;
+    if ((gWaterSingleTex = gWaterLevels[gWaterIndex].unk24) != 0) {
+        gWaterTextures[0] = gHeapPtr;
+        tex_get(gWaterLevels[gWaterIndex].tex, 0);
     } else {
         for (i = 0; i < 3; i++) {
-            D_8036DCB8[i] = gHeapPtr;
-            tex_get(D_802FC48C[i], 0);
+            gWaterTextures[i] = gHeapPtr;
+            tex_get(gWaterAnimTexIds[i], 0);
         }
     }
-    D_8036DCD0 = 0;
-    D_8036DCD2 = 0;
-    stepX = (D_802FC3F0[gWaterIndex].x1 - D_802FC3F0[gWaterIndex].x0) / D_802FC3F0[gWaterIndex].nx;
-    stepZ = (D_802FC3F0[gWaterIndex].z1 - D_802FC3F0[gWaterIndex].z0) / D_802FC3F0[gWaterIndex].nz;
-    x = D_802FC3F0[gWaterIndex].x0;
-    z = D_802FC3F0[gWaterIndex].z0;
-    for (i = 0; i <= D_802FC3F0[gWaterIndex].nz; i++) {
+    gWaterTexFrame = 0;
+    gWaterTexBlend = 0;
+    stepX = (gWaterLevels[gWaterIndex].x1 - gWaterLevels[gWaterIndex].x0) / gWaterLevels[gWaterIndex].nx;
+    stepZ = (gWaterLevels[gWaterIndex].z1 - gWaterLevels[gWaterIndex].z0) / gWaterLevels[gWaterIndex].nz;
+    x = gWaterLevels[gWaterIndex].x0;
+    z = gWaterLevels[gWaterIndex].z0;
+    for (i = 0; i <= gWaterLevels[gWaterIndex].nz; i++) {
         tu = 0;
-        for (j = 0; j <= D_802FC3F0[gWaterIndex].nx; j++) {
+        for (j = 0; j <= gWaterLevels[gWaterIndex].nx; j++) {
             gWaterVtx[0][n].v.ob[0] = x;
             gWaterVtx[0][n].v.ob[2] = z;
             gWaterVtx[1][n].v.ob[0] = x;
@@ -451,7 +451,7 @@ void water_init(s32 id) {
             x += stepX;
         }
         tv ^= 0x1F;
-        x = D_802FC3F0[gWaterIndex].x0;
+        x = gWaterLevels[gWaterIndex].x0;
         z += stepZ;
     }
     gWaterClock = 0;
@@ -468,29 +468,29 @@ void water_update(u8 buf) {
 
     if (gWaterOn != 0 && gPaused == 0) {
         gWaterClock++;
-        D_8036DCD2 += 15;
-        if (D_8036DCD2 >= 255) {
-            D_8036DCD2 = 0;
-            if (++D_8036DCD0 >= 3) {
-                D_8036DCD0 = 0;
+        gWaterTexBlend += 15;
+        if (gWaterTexBlend >= 255) {
+            gWaterTexBlend = 0;
+            if (++gWaterTexFrame >= 3) {
+                gWaterTexFrame = 0;
             }
         }
     }
     if (gWaterOn != 0) {
-        stepX = (D_802FC3F0[gWaterIndex].x1 - D_802FC3F0[gWaterIndex].x0) / D_802FC3F0[gWaterIndex].nx;
-        for (i = 0; i <= D_802FC3F0[gWaterIndex].nx; i++) {
-            for (j = 0; j <= D_802FC3F0[gWaterIndex].nz; j++) {
-                s = sinf(((i + 1) * stepX) / D_802FC3F0[gWaterIndex].lenX + gWaterClock / D_802FC3F0[gWaterIndex].rateX);
-                gWaterVtx[buf][i + j * (D_802FC3F0[gWaterIndex].nz + 1)].v.ob[1] =
-                    D_802FC3F0[gWaterIndex].ampX * s + D_802FC3F0[gWaterIndex].y;
+        stepX = (gWaterLevels[gWaterIndex].x1 - gWaterLevels[gWaterIndex].x0) / gWaterLevels[gWaterIndex].nx;
+        for (i = 0; i <= gWaterLevels[gWaterIndex].nx; i++) {
+            for (j = 0; j <= gWaterLevels[gWaterIndex].nz; j++) {
+                s = sinf(((i + 1) * stepX) / gWaterLevels[gWaterIndex].lenX + gWaterClock / gWaterLevels[gWaterIndex].rateX);
+                gWaterVtx[buf][i + j * (gWaterLevels[gWaterIndex].nz + 1)].v.ob[1] =
+                    gWaterLevels[gWaterIndex].ampX * s + gWaterLevels[gWaterIndex].y;
             }
         }
-        stepZ = (D_802FC3F0[gWaterIndex].z1 - D_802FC3F0[gWaterIndex].z0) / D_802FC3F0[gWaterIndex].nz;
-        for (i = 0; i <= D_802FC3F0[gWaterIndex].nz; i++) {
-            for (j = 0; j <= D_802FC3F0[gWaterIndex].nx; j++) {
-                s = sinf(((i + 1) * stepZ) / D_802FC3F0[gWaterIndex].lenZ + gWaterClock / D_802FC3F0[gWaterIndex].rateZ);
-                gWaterVtx[buf][(D_802FC3F0[gWaterIndex].nz + 1) * i + j].v.ob[1] =
-                    D_802FC3F0[gWaterIndex].ampZ * s + gWaterVtx[buf][(D_802FC3F0[gWaterIndex].nz + 1) * i + j].v.ob[1];
+        stepZ = (gWaterLevels[gWaterIndex].z1 - gWaterLevels[gWaterIndex].z0) / gWaterLevels[gWaterIndex].nz;
+        for (i = 0; i <= gWaterLevels[gWaterIndex].nz; i++) {
+            for (j = 0; j <= gWaterLevels[gWaterIndex].nx; j++) {
+                s = sinf(((i + 1) * stepZ) / gWaterLevels[gWaterIndex].lenZ + gWaterClock / gWaterLevels[gWaterIndex].rateZ);
+                gWaterVtx[buf][(gWaterLevels[gWaterIndex].nz + 1) * i + j].v.ob[1] =
+                    gWaterLevels[gWaterIndex].ampZ * s + gWaterVtx[buf][(gWaterLevels[gWaterIndex].nz + 1) * i + j].v.ob[1];
             }
         }
     }
@@ -507,28 +507,28 @@ s32 water_get_height(s16 x, s16 z, s16 *y) {
     if (gWaterOn == 0) {
         return 0;
     }
-    if (x < D_802FC3F0[gWaterIndex].x0 || x > D_802FC3F0[gWaterIndex].x1 || z < D_802FC3F0[gWaterIndex].z0 ||
-        z > D_802FC3F0[gWaterIndex].z1) {
-        *y = D_802FC3F0[gWaterIndex].y;
+    if (x < gWaterLevels[gWaterIndex].x0 || x > gWaterLevels[gWaterIndex].x1 || z < gWaterLevels[gWaterIndex].z0 ||
+        z > gWaterLevels[gWaterIndex].z1) {
+        *y = gWaterLevels[gWaterIndex].y;
         return 0;
     }
-    step = (f32) (D_802FC3F0[gWaterIndex].x1 - D_802FC3F0[gWaterIndex].x0) / D_802FC3F0[gWaterIndex].nx;
-    t = (x - D_802FC3F0[gWaterIndex].x0) / step;
-    s = sinf(((t + 1.0f) * step) / D_802FC3F0[gWaterIndex].lenX + gWaterClock / D_802FC3F0[gWaterIndex].rateX);
-    *y = D_802FC3F0[gWaterIndex].ampX * s + D_802FC3F0[gWaterIndex].y;
-    step = (f32) (D_802FC3F0[gWaterIndex].z1 - D_802FC3F0[gWaterIndex].z0) / D_802FC3F0[gWaterIndex].nz;
-    t = (z - D_802FC3F0[gWaterIndex].z0) / step;
-    s = sinf(((t + 1.0f) * step) / D_802FC3F0[gWaterIndex].lenZ + gWaterClock / D_802FC3F0[gWaterIndex].rateZ);
-    *y = D_802FC3F0[gWaterIndex].ampZ * s + *y;
+    step = (f32) (gWaterLevels[gWaterIndex].x1 - gWaterLevels[gWaterIndex].x0) / gWaterLevels[gWaterIndex].nx;
+    t = (x - gWaterLevels[gWaterIndex].x0) / step;
+    s = sinf(((t + 1.0f) * step) / gWaterLevels[gWaterIndex].lenX + gWaterClock / gWaterLevels[gWaterIndex].rateX);
+    *y = gWaterLevels[gWaterIndex].ampX * s + gWaterLevels[gWaterIndex].y;
+    step = (f32) (gWaterLevels[gWaterIndex].z1 - gWaterLevels[gWaterIndex].z0) / gWaterLevels[gWaterIndex].nz;
+    t = (z - gWaterLevels[gWaterIndex].z0) / step;
+    s = sinf(((t + 1.0f) * step) / gWaterLevels[gWaterIndex].lenZ + gWaterClock / gWaterLevels[gWaterIndex].rateZ);
+    *y = gWaterLevels[gWaterIndex].ampZ * s + *y;
     return 1;
 }
 
 /* Draws the water (0x8027F1F8).
  * Draw the water surface into gfx when this is its layer. The grid is emitted in strips of up to
- * 8x2 vertices into a sub-display-list (D_8036DCC8[buf]); every 32 vertices the strip batch is
- * closed and given a bounding box (8 verts in D_8036DCA8[buf]) for gSPCullDisplayList. With a
+ * 8x2 vertices into a sub-display-list (gWaterDls[buf]); every 32 vertices the strip batch is
+ * closed and given a bounding box (8 verts in gWaterCullVtx[buf]) for gSPCullDisplayList. With a
  * single texture the face normals are recomputed for environment mapping, otherwise two textures
- * are blended with LOD fraction D_8036DCD2. */
+ * are blended with LOD fraction gWaterTexBlend. */
 void water_draw(Gfx **gfx, u8 buf, u8 layer) {
     Gfx *gdl;
     s32 a;
@@ -554,13 +554,13 @@ void water_draw(Gfx **gfx, u8 buf, u8 layer) {
 
     gdl = *gfx;
     done = 0;
-    dl = (Gfx *) N64_IPTR(D_8036DCC8[buf]);
-    bbox = (Vtx *) N64_IPTR(D_8036DCA8[buf]);
+    dl = (Gfx *) N64_IPTR(gWaterDls[buf]);
+    bbox = (Vtx *) N64_IPTR(gWaterCullVtx[buf]);
     if (gWaterOn == 0 || layer != gWaterLayer) {
         return;
     }
     gDPPipeSync(gdl++);
-    if (D_8036DCD5 != 0) {
+    if (gWaterSingleTex != 0) {
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
         gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
@@ -568,13 +568,13 @@ void water_draw(Gfx **gfx, u8 buf, u8 layer) {
         gSPTexture(gdl++, 0x07C0, 0x07C0, 0, G_TX_RENDERTILE, G_ON);
         gDPSetCombine(gdl++, 0xFFFFFF, 0xFFFCF67B);
         gDPSetPrimColor(gdl++, 0, 0, 0x00, 0x00, 0x00, 0xAA);
-        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036DCB8[0]), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gWaterTextures[0]), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     } else {
         gDPSetCycleType(gdl++, G_CYC_2CYCLE);
-        gDPSetRenderMode(gdl++, D_802FC3F0[gWaterIndex].rm0, D_802FC3F0[gWaterIndex].rm1);
+        gDPSetRenderMode(gdl++, gWaterLevels[gWaterIndex].rm0, gWaterLevels[gWaterIndex].rm1);
         gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
-        if (D_802FC3F0[gWaterIndex].zbuf != 0) {
+        if (gWaterLevels[gWaterIndex].zbuf != 0) {
             gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
         } else {
             gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
@@ -582,16 +582,16 @@ void water_draw(Gfx **gfx, u8 buf, u8 layer) {
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPSetCombine(gdl++, 0x277FFF, 0x1FFCFE3B);
         gDPSetTextureLOD(gdl++, G_TL_TILE);
-        if (D_8036DCD0 == 2) {
+        if (gWaterTexFrame == 2) {
             next = 0;
         } else {
-            next = D_8036DCD0 + 1;
+            next = gWaterTexFrame + 1;
         }
-        gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, OS_K0_TO_PHYSICAL(D_8036DCB8[D_8036DCD0]));
+        gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, OS_K0_TO_PHYSICAL(gWaterTextures[gWaterTexFrame]));
         gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0x000, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
         gDPLoadSync(gdl++);
         gDPLoadBlock(gdl++, G_TX_LOADTILE, 0, 0, 1023, 256);
-        gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, OS_K0_TO_PHYSICAL(D_8036DCB8[next]));
+        gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, OS_K0_TO_PHYSICAL(gWaterTextures[next]));
         gDPTileSync(gdl++);
         gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0x100, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
         gDPLoadSync(gdl++);
@@ -602,18 +602,18 @@ void water_draw(Gfx **gfx, u8 buf, u8 layer) {
         gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0x100, 1, 0, G_TX_CLAMP, 5, G_TX_NOLOD, G_TX_CLAMP, 5,
                    G_TX_NOLOD);
         gDPSetTileSize(gdl++, 1, 2, 2, 0x7E, 0x7E);
-        gDPSetPrimColor(gdl++, 0, D_8036DCD2, 0x00, 0x00, 0x00, 0xAA);
+        gDPSetPrimColor(gdl++, 0, gWaterTexBlend, 0x00, 0x00, 0x00, 0xAA);
     }
-    total = (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1);
+    total = (gWaterLevels[gWaterIndex].nx + 1) * (gWaterLevels[gWaterIndex].nz + 1);
     a = 0;
-    b = D_802FC3F0[gWaterIndex].nx + 1;
+    b = gWaterLevels[gWaterIndex].nx + 1;
     col = 0;
     vcount = 0;
     while (!done) {
-        if (D_802FC3F0[gWaterIndex].nx - col + 1 >= 9) {
+        if (gWaterLevels[gWaterIndex].nx - col + 1 >= 9) {
             cnt = 8;
         } else {
-            cnt = D_802FC3F0[gWaterIndex].nx - col + 1;
+            cnt = gWaterLevels[gWaterIndex].nx - col + 1;
         }
         if (vcount == 0) {
             gSPDisplayList(gdl++, osVirtualToPhysical(dl));
@@ -667,11 +667,11 @@ void water_draw(Gfx **gfx, u8 buf, u8 layer) {
         k = 0;
         for (m = 0; m < cnt - 1; m++) {
             gSP1Triangle(dl++, k + 1, k, k + 8, 0);
-            if (D_8036DCD5 != 0) {
+            if (gWaterSingleTex != 0) {
                 water_flat_normal(gWaterVtx[buf], a + k, a + k + 1, b + k);
             }
             gSP1Triangle(dl++, k + 8, k + 9, k + 1, 0);
-            if (D_8036DCD5 != 0) {
+            if (gWaterSingleTex != 0) {
                 water_flat_normal(gWaterVtx[buf], b + k, b + k + 1, a + k + 1);
             }
             k++;
@@ -679,7 +679,7 @@ void water_draw(Gfx **gfx, u8 buf, u8 layer) {
         rowlen = cnt - 1;
         col += rowlen;
         a += rowlen, b += rowlen;
-        if (D_802FC3F0[gWaterIndex].nx == col) {
+        if (gWaterLevels[gWaterIndex].nx == col) {
             col = 0;
             a++, b++;
         }
@@ -786,7 +786,7 @@ void water_box_corners(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
 }
 
 /* Random drifting textured quads per level (0x802807D8).
- * Scatter the level's random textured quads (D_802FC494[n].count of them, up to 12): random position,
+ * Scatter the level's random textured quads (gDriftQuadSpawns[n].count of them, up to 12): random position,
  * size and angle within the table's ranges, written into both vertex buffers. */
 void fx_init_drift_quads(u8 id) {
     s32 i;
@@ -799,62 +799,62 @@ void fx_init_drift_quads(u8 id) {
     s32 unused; /* set to 0, never read */
     u8 found;
 
-    D_8036E374 = 0;
+    gDriftQuadCount = 0;
     unused = 0;
     found = 0;
-    D_8036E370 = 0;
+    gDriftQuadSpawn = 0;
     do {
-        if (D_802FC494[D_8036E370].id == id) {
+        if (gDriftQuadSpawns[gDriftQuadSpawn].id == id) {
             found = 1;
         } else {
-            D_8036E370++;
+            gDriftQuadSpawn++;
         }
-    } while (!found && D_8036E370 < 4);
+    } while (!found && gDriftQuadSpawn < 4);
     if (found) {
-        D_8036E374 = D_802FC494[D_8036E370].count;
-        D_8036E378 = gHeapPtr;
-        tex_get(D_802FC494[D_8036E370].tex, 0);
-        for (i = 0; i < D_8036E374; i++) {
-            x = util_rand_range(D_802FC494[D_8036E370].x0, D_802FC494[D_8036E370].x1);
-            y = util_rand_range(D_802FC494[D_8036E370].y0, D_802FC494[D_8036E370].y1);
-            z = util_rand_range(D_802FC494[D_8036E370].z0, D_802FC494[D_8036E370].z1);
-            w = util_rand_range(D_802FC494[D_8036E370].w0, D_802FC494[D_8036E370].w1);
-            d = util_rand_range(D_802FC494[D_8036E370].d0, D_802FC494[D_8036E370].d1);
+        gDriftQuadCount = gDriftQuadSpawns[gDriftQuadSpawn].count;
+        gDriftQuadTex = gHeapPtr;
+        tex_get(gDriftQuadSpawns[gDriftQuadSpawn].tex, 0);
+        for (i = 0; i < gDriftQuadCount; i++) {
+            x = util_rand_range(gDriftQuadSpawns[gDriftQuadSpawn].x0, gDriftQuadSpawns[gDriftQuadSpawn].x1);
+            y = util_rand_range(gDriftQuadSpawns[gDriftQuadSpawn].y0, gDriftQuadSpawns[gDriftQuadSpawn].y1);
+            z = util_rand_range(gDriftQuadSpawns[gDriftQuadSpawn].z0, gDriftQuadSpawns[gDriftQuadSpawn].z1);
+            w = util_rand_range(gDriftQuadSpawns[gDriftQuadSpawn].w0, gDriftQuadSpawns[gDriftQuadSpawn].w1);
+            d = util_rand_range(gDriftQuadSpawns[gDriftQuadSpawn].d0, gDriftQuadSpawns[gDriftQuadSpawn].d1);
             w >>= 1, d >>= 1;
-            D_8036DCE0[i].w = w;
-            D_8036DCE0[i].d = d;
-            D_8036DCE0[i].x = x;
-            D_8036DCE0[i].z = z;
-            D_8036DCE0[i].unk0 = util_rand_range(D_802FC494[D_8036E370].r0, D_802FC494[D_8036E370].r1);
-            D_8036DCE0[i].angle = util_rand_range(0, 0xFFF);
+            gDriftQuads[i].w = w;
+            gDriftQuads[i].d = d;
+            gDriftQuads[i].x = x;
+            gDriftQuads[i].z = z;
+            gDriftQuads[i].unk0 = util_rand_range(gDriftQuadSpawns[gDriftQuadSpawn].r0, gDriftQuadSpawns[gDriftQuadSpawn].r1);
+            gDriftQuads[i].angle = util_rand_range(0, 0xFFF);
             for (j = 0; j < 2; j++) {
-                D_8036DD70[j][i][0].v.ob[0] = x - w;
-                D_8036DD70[j][i][0].v.ob[1] = y;
-                D_8036DD70[j][i][0].v.ob[2] = z - d;
-                D_8036DD70[j][i][0].v.tc[0] = 0;
-                D_8036DD70[j][i][0].v.tc[1] = 0;
-                D_8036DD70[j][i][1].v.ob[0] = x + w;
-                D_8036DD70[j][i][1].v.ob[1] = y;
-                D_8036DD70[j][i][1].v.ob[2] = z - d;
-                D_8036DD70[j][i][1].v.tc[0] = D_802FC494[D_8036E370].tu << 5;
-                D_8036DD70[j][i][1].v.tc[1] = 0;
-                D_8036DD70[j][i][2].v.ob[0] = x + w;
-                D_8036DD70[j][i][2].v.ob[1] = y;
-                D_8036DD70[j][i][2].v.ob[2] = z + d;
-                D_8036DD70[j][i][2].v.tc[0] = D_802FC494[D_8036E370].tu << 5;
-                D_8036DD70[j][i][2].v.tc[1] = D_802FC494[D_8036E370].tv << 5;
-                D_8036DD70[j][i][3].v.ob[0] = x - w;
-                D_8036DD70[j][i][3].v.ob[1] = y;
-                D_8036DD70[j][i][3].v.ob[2] = z + d;
-                D_8036DD70[j][i][3].v.tc[0] = 0;
-                D_8036DD70[j][i][3].v.tc[1] = D_802FC494[D_8036E370].tv << 5;
+                gDriftQuadVtx[j][i][0].v.ob[0] = x - w;
+                gDriftQuadVtx[j][i][0].v.ob[1] = y;
+                gDriftQuadVtx[j][i][0].v.ob[2] = z - d;
+                gDriftQuadVtx[j][i][0].v.tc[0] = 0;
+                gDriftQuadVtx[j][i][0].v.tc[1] = 0;
+                gDriftQuadVtx[j][i][1].v.ob[0] = x + w;
+                gDriftQuadVtx[j][i][1].v.ob[1] = y;
+                gDriftQuadVtx[j][i][1].v.ob[2] = z - d;
+                gDriftQuadVtx[j][i][1].v.tc[0] = gDriftQuadSpawns[gDriftQuadSpawn].tu << 5;
+                gDriftQuadVtx[j][i][1].v.tc[1] = 0;
+                gDriftQuadVtx[j][i][2].v.ob[0] = x + w;
+                gDriftQuadVtx[j][i][2].v.ob[1] = y;
+                gDriftQuadVtx[j][i][2].v.ob[2] = z + d;
+                gDriftQuadVtx[j][i][2].v.tc[0] = gDriftQuadSpawns[gDriftQuadSpawn].tu << 5;
+                gDriftQuadVtx[j][i][2].v.tc[1] = gDriftQuadSpawns[gDriftQuadSpawn].tv << 5;
+                gDriftQuadVtx[j][i][3].v.ob[0] = x - w;
+                gDriftQuadVtx[j][i][3].v.ob[1] = y;
+                gDriftQuadVtx[j][i][3].v.ob[2] = z + d;
+                gDriftQuadVtx[j][i][3].v.tc[0] = 0;
+                gDriftQuadVtx[j][i][3].v.tc[1] = gDriftQuadSpawns[gDriftQuadSpawn].tv << 5;
             }
         }
     }
 }
 
 /* Moves, wraps and draws the drifting quads (0x80280F34).
- * Move the random quads (coll_step_xz steps each one; the result comes back in D_803F9320/4),
+ * Move the random quads (coll_step_xz steps each one; the result comes back in gCollStepX/Z),
  * wrap them around the spawn area, rebuild their corners in vertex buffer buf and draw them. */
 void fx_draw_drift_quads(Gfx **gfx, u8 buf) {
     Gfx *gdl;
@@ -863,7 +863,7 @@ void fx_draw_drift_quads(Gfx **gfx, u8 buf) {
     s16 dz;
 
     gdl = *gfx;
-    if (D_8036E374 != 0) {
+    if (gDriftQuadCount != 0) {
         gDPPipeSync(gdl++);
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, 0x00504340, 0);
@@ -871,42 +871,42 @@ void fx_draw_drift_quads(Gfx **gfx, u8 buf) {
         gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, D_802FC494[D_8036E370].alpha);
-        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036E378), G_IM_FMT_IA, G_IM_SIZ_16b,
-                            D_802FC494[D_8036E370].tu, D_802FC494[D_8036E370].tv, 0, G_TX_CLAMP, G_TX_CLAMP,
+        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, gDriftQuadSpawns[gDriftQuadSpawn].alpha);
+        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gDriftQuadTex), G_IM_FMT_IA, G_IM_SIZ_16b,
+                            gDriftQuadSpawns[gDriftQuadSpawn].tu, gDriftQuadSpawns[gDriftQuadSpawn].tv, 0, G_TX_CLAMP, G_TX_CLAMP,
                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-        for (i = 0; i < D_8036E374; i++) {
-            coll_step_xz(D_8036DCE0[i].x << 5, D_8036DCE0[i].z << 5, D_8036DCE0[i].unk0, D_8036DCE0[i].angle);
-            dx = (D_803F9320 >> 5) - D_8036DCE0[i].x;
-            dz = (D_803F9324 >> 5) - D_8036DCE0[i].z;
-            D_8036DCE0[i].x = D_803F9320 >> 5;
-            D_8036DCE0[i].z = D_803F9324 >> 5;
-            /* note: the wrap amounts index the spawn table by i, not D_8036E370 */
-            if (D_8036DCE0[i].x > D_802FC494[D_8036E370].x1) {
-                D_8036DCE0[i].x = D_802FC494[D_8036E370].x0;
-                dx -= D_802FC494[i].x1 - D_802FC494[i].x0;
+        for (i = 0; i < gDriftQuadCount; i++) {
+            coll_step_xz(gDriftQuads[i].x << 5, gDriftQuads[i].z << 5, gDriftQuads[i].unk0, gDriftQuads[i].angle);
+            dx = (gCollStepX >> 5) - gDriftQuads[i].x;
+            dz = (gCollStepZ >> 5) - gDriftQuads[i].z;
+            gDriftQuads[i].x = gCollStepX >> 5;
+            gDriftQuads[i].z = gCollStepZ >> 5;
+            /* note: the wrap amounts index the spawn table by i, not gDriftQuadSpawn */
+            if (gDriftQuads[i].x > gDriftQuadSpawns[gDriftQuadSpawn].x1) {
+                gDriftQuads[i].x = gDriftQuadSpawns[gDriftQuadSpawn].x0;
+                dx -= gDriftQuadSpawns[i].x1 - gDriftQuadSpawns[i].x0;
             }
-            if (D_8036DCE0[i].x < D_802FC494[D_8036E370].x0) {
-                D_8036DCE0[i].x = D_802FC494[D_8036E370].x1;
-                dx += D_802FC494[i].x1 - D_802FC494[i].x0;
+            if (gDriftQuads[i].x < gDriftQuadSpawns[gDriftQuadSpawn].x0) {
+                gDriftQuads[i].x = gDriftQuadSpawns[gDriftQuadSpawn].x1;
+                dx += gDriftQuadSpawns[i].x1 - gDriftQuadSpawns[i].x0;
             }
-            if (D_8036DCE0[i].z > D_802FC494[D_8036E370].z1) {
-                D_8036DCE0[i].z = D_802FC494[D_8036E370].z0;
-                dz -= D_802FC494[i].z1 - D_802FC494[i].z0;
+            if (gDriftQuads[i].z > gDriftQuadSpawns[gDriftQuadSpawn].z1) {
+                gDriftQuads[i].z = gDriftQuadSpawns[gDriftQuadSpawn].z0;
+                dz -= gDriftQuadSpawns[i].z1 - gDriftQuadSpawns[i].z0;
             }
-            if (D_8036DCE0[i].z < D_802FC494[D_8036E370].z0) {
-                D_8036DCE0[i].z = D_802FC494[D_8036E370].z1;
-                dz += D_802FC494[i].z1 - D_802FC494[i].z0;
+            if (gDriftQuads[i].z < gDriftQuadSpawns[gDriftQuadSpawn].z0) {
+                gDriftQuads[i].z = gDriftQuadSpawns[gDriftQuadSpawn].z1;
+                dz += gDriftQuadSpawns[i].z1 - gDriftQuadSpawns[i].z0;
             }
-            D_8036DD70[buf][i][0].v.ob[0] = D_8036DCE0[i].x - D_8036DCE0[i].w;
-            D_8036DD70[buf][i][0].v.ob[2] = D_8036DCE0[i].z - D_8036DCE0[i].d;
-            D_8036DD70[buf][i][1].v.ob[0] = D_8036DCE0[i].x + D_8036DCE0[i].w;
-            D_8036DD70[buf][i][1].v.ob[2] = D_8036DCE0[i].z - D_8036DCE0[i].d;
-            D_8036DD70[buf][i][2].v.ob[0] = D_8036DCE0[i].x + D_8036DCE0[i].w;
-            D_8036DD70[buf][i][2].v.ob[2] = D_8036DCE0[i].z + D_8036DCE0[i].d;
-            D_8036DD70[buf][i][3].v.ob[0] = D_8036DCE0[i].x - D_8036DCE0[i].w;
-            D_8036DD70[buf][i][3].v.ob[2] = D_8036DCE0[i].z + D_8036DCE0[i].d;
-            gSPVertex(gdl++, OS_K0_TO_PHYSICAL(D_8036DD70[buf][i]), 4, 0);
+            gDriftQuadVtx[buf][i][0].v.ob[0] = gDriftQuads[i].x - gDriftQuads[i].w;
+            gDriftQuadVtx[buf][i][0].v.ob[2] = gDriftQuads[i].z - gDriftQuads[i].d;
+            gDriftQuadVtx[buf][i][1].v.ob[0] = gDriftQuads[i].x + gDriftQuads[i].w;
+            gDriftQuadVtx[buf][i][1].v.ob[2] = gDriftQuads[i].z - gDriftQuads[i].d;
+            gDriftQuadVtx[buf][i][2].v.ob[0] = gDriftQuads[i].x + gDriftQuads[i].w;
+            gDriftQuadVtx[buf][i][2].v.ob[2] = gDriftQuads[i].z + gDriftQuads[i].d;
+            gDriftQuadVtx[buf][i][3].v.ob[0] = gDriftQuads[i].x - gDriftQuads[i].w;
+            gDriftQuadVtx[buf][i][3].v.ob[2] = gDriftQuads[i].z + gDriftQuads[i].d;
+            gSPVertex(gdl++, OS_K0_TO_PHYSICAL(gDriftQuadVtx[buf][i]), 4, 0);
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
         }
@@ -922,11 +922,11 @@ void fx_init_power_pill(s32 arg0) {
 
     gPowerPillCount = 0;
     for (i = 0; i < 1; i++) {
-        if (D_802FC520[i].id == arg0) {
-            gPowerPills[gPowerPillCount].x = D_802FC520[i].x;
-            gPowerPills[gPowerPillCount].y = D_802FC520[i].y;
-            gPowerPills[gPowerPillCount].z = D_802FC520[i].z;
-            util_copy64((u64 *) (gPowerPills[gPowerPillCount].v), (u64 *) D_802FC528, sizeof(gPowerPills->v));
+        if (gPowerPillSpawns[i].id == arg0) {
+            gPowerPills[gPowerPillCount].x = gPowerPillSpawns[i].x;
+            gPowerPills[gPowerPillCount].y = gPowerPillSpawns[i].y;
+            gPowerPills[gPowerPillCount].z = gPowerPillSpawns[i].z;
+            util_copy64((u64 *) (gPowerPills[gPowerPillCount].v), (u64 *) gPowerPillVtx, sizeof(gPowerPills->v));
             for (j = 0; j < 4; j++) {
                 gPowerPills[gPowerPillCount].v[j].v.ob[0] += gPowerPills[gPowerPillCount].x;
                 gPowerPills[gPowerPillCount].v[j].v.ob[1] += gPowerPills[gPowerPillCount].y;
@@ -937,7 +937,7 @@ void fx_init_power_pill(s32 arg0) {
         }
     }
     if (gPowerPillCount != 0) {
-        D_8036E4C4 = tex_get(0x546, 0);
+        gPowerPillTex = tex_get(0x546, 0);
     }
     gPowerPillTimer = 0;
     gPowerPillEaten = 0;
@@ -983,7 +983,7 @@ void fx_draw_power_pill(Gfx **gfx) {
         gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
         gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-        gDPLoadTextureBlock(gdl++, D_8036E4C4, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+        gDPLoadTextureBlock(gdl++, gPowerPillTex, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         for (i = 0; i < gPowerPillCount; i++) {
             if (gPowerPills[i].active != 0) {
@@ -998,23 +998,23 @@ void fx_draw_power_pill(Gfx **gfx) {
 }
 
 
-extern s32 D_8036E4CC; /* overlay texture */
-extern s16 D_8036E4D0; /* overlay alpha */
-extern u8 D_8036E4D2;  /* overlay on */
-extern Vtx D_802FC568[];
+extern s32 gVehOverlayTex; /* overlay texture */
+extern s16 gVehOverlayAlpha; /* overlay alpha */
+extern u8 gVehOverlayOn;  /* overlay on */
+extern Vtx gVehOverlayVtx[];
 
 
 /* Loads the vehicle overlay texture (0x802821D0). */
 void hud_init_veh_overlay(void) {
-    D_8036E4CC = gHeapPtr;
+    gVehOverlayTex = gHeapPtr;
     tex_load_to_heap(0xA98, 0);
     gHeapPtr += 0x800;
-    D_8036E4D0 = 0;
-    D_8036E4D2 = 0;
+    gVehOverlayAlpha = 0;
+    gVehOverlayOn = 0;
 }
 
 /* The overlay for the train and the barges (0x80282224).
- * Fade a textured quad (D_802FC568) in when arg1 is 7, 11, 17 or 18 and veh_tris_all_solid(arg1) is 0;
+ * Fade a textured quad (gVehOverlayVtx) in when arg1 is 7, 11, 17 or 18 and veh_tris_all_solid(arg1) is 0;
  * otherwise fade it out by 10 per frame. */
 void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
     Gfx *gdl;
@@ -1023,27 +1023,27 @@ void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
 
     gdl = *gfx;
     flag = arg1 == 7 || arg1 == 11 || arg1 == 17 || arg1 == 18;
-    if (D_8036E4D2 != 0 && !flag) {
-        if ((D_8036E4D0 -= 10) < 0) {
-            D_8036E4D0 = 0;
+    if (gVehOverlayOn != 0 && !flag) {
+        if ((gVehOverlayAlpha -= 10) < 0) {
+            gVehOverlayAlpha = 0;
         }
     } else {
         if (flag) {
             flag2 = !veh_tris_all_solid(arg1);
         }
         if (flag && flag2) {
-            D_8036E4D0 = 0xFF;
-            D_8036E4D2 = 1;
+            gVehOverlayAlpha = 0xFF;
+            gVehOverlayOn = 1;
         } else {
-            D_8036E4D0 = 0;
+            gVehOverlayAlpha = 0;
         }
     }
-    if (D_8036E4D0 == 0) {
-        D_8036E4D2 = 0;
+    if (gVehOverlayAlpha == 0) {
+        gVehOverlayOn = 0;
     }
-    if (D_8036E4D2 != 0) {
+    if (gVehOverlayOn != 0) {
         /* widescreen HUD sides (port.h): by where the overlay's quad is */
-        PORT_WTAG(gdl, PORT_WTAG_SPAN, D_802FC568[0].v.ob[0], D_802FC568[2].v.ob[0]);
+        PORT_WTAG(gdl, PORT_WTAG_SPAN, gVehOverlayVtx[0].v.ob[0], gVehOverlayVtx[2].v.ob[0]);
         gSPMatrix(gdl++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPMatrix(gdl++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
@@ -1053,11 +1053,11 @@ void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
         gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, (D_8036E4D0 < gHudAlpha) ? D_8036E4D0 : gHudAlpha);
-        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036E4CC), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, (gVehOverlayAlpha < gHudAlpha) ? gVehOverlayAlpha : gHudAlpha);
+        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gVehOverlayTex), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                             G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK,
                             G_TX_NOLOD, G_TX_NOLOD);
-        gSPVertex(gdl++, OS_K0_TO_PHYSICAL(D_802FC568), 4, 0);
+        gSPVertex(gdl++, OS_K0_TO_PHYSICAL(gVehOverlayVtx), 4, 0);
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
         gDPPipeSync(gdl++);
@@ -1066,23 +1066,23 @@ void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
     *gfx = gdl;
 }
 
-extern u8 D_8036E4D3;  /* number of active rings (0..2) */
-extern u32 D_8036E4D4; /* frame the last ring started */
-extern Gfx D_802FFF38[];
-extern Gfx D_80300A68[];
-extern Mtx D_8036E4D8[][2];
+extern u8 gBlastDomeCount;  /* number of active rings (0..2) */
+extern u32 gBlastDomeTime; /* frame the last ring started */
+extern Gfx gBlastDomeSeg6[];
+extern Gfx gBlastDomeDl[];
+extern Mtx gBlastDomeMtx[][2];
 extern f32 gBlastScales[]; /* ring scales */
 
 
 /* Resets the carrier blast (0x80282728). */
 void fx_init_carrier_blast(void) {
-    D_8036E4D3 = 0;
-    D_8036E4D4 = 0;
+    gBlastDomeCount = 0;
+    gBlastDomeTime = 0;
 }
 
 /* The carrier explodes: red tint, growing dome, blast damage (0x8028273C).
  * Expanding-ring effect: tint the screen, then draw up to two growing copies of display list
- * D_80300A68 at (gCarrierX, gCarrierY, gCarrierZ) / 32, a new one 10 frames after the last. */
+ * gBlastDomeDl at (gCarrierX, gCarrierY, gCarrierZ) / 32, a new one 10 frames after the last. */
 void fx_draw_carrier_blast(Gfx **gfx, u8 arg1) {
     Gfx *gdl;
     f32 mf[4][4];
@@ -1091,42 +1091,42 @@ void fx_draw_carrier_blast(Gfx **gfx, u8 arg1) {
 
     gdl = *gfx;
     if (gCarrierHit != 0) {
-        if (gCarrierExplodeDone != 0 && D_8036E4D3 == 0) {
-            D_8036E4D3 = 1;
+        if (gCarrierExplodeDone != 0 && gBlastDomeCount == 0) {
+            gBlastDomeCount = 1;
             gBlastScales[0] = 0.001f;
-            D_8036E4D4 = D_803156C4;
+            gBlastDomeTime = gSchedFrameCount;
         }
         gDPPipeSync(gdl++);
         gDPSetColorDither(gdl++, G_CD_DISABLE);
-        if (D_8036E4D3 != 0) {
+        if (gBlastDomeCount != 0) {
             gDPPipeSync(gdl++);
             gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
             gDPSetCombineMode(gdl++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
             gDPSetPrimColor(gdl++, 0, 0, 0x37, 0x00, 0x00, 0x9B);
             gDPFillRectangle(gdl++, 0, 0, 319, 239);
         }
-        for (i = 0; i < D_8036E4D3; i++) {
+        for (i = 0; i < gBlastDomeCount; i++) {
             guTranslateF(mf, gCarrierX / 32.0f, gCarrierY / 32.0f, gCarrierZ / 32.0f);
             guScaleF(scale, gBlastScales[i], gBlastScales[i], gBlastScales[i]);
             gBlastScales[i] += 0.06;
             guMtxCatF(scale, mf, mf);
-            guMtxF2L(mf, &D_8036E4D8[arg1][i]);
+            guMtxF2L(mf, &gBlastDomeMtx[arg1][i]);
             gDPPipeSync(gdl++);
             gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0x00, 0x00, 0x64);
-            gSPMatrix(gdl++, osVirtualToPhysical(&D_8036E4D8[arg1][i]), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-            gSPSegment(gdl++, 6, osVirtualToPhysical(D_802FFF38));
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_80300A68));
+            gSPMatrix(gdl++, osVirtualToPhysical(&gBlastDomeMtx[arg1][i]), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+            gSPSegment(gdl++, 6, osVirtualToPhysical(gBlastDomeSeg6));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gBlastDomeDl));
             gSPMatrix(gdl++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         }
-        if (D_8036E4D4 + 10 < D_803156C4 && D_8036E4D3 != 0 && D_8036E4D3 < 2) {
-            D_8036E4D4 = D_803156C4;
-            gBlastScales[D_8036E4D3] = 0.001f;
-            D_8036E4D3++;
+        if (gBlastDomeTime + 10 < gSchedFrameCount && gBlastDomeCount != 0 && gBlastDomeCount < 2) {
+            gBlastDomeTime = gSchedFrameCount;
+            gBlastScales[gBlastDomeCount] = 0.001f;
+            gBlastDomeCount++;
         }
         gDPPipeSync(gdl++);
         gDPSetColorDither(gdl++, G_CD_MAGICSQ);
         gDPPipeSync(gdl++);
-        if (D_8036E4D3 != 0) {
+        if (gBlastDomeCount != 0) {
             obj_blast_around_carrier(gBlastScales[0] * 283.0f);
         }
     }

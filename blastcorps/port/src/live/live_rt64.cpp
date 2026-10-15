@@ -228,9 +228,9 @@ struct UcodePiece {
     int image;      /* 0: hd_code text, 1: hd_code data, 2: front-end data */
 };
 const UcodePiece kUcode[] = {
-    {0x802E53F0u, 0x1430, 0},  /* D_802E53F0: hd F3D text (slots 1-3) */
-    {0x8030E390u, 0x0800, 1},  /* D_8030E390: its data */
-    {0x80210690u, 0x0800, 2},  /* D_80210690: front-end L3D data */
+    {0x802E53F0u, 0x1430, 0},  /* gF3dText: hd F3D text (slots 1-3) */
+    {0x8030E390u, 0x0800, 1},  /* gF3dData: its data */
+    {0x80210690u, 0x0800, 2},  /* gL3dData: front-end L3D data */
 };
 constexpr uint32_t HD_TEXT_VRAM = 0x802447C0u;
 

@@ -27,10 +27,10 @@ typedef struct {
     u16 px[320 * 240];
 } FrameBuffer;
 
-extern u8 D_80207090[]; /* microcode text/data pairs */
-extern u8 D_80210690[];
-extern u8 D_802E53F0[];
-extern u8 D_8030E390[];
+extern u8 gL3dText[]; /* microcode text/data pairs */
+extern u8 gL3dData[];
+extern u8 gF3dText[];
+extern u8 gF3dData[];
 extern u8 * N64P gUcodeText[]; /* ucode text per slot */
 extern u8 * N64P gUcodeData[]; /* ucode data per slot */
 extern RspTask gRspTasks[][2];
@@ -40,14 +40,14 @@ extern u64 gDramStack[]; /* dram stack */
 /* Fills in the microcode slots: slot 0 the front end's line ucode, 1-3 the
  * game's (0x80284DB0). */
 void rsp_init_ucode_table(void) {
-    gUcodeText[0] = D_80207090;
-    gUcodeData[0] = D_80210690;
-    gUcodeText[1] = D_802E53F0;
-    gUcodeData[1] = D_8030E390;
-    gUcodeText[2] = D_802E53F0;
-    gUcodeData[2] = D_8030E390;
-    gUcodeText[3] = D_802E53F0;
-    gUcodeData[3] = D_8030E390;
+    gUcodeText[0] = gL3dText;
+    gUcodeData[0] = gL3dData;
+    gUcodeText[1] = gF3dText;
+    gUcodeData[1] = gF3dData;
+    gUcodeText[2] = gF3dText;
+    gUcodeData[2] = gF3dData;
+    gUcodeText[3] = gF3dText;
+    gUcodeData[3] = gF3dData;
 }
 
 /* Build and send an RSP task running microcode slot `slot` over the display
@@ -67,8 +67,8 @@ void rsp_send_task(u64 *data, s32 count, u8 slot, u8 yield, s32 id, u8 writeback
     } else {
         task->t.list.t.flags = 0;
     }
-    task->t.list.t.ucode_boot = (u64 *) D_802E6820;
-    task->t.list.t.ucode_boot_size = D_802E68F0 - D_802E6820;
+    task->t.list.t.ucode_boot = (u64 *) gRspBootText;
+    task->t.list.t.ucode_boot_size = gAspMainText - gRspBootText;
     task->t.list.t.ucode = (u64 *) gUcodeText[slot];
     task->t.list.t.ucode_data = (u64 *) gUcodeData[slot];
     task->t.list.t.ucode_size = 0x1000;

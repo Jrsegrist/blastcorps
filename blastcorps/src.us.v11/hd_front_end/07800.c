@@ -11,7 +11,7 @@
 #define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
 #define gGlobeLevels ((FeLevelEntry *) gGlobeLevels)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F49F4 ((IconInfo *) D_802F49F4)
+#define gYoshiSprites ((IconInfo *) gYoshiSprites)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
@@ -81,11 +81,11 @@ typedef struct {
     u8 pad2E[2];
 } IconInfo;
 
-extern char D_8036B980[];
-extern u16 D_80303B3C[];
-extern u16 D_80303B48[];
-extern u16 D_80303B58[];
-extern u16 D_80303B68[];
+extern char gStatsLevelName[];
+extern u16 gNewBestJText[];
+extern u16 gBestToDateJText[];
+extern u16 gBestStaysJText[];
+extern u16 gGuestBestJText[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* heap pointer */
 #endif
@@ -129,9 +129,9 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     p = &players[playerNumber];
     l = &gLevelInfo[levelno];
     PRINT_SCORE("new", nss);
-    PRINT_SCORE("old", D_8036EA60);
-    PRINT_SCORE("res", D_8036EA80);
-    PRINT_SCORE("rs2", D_8036EA90);
+    PRINT_SCORE("old", gScoreOld);
+    PRINT_SCORE("res", gScoreRes);
+    PRINT_SCORE("rs2", gScoreRs2);
     debug_printf("units %d\n", p->units);
     if (gLevelInfo[levelno].kind == 1) {
         t = stats_print_status();
@@ -146,7 +146,7 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
                 } else {
                     nss.coin = 5;
                 }
-                if (D_803643D5) {
+                if (gLevelFirstClear) {
                     debug_printf("Units up 3\n");
                     p->units += 3;
                 }
@@ -159,16 +159,16 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     } else {
         ret = fe_stats_grade_timed_level(levelno, arg1, arg2);
     }
-    sprintf(D_8036B980, "%s", (char *) gGlobeLevels[levelno].unk4); /* (char *): a N64P through varargs */
+    sprintf(gStatsLevelName, "%s", (char *) gGlobeLevels[levelno].unk4); /* (char *): a N64P through varargs */
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
         if (gLevelInfo[levelno].kind == 1) {
-            p->money = ((s32) D_803649F0);
+            p->money = ((s32) gLevelMoney);
         }
         if (p->units < 360) {
-            debug_printf("UNITS UP %d\n", nss.coin % 5 - D_8036EA60.coin % 5);
-            p->units += nss.coin % 5 - D_8036EA60.coin % 5;
+            debug_printf("UNITS UP %d\n", nss.coin % 5 - gScoreOld.coin % 5);
+            p->units += nss.coin % 5 - gScoreOld.coin % 5;
         }
         if (p->units == 354) {
             p->units += 6;
@@ -180,9 +180,9 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
         if (!(gLevelInfo[levelno].kind & 0x81)) {
             p->bestVehicle[levelno] = nss.bdn;
         }
-        gBestTimes[playerNumber][D_802E8C44[nss.bdn]] = nss.tc;
-        if (D_803643D5 && gLevelInfo[levelno].kind == 1) {
-            gBestTimes[playerNumber][D_802E8C44[0]] = nss.tc;
+        gBestTimes[playerNumber][gVehicleTimeSlot[nss.bdn]] = nss.tc;
+        if (gLevelFirstClear && gLevelInfo[levelno].kind == 1) {
+            gBestTimes[playerNumber][gVehicleTimeSlot[0]] = nss.tc;
         }
         p->medal[levelno] = ret;
         fe_player_ticker_reset(playerNumber);
@@ -193,8 +193,8 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
 /* results screen banner and its glyph list, by outcome */
 char * N64P gBestBanners[] = { N64_DPTR("YOUR NEW BEST!"), N64_DPTR("BEST TO DATE"), N64_DPTR("YOUR BEST STAYS"),
                               N64_DPTR("GUEST BEST IS") };
-u16 * N64P gBestBannerGlyphs[] = { N64_DPTR(D_80303B3C), N64_DPTR(D_80303B48), N64_DPTR(D_80303B58),
-                             N64_DPTR(D_80303B68) };
+u16 * N64P gBestBannerGlyphs[] = { N64_DPTR(gNewBestJText), N64_DPTR(gBestToDateJText), N64_DPTR(gBestStaysJText),
+                             N64_DPTR(gGuestBestJText) };
 
 /* Grade a timed level `arg0` and record the best time; returns the grade (0x801EEDB4).
  * K&R in the matching build (its callers pass unmasked ints). */
@@ -225,19 +225,19 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
     if (arg2 && arg1) {
         if (gLevelInfo[arg0].kind == 0x80) {
             nss.bdn = 0;
-        } else if (nss.tc <= D_8036EA60.tc) {
-            nss.bdn = D_803643D4;
+        } else if (nss.tc <= gScoreOld.tc) {
+            nss.bdn = gDiggerVehicle;
         } else if (nss.tc != 0xFFFF &&
-                   ((old = gBestTimes[playerNumber][D_802E8C44[D_803643D4]]) == 0 || nss.tc < old)) {
-            gBestTimes[playerNumber][D_802E8C44[D_803643D4]] = nss.tc;
+                   ((old = gBestTimes[playerNumber][gVehicleTimeSlot[gDiggerVehicle]]) == 0 || nss.tc < old)) {
+            gBestTimes[playerNumber][gVehicleTimeSlot[gDiggerVehicle]] = nss.tc;
         }
     }
-    if (nss.tc <= D_8036EA60.tc && arg1) {
+    if (nss.tc <= gScoreOld.tc && arg1) {
         nss.coin = fe_stats_grade_time(nss.tc, arg0, players[playerNumber].gameState);
     } else {
-        nss.tc = D_8036EA60.tc;
+        nss.tc = gScoreOld.tc;
     }
-    if (nss.tc < D_8036EA60.tc && !D_803643D5) {
+    if (nss.tc < gScoreOld.tc && !gLevelFirstClear) {
         x = 0x484;
         if (arg2) {
             x = 0x584;
@@ -246,19 +246,19 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
         x = 0x480;
     }
     hud_format_time(buf, nss.tc, 0);
-    sprintf(&D_8036B9A8[0x80], "****%s*", buf);
+    sprintf(&gStatusLines[0x80], "****%s*", buf);
     if (arg1) {
         m = &gYoshiFeItems[25];
         gYoshiFeItems[25].unk0 = x;
         debug_printf("getting icon %d\n", nss.bdn);
         m->unk14 = nss.bdn + 0x22;
-        e = &D_802F49F4[m->unk14];
+        e = &gYoshiSprites[m->unk14];
         m->unk1A = spr_load(e->unk6, 0, e->unk4, e->unk2C, e->unk2D | 4, 1.0f);
         if (playerNumber != playerNumberAtStart) {
             idx = 3;
-        } else if (gNextGameMode == MODE_LEVEL_STATUS || D_803643D5) {
+        } else if (gNextGameMode == MODE_LEVEL_STATUS || gLevelFirstClear) {
             idx = 1;
-        } else if (nss.tc < D_8036EA60.tc) {
+        } else if (nss.tc < gScoreOld.tc) {
             idx = 0;
         } else {
             idx = 2;

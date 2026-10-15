@@ -286,7 +286,7 @@ def cmd_inject(args):
     # before the VI manager's retrace message, which comes ~2000 counts
     # after the VI, or later when the CPU is busy), the exe gets the RDP done
     # just before that retrace, so the scheduler sees the same order (sched.c
-    # D_8036BF14 = frameCount + 1 depends on it)
+    # gSchedSwapFrame = frameCount + 1 depends on it)
     retr = {}
     for s, (ra, th, v, vi) in zip(ev.get("seqT", []), ev["T"]):
         it = fs.find(ra)
@@ -375,7 +375,7 @@ def lle_env(emudir):
     (cxd4 from ~/thirdparty/ref, a CC0 test oracle loaded at run time) through
     port/tools/audio's rsp_tap.so: every audio task (checked against the
     port's interpreter as well) and cull_rsp_test's visibility test (ucode
-    D_802E77B0; mupen64plus's HLE RSP never runs it, so its answer would
+    gCullUcodeText; mupen64plus's HLE RSP never runs it, so its answer would
     always be "visible").  Graphics go to the HLE RSP as before.  ai_dump.so
     records the emulator's AI stream to EMUDIR/emu.wav (+ ai_log.txt)."""
     tools = os.path.join(PORT, "build/audio_tools")
@@ -944,9 +944,9 @@ class Layout:
                              "bytes of heap are reused by the collision/level loaders in the trace"}
     UNTYPED = [("gTexDecodeScratch", "60F60.c texture decode scratch: declared u64 (the copy loop's unit), "
                               "holds the packed s16 tokens"),
-               ("D_803EBB58", "62740.c accumulated Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
-               ("D_803EBB98", "62740.c product Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
-               ("D_803EBBD8", "62740.c record swap temp: declared s32[] (the copy unit), holds s16 records")]
+               ("gMtxWork", "62740.c accumulated Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
+               ("gMtxChainTemp", "62740.c product Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
+               ("gGroundTriSwap", "62740.c record swap temp: declared s32[] (the copy unit), holds s16 records")]
 
     def __init__(self, cmp, typemap, facts):
         self.cmp = cmp

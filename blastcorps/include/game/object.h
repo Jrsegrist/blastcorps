@@ -90,7 +90,7 @@ typedef struct LevelObject {
     /* 0xE9 */ u8 numParts;               /* number of parts */
     /* 0xEA */ u8 destroyed;              /* every part down (obj_check_destroyed) */
     /* 0xEB */ u8 pathBuilding;           /* one of the level's path buildings (obj_path_buildings_destroyed) */
-    /* 0xEC */ u8 partPct[0x10];          /* per part; 100 = destroyed. Indexed by D_803BE708's byte lists */
+    /* 0xEC */ u8 partPct[0x10];          /* per part; 100 = destroyed. Indexed by gPathParts's byte lists */
 } LevelObject; /* size 0xFC */
 
 STATIC_ASSERT_SIZE(CollisionTri, 0x60);

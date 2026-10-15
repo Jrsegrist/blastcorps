@@ -5,7 +5,7 @@
 #define seg2Base ((u8 *) seg2Base)
 #define gGlobeLevels ((GlobeLevel *) gGlobeLevels)
 #define gLvlselMarkerFrames ((u16 * N64P *) gLvlselMarkerFrames)
-#define D_802E8F38 ((Entry8 *) D_802E8F38)
+#define gAcademyMarkers ((Entry8 *) gAcademyMarkers)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define gDynamicBufs ((u8 *) gDynamicBufs)
 #define players ((PlayerInfo *) players)
@@ -28,8 +28,8 @@ typedef struct {
     Gfx * N64P dl[9];
 } DlTable;
 
-extern Gfx D_8020BC88[];
-extern DlTable D_8020BD08; /* per-category display lists */
+extern Gfx gLvlselAcademyIconDl[];
+extern DlTable gLvlselIconDls; /* per-category display lists */
 extern u16 gStarfieldPerspNorm; /* perspNorm */
 extern u16 * N64P gStarTextures; /* star textures, 16x16 RGBA16 each */
 extern Vtx gLvlselGlobeVtx[]; /* globe vertices, 6 faces x 64 */
@@ -210,7 +210,7 @@ Gfx *fe_lvlsel_build_globe_dl(void) {
     }
     gLvlselGlowTex = gHeapPtr - 0x3000;
     gLvlselGlowTex2 = gHeapPtr - 0x2000;
-    D_80215A84 = gHeapPtr - 0x1000;
+    gLvlselSunTex = gHeapPtr - 0x1000;
     gfx = (Gfx *) gHeapPtr;
     dl = gfx;
     fe_lvlsel_build_globe_vtx();
@@ -324,7 +324,7 @@ Gfx *fe_lvlsel_build_academy_dl(void) {
         if (pass != 0) {
             gDPSetCombine(gfx++, 0x26A00A, 0x1F0C93FF);
         } else {
-            gSPDisplayList(gfx++, D_8020BC88);
+            gSPDisplayList(gfx++, gLvlselAcademyIconDl);
             gDPSetCombine(gfx++, 0x26A1FF, 0x1F1492FF);
         }
         for (i = 0; i < 60; i++) {
@@ -332,7 +332,7 @@ Gfx *fe_lvlsel_build_academy_dl(void) {
             s32 found;
 
             for (j = 0, found = 0; j < 6 && !found; j++) {
-                if (D_802E8F38[j].unk0 == i) {
+                if (gAcademyMarkers[j].unk0 == i) {
                     found = 1;
                 }
             }
@@ -370,7 +370,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
     s8 cat;
     u8 avail;
     f32 scale;
-    DlTable dls; /* initialised from D_8020BD08 */
+    DlTable dls; /* initialised from gLvlselIconDls */
     Gfx *cur;
     Gfx *prev;
     u8 r;
@@ -381,7 +381,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
     n = 0;
     flushed = 0;
     vtx = (Vtx *) gHeapPtr;
-    dls = D_8020BD08;
+    dls = gLvlselIconDls;
     prev = NULL;
     gHeapPtr += 0x1E00;
     gfx = (Gfx *) gHeapPtr;

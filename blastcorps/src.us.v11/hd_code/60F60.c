@@ -14,11 +14,11 @@
  * definitions (in the 7D9D0 tables inside .text) that get a heap texture
  * block (fx_get_texture), then fx_alloc_texture_caches's two debug strings. */
 u8 * N64P gFxCachedDefs[] = {
-    N64_DPTR(D_802C2954), N64_DPTR(D_802C2984), N64_DPTR(D_802C2A5C), N64_DPTR(D_802C37C0),
-    N64_DPTR(D_802C3804), N64_DPTR(D_802C382C), N64_DPTR(D_802C3848), N64_DPTR(D_802C386C), NULL,
+    N64_DPTR(gFxExhaustSmoke), N64_DPTR(gFxSparks), N64_DPTR(gFxDefNodeHit), N64_DPTR(gFxSkyfallBoost),
+    N64_DPTR(gFxDefJetFlame), N64_DPTR(gFxDefBlast), N64_DPTR(gFxDefKind20), N64_DPTR(gFxDefKind21), NULL,
 };
-char D_80305C34[] = "Num texture caches=";
-char D_80305C48[] = "%d\n";
+char gFxTexCacheCountMsg[] = "Num texture caches=";
+char gFxTexCacheCountFmt[] = "%d\n";
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
@@ -482,8 +482,8 @@ void fx_reset(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8020ED00[]; /* heap end when (gLevelKind & 0x20) */
-extern u8 D_8021DD00[]; /* heap end otherwise */
+extern u8 gFxHeapEndKind20[]; /* heap end when (gLevelKind & 0x20) */
+extern u8 gFxHeapEnd[]; /* heap end otherwise */
 
 /* The effects' 0x1010-byte texture caches ("Num texture caches=") (0x802A5FA8).
  * Carves as many 0x1010-byte HeapBlocks as fit between the heap pointer and
@@ -492,7 +492,7 @@ extern u8 D_8021DD00[]; /* heap end otherwise */
  * messages and clears each block's inUse word. */
 void fx_alloc_texture_caches(void) {
     u8 *start = gHeapPtr;
-    s32 span = ((gLevelKind & 0x20) ? D_8020ED00 : D_8021DD00) - start;
+    s32 span = ((gLevelKind & 0x20) ? gFxHeapEndKind20 : gFxHeapEnd) - start;
     u32 n;
     HeapBlock *b;
     HeapBlock *end;
@@ -503,8 +503,8 @@ void fx_alloc_texture_caches(void) {
     n = (u32) span / sizeof(HeapBlock);
     gFxTexCaches = (HeapBlock *) start;
     gFxTexCachesFree = n;
-    debug_printf(D_80305C34);
-    debug_printf(D_80305C48, n);
+    debug_printf(gFxTexCacheCountMsg);
+    debug_printf(gFxTexCacheCountFmt, n);
     end = (HeapBlock *) (start + n * sizeof(HeapBlock));
     gFxTexCachesEnd = end;
     gHeapPtr = (u8 *) end;
@@ -527,16 +527,16 @@ void fx_alloc_texture_caches(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-extern u8 D_803EB792;
+extern u8 gFxSpawnTag;
 
 /* Sets up one of the 16 effect records for an EffectDef (0x802A6274).
  * Sets up a gEffects record for definition `def` (s16 id at +0, width and
- * height bytes at +2, +3). Stores io->a3 in D_803EB792, takes the first
+ * height bytes at +2, +3). Stores io->a3 in gFxSpawnTag, takes the first
  * inactive record (byte 0x33 == 0; none of 16 -> return 0), and gives it
  * def[2] * def[3] free slots of the 16-byte map gFxTileSlots (their indices go
  * to rec+0x37.., then each is marked 1; running out returns 0 with the
  * indices written so far). Then: active = 1, +0 = def, +4 = data, +0x34 =
- * type, +0x32 = 0, +0x35 = b35, +0x3B = D_803EB792. Type != 1: words
+ * type, +0x32 = 0, +0x35 = b35, +0x3B = gFxSpawnTag. Type != 1: words
  * +8/+0xC/+0x10 = x/y/z, +0x20/+0x24/+0x28 = io->t6/w24/w28, +0x14/+0x18/
  * +0x1C = io->s1/w18/w1C, +0x2C = w2C, +0x36 = 0. Type 1 with z != 0: the
  * position comes from record (x, y) of veh_find_point (three words << 11),
@@ -558,7 +558,7 @@ s32 fx_spawn(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s
     s32 k;
     s32 n;
 
-    D_803EB792 = io->a3;
+    gFxSpawnTag = io->a3;
     for (i = 0;; i++) {
         if (i == 16) {
             return 0;
@@ -595,7 +595,7 @@ s32 fx_spawn(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s
     rec[0x34] = type;
     rec[0x32] = 0;
     rec[0x35] = b35;
-    rec[0x3B] = D_803EB792;
+    rec[0x3B] = gFxSpawnTag;
     if (type != 1) {
         *(s32 *) (rec + 0x08) = x;
         *(s32 *) (rec + 0x0C) = y;
@@ -644,13 +644,13 @@ s32 fx_spawn(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s
 #ifdef NON_MATCHING
 extern Gfx * N64P gFxDlCursorA;
 extern Gfx * N64P gFxDlCursorB;
-extern s32 D_803C4F70[]; /* 16.16 matrices (0x40 bytes each), frame 0 / 1 */
-extern s32 D_803C5370[];
-extern Vtx D_803C8770[]; /* quad vertices, frame 0 / 1 */
-extern Vtx D_803C9770[];
-extern u8 D_803CA770[];  /* fallback texture buffers, frame 0 / 1 */
-extern u8 D_803DA770[];
-extern u8 D_803EA770[];  /* 0x100-byte load parameter per record */
+extern s32 gFxMtx0[]; /* 16.16 matrices (0x40 bytes each), frame 0 / 1 */
+extern s32 gFxMtx1[];
+extern Vtx gFxVtx0[]; /* quad vertices, frame 0 / 1 */
+extern Vtx gFxVtx1[];
+extern u8 gFxTexBuf0[];  /* fallback texture buffers, frame 0 / 1 */
+extern u8 gFxTexBuf1[];
+extern u8 gFxLoadParams[];  /* 0x100-byte load parameter per record */
 void fx_age_texture_caches(void);
 u8 *fx_get_texture(u8 *rec, u8 *idx, u8 *base, u16 **list, u8 *param);
 void fx_build_matrix(s32 *m, u8 *rec);
@@ -681,21 +681,21 @@ void fx_draw_all(void) {
     Vtx *vtx;
     u8 *texBase;
     u8 *rec = (u8 *) gEffects;
-    u8 *param = D_803EA770;
+    u8 *param = gFxLoadParams;
     s32 n;
 
     if (gBufferIndex != 0) {
         gFxDlCursorA = gFxDlA1;
         gFxDlCursorB = gFxDlB1;
-        mtx = D_803C5370;
-        vtx = D_803C9770;
-        texBase = D_803DA770;
+        mtx = gFxMtx1;
+        vtx = gFxVtx1;
+        texBase = gFxTexBuf1;
     } else {
         gFxDlCursorA = gFxDlA0;
         gFxDlCursorB = gFxDlB0;
-        mtx = D_803C4F70;
-        vtx = D_803C8770;
-        texBase = D_803CA770;
+        mtx = gFxMtx0;
+        vtx = gFxVtx0;
+        texBase = gFxTexBuf0;
     }
     fx_begin_dls();
     for (n = 16; n != 0; n--, rec += 0x3C, param += 0x100) {
@@ -873,7 +873,7 @@ load:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
+extern s32 gFxScratchMtx[]; /* scratch 16.16 matrix */
 
 /* Scale, motion and bounce, face the camera, translate (0x802A68D4).
  * Billboard matrix of record rec into the 16.16 matrix m: emits a matrix
@@ -953,12 +953,12 @@ void fx_build_matrix(s32 *m, u8 *rec) {
     if (q >= 0) {
         angle = 0xFFF - angle;
     }
-    mtx_rotate_x(angle, D_803C4F30);
-    mtx_mul(D_803C4F30, m);
-    mtx_rotate_y(((u16) gCamYaw), D_803C4F30);
-    mtx_mul(D_803C4F30, m);
-    mtx_translate(x << 11, y << 11, z << 11, D_803C4F30);
-    mtx_mul(D_803C4F30, m);
+    mtx_rotate_x(angle, gFxScratchMtx);
+    mtx_mul(gFxScratchMtx, m);
+    mtx_rotate_y(((u16) gCamYaw), gFxScratchMtx);
+    mtx_mul(gFxScratchMtx, m);
+    mtx_translate(x << 11, y << 11, z << 11, gFxScratchMtx);
+    mtx_mul(gFxScratchMtx, m);
     mtx_to_n64((u16 *) m);
 }
 #else

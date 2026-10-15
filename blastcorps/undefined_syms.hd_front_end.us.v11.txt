@@ -4,7 +4,7 @@ __osEepromTimer = 0x803FF288;
 __osEepromTimerQ = 0x803FF2A8;
 __osEepromTimerMsg = 0x803FF2C0;
 /* 00000 (digger_loop.c) */
-D_80304954 = 0x80304954; /* .data initializer: hd_code u16 text */
+gDiggerTitleJText = 0x80304954; /* .data initializer: hd_code u16 text */
 gDepthBufferPhys = 0x80358058; /* hd_code: depth buffer address */
 gStaticSegment = 0x8035806C; /* hd_code: segment 1 base */
 seg1RspInitDl = 0x01000010; /* segment 1 display lists */
@@ -16,22 +16,21 @@ romPackedObjTable = 0x006EC4C0;
 /* 1A240 */
 romAttractPictures = 0x0068B550;
 romTrafficLights = 0x006A32B0;
-D_8020E3E0 = 0x8020E3E0;
-D_8036BB1C = 0x8036BB1C;
+gAttractPicSounds = 0x8020E3E0;
 /* 07800: two adjacent ROM blobs */
 romBootBanner = 0x0048F5A0;
 D_0048F5A0_end = 0x0048F970;
 romBootIcon = 0x0048F970;
 D_0048F970_end = 0x0048FA70;
 /* 06790: hd_code glyph lists */
-D_80303B78 = 0x80303B78;
-D_80303B88 = 0x80303B88;
+gPromoTitle1JText = 0x80303B78;
+gPromoTitle2JText = 0x80303B88;
 /* 07800 (stats.c): hd_code data */
-D_80303B3C = 0x80303B3C;
-D_80303B48 = 0x80303B48;
-D_80303B58 = 0x80303B58;
-D_80303B68 = 0x80303B68;
-D_8036B980 = 0x8036B980;
+gNewBestJText = 0x80303B3C;
+gBestToDateJText = 0x80303B48;
+gBestStaysJText = 0x80303B58;
+gGuestBestJText = 0x80303B68;
+gStatsLevelName = 0x8036B980;
 nss = 0x8036EA70;
 seg1RdpInitDl = 0x01000038;
 gScheduler = 0x80315440; /* hd_code scheduler (0E7B0 fe_pak_start_thread) */
@@ -44,7 +43,7 @@ romFeBgPicture1 = 0x006AD3F0; /* compressed front-end pictures in ROM (196F0 fe_
 romFeBgPicture2 = 0x006BF2F0;
 romFeBgPicture3 = 0x006D3D30;
 gPanelPerspNorm = 0x8021591C; /* 01C40: perspNorm (splat left the lui/addiu raw) */
-D_8020BC88 = 0x8020BC88; /* 09570: display list referenced only by a raw lui/addiu pair */
+gLvlselAcademyIconDl = 0x8020BC88; /* 09570: display list referenced only by a raw lui/addiu pair */
 gStarfieldPerspNorm = 0x80217288; /* 09570: perspNorm, raw lui/addiu pair */
 romWorldTexturesRaw = 0x0066C900; /* 09570 fe_lvlsel_build_globe_dl: worldtextures.raw in ROM (as in undefined_syms.hd_code) */
 seg2Base = 0x02000000; /* segment 2 base (as in undefined_syms.hd_code) */

@@ -15,7 +15,7 @@
 /* Last 5 words of the u16 table gAsinSteepTable (data, not code): the matching
  * build has to assemble them into this file's .text. */
 GLOBAL_ASM(
-glabel D_802AE0F0
+glabel gAsinSteepTableTail
 .word 0x3F513F5B, 0x3F663F71, 0x3F7E3F8B, 0x3F9B3FAD, 0x3FC53FFF
 )
 #else
@@ -180,18 +180,18 @@ TextData690C0 textdata_690C0 = {
 #endif
 
 #ifdef NON_MATCHING
-extern f32 D_80305C70; /* 2*pi */
-extern f32 D_80305C74; /* pi */
-extern f32 D_80305C78; /* pi/2 */
-extern f32 D_80305C7C; /* 1/2! */
-extern f32 D_80305C80; /* 1/3! */
-extern f32 D_80305C84; /* 1/4! */
-extern f32 D_80305C88; /* 1/5! */
-extern f32 D_80305C8C; /* 1/6! */
-extern f32 D_80305C90; /* 1/7! */
-extern f32 D_80305C94; /* 1/8! */
-extern f32 D_80305C9C; /* 65536.0 */
-extern f32 D_80305CA0; /* 2*pi / 4096 */
+extern f32 gMathTwoPi; /* 2*pi */
+extern f32 gMathPi; /* pi */
+extern f32 gMathHalfPi; /* pi/2 */
+extern f32 gMathInvFact2; /* 1/2! */
+extern f32 gMathInvFact3; /* 1/3! */
+extern f32 gMathInvFact4; /* 1/4! */
+extern f32 gMathInvFact5; /* 1/5! */
+extern f32 gMathInvFact6; /* 1/6! */
+extern f32 gMathInvFact7; /* 1/7! */
+extern f32 gMathInvFact8; /* 1/8! */
+extern f32 gMathFix16One; /* 65536.0 */
+extern f32 gMathAngleToRad; /* 2*pi / 4096 */
 
 f32 math_cosf(f32 x);
 f32 math_sinf(f32 x);
@@ -221,7 +221,7 @@ static s32 port_cvt_w_s(f32 x) {
  * the survey lists those as read by callers, but none of the callers reads
  * them before writing them (checked by hand), so they are not modelled. */
 s32 math_cos(s32 angle) {
-    return port_cvt_w_s(math_cosf((f32) (angle & 0xFFF) * D_80305CA0) * D_80305C9C);
+    return port_cvt_w_s(math_cosf((f32) (angle & 0xFFF) * gMathAngleToRad) * gMathFix16One);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/math_cos.s")
@@ -233,7 +233,7 @@ s32 math_cos(s32 angle) {
  * Convention: in v1=a0 ; out fp=ret. Same preserved registers and leftover
  * f12/f14 as math_cos. */
 s32 math_sin(s32 angle) {
-    return port_cvt_w_s(math_sinf((f32) (angle & 0xFFF) * D_80305CA0) * D_80305C9C);
+    return port_cvt_w_s(math_sinf((f32) (angle & 0xFFF) * gMathAngleToRad) * gMathFix16One);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/math_sin.s")
@@ -256,25 +256,25 @@ f32 math_cosf(f32 x) {
     bits.f = x;
     bits.u &= 0x7FFFFFFF; /* abs.s, also for -0.0 / NaN */
     x = bits.f;
-    while (D_80305C70 < x) {
-        x -= D_80305C70;
+    while (gMathTwoPi < x) {
+        x -= gMathTwoPi;
     }
-    if (D_80305C74 < x) {
-        x = D_80305C70 - x;
+    if (gMathPi < x) {
+        x = gMathTwoPi - x;
     }
     neg = 0;
-    if (D_80305C78 < x) {
-        x = D_80305C74 - x;
+    if (gMathHalfPi < x) {
+        x = gMathPi - x;
         neg = 1;
     }
     x2 = x * x;
     x4 = x2 * x2;
     x6 = x4 * x2;
     x8 = x4 * x4;
-    r = 1.0f - x2 * D_80305C7C;
-    r = r + x4 * D_80305C84;
-    r = r - x6 * D_80305C8C;
-    r = r + x8 * D_80305C94;
+    r = 1.0f - x2 * gMathInvFact2;
+    r = r + x4 * gMathInvFact4;
+    r = r - x6 * gMathInvFact6;
+    r = r + x8 * gMathInvFact8;
     if (neg) {
         r = -r;
     }
@@ -296,22 +296,22 @@ f32 math_sinf(f32 x) {
         x = -x; /* abs.s, only for x < 0 */
         neg = 1;
     }
-    while (D_80305C70 < x) {
-        x -= D_80305C70;
+    while (gMathTwoPi < x) {
+        x -= gMathTwoPi;
     }
-    if (D_80305C74 < x) {
-        x = D_80305C70 - x;
+    if (gMathPi < x) {
+        x = gMathTwoPi - x;
         neg ^= 1;
     }
-    if (D_80305C78 < x) {
-        x = D_80305C74 - x;
+    if (gMathHalfPi < x) {
+        x = gMathPi - x;
     }
     x2 = x * x;
     x4 = x2 * x2;
     x6 = x4 * x2;
-    r = 1.0f - x2 * D_80305C80;
-    r = r + x4 * D_80305C88;
-    r = r - x6 * D_80305C90;
+    r = 1.0f - x2 * gMathInvFact3;
+    r = r + x4 * gMathInvFact5;
+    r = r - x6 * gMathInvFact7;
     r = r * x;
     if (neg) {
         r = -r;

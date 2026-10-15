@@ -17,10 +17,10 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_802C382C[]; /* a definition inside the 7D9D0 blob */
+extern u8 gFxDefBlast[]; /* a definition inside the 7D9D0 blob */
 
 /* The blast effect at (x, y, z) (0x802CDA10).
- * Sets up a gEffects record (fx_spawn) for the definition D_802C382C
+ * Sets up a gEffects record (fx_spawn) for the definition gFxDefBlast
  * with data 0x591C8, type 0, position (x, y, z) << 11 and every other input
  * (tag, words, b35) 0. The asm saves s0-s7 and fp; 48D00.c calls it. */
 void coll_spawn_blast_fx(s32 x, s32 y, s32 z) {
@@ -29,7 +29,7 @@ void coll_spawn_blast_fx(s32 x, s32 y, s32 z) {
     io.a3 = 0;
     io.t6 = 0;
     io.s1 = 0;
-    fx_spawn(&io, D_802C382C, 0x591C8, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
+    fx_spawn(&io, gFxDefBlast, 0x591C8, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/coll_spawn_blast_fx.s")
@@ -222,7 +222,7 @@ void coll_damage_object_part(LevelObject *e, CollisionTri *tri, s32 amount) {
 /* The probe sphere against every vehicle's spheres (0x802CDF94).
  * Impact of the point gCollX/Y/Z with radius r against the vehicles:
  * clears gProbeHitCarrier/932E, then for every gVehBoundSpheres sphere (until flag -1;
- * vehicle 0 is skipped while D_803649E8 is set) within range (math_spheres_overlap)
+ * vehicle 0 is skipped while gDriverHidden is set) within range (math_spheres_overlap)
  * adds coll_probe_vehicle_spheres's 0/1 (that vehicle's hit spheres) to the count. Sets
  * gCollBlocked and gCollHit unless the ring span is 0/0xFFF, clears it when
  * gFreeArcCollapsed is set, and returns the count.
@@ -240,7 +240,7 @@ s32 coll_probe_vehicles(s32 r) {
     while ((s8) p[0x11] != -1) {
         s32 id = p[0x10];
 
-        if (id == 0 && D_803649E8 != 0) {
+        if (id == 0 && gDriverHidden != 0) {
             p += 0x14;
             continue;
         }
@@ -376,7 +376,7 @@ void coll_block_toward(s32 x1, s32 z1, s32 x2, s32 z2) {
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern u8 D_80306450[];
+extern u8 gProbeNonBlockingParts[];
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -440,7 +440,7 @@ s32 coll_heading_in_ring(s32 idx) {
 /* The probe point; the free arc and flags reset (0x802CE4F0).
  * Starts a new span at position (x, y, z): the ring span becomes the empty
  * 0/0xFFF pair, the position goes to gCollX/Y/Z, the flags
- * gFreeArcCollapsed/7427/7424/7425 are cleared, gNonBlockingParts points at D_80306450,
+ * gFreeArcCollapsed/7427/7424/7425 are cleared, gNonBlockingParts points at gProbeNonBlockingParts,
  * then veh_contacts_clear is called. */
 void coll_begin_probe(s32 x, s32 y, s32 z) {
     gFreeArcStart = 0;
@@ -450,7 +450,7 @@ void coll_begin_probe(s32 x, s32 y, s32 z) {
     gCollZ = z;
     gFreeArcCollapsed = 0;
     gImpactEffectOn = 0;
-    gNonBlockingParts = (s8 *) D_80306450;
+    gNonBlockingParts = (s8 *) gProbeNonBlockingParts;
     gCollHit = 0;
     gCollBlocked = 0;
     veh_contacts_clear();
@@ -465,12 +465,12 @@ void coll_begin_probe(s32 x, s32 y, s32 z) {
 /* The probe sphere against the level triangles (0x802CE5BC).
  * Reports every triangle the sphere (x, y, z) radius r touches for vehicle
  * `kind` (veh_report_world_hits with everything >> 2 and part id 0), after storing
- * the low byte of `tag` to D_803A742A (the part veh_report_world_hits skips for kind
+ * the low byte of `tag` to gProbeSkipPart (the part veh_report_world_hits skips for kind
  * 0xC8). If that set gFreeArcCollapsed, the ring span gFreeArcStart/End is reset to
  * 0/0. The C callers declare r s16; the asm shifts the whole register. The
  * asm saves s0-s7 and fp. */
 void coll_probe_tris(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag) {
-    D_803A742A = tag;
+    gProbeSkipPart = tag;
     veh_report_world_hits(x >> 2, y >> 2, z >> 2, r >> 2, kind, 0);
     if (gFreeArcCollapsed != 0) {
         gFreeArcStart = 0;
@@ -483,21 +483,21 @@ void coll_probe_tris(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803F9328;
+extern s16 gCollStepLen;
 
 /* (x, z) moved along an angle (0x802CE65C).
- * Stores (x, z) to D_803F9320/9324 and len to D_803F9328, then moves the
+ * Stores (x, z) to gCollStepX/9324 and len to gCollStepLen, then moves the
  * point by len along heading angle (veh_move_along_heading with scale 0.0) and stores
  * the result back. ABI (the asm saves s0-s7 and fp); the C callers declare
  * (s32, s32, s16, s16), the asm uses the whole angle register. */
 void coll_step_xz(s32 x, s32 z, s32 len, s32 angle) {
     Out802A860C out;
 
-    D_803F9320 = x;
-    D_803F9324 = z;
-    D_803F9328 = len;
-    D_803F9320 = veh_move_along_heading(0.0f, angle, &D_803F9328, &D_803F9320, &D_803F9324, &out);
-    D_803F9324 = out.t1;
+    gCollStepX = x;
+    gCollStepZ = z;
+    gCollStepLen = len;
+    gCollStepX = veh_move_along_heading(0.0f, angle, &gCollStepLen, &gCollStepX, &gCollStepZ, &out);
+    gCollStepZ = out.t1;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/coll_step_xz.s")

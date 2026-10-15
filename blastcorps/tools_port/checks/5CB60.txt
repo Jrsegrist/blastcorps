@@ -13,7 +13,7 @@ lvl_init_boxes: -n 200 --seed 1 --ret void --mem 0x80306480:0x180=onehot:0x30@0x
 lvl_init_boxes: -n 10 --seed 2 --ret void --mem 0x80306480:0x30=rand --mem 0x80306495:1=bytes:0xFF
 
 # lvl_pick_object_list: every listed level, their neighbours and out-of-range values
-lvl_pick_object_list: -n 400 --ret void --mem levelno=choice:0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x20,0x21,0x22,0x38,0x39,0x3A,0x3B,-1,0x100,0x8000000A --mem D_803BE704=int --mem D_803BE708=int
+lvl_pick_object_list: -n 400 --ret void --mem levelno=choice:0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x20,0x21,0x22,0x38,0x39,0x3A,0x3B,-1,0x100,0x8000000A --mem gPathPartsCursor=int --mem gPathParts=int
 
 # ---- phase C (non-ABI register interfaces, see tools_port/conventions.txt) ----
 
@@ -32,20 +32,20 @@ veh_copy_dl: -n 20 --seed 2 --follow mb_copy_dl --arg t2=ptr:0x80 --arg t3=rel:t
 
 # lvl_build_part_tris: n in {0,0x20,0x40,0x80}; block 1 tag (0 / 5 / -1) with 0..2 items, then a
 # block 2 with tag -1 and 0..1 items wherever block 1 ends
-lvl_build_part_tris: -n 300 --heap 0x400 --mem gHeapPtr=rel:heap0 --arg t0=ptr:0x400 --mem D_803F7820:16=rand \
+lvl_build_part_tris: -n 300 --heap 0x400 --mem gHeapPtr=rel:heap0 --arg t0=ptr:0x400 --mem gObjPartMtx0:16=rand \
     --mem @t0+0x74=0x80 --mem @t0+0x80=choice:0,0x20,0x40,0x80 --mem @t0+0x84:2=choice:0,5,0xFFFF \
     --mem @t0+0xAC=choice:0,1,2 --mem @t0+0xB0:2=0xFFFF --mem @t0+0xF4:2=0xFFFF --mem @t0+0x138:2=0xFFFF \
     --mem @t0+0xD8=choice:0,1 --mem @t0+0x11C=choice:0,1 --mem @t0+0x160=choice:0,1
 # item halves at the s16 extremes (sign of << 5)
-lvl_build_part_tris: -n 100 --seed 1 --heap 0x400 --mem gHeapPtr=rel:heap0 --arg t0=ptr:0x400 --mem D_803F7820:16=rand \
+lvl_build_part_tris: -n 100 --seed 1 --heap 0x400 --mem gHeapPtr=rel:heap0 --arg t0=ptr:0x400 --mem gObjPartMtx0:16=rand \
     --mem @t0+0x84:0x100=halves:0x7FFF,0x8000,0xFFFF,1,0x0400 --mem @t0+0x74=0x80 --mem @t0+0x80=0x20 \
     --mem @t0+0x84:2=5 --mem @t0+0xAC=2 --mem @t0+0x138:2=0xFFFF --mem @t0+0x160=1
 
 # lvl_relocate_dls: gSPDisplayList (opcode 6) relocation over 0..16 commands
-lvl_relocate_dls: -n 300 --arg t0=ptr:0x200 --mem D_803BE6E0:16=rand --mem @t0+0x78=choice:0,0x100,-4,0x7FFFFFFF \
+lvl_relocate_dls: -n 300 --arg t0=ptr:0x200 --mem gLevelFileDl0:16=rand --mem @t0+0x78=choice:0,0x100,-4,0x7FFFFFFF \
     --mem @t0+0x90=0x100 --mem @t0+0x84=rel:0x100+8*int:0:16 \
     --mem @t0+0x100:0x80=words:0x06000000,0x06FFFFFF,0x07000000,0x05000000,0x01000000,0x80123456,0
-lvl_relocate_dls: -n 50 --seed 1 --arg t0=ptr:0x200 --mem D_803BE6E0:16=rand --mem @t0+0x90=0x100 --mem @t0+0x84=0x100
+lvl_relocate_dls: -n 50 --seed 1 --arg t0=ptr:0x200 --mem gLevelFileDl0:16=rand --mem @t0+0x90=0x100 --mem @t0+0x84=0x100
 
 # lvl_tint_path_building_red: flag 0 / nonzero, game mode u64 == 0x800 (both halves), 0..4 entries
 lvl_tint_path_building_red: -n 300 --arg t4=ptr:0x200 --arg s0=choice:0,1,0xFF,0x100 --mem @t4+0x1C=choice:0x50,0x60,0x90,0x90,0x90 \
@@ -55,9 +55,9 @@ lvl_tint_path_building_red: -n 50 --seed 1 --arg t4=ptr:0x200 --arg s0=1 --mem @
 # lvl_end_seq_set_toughness: level 0x31 and kind 0x24, and their neighbours
 lvl_end_seq_set_toughness: -n 300 --arg t3=choice:0x24,0x23,0x25,0,0x124 --arg s0=ptr:0x10 --mem levelno=choice:0x31,0x30,0x32,0,0x131
 
-# lvl_remap_break_fx_kinds: 0..4 entries, every byte remapped through D_8030631F
+# lvl_remap_break_fx_kinds: 0..4 entries, every byte remapped through gObjBreakFxRemap
 lvl_remap_break_fx_kinds: -n 300 --heap 0x400 --arg v1=ptr:0x10 --mem @v1=rel:heap0 --mem @heap0+0x30=0x40 \
-    --mem @heap0+0x38=rel:0x40+0x38*int:0:4 --mem D_8030631F:0x100=rand
+    --mem @heap0+0x38=rel:0x40+0x38*int:0:4 --mem gObjBreakFxRemap:0x100=rand
 
 # lvl_object_centre: midpoints of s16 extremes
 lvl_object_centre: -n 300 --arg v1=ptr:0x40 --arg t4=ptr:0x100 --mem @t4+0x1C=0x20 \
@@ -89,10 +89,10 @@ lvl_read_alpha_zones: -n 50 --seed 1 --arg t0=ptr:0x300 --mem gAlphaZones:0x6C=r
 
 # lvl_read_header: every written global pre-filled; header u16 extremes
 lvl_read_header: -n 200 --arg t0=ptr:0x200 --mem @t0+0x4C=0x100 \
-    --mem gLevelCellW:0x2E=rand --mem gMoveableTrisEnd:8=rand --mem gLevelSegment8=int --mem D_803BDAF4:8=rand --mem gRespawnPoints=int \
+    --mem gLevelCellW:0x2E=rand --mem gMoveableTrisEnd:8=rand --mem gLevelSegment8=int --mem gGuardTris:8=rand --mem gRespawnPoints=int \
     --mem gVehPartSpheres:0x7D0=rand --mem gVehBoundSpheres:0xF0=rand --mem gBlockedFrame=int --mem gCarrierContact:1=int \
     --mem gStandOn:0x30=rand --mem gLastSpeed:2=int --mem gVehSlowed:1=int --mem gVehPoints:0x1A0=rand \
-    --mem D_803EFECB:1=int --mem gCarrierExplodeDone:1=int --mem gObjHitFrame=int --mem gVehAttacking:0x10=rand
+    --mem gTrainClosed:1=int --mem gCarrierExplodeDone:1=int --mem gObjHitFrame=int --mem gVehAttacking:0x10=rand
 lvl_read_header: -n 100 --seed 1 --arg t0=ptr:0x200 --mem @t0:0x18=halves:0,1,0x7FFF,0x8000,0xFFFF --mem @t0+0x4C=0x100 \
     --mem @t0+0x18=choice:0,-1,0x7FFFFFFF,0x80000000,0x1000001 --mem @t0+0x1C=choice:0,0xFF,0x100,-1 \
     --mem gLevelCellW:0x2E=rand --mem gMoveableTrisEnd:8=rand
@@ -102,11 +102,11 @@ lvl_read_header: -n 100 --seed 1 --arg t0=ptr:0x200 --mem @t0:0x18=halves:0,1,0x
 lvl_find_start_vehicle: -n 300 --arg t0=ptr:0x200 --mem @t0+0x50=0x80 --mem @t0+0x54=choice:0x80,0x89,0x9B,0xC8,0x107 \
     --mem @t0+0x80*9:16/1=choice:0,1,2 --mem @t0+0x81*9:16/2=choice:0,1 --mem @t0+0x83*9:16/2=choice:0,1 \
     --mem @t0+0x85*9:16/2=choice:0xFFFF,1 --mem @t0+0x107:1=0 \
-    --mem gLevelKind=choice:0,1,0x80,2,0x81 --mem D_803643D4:1=int --mem gStartVehicle:1=int
+    --mem gLevelKind=choice:0,1,0x80,2,0x81 --mem gDiggerVehicle:1=int --mem gStartVehicle:1=int
 # the kind-0 record first and every other record at its position
 lvl_find_start_vehicle: -n 100 --seed 1 --arg t0=ptr:0x200 --mem @t0+0x50=0x80 --mem @t0+0x54=0x107 \
     --mem @t0+0x80:0x90=bytes:0 --mem @t0+0x89*9:15/1=choice:0,3,0xFF \
-    --mem gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=int --mem gStartVehicle:1=int
+    --mem gLevelKind=choice:0,1,0x80 --mem gDiggerVehicle:1=int --mem gStartVehicle:1=int
 
 # lvl_has_tri_id: the id in exactly one of 8 records (first/last/middle) before the end.
 # The "not found" / empty-range runs below needed eqcheck to sign-extend fp (it used to treat
@@ -166,33 +166,33 @@ lvl_build_coll_grid_b: -n 200 --seed 1 --follow lvl_build_coll_tri,sqrtf --heap 
 # each: tag, name length 2, name, count 2, triangles), then empty groups (tag, 0, 0)
 lvl_build_switch_groups: -n 200 --heap 0x200 --mem gHeapPtr=rel:heap0 --arg t0=ptr:0x100 --mem @t0+0x64=0x80 \
     --mem @t0+0x68=choice:0x80,0xAD,0xDA --mem @t0+0x81:1=2 --mem @t0+0x84:1=2 --mem @t0+0xAE:1=2 --mem @t0+0xB1:1=2 \
-    --mem D_803BD308:0xC=rand --mem D_803BD310:0x200=rand --mem D_803BDAF0=rand --stub-ret lvl_build_coll_tri=ptr:0x80 --arg s1=int
+    --mem gSwitchTris:0xC=rand --mem gSwitchGroups:0x200=rand --mem gSwitchGroupsEnd=rand --stub-ret lvl_build_coll_tri=ptr:0x80 --arg s1=int
 lvl_build_switch_groups: -n 200 --seed 1 --follow lvl_build_coll_tri,sqrtf --heap 0x200 --mem gHeapPtr=rel:heap0 --arg t0=ptr:0x100 \
     --mem @t0+0x64=0x80 --mem @t0+0x68=choice:0xAD,0xDA --mem @t0+0x81:1=2 --mem @t0+0x84:1=2 --mem @t0+0xAE:1=2 \
-    --mem @t0+0xB1:1=2 --mem D_803BD308:0xC=rand --mem D_803BD310:0x200=rand --mem D_803BDAF0=rand --arg s1=int
+    --mem @t0+0xB1:1=2 --mem gSwitchTris:0xC=rand --mem gSwitchGroups:0x200=rand --mem gSwitchGroupsEnd=rand --arg s1=int
 lvl_build_switch_groups: -n 50 --seed 2 --heap 0x200 --mem gHeapPtr=rel:heap0 --arg t0=ptr:0x100 --mem @t0+0x64=0x80 \
     --mem @t0+0x68=choice:0x83,0x86 --mem @t0+0x81:1=0 --mem @t0+0x82:1=0 --mem @t0+0x84:1=0 --mem @t0+0x85:1=0 \
-    --mem D_803BD310:0x200=rand --arg s1=int
+    --mem gSwitchGroups:0x200=rand --arg s1=int
 
 # lvl_build_object_groups (t0 = obj, s1 in/out): 0-2 groups at obj + 0x80. Kind 1: (a, 1, n 1), one BE s16, count 2 of 0x15-byte
 # triangles (ids at +0x14 from 0..2), name length 1 + 1 byte = 0x32 bytes. Kind 0: (a, 0, 1), six BE s16 + BE word,
 # count 2, length 1 = 0x40 bytes. lvl_has_tri_id stubbed, then followed (the second group sees the first's records)
 lvl_build_object_groups: -n 200 --arg t0=ptr:0x100 --mem @t0+0x68=0x80 --mem @t0+0x6C=choice:0x80,0xB2,0xE4 --mem @t0+0x81:1=1 \
     --mem @t0+0x82:1=1 --mem @t0+0x85:1=2 --mem @t0+0xB0:1=1 --mem @t0+0xB3:1=1 --mem @t0+0xB4:1=1 --mem @t0+0xB7:1=2 \
-    --mem @t0+0xE2:1=1 --mem D_803BC1D0:0x1C0=rand --mem gCollTris:0x200=rand --stub-ret lvl_has_tri_id=rand \
+    --mem @t0+0xE2:1=1 --mem gCollObjGroups:0x1C0=rand --mem gCollTris:0x200=rand --stub-ret lvl_has_tri_id=rand \
     --stub-ret lvl_build_coll_tri=ptr:0x80 --arg s1=int
 lvl_build_object_groups: -n 100 --seed 1 --arg t0=ptr:0x100 --mem @t0+0x68=0x80 --mem @t0+0x6C=0xB2 --mem @t0+0x81:1=1 \
-    --mem @t0+0x82:1=1 --mem @t0+0x85:1=2 --mem @t0+0xB0:1=1 --mem D_803BC1D0:0x1C0=rand --stub-ret lvl_has_tri_id=0 \
+    --mem @t0+0x82:1=1 --mem @t0+0x85:1=2 --mem @t0+0xB0:1=1 --mem gCollObjGroups:0x1C0=rand --stub-ret lvl_has_tri_id=0 \
     --stub-ret lvl_build_coll_tri=ptr:0x80 --arg s1=int
 lvl_build_object_groups: -n 300 --seed 2 --follow lvl_has_tri_id,lvl_build_coll_tri,sqrtf --arg t0=ptr:0x100 --mem @t0+0x68=0x80 \
     --mem @t0+0x6C=choice:0xB2,0xE4 --mem @t0+0x81:1=1 --mem @t0+0x82:1=1 --mem @t0+0x85:1=2 --mem @t0+0x9A:1=int:0:2 \
     --mem @t0+0xAF:1=int:0:2 --mem @t0+0xB0:1=1 --mem @t0+0xB3:1=1 --mem @t0+0xB4:1=1 --mem @t0+0xB7:1=2 \
-    --mem @t0+0xCC:1=int:0:2 --mem @t0+0xE1:1=int:0:2 --mem @t0+0xE2:1=1 --mem D_803BC1D0:0x1C0=rand \
+    --mem @t0+0xCC:1=int:0:2 --mem @t0+0xE1:1=int:0:2 --mem @t0+0xE2:1=1 --mem gCollObjGroups:0x1C0=rand \
     --mem gCollTris:0x200=rand --arg s1=int
 # kind 0 groups (s1 overwritten by the third s16 of the last set before the triangles)
 lvl_build_object_groups: -n 200 --seed 3 --follow lvl_has_tri_id,lvl_build_coll_tri,sqrtf --arg t0=ptr:0x100 --mem @t0+0x68=0x80 \
     --mem @t0+0x6C=choice:0x80,0xC0 --mem @t0+0x81:1=0 --mem @t0+0x82:1=1 --mem @t0+0x93:1=2 --mem @t0+0xA8:1=int:0:2 \
-    --mem @t0+0xBD:1=int:0:2 --mem @t0+0xBE:1=1 --mem D_803BC1D0:0x1C0=rand --mem gCollTris:0x200=rand --arg s1=int
+    --mem @t0+0xBD:1=int:0:2 --mem @t0+0xBE:1=1 --mem gCollObjGroups:0x1C0=rand --mem gCollTris:0x200=rand --arg s1=int
 # [e1] lvl_resolve_tex_ids / lvl_resolve_object_tex (level object t0 / t4, param fp): texture ids in variable-size records ->
 # tex_get_impl. Records built with a fixed count per run so the walk ends exactly at the end offset.
 # count 3 (record 0x14 bytes), 0-4 records, callee stubbed
@@ -233,18 +233,18 @@ lvl_resolve_dl_textures: -n 300 --seed 1 --follow tex_resolve_dl_impl --heap 0x1
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig tex_decode=a0
 # end-block
 # ---- phase D wave 3 (wt-f1) ----
-# lvl_init_object_shadow (rec v1, param fp): types 0xBA..0xBC (and neighbours) -> D_80365330 / word 0x44. Stubbed; then
+# lvl_init_object_shadow (rec v1, param fp): types 0xBA..0xBC (and neighbours) -> gObjShadowTex / word 0x44. Stubbed; then
 # coll_ground_height followed (its scans stubbed); then tex_get_impl followed on a cache hit for id 0xF81.
 lvl_init_object_shadow: -n 300 --arg v1=ptr:0x60 --mem @v1+0x30=choice:0xB9,0xBA,0xBB,0xBC,0xBD,0,0x1BA --mem @v1+0x44=rand \
-    --arg fp=int --mem D_80365330=rand --stub-ret tex_get_impl=int --stub-ret coll_ground_height=int
+    --arg fp=int --mem gObjShadowTex=rand --stub-ret tex_get_impl=int --stub-ret coll_ground_height=int
 lvl_init_object_shadow: -n 200 --seed 1 --arg v1=ptr:0x60 --mem @v1+0x30=choice:0xBA,0xBB,0xBC,0xBD --mem @v1+0x44=rand \
-    --mem @v1+0x10=int --mem @v1+0x18=int --mem @v1+0x14=int:-300:300 --arg fp=int --mem D_80365330=rand \
+    --mem @v1+0x10=int --mem @v1+0x18=int --mem @v1+0x14=int:-300:300 --arg fp=int --mem gObjShadowTex=rand \
     --stub-ret tex_get_impl=int --follow coll_ground_height --mem gGroundTriId:1=rand \
     --stub-ret ground_scan_part_tris=choice:100,140,0x5F5E0FF --stub-ret ground_scan_moveable=choice:100,140,0x5F5E0FF \
     --stub-ret ground_scan_grid=choice:0,1 --stub-ret ground_scan_grid.t3=choice:100,120 \
     --sig ground_scan_part_tris=a0,a1,a2 --sig ground_scan_moveable=a0,a1,a2,a3 --sig ground_scan_grid=a0,a1,a2
 lvl_init_object_shadow: -n 100 --seed 2 --arg v1=ptr:0x60 --mem @v1+0x30=choice:0xBA,0xBC,0xBD --mem @v1+0x44=rand --arg fp=int \
-    --mem D_80365330=rand --follow tex_get_impl --stub-ret coll_ground_height=int --heap 0x200=words:0,0x10,0x100 \
+    --mem gObjShadowTex=rand --follow tex_get_impl --stub-ret coll_ground_height=int --heap 0x200=words:0,0x10,0x100 \
     --mem gTexTable=rel:heap0 --mem gTexCache:0x30=onehot:8:0xF81:words:1,2,3 --mem gTexCacheEnd=rel:gTexCache+0x30 \
     --mem gHeapPtr=0x80400000 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig osRecvMesg=a0,a1,a2 --sig tex_decode=a0
@@ -256,7 +256,7 @@ lvl_load_object: -n 300 --arg t3=int:0:6 --heap 0x40=words:0,0x10,0x100,0x1000,0
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
 lvl_load_object: -n 300 --seed 1 --arg t3=int:0:6 --heap 0x40=words:0,0x10,0x100,0x1000,0x7FF0 --mem gPackedObjOffsets=rel:heap0 \
     --mem gHeapPtr=choice:0x80400000,0x80123451,0x80123452,0x80123453,0x80123454,0x80123457 \
-    --follow kiunzip_entry,lvl_align_end --sig kiunzip=a0,a1,a2 --mem D_803F7830:8=rand \
+    --follow kiunzip_entry,lvl_align_end --sig kiunzip=a0,a1,a2 --mem gKiunzipSrc:8=rand \
     --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
 # end-block
 # lvl_load_model_plain / lvl_load_model (type t3 -> s2, s3 / s4, a1): every valid type (ROM range table), the load stubbed
@@ -288,43 +288,43 @@ lvl_load_model: -n 200 --seed 1 --arg t3=choice:0,1,3,0xB,0x11,0x96,0x98,0xFD,0x
 
 # ---- wt-g3 ----
 # lvl_load_scientist: if gAcademyMarkerOn, load object 0x98 (lvl_load_model -> data at heap0), move its 16-byte vertex records
-# [data + w14, data + w18) by D_8039CAB0/2/4; D_8039CAC0 / D_8039CABC = data + w14 / w24
+# [data + w14, data + w18) by gAcademyMarkerX/Y/Z; gAcademyMarkerVtx / gAcademyMarkerDl = data + w14 / w24
 lvl_load_scientist: -n 300 --ret void --heap 0x200 --mem gAcademyMarkerOn:1=choice:0,1,1,0xFF --stub-ret lvl_load_model.s2=0x80B00000 \
     --mem @heap0+0x14=0x40 --mem @heap0+0x18=choice:0x40,0x50,0x80,0x100,0x1C0 --mem @heap0+0x24=int \
-    --mem D_8039CAB0:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 --mem D_8039CAB2:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 \
-    --mem D_8039CAB4:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 --mem D_8039CAC0=int --mem D_8039CABC=int
+    --mem gAcademyMarkerX:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 --mem gAcademyMarkerY:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 \
+    --mem gAcademyMarkerZ:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 --mem gAcademyMarkerVtx=int --mem gAcademyMarkerDl=int
 
-# lvl_load_ghost_model(out s2-s4): if gGhostPlaying, load object D_8039CA7E (lvl_load_model_plain -> data at heap0); globals from it,
+# lvl_load_ghost_model(out s2-s4): if gGhostPlaying, load object gGhostModelType (lvl_load_model_plain -> data at heap0); globals from it,
 # copy the word block at data + w18 to the heap (heap1) and fill the rest of its size with identity matrices
-lvl_load_ghost_model: -n 300 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=choice:0,1,1 --mem D_8039CA7E:1=int:0:16 \
+lvl_load_ghost_model: -n 300 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=choice:0,1,1 --mem gGhostModelType:1=int:0:16 \
     --stub-ret lvl_load_model_plain.s2=0x80B00000 --stub-ret lvl_load_model_plain.s3=int --stub-ret lvl_load_model_plain.s4=int \
     --mem @heap0+0x14=int --mem @heap0+0x24=int --mem @heap0+0x28=int --mem @heap0+0x18=0x40 \
     --mem @heap0+0x40=choice:0x10,0x50,0x90,0xD0 --mem @heap0+0x44=0x10 --mem gHeapPtr=rel:heap1 \
-    --mem D_803BDAFC=int --mem D_803BDB00=int --mem D_803BDB04=int --mem D_803BDB08=int --sig ghost_make_translucent_dl=a0,a1 \
+    --mem gGhostModel=int --mem gGhostMtx=int --mem gGhostVtx=int --mem gGhostDl=int --sig ghost_make_translucent_dl=a0,a1 \
     --arg s2=int --arg s3=int --arg s4=int
 # no words copied / only words copied
-lvl_load_ghost_model: -n 100 --seed 1 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=1 --mem D_8039CA7E:1=int:0:16 \
+lvl_load_ghost_model: -n 100 --seed 1 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=1 --mem gGhostModelType:1=int:0:16 \
     --stub-ret lvl_load_model_plain.s2=0x80B00000 --mem @heap0+0x14=int --mem @heap0+0x24=int --mem @heap0+0x28=int \
     --mem @heap0+0x18=0x40 --mem @heap0+0x40=choice:0,0x40,0x80 --mem @heap0+0x44=0 --mem gHeapPtr=rel:heap1 \
-    --mem D_803BDAFC=int --mem D_803BDB00=int --mem D_803BDB04=int --mem D_803BDB08=int --sig ghost_make_translucent_dl=a0,a1
-lvl_load_ghost_model: -n 100 --seed 2 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=1 --mem D_8039CA7E:1=int:0:16 \
+    --mem gGhostModel=int --mem gGhostMtx=int --mem gGhostVtx=int --mem gGhostDl=int --sig ghost_make_translucent_dl=a0,a1
+lvl_load_ghost_model: -n 100 --seed 2 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=1 --mem gGhostModelType:1=int:0:16 \
     --stub-ret lvl_load_model_plain.s2=0x80B00000 --mem @heap0+0x14=int --mem @heap0+0x24=int --mem @heap0+0x28=int \
     --mem @heap0+0x18=0x40 --mem @heap0+0x40=choice:0x20,0x60,0xA0 --mem @heap0+0x44=0x20 \
     --mem gHeapPtr=rel:heap1 --sig ghost_make_translucent_dl=a0,a1
 
 # lvl_add_object(type t3, data t4, x/y/z t5-t7, flag s0, tag t9, param fp): record at gObjectsEnd (heap0+0x200), list
-# D_803BE704 (heap0+0x300 or none), grid cell byte, triangle entries [data + w48, data + w4C) via lvl_build_coll_tri at the heap
+# gPathPartsCursor (heap0+0x300 or none), grid cell byte, triangle entries [data + w48, data + w4C) via lvl_build_coll_tri at the heap
 lvl_add_object: -n 300 --heap 0x800 --arg t3=choice:0x38,1,0xBA,0x24 --arg t4=rel:heap0 --arg t5=int:0:0xFFFF \
     --arg t6=int:0:0xFFFF --arg t7=int:0:0xFFFF --arg s0=choice:0,1,0xFF --arg t9=int --arg fp=int \
     --mem @heap0:2=halves:0,1,3,8,0x10 --mem @heap0+0x48=0x100 --mem @heap0+0x4C=choice:0x100,0x119,0x14B \
-    --mem gObjectsEnd=rel:heap0+0x200 --mem D_803BE704=rel:heap0+0x300 --mem gLevelCellD=choice:0x20,0x400,0x1000,0xFFFFFFFF \
+    --mem gObjectsEnd=rel:heap0+0x200 --mem gPathPartsCursor=rel:heap0+0x300 --mem gLevelCellD=choice:0x20,0x400,0x1000,0xFFFFFFFF \
     --mem gLevelCellW=choice:0x20,0x800,0x3FF,0xFFFFFFFF --mem gLevelCols:2=halves:0,1,0x20,0xFFFF \
     --mem gHeapPtr=rel:heap0+0x400 --stub-ret lvl_build_coll_tri=choice:0x80B00500,0x80B00580 \
     --mem gEndObjectX:6=rand
 lvl_add_object: -n 200 --seed 1 --heap 0x800 --arg t3=choice:0x38,1 --arg t4=rel:heap0 --arg t5=int:0:0xFFFF \
     --arg t6=int:0:0xFFFF --arg t7=int:0:0xFFFF --arg s0=choice:0,1 --arg t9=int --arg fp=int \
     --mem @heap0:2=halves:0,1,0x20 --mem @heap0+0x48=0x100 --mem @heap0+0x4C=choice:0x100,0x14B \
-    --mem gObjectsEnd=rel:heap0+0x200 --mem D_803BE704=0 --mem gLevelCellD=choice:0x20,0x400 \
+    --mem gObjectsEnd=rel:heap0+0x200 --mem gPathPartsCursor=0 --mem gLevelCellD=choice:0x20,0x400 \
     --mem gLevelCellW=choice:0x20,0x800 --mem gLevelCols:2=halves:1,0x20 \
     --mem gHeapPtr=rel:heap0+0x400 --stub-ret lvl_build_coll_tri=choice:0x80B00500,0x80B00580 --mem gEndObjectX:6=rand
 # callees followed (tex_get_impl / coll_ground_height stubbed): records in data for lvl_resolve_object_tex / lvl_remap_break_fx_kinds, triangles
@@ -334,13 +334,13 @@ lvl_add_object: -n 200 --seed 2 --heap 0x800 --follow lvl_resolve_object_tex,lvl
     --mem @heap0+0x28=0x1A0 --mem @heap0+0x2C=choice:0x1A0,0x1B0 --mem @heap0+0x1A4:1=1 \
     --mem @heap0+0x30=0x60 --mem @heap0+0x38=choice:0x60,0x98,0xD0 --mem @heap0+0x1C=0x1C0 \
     --mem @heap0+0x48=0x100 --mem @heap0+0x4C=choice:0x100,0x119,0x14B \
-    --mem gObjectsEnd=rel:heap0+0x200 --mem D_803BE704=rel:heap0+0x300 --mem gLevelCellD=choice:0x20,0x400 \
+    --mem gObjectsEnd=rel:heap0+0x200 --mem gPathPartsCursor=rel:heap0+0x300 --mem gLevelCellD=choice:0x20,0x400 \
     --mem gLevelCellW=choice:0x20,0x800 --mem gLevelCols:2=halves:1,0x20 --mem gHeapPtr=rel:heap0+0x400 \
     --mem gEndObjectX:6=rand --stub-ret coll_ground_height=int --sig coll_ground_height=a0,a1,a2 --sig tex_get_impl=a0,a1
 
 # lvl_spawn_objects(obj t0, param fp) -> t1: clears, then per 14-byte placement load (lvl_load_object -> heap0+0x400) and set up
 lvl_spawn_objects: -n 300 --heap 0x800 --arg t0=rel:heap0 --arg fp=int --mem @heap0+0x5C=0x100 \
-    --mem @heap0+0x60=choice:0x100,0x10E,0x11C,0x146 --stub-ret lvl_load_object=0x80B00400 --mem D_8036EB93:1=rand \
+    --mem @heap0+0x60=choice:0x100,0x10E,0x11C,0x146 --stub-ret lvl_load_object=0x80B00400 --mem gPeopleTotal:1=rand \
     --mem gSinkingPart+0xA2A:2=rand --mem gFadingParts+0x4B0*0x4B8:4=rand --mem gTopplingParts+0x470*0x478:2=rand \
     --mem gObjectsEnd=int --sig lvl_pick_object_list= --sig lvl_load_object_table= --sig tex_resolve_dl_impl=a0,a1
 # lvl_add_object / lvl_end_seq_set_toughness / lvl_tint_path_building_red followed (data at heap0+0x400 for every placement)
@@ -349,9 +349,9 @@ lvl_spawn_objects: -n 200 --seed 1 --heap 0x800 --follow lvl_add_object,lvl_end_
     --mem @heap0+0x100:0x46=bytes:0,1,2,0x24,0x38,0x10,0xFF --stub-ret lvl_load_object=0x80B00400 \
     --mem @heap0+0x400:2=halves:0,1,3 --mem @heap0+0x41C=choice:0x50,0x70 --mem @heap0+0x448=0x100 \
     --mem @heap0+0x44C=choice:0x100,0x119 --mem gNextGameMode=0 --mem gNextGameMode+4=choice:0x800,0 --mem levelno=choice:0x31,1 \
-    --mem D_803BE704=choice:0,0x80B00300 --mem gLevelCellD=choice:0x20,0x400 --mem gLevelCellW=choice:0x20,0x800 \
+    --mem gPathPartsCursor=choice:0,0x80B00300 --mem gLevelCellD=choice:0x20,0x400 --mem gLevelCellW=choice:0x20,0x800 \
     --mem gLevelCols:2=halves:1,0x20 --mem gHeapPtr=rel:heap0+0x600 --stub-ret lvl_build_coll_tri=0x80B00700 \
-    --mem D_8036EB93:1=rand --mem gEndObjectX:6=rand --sig lvl_pick_object_list= --sig lvl_load_object_table= --sig tex_resolve_dl_impl=a0,a1
+    --mem gPeopleTotal:1=rand --mem gEndObjectX:6=rand --sig lvl_pick_object_list= --sig lvl_load_object_table= --sig tex_resolve_dl_impl=a0,a1
 
 # (disp) lvl_spawn_carrier / lvl_spawn_shuttle / lvl_spawn_chopper: the type-0xFF, 0xFD and
 # 0xFE objects (lvl_load_model stubbed through its convention).
@@ -375,14 +375,14 @@ lvl_spawn_vehicles: -n 400 --arg fp=0 --arg t6=0 --arg f12=0 --arg f14=0 --arg f
     --mem @t0+0x60*9:4/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
     --mem gNextGameMode=choice:0*3,0x1000 --mem gNextGameMode+4=choice:2,0x20,0x80,0 \
     --mem gLevelKind=choice:0,1,0x80,2 \
-    --mem D_803643D4:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
-    --mem D_8036698C:1=choice:0,1,4,0x10 --mem gRiderPass:1=rand --mem gHaveRideables:1=rand
-# type 1 replaced by D_803643D4 (or not, in modes 1 / 0x80), gHaveRideables types, coordinate extremes
+    --mem gDiggerVehicle:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
+    --mem gRecVehicle:1=choice:0,1,4,0x10 --mem gRiderPass:1=rand --mem gHaveRideables:1=rand
+# type 1 replaced by gDiggerVehicle (or not, in modes 1 / 0x80), gHaveRideables types, coordinate extremes
 lvl_spawn_vehicles: -n 200 --seed 1 --arg fp=0 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
     --arg t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=0x7B \
     --mem @t0+0x60:27=hex:01_7FFF_8000_FFFF_0001_06_0000_0000_0000_8000_12_FFFF_7FFF_0000_7FFF \
     --mem gLevelKind=choice:0,1,0x80,0x81 \
-    --mem D_803643D4:1=choice:1,6,7,0xB,0x11,0x12,5 --mem gNextGameMode=0 --mem gNextGameMode+4=2 \
+    --mem gDiggerVehicle:1=choice:1,6,7,0xB,0x11,0x12,5 --mem gNextGameMode=0 --mem gNextGameMode+4=2 \
     --mem gRiderPass:1=rand --mem gHaveRideables:1=rand
 # empty list (fp returned unchanged)
 lvl_spawn_vehicles: -n 20 --seed 2 --arg t6=0 --arg t0=ptr:0x100 --mem @t0+0x50=0x60 --mem @t0+0x54=0x60 \
@@ -396,7 +396,7 @@ lvl_spawn_vehicles: -n 200 --seed 3 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20
     --mem @t0+0x60:9=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 \
     --mem @t0+0x60:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=choice:0x20,0 --mem gLevelKind=choice:0,1,0x80,2 \
-    --mem D_803643D4:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
+    --mem gDiggerVehicle:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
     --mem gRiderPass:1=rand --mem gHaveRideables:1=rand
 # initlevel: level setup, every callee stubbed (mapped). v0/t9 are set to
 # what initlevel's lowest_set_bit(gNextGameMode) leaves for each mode (the C
@@ -407,59 +407,59 @@ initlevel: -n 100 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --si
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig lvl_load_ghost_model= \
     --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
-    --mem gNextGameMode=0 --mem gNextGameMode+4=2 --arg v0=1 --arg t9=1 --mem D_802E8BEC=choice:0,1 \
+    --mem gNextGameMode=0 --mem gNextGameMode+4=2 --arg v0=1 --arg t9=1 --mem gRecDemoNumber=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
+    --mem gLevelStatusArg=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 1 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig lvl_load_ghost_model= \
     --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
-    --mem gNextGameMode=0 --mem gNextGameMode+4=0x20 --arg v0=5 --arg t9=5 --mem D_802E8BEC=choice:0,1 \
+    --mem gNextGameMode=0 --mem gNextGameMode+4=0x20 --arg v0=5 --arg t9=5 --mem gRecDemoNumber=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
+    --mem gLevelStatusArg=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 2 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig lvl_load_ghost_model= \
     --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
-    --mem gNextGameMode=0 --mem gNextGameMode+4=0x80 --arg v0=7 --arg t9=7 --mem D_802E8BEC=choice:0,1 \
+    --mem gNextGameMode=0 --mem gNextGameMode+4=0x80 --arg v0=7 --arg t9=7 --mem gRecDemoNumber=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
-# mode 0x100000000000 (= D_8030D880: no apply_status), bit 44
+    --mem gLevelStatusArg=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
+# mode 0x100000000000 (= gModeGlobeSeqU64: no apply_status), bit 44
 initlevel: -n 100 --seed 3 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig lvl_load_ghost_model= \
     --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
-    --mem gNextGameMode=0x1000 --mem gNextGameMode+4=0 --arg v0=44 --arg t9=44 --mem D_802E8BEC=choice:0,1 \
+    --mem gNextGameMode=0x1000 --mem gNextGameMode+4=0 --arg v0=44 --arg t9=44 --mem gRecDemoNumber=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
+    --mem gLevelStatusArg=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 # mode 0 (lowest_set_bit returns -1, t9 = 0) and an odd mode (0, t9 = the mode)
 initlevel: -n 100 --seed 4 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig lvl_load_ghost_model= \
     --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
-    --mem gNextGameMode=0 --mem gNextGameMode+4=0 --arg v0=-1 --arg t9=0 --mem D_802E8BEC=choice:0,1 \
+    --mem gNextGameMode=0 --mem gNextGameMode+4=0 --arg v0=-1 --arg t9=0 --mem gRecDemoNumber=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
+    --mem gLevelStatusArg=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 5 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig lvl_load_ghost_model= \
     --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
-    --mem gNextGameMode=0 --mem gNextGameMode+4=0x2001 --arg v0=0 --arg t9=0x2001 --mem D_802E8BEC=choice:0,1 \
+    --mem gNextGameMode=0 --mem gNextGameMode+4=0x2001 --arg v0=0 --arg t9=0x2001 --mem gRecDemoNumber=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
+    --mem gLevelStatusArg=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 6 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig lvl_load_ghost_model= \
     --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
-    --mem gNextGameMode=0 --mem gNextGameMode+4=0x2000 --arg v0=13 --arg t9=13 --mem D_802E8BEC=choice:0,1 \
+    --mem gNextGameMode=0 --mem gNextGameMode+4=0x2000 --arg v0=13 --arg t9=13 --mem gRecDemoNumber=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
+    --mem gLevelStatusArg=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 # bit 31 / bit 32 of the 64-bit mode
 initlevel: -n 50 --seed 7 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
@@ -512,7 +512,7 @@ lvl_spawn_vehicles: -n 30 --seed 10 --follow lvl_find_start_vehicle --follow \
     t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=0x84 --mem @t0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 \
     --mem @t0+0x60:1=0 --mem @t0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem \
     gNextGameMode=0 --mem gNextGameMode+4=choice:0x20,2 --mem gLevelKind=choice:0,1,0x80 --mem \
-    D_803643D4:1=choice:3,5,9 --mem gRiderPass:1=rand --mem gHaveRideables:1=rand --mem gStartVehicle:1=rand --arg t6=0 \
+    gDiggerVehicle:1=choice:3,5,9 --mem gRiderPass:1=rand --mem gHaveRideables:1=rand --mem gStartVehicle:1=rand --arg t6=0 \
     --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --arg fp=0
 initlevel: -n 40 --seed 21 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spawn_shuttle,lvl_spawn_chopper,lvl_find_start_vehicle \
     --follow lvl_load_model,kiunzip_entry,lvl_align_end,anim_tex_find_patches,osInvalDCache,kiunzip --sig \
@@ -533,8 +533,8 @@ initlevel: -n 40 --seed 21 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     @a0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 --mem @a0+0x60:1=0 --mem \
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
-    gNextGameMode=0 --mem gNextGameMode+4=2 --arg v0=1 --arg t9=1 --mem D_802E8BEC=choice:0,1 --mem \
-    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
+    gNextGameMode=0 --mem gNextGameMode+4=2 --arg v0=1 --arg t9=1 --mem gRecDemoNumber=choice:0,1 --mem \
+    gLevelKind=choice:0,1,0x80 --mem gDiggerVehicle:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
     gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand --mem \
     gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 40 --seed 22 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spawn_shuttle,lvl_spawn_chopper,lvl_find_start_vehicle \
@@ -556,8 +556,8 @@ initlevel: -n 40 --seed 22 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     @a0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 --mem @a0+0x60:1=0 --mem \
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
-    gNextGameMode=0 --mem gNextGameMode+4=0x20 --arg v0=5 --arg t9=5 --mem D_802E8BEC=choice:0,1 --mem \
-    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
+    gNextGameMode=0 --mem gNextGameMode+4=0x20 --arg v0=5 --arg t9=5 --mem gRecDemoNumber=choice:0,1 --mem \
+    gLevelKind=choice:0,1,0x80 --mem gDiggerVehicle:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
     gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand --mem \
     gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 40 --seed 23 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spawn_shuttle,lvl_spawn_chopper,lvl_find_start_vehicle \
@@ -579,7 +579,7 @@ initlevel: -n 40 --seed 23 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     @a0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 --mem @a0+0x60:1=0 --mem \
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
-    gNextGameMode=0 --mem gNextGameMode+4=0x80 --arg v0=7 --arg t9=7 --mem D_802E8BEC=choice:0,1 --mem \
-    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
+    gNextGameMode=0 --mem gNextGameMode+4=0x80 --arg v0=7 --arg t9=7 --mem gRecDemoNumber=choice:0,1 --mem \
+    gLevelKind=choice:0,1,0x80 --mem gDiggerVehicle:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
     gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand --mem \
     gDigTriggers=rand --mem gDigTriggersEnd=rand

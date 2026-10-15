@@ -7,24 +7,24 @@
  * hd_code_bss.us.v11.ld). Defining them matters for codegen: stores to a
  * variable defined in the same file share one %hi. Unreferenced holes are
  * placeholders. */
-u64 D_8036BEF0;   /* time of the last RSP yield */
-u64 D_8036BEF8;   /* the longest yield (statistics, reset every 480 retraces) */
-u64 D_8036BF00;   /* how long the last yield took */
+u64 gSchedYieldStart;   /* time of the last RSP yield */
+u64 gSchedYieldMax;   /* the longest yield (statistics, reset every 480 retraces) */
+u64 gSchedYieldTime;   /* how long the last yield took */
 s32 D_8036BF08;
 s32 D_8036BF0C;
 s32 gPreNmi;      /* 0x8036BF10: the reset button was pressed (pre-NMI): everything stops */
-s32 D_8036BF14;   /* the retrace after the last buffer swap: a frame done before it waits (gDeferredSwapTask) */
-s32 D_8036BF18;
+s32 gSchedSwapFrame;   /* the retrace after the last buffer swap: a frame done before it waits (gDeferredSwapTask) */
+s32 gSchedPrevSwapFrame;
 s32 gDeferredSwapTask; /* 0x8036BF1C: a finished frame task whose swap waits for the next retrace */
-s32 D_8036BF20;   /* the last frame's RDP time, 1/100 of a retrace */
-s32 D_8036BF24;   /* the last frame's RSP time, 1/100 of a retrace */
+s32 gSchedRdpTime;   /* the last frame's RDP time, 1/100 of a retrace */
+s32 gSchedRspTime;   /* the last frame's RSP time, 1/100 of a retrace */
 s32 D_8036BF28;
-s32 D_8036BF2C;   /* retrace to the frame task's start, 1/100 of a retrace */
+s32 gSchedGfxStartLag;   /* retrace to the frame task's start, 1/100 of a retrace */
 u8 D_8036BF30[8];
 OSTime gLastRetraceTime; /* 0x8036BF38: osGetTime() at the last retrace */
-u64 D_8036BF40;   /* last audio frame time */
-u64 D_8036BF48;   /* audio task start time */
-u64 D_8036BF50;   /* audio task end time */
+u64 gSchedAudioPrevStart;   /* last audio frame time */
+u64 gSchedAudioStart;   /* audio task start time */
+u64 gSchedAudioEnd;   /* audio task end time */
 /* unreferenced words; scalars, since IDO 8-aligns arrays of this size */
 s32 D_8036BF58;
 s32 D_8036BF5C;
@@ -36,8 +36,8 @@ s32 D_8036BF70;
 s32 D_8036BF74;
 OSTimer gAudioFrameTimer; /* 0x8036BF78: starts the audio frame between retraces (mq/msg at 0x8036BF90/94) */
 u8 D_8036BF98[0x20];
-u32 D_8036BFB8;   /* frame counter (wraps statistics every 480 frames) */
-s32 D_8036BFBC;
+u32 gSchedStatRetraces;   /* frame counter (wraps statistics every 480 frames) */
+s32 gSchedTaskDone;
 
 /* Blast Corps' scheduler: a Rare-modified copy of the SDK's sched.c
  * (GoldenEye's src/sched.c is a later version). The OSSched here lacks the
@@ -89,7 +89,7 @@ typedef struct BcSched {
     /* 0x290 */ OSTime gfxStartTime;
 } BcSched;
 
-extern OSViMode D_80306E70[];
+extern OSViMode osViModeTable[];
 void __scMain(void *arg);
 
 /* The SDK's osCreateScheduler (PR/sched.h declares that name with the SDK's
@@ -103,7 +103,7 @@ void sched_create(BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numField
     osCreateMesgQueue(&sc->interruptQ, sc->intBuf, 16);
     osCreateMesgQueue(&sc->cmdQ, sc->cmdMsgBuf, 16);
     osCreateViManager(0xFE);
-    osViSetMode(&D_80306E70[mode]);
+    osViSetMode(&osViModeTable[mode]);
     osViBlack(TRUE);
     osSetEventMesg(OS_EVENT_SP, &sc->interruptQ, (OSMesg) 0x29B);
     osSetEventMesg(OS_EVENT_DP, &sc->interruptQ, (OSMesg) 0x29C);
@@ -186,8 +186,8 @@ void __scMain(void *arg) {
         }
         switch ((s32) msg) {
             case 0x29A:
-                if (++D_8036BFB8 % 480 == 0) {
-                    D_8036BEF8 = D_8036BF00;
+                if (++gSchedStatRetraces % 480 == 0) {
+                    gSchedYieldMax = gSchedYieldTime;
                     D_8036BF08 = D_8036BF0C;
                 }
                 __scHandleRetrace(sc);
@@ -234,7 +234,7 @@ void __scMain(void *arg) {
 void __scAppendList(BcSched *sc, BcScTask *t);
 s32 sched_send_mesg(OSMesgQueue *mq, OSMesg msg, s32 flag);
 s32 __scTaskComplete(BcSched *sc, BcScTask *t);
-extern u8 D_802FA270;
+extern u8 gSchedTimeGfxStart;
 void sched_start_next_task(BcSched *sc, s32 availRCP);
 void __scYield(BcSched *sc);
 
@@ -253,7 +253,7 @@ void sched_audio_request(BcSched *sc) {
     if (sc->curRSPTask != NULL) {
         __scYield(sc);
     } else {
-        D_8036BF00 = 0;
+        gSchedYieldTime = 0;
         sched_start_next_task(sc, 0);
     }
 }
@@ -278,8 +278,8 @@ void __scHandleRetrace(BcSched *sc) {
     gLastRetraceTime = osGetTime();
     if (gDeferredSwapTask) {
         osViSwapBuffer(((BcScTask *) N64_IPTR(gDeferredSwapTask))->framebuffer);
-        D_8036BF18 = D_8036BF14;
-        D_8036BF14 = sc->frameCount + 1;
+        gSchedPrevSwapFrame = gSchedSwapFrame;
+        gSchedSwapFrame = sc->frameCount + 1;
         osDpSetStatus(8);
         if (((BcScTask *) N64_IPTR(gDeferredSwapTask))->msgQ != NULL) {
             sched_send_mesg(((BcScTask *) N64_IPTR(gDeferredSwapTask))->msgQ, ((BcScTask *) N64_IPTR(gDeferredSwapTask))->msg, OS_MESG_NOBLOCK);
@@ -323,12 +323,12 @@ void __scHandleRSP(BcSched *sc) {
     t = sc->curRSPTask;
     sc->curRSPTask = NULL;
     if (t->state == RSP_STATE_SUSPENDED) {
-        D_8036BF00 = osGetTime() - D_8036BEF0;
-        if (D_8036BF00 > 550000) {
-            debug_printf("Silly yield time of %llu ticks\n", D_8036BF00);
+        gSchedYieldTime = osGetTime() - gSchedYieldStart;
+        if (gSchedYieldTime > 550000) {
+            debug_printf("Silly yield time of %llu ticks\n", gSchedYieldTime);
         }
-        if (D_8036BF00 > D_8036BEF8) {
-            D_8036BEF8 = D_8036BF00;
+        if (gSchedYieldTime > gSchedYieldMax) {
+            gSchedYieldMax = gSchedYieldTime;
         }
         if (!osSpTaskYielded(&t->list)) {
             t->state = 2;
@@ -337,17 +337,17 @@ void __scHandleRSP(BcSched *sc) {
         }
         SCHED_ASSERT(sc->audioListHead, 538);
         if (sc->audioListHead == NULL) {
-            debug_printf("Yield took %llu, max %llu\n", D_8036BF00, D_8036BEF8);
+            debug_printf("Yield took %llu, max %llu\n", gSchedYieldTime, gSchedYieldMax);
         }
         sched_start_next_task(sc, 0);
     } else {
         if (t->flags & 0x40) {
             now = osGetTime();
-            D_8036BF24 = (now - sc->gfxStartTime) / 7825;
-            D_802FA270 = 1;
+            gSchedRspTime = (now - sc->gfxStartTime) / 7825;
+            gSchedTimeGfxStart = 1;
         } else if (t->list.t.type == M_AUDTASK) {
-            D_8036BF50 = osGetTime();
-            D_8036BF40 = D_8036BF48;
+            gSchedAudioEnd = osGetTime();
+            gSchedAudioPrevStart = gSchedAudioStart;
         }
         t->state = 2;
         t->flags |= 4;
@@ -370,17 +370,17 @@ void __scHandleRDP(BcSched *sc) {
     t = sc->curRDPTask;
     sc->curRDPTask = NULL;
     t->flags |= 8;
-    if (sc->frameCount != D_8036BF14 || (gGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2 | MODE_LEVEL_STATUS | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_33 | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_DELETE_CONFIRM | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_BOOT_CHECK | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_NO_CONTROLLER | MODE_QUIT_GAME | MODE_LOAD_GAME_EXIT))) {
+    if (sc->frameCount != gSchedSwapFrame || (gGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2 | MODE_LEVEL_STATUS | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_33 | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_DELETE_CONFIRM | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_BOOT_CHECK | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_NO_CONTROLLER | MODE_QUIT_GAME | MODE_LOAD_GAME_EXIT))) {
         gDeferredSwapTask = 0;
         osViSwapBuffer(t->framebuffer);
-        D_8036BF18 = D_8036BF14;
-        D_8036BF14 = sc->frameCount + 1;
+        gSchedPrevSwapFrame = gSchedSwapFrame;
+        gSchedSwapFrame = sc->frameCount + 1;
         osDpSetStatus(8);
     } else {
         gDeferredSwapTask = (s32) t;
     }
     now = osGetTime();
-    D_8036BF20 = (now - sc->rdpStartTime) / 7825;
+    gSchedRdpTime = (now - sc->rdpStartTime) / 7825;
     if (((s32) gFramesInMode) == 3) {
         osViBlack(FALSE);
     }
@@ -422,11 +422,11 @@ s32 __scTaskComplete(BcSched *sc, BcScTask *t) {
                 SCHED_ASSERT(rv!=-1, 649);
             }
         }
-        D_8036BFBC = 1;
+        gSchedTaskDone = 1;
     } else {
-        D_8036BFBC = 0;
+        gSchedTaskDone = 0;
     }
-    return D_8036BFBC;
+    return gSchedTaskDone;
 }
 
 /* The SDK's __scAppendList: a task onto the audio or graphics list (0x80271C24). */
@@ -463,14 +463,14 @@ void sched_start_next_task(BcSched *sc, s32 availRCP) {
         if (sc->audioListHead == NULL) {
             sc->audioListTail = (BcScTask *) &sc->audioListHead;
         }
-        D_8036BF48 = osGetTime();
+        gSchedAudioStart = osGetTime();
     } else {
         t = sc->gfxListHead;
-        if (D_802FA270) {
+        if (gSchedTimeGfxStart) {
             sc->gfxStartTime = osGetTime();
             now = osGetTime();
-            D_8036BF2C = (now - gLastRetraceTime) / 7825;
-            D_802FA270 = 0;
+            gSchedGfxStartLag = (now - gLastRetraceTime) / 7825;
+            gSchedTimeGfxStart = 0;
         }
     }
     t->state = 1;
@@ -488,7 +488,7 @@ void __scYield(BcSched *sc) {
     if (sc->curRSPTask->list.t.type == M_GFXTASK) {
         SCHED_ASSERT(sc->curRSPTask->state != RSP_STATE_SUSPENDED, 739);
         sc->curRSPTask->state = RSP_STATE_SUSPENDED;
-        D_8036BEF0 = osGetTime();
+        gSchedYieldStart = osGetTime();
         osSpTaskYield();
     }
 }

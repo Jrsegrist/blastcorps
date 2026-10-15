@@ -64,9 +64,9 @@ void people_init(s32 arg0) {
     gRandSeed = osGetCount();
     gChopperPickupTimer = 99999999;
     if (arg0) {
-        D_8036EA79 = gPeopleRestored;
+        gScorePeople = gPeopleRestored;
     } else {
-        D_8036EA79 = 0;
+        gScorePeople = 0;
     }
 }
 
@@ -81,7 +81,7 @@ void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
 
     i = 0;
     n = 0;
-    D_8036EA79 += arg5;
+    gScorePeople += arg5;
     if (arg5 != 0 && gPaused == 0) {
         yoshi_show_hint(0x48);
     }
@@ -296,7 +296,7 @@ s32 people_player_near(s32 arg0) {
 
 /* Person i's heading and this frame's step (0x80265B7C).
  * Turn piece arg0 and work out this frame's step (gPeopleStepX/Z) from its
- * heading and a speed that ramps toward D_8036443C / 40 */
+ * heading and a speed that ramps toward gPlayerSpeed / 40 */
 void people_step(s32 arg0) {
     s16 ang;
     s16 t;
@@ -306,14 +306,14 @@ void people_step(s32 arg0) {
     s16 vz;
     s32 lim;
 
-    lim = D_8036443C / 40;
+    lim = gPlayerSpeed / 40;
     if (lim < 0) {
         lim = -lim;
     }
-    if (D_8036443C != 0 && lim == 0) {
+    if (gPlayerSpeed != 0 && lim == 0) {
         lim = 2;
     }
-    ang = gPeople[arg0].unk16 + D_8036443E + 0x400;
+    ang = gPeople[arg0].unk16 + gPlayerMoveHeading + 0x400;
     if (ang >= 0x1000) {
         ang -= 0xFFF;
     }
@@ -446,19 +446,19 @@ void chopper_fly_to_carrier(void) {
 }
 
 /* Draw the people: billboarded 20x32 RGBA16 sprites, animated and picked by
- * heading, plus one marker at D_803EF310 */
+ * heading, plus one marker at gChopperDropX */
 typedef struct DynBuf {
     Mtx mtx[100];
     Vtx vtx[1];
 } DynBuf;
 
 extern Person gPeople[20];
-extern Vtx D_802E9FB0[4];
-extern u16 D_802E9FF0[];
-extern u16 D_802EA4F0[], D_802EA9F0[], D_802EAEF0[], D_802EB3F0[], D_802EB8F0[], D_802EBDF0[];
-extern u16 D_802EC2F0[], D_802EC7F0[], D_802ECCF0[], D_802ED1F0[], D_802ED6F0[], D_802EDBF0[], D_802EE0F0[], D_802EE5F0[];
-extern u16 D_802EEAF0[], D_802EEFF0[], D_802EF4F0[], D_802EF9F0[], D_802EFEF0[], D_802F03F0[], D_802F08F0[], D_802F0DF0[];
-extern u16 D_802F12F0[], D_802F17F0[], D_802F1CF0[], D_802F21F0[], D_802F26F0[], D_802F2BF0[], D_802F30F0[], D_802F35F0[];
+extern Vtx gPeopleQuadVtx[4];
+extern u16 gPeopleMarkerTex[];
+extern u16 gPeopleIdleTex0[], gPeopleIdleTex1[], gPeopleIdleTex2[], gPeopleIdleTex3[], gPeopleIdleTex4[], gPeopleIdleTex5[];
+extern u16 gPeopleWalkATex0[], gPeopleWalkATex1[], gPeopleWalkATex2[], gPeopleWalkATex3[], gPeopleWalkATex4[], gPeopleWalkATex5[], gPeopleWalkATex6[], gPeopleWalkATex7[];
+extern u16 gPeopleWalkBTex0[], gPeopleWalkBTex1[], gPeopleWalkBTex2[], gPeopleWalkBTex3[], gPeopleWalkBTex4[], gPeopleWalkBTex5[], gPeopleWalkBTex6[], gPeopleWalkBTex7[];
+extern u16 gPeopleWalkSideTex0[], gPeopleWalkSideTex1[], gPeopleWalkSideTex2[], gPeopleWalkSideTex3[], gPeopleWalkSideTex4[], gPeopleWalkSideTex5[], gPeopleWalkSideTex6[], gPeopleWalkSideTex7[];
 
 s32 people_is_visible();
 
@@ -489,7 +489,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
     n = 0;
     guRotateF(mf, gCamHeading - 135.0, 0.0f, 1.0f, 0.0f);
     for (k = 0; k < 4; k++) {
-        guMtxXFMF(mf, D_802E9FB0[k].v.ob[0], D_802E9FB0[k].v.ob[1], D_802E9FB0[k].v.ob[2], &fx[k], &fy[k], &fz[k]);
+        guMtxXFMF(mf, gPeopleQuadVtx[k].v.ob[0], gPeopleQuadVtx[k].v.ob[1], gPeopleQuadVtx[k].v.ob[2], &fx[k], &fy[k], &fz[k]);
     }
     gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
     gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
@@ -510,17 +510,17 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
                 gPeople[i].unk13 = 0;
             }
             switch (gPeople[i].unk13) {
-                case 0: tex = D_802EA4F0; break;
-                case 1: tex = D_802EA9F0; break;
-                case 2: tex = D_802EAEF0; break;
-                case 3: tex = D_802EB3F0; break;
-                case 4: tex = D_802EB8F0; break;
-                case 5: tex = D_802EBDF0; break;
+                case 0: tex = gPeopleIdleTex0; break;
+                case 1: tex = gPeopleIdleTex1; break;
+                case 2: tex = gPeopleIdleTex2; break;
+                case 3: tex = gPeopleIdleTex3; break;
+                case 4: tex = gPeopleIdleTex4; break;
+                case 5: tex = gPeopleIdleTex5; break;
             }
             phys = osVirtualToPhysical(tex);
             PORT_ITAG(gdl, PORT_ITAG_PEOPLE, i);
             LOAD_TEX(phys);
-            util_copy64((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
+            util_copy64((u64 *) (&buf->vtx[n]), (u64 *) gPeopleQuadVtx, sizeof(Vtx) * 4);
             for (j = 0; j < 4; j++) {
                 buf->vtx[n + j].v.ob[0] = fx[j] + gPeople[i].x;
                 buf->vtx[n + j].v.ob[1] = fy[j] + gPeople[i].y;
@@ -551,57 +551,57 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
             }
             if (ang >= 0xC00) {
                 switch (frame) {
-                    case 0: tex = D_802EEAF0; break;
-                    case 1: tex = D_802EEFF0; break;
-                    case 2: tex = D_802EF4F0; break;
-                    case 3: tex = D_802EF9F0; break;
-                    case 4: tex = D_802EFEF0; break;
-                    case 5: tex = D_802F03F0; break;
-                    case 6: tex = D_802F08F0; break;
-                    case 7: tex = D_802F0DF0; break;
+                    case 0: tex = gPeopleWalkBTex0; break;
+                    case 1: tex = gPeopleWalkBTex1; break;
+                    case 2: tex = gPeopleWalkBTex2; break;
+                    case 3: tex = gPeopleWalkBTex3; break;
+                    case 4: tex = gPeopleWalkBTex4; break;
+                    case 5: tex = gPeopleWalkBTex5; break;
+                    case 6: tex = gPeopleWalkBTex6; break;
+                    case 7: tex = gPeopleWalkBTex7; break;
                 }
             }
             if (ang >= 0x800 && ang < 0xC00) {
                 flip = 1;
                 switch (frame) {
-                    case 0: tex = D_802F12F0; break;
-                    case 1: tex = D_802F17F0; break;
-                    case 2: tex = D_802F1CF0; break;
-                    case 3: tex = D_802F21F0; break;
-                    case 4: tex = D_802F26F0; break;
-                    case 5: tex = D_802F2BF0; break;
-                    case 6: tex = D_802F30F0; break;
-                    case 7: tex = D_802F35F0; break;
+                    case 0: tex = gPeopleWalkSideTex0; break;
+                    case 1: tex = gPeopleWalkSideTex1; break;
+                    case 2: tex = gPeopleWalkSideTex2; break;
+                    case 3: tex = gPeopleWalkSideTex3; break;
+                    case 4: tex = gPeopleWalkSideTex4; break;
+                    case 5: tex = gPeopleWalkSideTex5; break;
+                    case 6: tex = gPeopleWalkSideTex6; break;
+                    case 7: tex = gPeopleWalkSideTex7; break;
                 }
             }
             if (ang >= 0x400 && ang < 0x800) {
                 switch (frame) {
-                    case 0: tex = D_802EC2F0; break;
-                    case 1: tex = D_802EC7F0; break;
-                    case 2: tex = D_802ECCF0; break;
-                    case 3: tex = D_802ED1F0; break;
-                    case 4: tex = D_802ED6F0; break;
-                    case 5: tex = D_802EDBF0; break;
-                    case 6: tex = D_802EE0F0; break;
-                    case 7: tex = D_802EE5F0; break;
+                    case 0: tex = gPeopleWalkATex0; break;
+                    case 1: tex = gPeopleWalkATex1; break;
+                    case 2: tex = gPeopleWalkATex2; break;
+                    case 3: tex = gPeopleWalkATex3; break;
+                    case 4: tex = gPeopleWalkATex4; break;
+                    case 5: tex = gPeopleWalkATex5; break;
+                    case 6: tex = gPeopleWalkATex6; break;
+                    case 7: tex = gPeopleWalkATex7; break;
                 }
             }
             if (ang < 0x400) {
                 switch (frame) {
-                    case 0: tex = D_802F12F0; break;
-                    case 1: tex = D_802F17F0; break;
-                    case 2: tex = D_802F1CF0; break;
-                    case 3: tex = D_802F21F0; break;
-                    case 4: tex = D_802F26F0; break;
-                    case 5: tex = D_802F2BF0; break;
-                    case 6: tex = D_802F30F0; break;
-                    case 7: tex = D_802F35F0; break;
+                    case 0: tex = gPeopleWalkSideTex0; break;
+                    case 1: tex = gPeopleWalkSideTex1; break;
+                    case 2: tex = gPeopleWalkSideTex2; break;
+                    case 3: tex = gPeopleWalkSideTex3; break;
+                    case 4: tex = gPeopleWalkSideTex4; break;
+                    case 5: tex = gPeopleWalkSideTex5; break;
+                    case 6: tex = gPeopleWalkSideTex6; break;
+                    case 7: tex = gPeopleWalkSideTex7; break;
                 }
             }
             phys = osVirtualToPhysical(tex);
             PORT_ITAG(gdl, PORT_ITAG_PEOPLE, i);
             LOAD_TEX(phys);
-            util_copy64((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
+            util_copy64((u64 *) (&buf->vtx[n]), (u64 *) gPeopleQuadVtx, sizeof(Vtx) * 4);
             if (flip) {
                 buf->vtx[n].v.tc[0] = 0x260;
                 buf->vtx[n + 1].v.tc[0] = 0;
@@ -619,21 +619,21 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
             gSP1Triangle(gdl++, 0, 2, 3, 0);
         }
     }
-    if (D_803EF32E == 0) {
+    if (gChopperLiftAnimDone == 0) {
         i = 0;
         found = 0;
         while (i < 20 && !found) {
             if (gPeople[i].state == 3) {
                 found = 1;
                 PORT_ITAG(gdl, PORT_ITAG_MARKER, 0);
-                LOAD_TEX(osVirtualToPhysical(D_802E9FF0));
-                util_copy64((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
+                LOAD_TEX(osVirtualToPhysical(gPeopleMarkerTex));
+                util_copy64((u64 *) (&buf->vtx[n]), (u64 *) gPeopleQuadVtx, sizeof(Vtx) * 4);
                 for (j = 0; j < 4; j++) {
                     buf->vtx[n + j].v.ob[0] = fx[j];
                     buf->vtx[n + j].v.ob[1] = fy[j];
                     buf->vtx[n + j].v.ob[2] = fz[j];
                 }
-                guTranslate(&buf->mtx[8], D_803EF310 / 32.0f, D_803EF314 / 32.0f, D_803EF318 / 32.0f);
+                guTranslate(&buf->mtx[8], gChopperDropX / 32.0f, gChopperDropY / 32.0f, gChopperDropZ / 32.0f);
                 gSPMatrix(gdl++, 8 * sizeof(Mtx) + (u32) seg2Base, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
                 gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) seg2Base, 4, 0);
                 n += 4;

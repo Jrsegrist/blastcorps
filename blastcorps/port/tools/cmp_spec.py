@@ -24,13 +24,13 @@
 #   A ra=RA th=ID v=VALUE          osAiGetLength (the audio thread sizes its frames by it),
 #                                  logged at the return site RA in the caller
 #   Z ra=RA th=ID v=N              alAudioFrame asked for N samples (the audio frame size)
-#   Q ra=FUNC th=ID v=VALUE        the game retrace counter D_803156C4 as a GVI_FUNCS
+#   Q ra=FUNC th=ID v=VALUE        the game retrace counter gSchedFrameCount as a GVI_FUNCS
 #                                  function reads it (port.h PORT_GVI)
 #   U ra=RA th=ID v=WORD           cull_rsp_test's RSP visibility test: the output word it
 #                                  tests (0xE8000000 = not visible)
 #   M ra=RA th=ID c=COUNT f=FUNC q=A0 gvi=G   a message call (queue A0) / osStartThread
 #                                  (thread A0) from RA (running thread ID) at COUNT, the game's
-#                                  retrace counter D_803156C4 being G; f=enter: the entry of a
+#                                  retrace counter gSchedFrameCount being G; f=enter: the entry of a
 #                                  function that reads that counter
 #   V (as "#in" lines)             the count register at some VIs (period, wrap-around)
 # Dumps: RDRAM 0x80000000-0x80400000 as N64 big-endian bytes.
@@ -119,14 +119,14 @@ def call_site(func, callee):
 
 
 # cull_rsp_test (5FD50.c): the RSP visibility test; its answer is the first
-# word of the output buffer D_803BEB80 once rsp_wait_task has waited for it
+# word of the output buffer gCullOutput once rsp_wait_task has waited for it
 A_CULL = call_site("cull_rsp_test", "rsp_wait_task")
-A_CULLBUF = syms.get("D_803BEB80", 0x803BEB80)
+A_CULLBUF = syms.get("gCullOutput", 0x803BEB80)
 # thread switch points: the native clock catches up with the emulator's here
 SYNC = {syms[n]: n for n in ("osSendMesg", "osRecvMesg", "osJamMesg", "osStartThread")}
 
 # ... and the entries of the game functions that read the scheduler's retrace
-# counters D_803156C0/D_803156C4 (the game's clock), found by their
+# counters gSchedRetraceCount/gSchedFrameCount (the game's clock), found by their
 # `lui 0x8031 ... 0x56C0/0x56C4(reg)` accesses
 func_sizes = {}
 for path in ELFS:
@@ -180,11 +180,11 @@ for name, (a, size) in func_sizes.items():
 A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 
 # Retrace-counter reads the exe takes from the emulator (port.h PORT_GVI):
-# where the game reads D_803156C4 mid-function, after CPU time the native
+# where the game reads gSchedFrameCount mid-function, after CPU time the native
 # code doesn't take (00000.c hd_build_frame_dl: the blinking "PRESS START").
-# Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
+# Also gSchedRetraceCount (the scheduler's retrace count): hd_front_end 00000.c
 # fe_digger_frame (the vehicle select screen's title pulse).  And 50670.c
-# ghost_record (the ghost recorder's sample time, D_803156C0 - start): a
+# ghost_record (the ghost recorder's sample time, gSchedRetraceCount - start): a
 # retrace can land between its entry (a switch point) and the read.
 GVI_FUNCS = ["hd_build_frame_dl", "fe_digger_frame", "ghost_record"]
 GVI = {}
@@ -195,11 +195,11 @@ for name in GVI_FUNCS:
         if w >> 26 == 0x23 and (w & 0xFFFF) in (0x56C0, 0x56C4):
             GVI[a + i] = (name, 0x80310000 + (w & 0xFFFF))
 # Single reads in big functions, keyed by their own name "FUNC:STORE": the
-# D_803156C0 (or D_803156C4) load whose value the next few instructions store
+# gSchedRetraceCount (or gSchedFrameCount) load whose value the next few instructions store
 # to %lo STORE.  00000.c hd_main_thread:
-#   D_80364A58 = D_803156C0: the level's start time, read after the level's
+#   gLevelStartTime = gSchedRetraceCount: the level's start time, read after the level's
 #     loading CPU time the native code doesn't take;
-#   D_80364A54 = D_803156C4: when mode 0x40 starts (after a completed level's
+#   gReplayStartTime = gSchedFrameCount: when mode 0x40 starts (after a completed level's
 #     mode 0x200), read after that mode's setup calls on a loading frame.
 GVI_SITES = [("hd_main_thread", 0x4A58, 0x56C0), ("hd_main_thread", 0x4A54, 0x56C4)]
 for name, store, src in GVI_SITES:
@@ -216,7 +216,7 @@ for name, store, src in GVI_SITES:
 # Other words the exe takes from the emulator, once per retrace (port.h
 # PORT_EMU, key "FUNC:LO"): the load of ADDR (SIZE bytes) in FUNC.
 #   2C560.c __scHandleRetrace (__scHandleRetrace) counts the retrace in
-#   D_803156C0 unless gPaused (the main thread's display freeze around
+#   gSchedRetraceCount unless gPaused (the main thread's display freeze around
 #   loads) is set; the main thread clears it after its frame's CPU time
 #   (00000.c hd_game_frame, after tex_reset_decode_queue), so a retrace there sees it
 #   still set in the emulator and already clear natively.

@@ -24,8 +24,8 @@ extern s32 gDriverExitGroundY;   /* exit-path ground height */
 extern u8 gDriverExitChecking;    /* exit walk being set up */
 extern u8 gDriverExitDir;    /* exit-walk direction: 0 +z, 1 -z, 2 +x, else -x */
 extern s32 gDriverExitStop;   /* exit-walk stop coordinate */
-extern u8 D_80305CB0[];
-extern u8 D_80305CB1[];  /* exit-walk table: 5-byte records {level, vehicle, dir, mul, zone}, level -1 ends */
+extern u8 gDriverNonBlockingParts[];
+extern u8 gDriverExitWalks[];  /* exit-walk table: 5-byte records {level, vehicle, dir, mul, zone}, level -1 ends */
 s32 driver_in_exit_zone(s32 *mode);
 s32 driver_check_exit_point(s32 dist, s32 key, s32 *fp, TriSideOut *f);
 s32 func_8029AA10_fp(s32 kind, s32 fp); /* 56040.c: veh_collide_world with the asm's fp out */
@@ -186,7 +186,7 @@ void driver_stop_blend_anim(void) {
  * the vehicle's distance `dist`; returns 1 when the exit walk starts, else 0
  * (the C caller declares u8; the asm returns the full v0).
  * Unless gDriverCanExit is clear (then 0 at once), the first exit-walk record of
- * D_80305CB1 (5 bytes: level (s8, -1 ends; compared with the whole word
+ * gDriverExitWalks (5 bytes: level (s8, -1 ends; compared with the whole word
  * levelno), vehicle type, direction, multiplier, zone mode) for this level
  * and gCurVehicle - with zone mode 0 or driver_in_exit_zone(zone mode) true - gives
  * the direction (default 0) and multiplier (default 1). The path from the
@@ -198,7 +198,7 @@ void driver_stop_blend_anim(void) {
  * last checked z (directions 0/1) or x, the position = the player's (y + 500
  * for vehicle types 0xB, 0x11, 0x12), gDriverExitWalk = 1, channel 1 restarted
  * looping, gCamDistance / gCamHeightBase = 0xD48, 0. gDriverExitChecking is 1 while this runs and
- * D_803F7812 is 1 during the call.
+ * gCollExitProbe is 1 during the call.
  * Fidelity note: driver_check_exit_point's veh_reground inputs come from leftover
  * registers in the asm: key t8 = gCurVehicle << 2 (what the C caller
  * veh_leave leaves in t8 at the call), reproduced here; fp is the C
@@ -222,9 +222,9 @@ s32 driver_try_exit(s32 dist) {
     s32 t;
     TriSideOut f;
 
-    D_803F7812 = 1;
+    gCollExitProbe = 1;
     if (gDriverCanExit != 0) {
-        for (rec = D_80305CB1; (s8) rec[0] != -1; rec += 5) {
+        for (rec = gDriverExitWalks; (s8) rec[0] != -1; rec += 5) {
             if ((s8) rec[0] != levelno || rec[1] != gCurVehicle) {
                 continue;
             }
@@ -297,7 +297,7 @@ s32 driver_try_exit(s32 dist) {
     }
 done:
     gDriverExitChecking = 0;
-    D_803F7812 = 0;
+    gCollExitProbe = 0;
     return ret;
 }
 #else
@@ -341,13 +341,13 @@ s32 driver_in_exit_zone(s32 *mode) {
 /* Puts the driver at one walk-out point; 1 if it is free (0x802AEC3C).
  * One exit-walk path check for vehicle 0 ($gp = gDriverState, read directly):
  * puts the vehicle `dist` from the player in direction gDriverExitDir (gDriverPos
- * / D_803ED810; 0: z + dist, 1: z - dist, 2: x + dist, else x - dist), follows
+ * / gDriverZ; 0: z + dist, 1: z - dist, 2: x + dist, else x - dist), follows
  * the ground there (veh_reground at height gDriverExitGroundY; middle height into
- * D_803ED80C), places the model (driver_build_model), sets gDriverExitGroundY to the mean
+ * gDriverY), places the model (driver_build_model), sets gDriverExitGroundY to the mean
  * of the wheel heights +0x10/+0x1C (logical >> 1), resets the collision state
  * (veh_collision_setup with b0 = 0 and h2 = the part-list end, as driver_build_model
  * leaves them in t0/t2), runs the world and object collision passes
- * (veh_collide_world(0), D_803F77D0 = gDriverAnim, obj_collide_vehicle(0)) and, outside
+ * (veh_collide_world(0), gCollVehicleAnim = gDriverAnim, obj_collide_vehicle(0)) and, outside
  * vehicle type 0xB, tnt_test_point at the position. Returns 1 when the spot is
  * free (gCollHit clear), else 0.
  * Register convention (conventions.txt): dist a2, result a3; veh_reground's
@@ -388,9 +388,9 @@ s32 driver_check_exit_point(s32 dist, s32 key, s32 *fp, TriSideOut *f) {
                   (s16 *) (gDriverState + 0x4C), key, *fp, gDriverState, f, &o);
     end = driver_build_model();
     gDriverExitGroundY = (u32) (*(s32 *) (gDriverState + 0x10) + *(s32 *) (gDriverState + 0x1C)) >> 1;
-    veh_collision_setup(pos[2], (s32) D_80305CB0, 0, 0, pos[0], pos[1], 0, 0, (s32) end, 0, 0, gDriverState);
+    veh_collision_setup(pos[2], (s32) gDriverNonBlockingParts, 0, 0, pos[0], pos[1], 0, 0, (s32) end, 0, 0, gDriverState);
     *fp = func_8029AA10_fp(0, *fp);
-    D_803F77D0 = gDriverAnim;
+    gCollVehicleAnim = gDriverAnim;
     obj_collide_vehicle(0, gDriverState);
     if (gCurVehicle != 0xB) {
         tnt_test_point(pos[0], pos[1], pos[2]);
@@ -477,7 +477,7 @@ static void port_aeec8_ring(void) {
  * (veh_collide_spheres(0)), world collision (veh_collide_world(0)), the object pass
  * (obj_collide_vehicle(0)), and then the ring-steering branch when gCollBlocked is
  * set, else gDriverDeflecting = 0. Finally the player position/speed/headings
- * gPlayerX..Z / D_8036443C..40 are copied from the vehicle and the
+ * gPlayerX..Z / gPlayerSpeed..40 are copied from the vehicle and the
  * position reported (veh_set_record(z, 0, x, y)).
  * Fidelity notes: the asm feeds driver_zone_alpha its C caller's t6, t7, s0-s4
  * (0 here; the results are unused), driver_exit_walk_step its C caller's t8 as the
@@ -559,11 +559,11 @@ animate:
         if (mode & 0x1801) {
             gDriverDeflecting = 0;
         } else {
-            veh_collision_setup(pos[2], (s32) D_80305CB0, 0, 0, pos[0], pos[1], 0, *(s16 *) (gDriverState + 0x76),
+            veh_collision_setup(pos[2], (s32) gDriverNonBlockingParts, 0, 0, pos[0], pos[1], 0, *(s16 *) (gDriverState + 0x76),
                           (s32) end, 0, 0, gDriverState);
             veh_collide_spheres(0, gDriverState);
             veh_collide_world(0);
-            D_803F77D0 = gDriverAnim;
+            gCollVehicleAnim = gDriverAnim;
             obj_collide_vehicle(0, gDriverState);
             if (gCollBlocked != 0) {
                 port_aeec8_ring();
@@ -575,9 +575,9 @@ animate:
     gPlayerX = pos[0];
     gPlayerY = pos[1];
     gPlayerZ = pos[2];
-    D_8036443C = *(s16 *) (gDriverState + 0x76);
-    D_8036443E = *(u16 *) (gDriverState + 0x4E);
-    D_80364440 = *(u16 *) (gDriverState + 0x4C);
+    gPlayerSpeed = *(s16 *) (gDriverState + 0x76);
+    gPlayerMoveHeading = *(u16 *) (gDriverState + 0x4E);
+    gPlayerHeading = *(u16 *) (gDriverState + 0x4C);
     veh_set_record(pos[2], 0, pos[0], pos[1], gDriverState);
 }
 #else
@@ -592,9 +592,9 @@ extern s32 gDriverExitStop;   /* exit-walk stop coordinate */
 
 /* One frame of the walk away from the vehicle just left (0x802AF340).
  * Drive-in step of vehicle 0 ($gp = gDriverState, read directly): speed +0x76 =
- * 80, the position gDriverPos (x) / D_803ED810 (z) moves 100 in the direction
+ * 80, the position gDriverPos (x) / gDriverZ (z) moves 100 in the direction
  * gDriverExitDir, the ground is followed with veh_reground (wheel heights into
- * +4, middle height into D_803ED80C), and once the position reaches (or
+ * +4, middle height into gDriverY), and once the position reaches (or
  * passes) gDriverExitStop the exit walk ends (gDriverExitWalk = 0, speed 0). Then the
  * shadow/marker record 0 is updated: veh_update_shadow(0, x, (gSlotGroundY[1] +
  * [2]) >> 1 (logical), z, y, ...).

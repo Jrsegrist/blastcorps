@@ -35,67 +35,67 @@ extern u32 gHeapPtr; /* heap pointer */
 #endif
 
 /* dial */
-extern u32 D_8036EC00; /* texture */
-extern Vtx * N64P D_8036EC04; /* 4 dial + 4 needle vertices */
-extern Mtx * N64P D_8036EC08; /* needle rotation, one per frame */
-extern Mtx * N64P D_8036EC0C; /* needle translation, one per frame */
-extern s16 D_8036EC10;  /* alpha */
+extern u32 gHudDialTex; /* texture */
+extern Vtx * N64P gHudDialVtx; /* 4 dial + 4 needle vertices */
+extern Mtx * N64P gHudDialNeedleRotMtx; /* needle rotation, one per frame */
+extern Mtx * N64P gHudDialNeedlePosMtx; /* needle translation, one per frame */
+extern s16 gHudDialAlpha;  /* alpha */
 /* icon 1 */
-extern u32 D_8036EC14;
-extern Vtx * N64P D_8036EC18;
-extern s16 D_8036EC1C;
+extern u32 gHudMissileIconTex;
+extern Vtx * N64P gHudMissileIconVtx;
+extern s16 gHudMissileIconAlpha;
 /* icon 2 */
-extern u32 D_8036EC20;
-extern Vtx * N64P D_8036EC24;
-extern s16 D_8036EC28;
+extern u32 gHudRamIconTex;
+extern Vtx * N64P gHudRamIconVtx;
+extern s16 gHudRamIconAlpha;
 
 
 /* Skyfall's boost dial (0x80286A00).
  * Load the dial texture (0x760) and build its vertices */
 void hud_init_boost_dial(void) {
     gHudDialLoaded = 1;
-    D_8036EC00 = gHeapPtr;
+    gHudDialTex = gHeapPtr;
     tex_get(0x760, 0);
-    D_8036EC08 = (Mtx *) gHeapPtr;
-    D_8036EC0C = (Mtx *) (gHeapPtr += 0x80);
-    D_8036EC04 = (Vtx *) (gHeapPtr += 0x80);
+    gHudDialNeedleRotMtx = (Mtx *) gHeapPtr;
+    gHudDialNeedlePosMtx = (Mtx *) (gHeapPtr += 0x80);
+    gHudDialVtx = (Vtx *) (gHeapPtr += 0x80);
     gHeapPtr += 0x80;
 #ifdef PORT_HOST
-    port_vtx_stale(D_8036EC04, 8);
+    port_vtx_stale(gHudDialVtx, 8);
 #endif
-    D_8036EC04[0].v.ob[0] = 38;
-    D_8036EC04[0].v.ob[1] = 123;
-    D_8036EC04[0].v.ob[2] = -5;
-    D_8036EC04[0].v.tc[0] = 0;
-    D_8036EC04[0].v.tc[1] = 1248;
-    D_8036EC04[1].v.ob[0] = 77;
-    D_8036EC04[1].v.ob[1] = 123;
-    D_8036EC04[1].v.ob[2] = -5;
-    D_8036EC04[1].v.tc[0] = 1248;
-    D_8036EC04[1].v.tc[1] = 1248;
-    D_8036EC04[2].v.ob[0] = 77;
-    D_8036EC04[2].v.ob[1] = 173;
-    D_8036EC04[2].v.ob[2] = -5;
-    D_8036EC04[2].v.tc[0] = 1248;
-    D_8036EC04[2].v.tc[1] = 0;
-    D_8036EC04[3].v.ob[0] = 38;
-    D_8036EC04[3].v.ob[1] = 173;
-    D_8036EC04[3].v.ob[2] = -5;
-    D_8036EC04[3].v.tc[0] = 0;
-    D_8036EC04[3].v.tc[1] = 0;
-    D_8036EC04[4].v.ob[0] = -1;
-    D_8036EC04[4].v.ob[1] = 0;
-    D_8036EC04[4].v.ob[2] = -5;
-    D_8036EC04[5].v.ob[0] = 1;
-    D_8036EC04[5].v.ob[1] = 0;
-    D_8036EC04[5].v.ob[2] = -5;
-    D_8036EC04[6].v.ob[0] = -1;
-    D_8036EC04[6].v.ob[1] = -17;
-    D_8036EC04[6].v.ob[2] = -5;
-    D_8036EC04[7].v.ob[0] = 1;
-    D_8036EC04[7].v.ob[1] = -17;
-    D_8036EC04[7].v.ob[2] = -5;
-    D_8036EC10 = 0;
+    gHudDialVtx[0].v.ob[0] = 38;
+    gHudDialVtx[0].v.ob[1] = 123;
+    gHudDialVtx[0].v.ob[2] = -5;
+    gHudDialVtx[0].v.tc[0] = 0;
+    gHudDialVtx[0].v.tc[1] = 1248;
+    gHudDialVtx[1].v.ob[0] = 77;
+    gHudDialVtx[1].v.ob[1] = 123;
+    gHudDialVtx[1].v.ob[2] = -5;
+    gHudDialVtx[1].v.tc[0] = 1248;
+    gHudDialVtx[1].v.tc[1] = 1248;
+    gHudDialVtx[2].v.ob[0] = 77;
+    gHudDialVtx[2].v.ob[1] = 173;
+    gHudDialVtx[2].v.ob[2] = -5;
+    gHudDialVtx[2].v.tc[0] = 1248;
+    gHudDialVtx[2].v.tc[1] = 0;
+    gHudDialVtx[3].v.ob[0] = 38;
+    gHudDialVtx[3].v.ob[1] = 173;
+    gHudDialVtx[3].v.ob[2] = -5;
+    gHudDialVtx[3].v.tc[0] = 0;
+    gHudDialVtx[3].v.tc[1] = 0;
+    gHudDialVtx[4].v.ob[0] = -1;
+    gHudDialVtx[4].v.ob[1] = 0;
+    gHudDialVtx[4].v.ob[2] = -5;
+    gHudDialVtx[5].v.ob[0] = 1;
+    gHudDialVtx[5].v.ob[1] = 0;
+    gHudDialVtx[5].v.ob[2] = -5;
+    gHudDialVtx[6].v.ob[0] = -1;
+    gHudDialVtx[6].v.ob[1] = -17;
+    gHudDialVtx[6].v.ob[2] = -5;
+    gHudDialVtx[7].v.ob[0] = 1;
+    gHudDialVtx[7].v.ob[1] = -17;
+    gHudDialVtx[7].v.ob[2] = -5;
+    gHudDialAlpha = 0;
 }
 
 /* The dial's needle from gSkyfallBoostMeter (0x80286C60).
@@ -103,19 +103,19 @@ void hud_init_boost_dial(void) {
 void hud_draw_boost_dial(Gfx **gfxp, s32 arg1, u8 frame, u8 arg3) {
     Gfx *gdl = *gfxp;
 
-    if (arg3 != 3 && D_8036EC10 == 0) {
+    if (arg3 != 3 && gHudDialAlpha == 0) {
         return;
     }
-    if (arg3 == 3 && D_8036EC10 < 0xFF) {
-        D_8036EC10 += 10;
-        if (D_8036EC10 > 0xFF) {
-            D_8036EC10 = 0xFF;
+    if (arg3 == 3 && gHudDialAlpha < 0xFF) {
+        gHudDialAlpha += 10;
+        if (gHudDialAlpha > 0xFF) {
+            gHudDialAlpha = 0xFF;
         }
     }
-    if (arg3 != 3 && D_8036EC10 != 0) {
-        D_8036EC10 -= 10;
-        if (D_8036EC10 < 0) {
-            D_8036EC10 = 0;
+    if (arg3 != 3 && gHudDialAlpha != 0) {
+        gHudDialAlpha -= 10;
+        if (gHudDialAlpha < 0) {
+            gHudDialAlpha = 0;
         }
     }
     gSPMatrix(gdl++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -126,22 +126,22 @@ void hud_draw_boost_dial(Gfx **gfxp, s32 arg1, u8 frame, u8 arg3) {
     gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
     gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, MIN(D_8036EC10, gHudAlpha));
+    gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, MIN(gHudDialAlpha, gHudAlpha));
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036EC00), G_IM_FMT_RGBA, G_IM_SIZ_16b, 40, 40, 0,
+    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gHudDialTex), G_IM_FMT_RGBA, G_IM_SIZ_16b, 40, 40, 0,
                         G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(D_8036EC04), 4, 0);
+    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(gHudDialVtx), 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
     gDPSetRenderMode(gdl++, G_RM_AA_XLU_SURF, G_RM_AA_XLU_SURF2);
     gDPSetCombineMode(gdl++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-    guTranslate(&D_8036EC0C[frame], 56.0f, 151.0f, 0.0f);
-    gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(&D_8036EC0C[frame]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    guRotate(&D_8036EC08[frame], (u32) gSkyfallBoostMeter / 100.0f * 180.0 + 270.0, 0.0f, 0.0f, 1.0f);
-    gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(&D_8036EC08[frame]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(&D_8036EC04[4]), 4, 0);
+    guTranslate(&gHudDialNeedlePosMtx[frame], 56.0f, 151.0f, 0.0f);
+    gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(&gHudDialNeedlePosMtx[frame]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    guRotate(&gHudDialNeedleRotMtx[frame], (u32) gSkyfallBoostMeter / 100.0f * 180.0 + 270.0, 0.0f, 0.0f, 1.0f);
+    gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(&gHudDialNeedleRotMtx[frame]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(&gHudDialVtx[4]), 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 1, 2, 3, 0);
     gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
@@ -153,34 +153,34 @@ void hud_draw_boost_dial(Gfx **gfxp, s32 arg1, u8 frame, u8 arg3) {
  * Load icon 1 (0x996) and build its quad */
 void hud_init_missile_icon(void) {
     gHudMissileIconLoaded = 1;
-    D_8036EC14 = gHeapPtr;
+    gHudMissileIconTex = gHeapPtr;
     tex_get(0x996, 0);
-    D_8036EC18 = (Vtx *) gHeapPtr;
+    gHudMissileIconVtx = (Vtx *) gHeapPtr;
     gHeapPtr += 0x40;
 #ifdef PORT_HOST
-    port_vtx_stale(D_8036EC18, 4);
+    port_vtx_stale(gHudMissileIconVtx, 4);
 #endif
-    D_8036EC18[0].v.ob[0] = 34;
-    D_8036EC18[0].v.ob[1] = 135;
-    D_8036EC18[0].v.ob[2] = -5;
-    D_8036EC18[0].v.tc[0] = 0;
-    D_8036EC18[0].v.tc[1] = 992;
-    D_8036EC18[1].v.ob[0] = 64;
-    D_8036EC18[1].v.ob[1] = 135;
-    D_8036EC18[1].v.ob[2] = -5;
-    D_8036EC18[1].v.tc[0] = 992;
-    D_8036EC18[1].v.tc[1] = 992;
-    D_8036EC18[2].v.ob[0] = 64;
-    D_8036EC18[2].v.ob[1] = 165;
-    D_8036EC18[2].v.ob[2] = -5;
-    D_8036EC18[2].v.tc[0] = 992;
-    D_8036EC18[2].v.tc[1] = 0;
-    D_8036EC18[3].v.ob[0] = 34;
-    D_8036EC18[3].v.ob[1] = 165;
-    D_8036EC18[3].v.ob[2] = -5;
-    D_8036EC18[3].v.tc[0] = 0;
-    D_8036EC18[3].v.tc[1] = 0;
-    D_8036EC1C = 0;
+    gHudMissileIconVtx[0].v.ob[0] = 34;
+    gHudMissileIconVtx[0].v.ob[1] = 135;
+    gHudMissileIconVtx[0].v.ob[2] = -5;
+    gHudMissileIconVtx[0].v.tc[0] = 0;
+    gHudMissileIconVtx[0].v.tc[1] = 992;
+    gHudMissileIconVtx[1].v.ob[0] = 64;
+    gHudMissileIconVtx[1].v.ob[1] = 135;
+    gHudMissileIconVtx[1].v.ob[2] = -5;
+    gHudMissileIconVtx[1].v.tc[0] = 992;
+    gHudMissileIconVtx[1].v.tc[1] = 992;
+    gHudMissileIconVtx[2].v.ob[0] = 64;
+    gHudMissileIconVtx[2].v.ob[1] = 165;
+    gHudMissileIconVtx[2].v.ob[2] = -5;
+    gHudMissileIconVtx[2].v.tc[0] = 992;
+    gHudMissileIconVtx[2].v.tc[1] = 0;
+    gHudMissileIconVtx[3].v.ob[0] = 34;
+    gHudMissileIconVtx[3].v.ob[1] = 165;
+    gHudMissileIconVtx[3].v.ob[2] = -5;
+    gHudMissileIconVtx[3].v.tc[0] = 0;
+    gHudMissileIconVtx[3].v.tc[1] = 0;
+    gHudMissileIconAlpha = 0;
 }
 
 /* The icon and gBallistaMissiles (0x80287530).
@@ -189,19 +189,19 @@ void hud_draw_missile_icon(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     Gfx *gdl = *gfxp;
     char buf[20];
 
-    if (arg3 != 10 && D_8036EC1C == 0) {
+    if (arg3 != 10 && gHudMissileIconAlpha == 0) {
         return;
     }
-    if (arg3 == 10 && D_8036EC1C < 0xFF) {
-        D_8036EC1C += 10;
-        if (D_8036EC1C > 0xFF) {
-            D_8036EC1C = 0xFF;
+    if (arg3 == 10 && gHudMissileIconAlpha < 0xFF) {
+        gHudMissileIconAlpha += 10;
+        if (gHudMissileIconAlpha > 0xFF) {
+            gHudMissileIconAlpha = 0xFF;
         }
     }
-    if (arg3 != 10 && D_8036EC1C != 0) {
-        D_8036EC1C -= 10;
-        if (D_8036EC1C < 0) {
-            D_8036EC1C = 0;
+    if (arg3 != 10 && gHudMissileIconAlpha != 0) {
+        gHudMissileIconAlpha -= 10;
+        if (gHudMissileIconAlpha < 0) {
+            gHudMissileIconAlpha = 0;
         }
     }
     gSPMatrix(gdl++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -212,17 +212,17 @@ void hud_draw_missile_icon(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
     gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, MIN(D_8036EC1C, gHudAlpha));
+    gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, MIN(gHudMissileIconAlpha, gHudAlpha));
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036EC14), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gHudMissileIconTex), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                         G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(D_8036EC18), 4, 0);
+    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(gHudMissileIconVtx), 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
     util_itoa(gBallistaMissiles, (u8 *) buf);
-    text_print_gradient(gfxp2, (u8 *) buf, 0, 1, 0, 0x40, 0x91, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC1C, gHudAlpha), 0xFF, 0, 0,
-                  MIN(D_8036EC1C, gHudAlpha));
+    text_print_gradient(gfxp2, (u8 *) buf, 0, 1, 0, 0x40, 0x91, 15, 15, 1, 0xFF, 0xFF, 0, MIN(gHudMissileIconAlpha, gHudAlpha), 0xFF, 0, 0,
+                  MIN(gHudMissileIconAlpha, gHudAlpha));
     gDPPipeSync(gdl++);
     *gfxp = gdl;
 }
@@ -231,34 +231,34 @@ void hud_draw_missile_icon(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
  * Load icon 2 (0x998) and build its quad */
 void hud_init_ram_icon(void) {
     gHudRamIconLoaded = 1;
-    D_8036EC20 = gHeapPtr;
+    gHudRamIconTex = gHeapPtr;
     tex_get(0x998, 0);
-    D_8036EC24 = (Vtx *) gHeapPtr;
+    gHudRamIconVtx = (Vtx *) gHeapPtr;
     gHeapPtr += 0x40;
 #ifdef PORT_HOST
-    port_vtx_stale(D_8036EC24, 4);
+    port_vtx_stale(gHudRamIconVtx, 4);
 #endif
-    D_8036EC24[0].v.ob[0] = 34;
-    D_8036EC24[0].v.ob[1] = 145;
-    D_8036EC24[0].v.ob[2] = -5;
-    D_8036EC24[0].v.tc[0] = 0;
-    D_8036EC24[0].v.tc[1] = 992;
-    D_8036EC24[1].v.ob[0] = 64;
-    D_8036EC24[1].v.ob[1] = 145;
-    D_8036EC24[1].v.ob[2] = -5;
-    D_8036EC24[1].v.tc[0] = 992;
-    D_8036EC24[1].v.tc[1] = 992;
-    D_8036EC24[2].v.ob[0] = 64;
-    D_8036EC24[2].v.ob[1] = 175;
-    D_8036EC24[2].v.ob[2] = -5;
-    D_8036EC24[2].v.tc[0] = 992;
-    D_8036EC24[2].v.tc[1] = 0;
-    D_8036EC24[3].v.ob[0] = 34;
-    D_8036EC24[3].v.ob[1] = 175;
-    D_8036EC24[3].v.ob[2] = -5;
-    D_8036EC24[3].v.tc[0] = 0;
-    D_8036EC24[3].v.tc[1] = 0;
-    D_8036EC28 = 0;
+    gHudRamIconVtx[0].v.ob[0] = 34;
+    gHudRamIconVtx[0].v.ob[1] = 145;
+    gHudRamIconVtx[0].v.ob[2] = -5;
+    gHudRamIconVtx[0].v.tc[0] = 0;
+    gHudRamIconVtx[0].v.tc[1] = 992;
+    gHudRamIconVtx[1].v.ob[0] = 64;
+    gHudRamIconVtx[1].v.ob[1] = 145;
+    gHudRamIconVtx[1].v.ob[2] = -5;
+    gHudRamIconVtx[1].v.tc[0] = 992;
+    gHudRamIconVtx[1].v.tc[1] = 992;
+    gHudRamIconVtx[2].v.ob[0] = 64;
+    gHudRamIconVtx[2].v.ob[1] = 175;
+    gHudRamIconVtx[2].v.ob[2] = -5;
+    gHudRamIconVtx[2].v.tc[0] = 992;
+    gHudRamIconVtx[2].v.tc[1] = 0;
+    gHudRamIconVtx[3].v.ob[0] = 34;
+    gHudRamIconVtx[3].v.ob[1] = 175;
+    gHudRamIconVtx[3].v.ob[2] = -5;
+    gHudRamIconVtx[3].v.tc[0] = 0;
+    gHudRamIconVtx[3].v.tc[1] = 0;
+    gHudRamIconAlpha = 0;
 }
 
 /* The icon and gSideswipeRamCharges (0x80287C68).
@@ -267,19 +267,19 @@ void hud_draw_ram_icon(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     Gfx *gdl = *gfxp;
     char buf[20];
 
-    if (arg3 != 1 && D_8036EC28 == 0) {
+    if (arg3 != 1 && gHudRamIconAlpha == 0) {
         return;
     }
-    if (arg3 == 1 && D_8036EC28 < 0xFF) {
-        D_8036EC28 += 10;
-        if (D_8036EC28 > 0xFF) {
-            D_8036EC28 = 0xFF;
+    if (arg3 == 1 && gHudRamIconAlpha < 0xFF) {
+        gHudRamIconAlpha += 10;
+        if (gHudRamIconAlpha > 0xFF) {
+            gHudRamIconAlpha = 0xFF;
         }
     }
-    if (arg3 != 1 && D_8036EC28 != 0) {
-        D_8036EC28 -= 10;
-        if (D_8036EC28 < 0) {
-            D_8036EC28 = 0;
+    if (arg3 != 1 && gHudRamIconAlpha != 0) {
+        gHudRamIconAlpha -= 10;
+        if (gHudRamIconAlpha < 0) {
+            gHudRamIconAlpha = 0;
         }
     }
     gSPMatrix(gdl++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -290,17 +290,17 @@ void hud_draw_ram_icon(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
     gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, MIN(D_8036EC28, gHudAlpha));
+    gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, MIN(gHudRamIconAlpha, gHudAlpha));
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036EC20), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gHudRamIconTex), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                         G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(D_8036EC24), 4, 0);
+    gSPVertex(gdl++, OS_K0_TO_PHYSICAL(gHudRamIconVtx), 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
     util_itoa(gSideswipeRamCharges, (u8 *) buf);
-    text_print_gradient(gfxp2, (u8 *) buf, 0, 1, 0, 0x44, 0x97, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC28, gHudAlpha), 0xFF, 0, 0,
-                  MIN(D_8036EC28, gHudAlpha));
+    text_print_gradient(gfxp2, (u8 *) buf, 0, 1, 0, 0x44, 0x97, 15, 15, 1, 0xFF, 0xFF, 0, MIN(gHudRamIconAlpha, gHudAlpha), 0xFF, 0, 0,
+                  MIN(gHudRamIconAlpha, gHudAlpha));
     gDPPipeSync(gdl++);
     *gfxp = gdl;
 }

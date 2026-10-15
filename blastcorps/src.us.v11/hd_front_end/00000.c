@@ -10,7 +10,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F47B0 ((u8 *) D_802F47B0)
+#define gYoshiColors ((u8 *) gYoshiColors)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #define players ((PlayerInfo *) players)
 /* end of views */
@@ -23,9 +23,9 @@
 #ifndef NON_MATCHING
 extern s32 gSfxBank;
 #endif
-extern f32 D_802FDAC0[];
+extern f32 gDiggerModelScale[];
 
-extern u16 D_80304954[];
+extern u16 gDiggerTitleJText[];
 
 typedef struct {
     u8 pad0[0x14];
@@ -41,7 +41,7 @@ extern Mtx gDiggerTiltMtx;
 extern s16 gDiggerSel; /* selected slot */
 extern s16 gDiggerCount; /* number of slots */
 extern f32 gDiggerVehicleX[];
-extern u8 D_80211AC0[][0x300];
+extern u8 gDiggerAnimTables[][0x300];
 extern u8 gDiggerSlotVehicle[]; /* slot -> vehicle */
 extern f32 gDiggerCamXGoal;
 extern f32 gDiggerCamX;
@@ -60,16 +60,16 @@ typedef struct {
 
 /* .data, per vehicle (19) */
 char * N64P gDiggerTitle = N64_DPTR("SELECT VEHICLE!");
-u16 * N64P gDiggerTitleGlyphs = N64_DPTR(D_80304954);
+u16 * N64P gDiggerTitleGlyphs = N64_DPTR(gDiggerTitleJText);
 s32 D_80208048 = 0xFFFF0000;
-u8 D_8020804C[19] = { 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-Struct80208060 D_80208060[19] = {
+u8 gDiggerAnimLoopMode[19] = { 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+Struct80208060 gDiggerAnimInterp[19] = {
     { 0, 0.0f }, { 0, 0.0f }, { 1, 0.5f }, { 0, 0.0f }, { 0, 0.0f }, { 0, 0.0f }, { 0, 0.0f },
     { 0, 0.0f }, { 0, 0.0f }, { 1, 0.5f }, { 0, 0.0f }, { 0, 0.0f }, { 0, 0.0f }, { 0, 0.0f },
     { 0, 0.0f }, { 0, 0.0f }, { 1, 0.5f }, { 0, 0.0f }, { 0, 0.0f },
 };
-u8 D_802080F8[19] = { 1, 1, 1, 1, 1, 1, 2, 1, 1, 6, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
-u8 D_8020810C[19] = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 12, 3, 3, 3, 3, 3, 3, 3, 3 };
+u8 gDiggerAnimChannel[19] = { 1, 1, 1, 1, 1, 1, 2, 1, 1, 6, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
+u8 gDiggerAnimSpeed[19] = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 12, 3, 3, 3, 3, 3, 3, 3, 3 };
 f32 gDiggerViewDist[19] = {
     220.0f, 400.0f, 800.0f, 320.0f, 400.0f, 460.0f, 400.0f, 400.0f, 320.0f, 550.0f,
     320.0f, 320.0f, 500.0f, 320.0f, 320.0f, 320.0f, 320.0f, 320.0f, 320.0f,
@@ -112,20 +112,20 @@ s32 fe_digger_init(void) {
     level = &gLevelInfo[levelno];
     gDiggerCount = 0;
     unused = 0xE73C;
-    gDiggerPrevVehicle = D_803643D4;
+    gDiggerPrevVehicle = gDiggerVehicle;
     anim_tex_init();
     for (i = 0; i < 19; i++) {
         slot[i] = -1;
         if ((players[playerNumberAtStart].vehiclesUnlocked & (1 << i) & level->vehicles) &&
-            (playerNumber == playerNumberAtStart || gBestTimes[playerNumberAtStart][D_802E8C44[i]] != 0)) {
+            (playerNumber == playerNumberAtStart || gBestTimes[playerNumberAtStart][gVehicleTimeSlot[i]] != 0)) {
             fe_load_model(i, (u8 * N64P *) &gDiggerModels[gDiggerCount], (u8 * N64P *) gDiggerMtxBufs[gDiggerCount], (u8 * N64P *) gDiggerDls[gDiggerCount]);
             gDiggerVehicleX[i] = x;
             x += 380.0;
             guTranslate(&gDiggerTransMtx[gDiggerCount], gDiggerVehicleX[i], gDiggerModelY[i], 0.0f);
-            guScale(&gDiggerScaleMtx[gDiggerCount], D_802FDAC0[i], D_802FDAC0[i], D_802FDAC0[i]);
-            fe_anim_init_model((u8 *) gDiggerModels[gDiggerCount], (u32 * N64P *) gDiggerMtxBufs[gDiggerCount], D_80211AC0[gDiggerCount]);
-            fe_anim_start_channel(D_80211AC0[gDiggerCount], D_802080F8[i], D_8020804C[i], D_80208060[i].unk0,
-                          D_80208060[i].unk4, D_8020810C[i], 0);
+            guScale(&gDiggerScaleMtx[gDiggerCount], gDiggerModelScale[i], gDiggerModelScale[i], gDiggerModelScale[i]);
+            fe_anim_init_model((u8 *) gDiggerModels[gDiggerCount], (u32 * N64P *) gDiggerMtxBufs[gDiggerCount], gDiggerAnimTables[gDiggerCount]);
+            fe_anim_start_channel(gDiggerAnimTables[gDiggerCount], gDiggerAnimChannel[i], gDiggerAnimLoopMode[i], gDiggerAnimInterp[i].unk0,
+                          gDiggerAnimInterp[i].unk4, gDiggerAnimSpeed[i], 0);
             fe_veh_reset_tex_anims(i);
             gDiggerSlotVehicle[gDiggerCount] = i;
             slot[i] = gDiggerCount;
@@ -142,7 +142,7 @@ s32 fe_digger_init(void) {
         case MODE_LEVEL:
         case MODE_MAP_VIEW:
         case MODE_RESULTS:
-            sel = slot[D_803643D4];
+            sel = slot[gDiggerVehicle];
             break;
         case MODE_WORLD:
             break;
@@ -164,7 +164,7 @@ s32 fe_digger_init(void) {
  * play its sound and load its two float parameters. */
 void fe_digger_select(u8 arg0) {
     gDiggerSel = arg0;
-    D_803643D4 = gDiggerSlotVehicle[arg0];
+    gDiggerVehicle = gDiggerSlotVehicle[arg0];
     snd_stop_all_looping();
     snd_play(gSfxBank, gDiggerSelectSound[gDiggerSlotVehicle[arg0]], 0);
     gDiggerCamXGoal = gDiggerVehicleX[gDiggerSlotVehicle[arg0]];
@@ -205,7 +205,7 @@ void fe_digger_frame(void) {
             snd_play(gSfxBank, SFX_SELECT, 0);
         } else if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000)) {
             snd_play(gSfxBank, SFX_BACK, 0);
-            D_803643D4 = gDiggerPrevVehicle;
+            gDiggerVehicle = gDiggerPrevVehicle;
             switch (gPrevGameMode) {
                 case MODE_LEVEL_STATUS:
                 case MODE_RESULTS:
@@ -273,7 +273,7 @@ void fe_digger_frame(void) {
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     text_print((Gfx * N64P *) dyn, (u8 *) gDiggerTitle, gDiggerTitleGlyphs, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
-    if (PORT_GVI("fe_digger_frame", D_803156C0) % 20 * 60 / 60 < 16) {
+    if (PORT_GVI("fe_digger_frame", gSchedRetraceCount) % 20 * 60 / 60 < 16) {
         D_802081B0 += D_802081B4 * 30;
         if (D_802081B0 >= 0x100) {
             D_802081B0 -= 60;
@@ -312,7 +312,7 @@ void fe_digger_frame(void) {
             if (gDiggerSel == i) {
                 off = *(s32 *) (gDiggerModels[i]->unk18 + (u8 *) gDiggerModels[i] + 4);
                 mtx = (Mtx *) ((u8 *) gDiggerMtxBufs[i][flag] + off);
-                fe_anim_update_model(D_80211AC0[i], gDiggerMtxBufs[i][gBufferIndex], gDiggerMtxBufs[i][gBufferIndex ^ 1]);
+                fe_anim_update_model(gDiggerAnimTables[i], gDiggerMtxBufs[i][gBufferIndex], gDiggerMtxBufs[i][gBufferIndex ^ 1]);
                 guRotate(mtx, (gDiggerSpin[i] += 4) % 360, 0.0f, 1.0f, 0.0f);
                 osWritebackDCache(mtx, sizeof(Mtx));
                 fe_veh_set_heading_tex_anims(gDiggerSlotVehicle[i], (f32) ((gDiggerSpin[i] + 180) % 360) * 11.37778);
@@ -338,7 +338,7 @@ void fe_digger_frame(void) {
         D_802081AC = -D_802081AC;
     }
     if (gDiggerSel + 1 != gDiggerCount) {
-        u8 *c = &D_802F47B0[0x98];
+        u8 *c = &gYoshiColors[0x98];
 
         vtx = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 2, vtx, gDiggerArrowPulse + 0x108, 0x20, gDiggerArrowPulse / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
@@ -351,7 +351,7 @@ void fe_digger_frame(void) {
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
     if (gDiggerSel > 0) {
-        u8 *c = &D_802F47B0[0x98];
+        u8 *c = &gYoshiColors[0x98];
 
         vtx = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 3, vtx, 0x34 - gDiggerArrowPulse, 0x20, gDiggerArrowPulse / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);

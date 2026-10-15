@@ -44,20 +44,20 @@ typedef struct {
     u8 pad14[8];
 } MenuEntry;
 
-extern s16 D_8020E3E0[];      /* sound per picture */
-extern char D_8020E3E8[][18]; /* picture titles */
-extern void * N64P D_8020E430[];
+extern s16 gAttractPicSounds[];      /* sound per picture */
+extern char gAttractPicTitles[][18]; /* picture titles */
+extern void * N64P gAttractPicTitleJText[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* heap pointer */
 #endif
-extern s16 D_8036BB1C;
+extern s16 yoshiState;
 
 extern u8 * N64P gAttractPics[4]; /* the four inflated pictures */
 extern u8 gAttractPicNo;     /* current picture */
 extern u8 gAttractPicEnvAlpha;     /* env alpha */
 extern u8 gAttractPicPrimAlpha;     /* prim alpha */
 extern s32 gAttractPicFade;    /* fade state */
-extern s32 D_8021ABA8;
+extern s32 gAttractStaticSound;
 
 
 /* The attract screen's four pictures; selects one (0x80201240).
@@ -75,8 +75,8 @@ void fe_attract_pic_load(s32 arg0) {
     gAttractPicNo = arg0;
     gAttractPicPrimAlpha = 0;
     gAttractPicEnvAlpha = 0;
-    gYoshiFeItems[175].unkC = D_8020E3E8[arg0];
-    gYoshiFeItems[175].unk10 = D_8020E430[arg0];
+    gYoshiFeItems[175].unkC = gAttractPicTitles[arg0];
+    gYoshiFeItems[175].unk10 = gAttractPicTitleJText[arg0];
 }
 
 /* Flicker and cross-fade of the picture, its frame (0x80201364).
@@ -93,7 +93,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
     gDPSetTexturePersp(gdl++, G_TP_NONE);
     gDPSetCycleType(gdl++, G_CYC_2CYCLE);
     gDPSetCombine(gdl++, 0x757E4C, 0xFFFFFA3D);
-    switch (D_8036BB1C) {
+    switch (yoshiState) {
         case 1:
         case 4:
             gAttractPicFade = 0;
@@ -113,7 +113,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
                     }
                     if (gAttractPicEnvAlpha == 0xFF) {
                         gAttractPicFade = 1;
-                        snd_play(gSfxBank, D_8020E3E0[gAttractPicNo], NULL);
+                        snd_play(gSfxBank, gAttractPicSounds[gAttractPicNo], NULL);
                     }
                     break;
                 case 1:
@@ -166,8 +166,8 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
             }
             break;
     }
-    if (gAttractPicPrimAlpha > 60 && D_8021ABA8 == 0) {
-        snd_play(gSfxBank, SFX_STATIC, &D_8021ABA8);
+    if (gAttractPicPrimAlpha > 60 && gAttractStaticSound == 0) {
+        snd_play(gSfxBank, SFX_STATIC, &gAttractStaticSound);
     }
     gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gAttractPicPrimAlpha);
     gDPSetEnvColor(gdl++, 0, 0, 0, gAttractPicEnvAlpha);
@@ -188,7 +188,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
     gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
     gDPSetPrimColor(gdl++, 0, 0, 200, 200, 200, 255);
     gDPSetCombine(gdl++, 0x11B223, 0xFF67FFFF);
-    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_802FAD50), G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
+    gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gHudFrameTex), G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
                         G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR, G_TX_NOMASK, 5, G_TX_NOLOD, G_TX_NOLOD);
     /* 200x168 frame from a 32x32 texture: dsdx = 0xA3, dtdy = 0xC3 */
     gSPTextureRectangleOld(gdl++, (xo - 16) << 2, (yo - 24) << 2, (xo + 184) << 2, (yo + 144) << 2,

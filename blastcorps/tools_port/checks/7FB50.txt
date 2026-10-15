@@ -71,7 +71,7 @@ create_status: -n 300 \
     --mem gObjects+0x9C5:1=choice:0,1,2,3,7,8,9,16 \
     --mem gObjects+0x9C7:1=choice:0*3,1,0xFF \
     --mem gObjectsEnd=rel:gObjects+0xFC*int:0:10 \
-    --mem D_803063F0:8=bytes:0,1,10,25,50,99,100,200,255 \
+    --mem gStatusLevelPercents:8=bytes:0,1,10,25,50,99,100,200,255 \
     --mem gRduCount:2=int:0:40
 # mostly done records (extra clamps at 0), full-range levels incl. 0 (index -1)
 create_status: -n 200 \
@@ -126,12 +126,12 @@ create_status: -n 200 \
     --mem gRduCount:2=choice:0,1,7,8,9,16,17,100
 # no records in use; section 2 only
 create_status: -n 50 --seed 2 --arg a0=ptrz:0x400 --arg a1=choice:1,4,5,6 \
-    --mem gObjectsEnd=sym:gObjects --mem D_803063F0:8=bytes:0,50,100,255 \
+    --mem gObjectsEnd=sym:gObjects --mem gStatusLevelPercents:8=bytes:0,50,100,255 \
     --mem gRduCount:2=choice:0,1,7,8,9,0x100
 
 # jbomb_track_lr_taps: phases/timers/inputs from small pools incl. timer 0 and phase 0xFF (wrap)
-jbomb_track_lr_taps: -n 300 --ret void --mem D_803F7C44:4=bytes:0,1,2,3,4,0xFE,0xFF --mem gHeldL:2=bytes:0,1,0x80
-jbomb_track_lr_taps: -n 100 --seed 1 --ret void --mem D_803F7C44:4=bytes:0,1 --mem gHeldL:2=bytes:0,0xFF
+jbomb_track_lr_taps: -n 300 --ret void --mem gJbombTapPhaseL:4=bytes:0,1,2,3,4,0xFE,0xFF --mem gHeldL:2=bytes:0,1,0x80
+jbomb_track_lr_taps: -n 100 --seed 1 --ret void --mem gJbombTapPhaseL:4=bytes:0,1 --mem gHeldL:2=bytes:0,0xFF
 
 # jbomb_save_state: return veh_serialize_state(a0, gJbombState, gJbombPos) (serialize vehicle state; v0 passed through)
 jbomb_save_state: -n 300 --seed 0 --ret int --sig veh_serialize_state=a0,a1,a2 --stub-ret veh_serialize_state=rand \
@@ -160,55 +160,55 @@ jbomb_update_jet_sounds: -n 300 --ret void --arg gp=sym:gJbombState --sig snd_st
     --mem gJbombThrustSound=choice:0,0x80B00000 --mem gJbombAirSound=choice:0,0x80B00010 --mem gSfxBank=int
 
 # jbomb_thrust_speed (result in s6): (a*n + round(k*n*n)) - (a*(n-1) + round(k*(n-1)^2)) + bonus;
-# k from floats with .25/.5/.75 fractions (round-half-even), bonus from the D_803F7BFC range (hi != lo)
+# k from floats with .25/.5/.75 fractions (round-half-even), bonus from the gJbombPosY range (hi != lo)
 jbomb_thrust_speed: -n 300 --arg gp=sym:gJbombState --mem gJbombState+0x28=int:-1000:1000 --mem gJbombState+0x40=int:-100:100 \
     --mem gGravity=choice:0,0x3F800000,0x3F000000,0x3E800000,0x3FC00000,0x40490FDB,0xBF800000,0xBF000000,0x3DCCCCCD,0x447A0000 \
-    --mem gJbombLiftFadeY=choice:0,100,500 --mem gJbombMaxY=choice:1,200,1000,0x7FFFFFFF --mem D_803F7BFC=int:-100:2000
+    --mem gJbombLiftFadeY=choice:0,100,500 --mem gJbombMaxY=choice:1,200,1000,0x7FFFFFFF --mem gJbombPosY=int:-100:2000
 jbomb_thrust_speed: -n 100 --seed 1 --arg gp=sym:gJbombState --mem gJbombState+0x28=choice:0,1,-1,30 --mem gJbombState+0x40=choice:0,1,2,3,-1 \
     --mem gGravity=choice:0x3F000000,0x3E800000,0xBF000000 \
-    --mem gJbombLiftFadeY=100 --mem gJbombMaxY=200 --mem D_803F7BFC=choice:99,100,101,150,199,200,201
+    --mem gJbombLiftFadeY=100 --mem gJbombMaxY=200 --mem gJbombPosY=choice:99,100,101,150,199,200,201
 
 # jbomb_lift_off_water: when +0x9F == 100, maybe switch to mode 1 (veh_shadow_src_y stubbed at 0x100: limit 0xAC4)
 jbomb_lift_off_water: -n 300 --ret void --arg gp=sym:gJbombState --sig veh_shadow_src_y=a0 --stub-ret veh_shadow_src_y=0x100 \
     --mem gJbombState:0xA8=rand --mem gJbombState+0x9F:1=choice:100*3,99,0,0xFF --mem gJbombState+0xA1:1=choice:0,1,2,5 \
-    --mem D_803F7BFC=choice:0,-1,0xAC2,0xAC3,0xAC4,0xAC5,0x7FFFFFFF,0x80000000 --mem D_803F7C28=rand --mem D_803F7C2C=rand --mem gJbombThrusting:1=rand
+    --mem gJbombPosY=choice:0,-1,0xAC2,0xAC3,0xAC4,0xAC5,0x7FFFFFFF,0x80000000 --mem gJbombPitch=rand --mem gJbombRoll=rand --mem gJbombThrusting:1=rand
 jbomb_lift_off_water: -n 100 --seed 1 --ret void --arg gp=sym:gJbombState --sig veh_shadow_src_y=a0 --stub-ret veh_shadow_src_y=-0x9C4 \
     --mem gJbombState:0xA8=rand --mem gJbombState+0x9F:1=100 --mem gJbombState+0xA1:1=choice:0,1 \
-    --mem D_803F7BFC=choice:-1,0,1 --mem D_803F7C28=rand --mem D_803F7C2C=rand --mem gJbombThrusting:1=rand
+    --mem gJbombPosY=choice:-1,0,1 --mem gJbombPitch=rand --mem gJbombRoll=rand --mem gJbombThrusting:1=rand
 
-# jbomb_update_cam_distance: gCamDistance / gCamHeightBase from D_803F7BFC within [gJbombLiftFadeY, gJbombMaxY) (hi > lo always)
+# jbomb_update_cam_distance: gCamDistance / gCamHeightBase from gJbombPosY within [gJbombLiftFadeY, gJbombMaxY) (hi > lo always)
 jbomb_update_cam_distance: -n 300 --ret void --arg gp=sym:gJbombState --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand \
     --mem gJbombLiftFadeY=choice:0,100,-50 --mem gJbombMaxY=choice:101,1000,0x7FFF \
-    --mem D_803F7BFC=choice:-51,-50,-1,0,1,99,100,101,500,999,1000,0x7FFE,0x7FFF,0x8000
+    --mem gJbombPosY=choice:-51,-50,-1,0,1,99,100,101,500,999,1000,0x7FFE,0x7FFF,0x8000
 jbomb_update_cam_distance: -n 200 --seed 1 --ret void --arg gp=sym:gJbombState --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand \
-    --mem gJbombLiftFadeY=int:-100000:100000 --mem gJbombMaxY=int:100001:300000 --mem D_803F7BFC=int:-100000:300000
+    --mem gJbombLiftFadeY=int:-100000:100000 --mem gJbombMaxY=int:100001:300000 --mem gJbombPosY=int:-100000:300000
 
 # jbomb_pitch_limit (result in f4): (1 - |gPadStickY| / 80) / 2
 jbomb_pitch_limit: -n 300 --arg gp=sym:gJbombState --mem gPadStickY:1=int:0:255
 jbomb_pitch_limit: -n 50 --seed 1 --arg gp=sym:gJbombState --mem gPadStickY:1=choice:0,1,0x7F,0x80,0x81,0xFF,80,0xB0
 
-# jbomb_roll_limit (up flag in s2, result in f2): 0.5 +- |+0x76| / 540, clamped by D_8030D968..74
+# jbomb_roll_limit (up flag in s2, result in f2): 0.5 +- |+0x76| / 540, clamped by gJbombRollMax..74
 jbomb_roll_limit: -n 300 --arg gp=sym:gJbombState --arg s2=choice:0,1,-1 --mem gJbombState+0x76:2=int:0:0xFFFF
 jbomb_roll_limit: -n 200 --seed 1 --arg gp=sym:gJbombState --arg s2=choice:0,1 --mem gJbombState+0x76:2=halves:0,1,270,540,0x7FFF,0x8000,0xFFFF,0xFEF2 \
-    --mem D_8030D968:16=floats:-1:2
+    --mem gJbombRollMax:16=floats:-1:2
 jbomb_roll_limit: -n 50 --seed 2 --arg gp=sym:gJbombState --arg s2=choice:0,1 --mem gJbombState+0x76:2=int:0:0xFFFF \
-    --mem D_8030D968:16=words:0x3F000000,0x3F800000,0x7FC00000,0
+    --mem gJbombRollMax:16=words:0x3F000000,0x3F800000,0x7FC00000,0
 
-# jbomb_steer_rate (result in s3): modes 0/5 round(+0x76 / 1.5); modes 1-4 D_803F7C3C climbs by 2 to 100
+# jbomb_steer_rate (result in s3): modes 0/5 round(+0x76 / 1.5); modes 1-4 gJbombAirSteerRate climbs by 2 to 100
 # or resets to 20 by |gPadStickX|. Other modes hit a `syscall` in the asm, so only 0-5 are used.
 jbomb_steer_rate: -n 300 --arg gp=sym:gJbombState --mem gJbombState+0xA1:1=choice:0,1,2,3,4,5 --mem gJbombState+0x76:2=int:0:0xFFFF \
-    --mem gPadStickX:1=int:0:255 --mem D_803F7C3C:1=int:0:255
+    --mem gPadStickX:1=int:0:255 --mem gJbombAirSteerRate:1=int:0:255
 jbomb_steer_rate: -n 200 --seed 1 --arg gp=sym:gJbombState --mem gJbombState+0xA1:1=choice:1,4 \
-    --mem gPadStickX:1=choice:0x32,0x33,0xCE,0xCD,0x7F,0x80,0 --mem D_803F7C3C:1=choice:0,0x61,0x62,0x63,0x64,0xFE,0xFF
+    --mem gPadStickX:1=choice:0x32,0x33,0xCE,0xCD,0x7F,0x80,0 --mem gJbombAirSteerRate:1=choice:0,0x61,0x62,0x63,0x64,0xFE,0xFF
 jbomb_steer_rate: -n 100 --seed 2 --arg gp=sym:gJbombState --mem gJbombState+0xA1:1=choice:0,5 \
     --mem gJbombState+0x76:2=halves:0,1,2,3,0x7FFF,0x8000,0xFFFF,0xFFFE,0xFFFD,0x4000
 
 # jbomb_set_gravity: gGravity = gLevelGravity * (mode 2 ? 4 : 1)
 jbomb_set_gravity: -n 200 --ret void --arg gp=sym:gJbombState --mem gJbombState+0xA1:1=choice:0,1,2,3,0xFF --mem gLevelGravity:4=floats --mem gGravity=rand
 
-# jbomb_set_tuning: 15 tuning halfwords at +0x78 and D_803F7C48 by mode; gBounceThreshold/Damping = 0xFF
+# jbomb_set_tuning: 15 tuning halfwords at +0x78 and gJbombThrottleStep by mode; gBounceThreshold/Damping = 0xFF
 jbomb_set_tuning: -n 100 --ret void --arg gp=sym:gJbombState --mem gJbombState+0x78:0x20=rand --mem gJbombState+0xA1:1=choice:0,1,2,0xFF \
-    --mem gBounceThreshold:2=rand --mem D_803F7C48:1=rand
+    --mem gBounceThreshold:2=rand --mem gJbombThrottleStep:1=rand
 
 # ---- phase D (wave 1, wt-d4) ----
 # apply_status (apply_status, a0 = bitstream): records 0..4 in use; every record's +0 object is heap0
@@ -267,32 +267,32 @@ jbomb_leave: -n 30 --seed 1 --ret void --follow veh_sync_buffers,anim_stop --sig
 jbomb_enter: -n 50 --seed 0 --ret void --mem gJbombState+0x99:1=bytes:1,0xFF
 jbomb_enter: -n 30 --seed 1 --ret void --follow-all --mem gJbombState+0x99:1=bytes:1,0xFF --mem gJbombAnim:0x78=rand
 
-# jbomb_check_idle ($gp = gJbombState): idle countdown D_803F7C4B (reload 30 / count down) and, in mode 0 while
+# jbomb_check_idle ($gp = gJbombState): idle countdown gJbombIdleTimer (reload 30 / count down) and, in mode 0 while
 # stopped with the countdown at 0, mode 5 with channels 6/7
 jbomb_check_idle: -n 300 --seed 0 --ret void --arg gp=sym:gJbombState --mem gJbombState+0x76:2=halves:0*3,1,0xFFFF,0x8000 \
-    --mem gJbombState+0xA1:1=bytes:0*3,1,5,0xFF --mem D_803F7C4B:1=bytes:0*2,1*2,2,30,0xFF
+    --mem gJbombState+0xA1:1=bytes:0*3,1,5,0xFF --mem gJbombIdleTimer:1=bytes:0*2,1*2,2,30,0xFF
 jbomb_check_idle: -n 50 --seed 1 --ret void --arg gp=sym:gJbombState --follow-all --mem gJbombState+0x76:2=halves:0 \
-    --mem gJbombState+0xA1:1=bytes:0 --mem D_803F7C4B:1=bytes:0,1 --mem gJbombAnim:0xC0=rand
+    --mem gJbombState+0xA1:1=bytes:0 --mem gJbombIdleTimer:1=bytes:0,1 --mem gJbombAnim:0xC0=rand
 
-# jbomb_update_tilt (steering/tilt; s2 in-out): D_803F7C2C / D_803F7C28 around 0.5 and the limits, the steer
-# gates gControlMethod, D_803F7C34 (+-4000 edges), gPadStickX (31 / -31 edges), gPadStickY sign; callees followed
+# jbomb_update_tilt (steering/tilt; s2 in-out): gJbombRoll / gJbombPitch around 0.5 and the limits, the steer
+# gates gControlMethod, gContSteerError (+-4000 edges), gPadStickX (31 / -31 edges), gPadStickY sign; callees followed
 # (jbomb_roll_limit reads +0x76 of the block)
 jbomb_update_tilt: -n 400 --seed 0 --arg gp=sym:gJbombState --follow jbomb_roll_limit,jbomb_pitch_limit \
-    --mem D_803F7C2C:4=floats:0:1 --mem D_803F7C28:4=floats:0:1 --mem gControlMethod:1=bytes:0*3,1 \
-    --mem D_803F7C34:2=halves:0,0xF9F,0xFA0,0xFA1,0xF061,0xF060,0xF062,0x7FFF,0x8000 \
+    --mem gJbombRoll:4=floats:0:1 --mem gJbombPitch:4=floats:0:1 --mem gControlMethod:1=bytes:0*3,1 \
+    --mem gContSteerError:2=halves:0,0xF9F,0xFA0,0xFA1,0xF061,0xF060,0xF062,0x7FFF,0x8000 \
     --mem gPadStickX:1=bytes:0,0x1E,0x1F,0x20,0xE2,0xE1,0xE0,0x7F,0x80 --mem gPadStickY:1=bytes:0,1,0x50,0xFF,0xB0,0x7F,0x80 \
     --mem gJbombState+0x76:2=int:0:0xFFFF
 jbomb_update_tilt: -n 300 --seed 1 --arg gp=sym:gJbombState --follow jbomb_roll_limit,jbomb_pitch_limit \
-    --mem D_803F7C2C=choice:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3E800000,0x3F400000 \
-    --mem D_803F7C28=choice:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3E800000,0x3F400000 \
-    --mem gControlMethod:1=bytes:0,1 --mem D_803F7C34:2=int:0:0xFFFF --mem gPadStickX:1=int:0:255 --mem gPadStickY:1=int:0:255 \
-    --mem gJbombState+0x76:2=int:0:0xFFFF --mem D_8030D954:20=floats:0:0.3
+    --mem gJbombRoll=choice:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3E800000,0x3F400000 \
+    --mem gJbombPitch=choice:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3E800000,0x3F400000 \
+    --mem gControlMethod:1=bytes:0,1 --mem gContSteerError:2=int:0:0xFFFF --mem gPadStickX:1=int:0:255 --mem gPadStickY:1=int:0:255 \
+    --mem gJbombState+0x76:2=int:0:0xFFFF --mem gJbombRollStepLeft:20=floats:0:0.3
 # callees stubbed: limits from --stub-ret (the f-register outputs)
 jbomb_update_tilt: -n 200 --seed 2 --stub-ret jbomb_roll_limit=0x3F400000 --stub-ret jbomb_pitch_limit=0x3E800000 \
-    --mem D_803F7C2C:4=floats:0:1 --mem D_803F7C28:4=floats:0:1 --mem gControlMethod:1=bytes:0,1 \
-    --mem D_803F7C34:2=int:0:0xFFFF --mem gPadStickX:1=int:0:255 --mem gPadStickY:1=int:0:255
+    --mem gJbombRoll:4=floats:0:1 --mem gJbombPitch:4=floats:0:1 --mem gControlMethod:1=bytes:0,1 \
+    --mem gContSteerError:2=int:0:0xFFFF --mem gPadStickX:1=int:0:255 --mem gPadStickY:1=int:0:255
 jbomb_update_tilt: -n 200 --seed 3 --stub-ret jbomb_roll_limit=rand --stub-ret jbomb_pitch_limit=rand \
-    --mem D_803F7C2C:4=floats:0:1 --mem D_803F7C28:4=floats:0:1 --mem gControlMethod:1=bytes:1 \
+    --mem gJbombRoll:4=floats:0:1 --mem gJbombPitch:4=floats:0:1 --mem gControlMethod:1=bytes:1 \
     --mem gPadStickX:1=bytes:0x40,0xC0 --mem gPadStickY:1=bytes:1,0xFF
 
 # zone lookup wrapper (id 9 at gJbombPos): veh_zone_alpha stubbed (scan registers mapped through r)
@@ -307,58 +307,58 @@ jbomb_zone_alpha: -n 300 --seed 1 --follow veh_zone_alpha,math_dist3 --mem gJbom
     --mem gDefaultVehAlpha:1=choice:0,1,0x80,0xFF,0x40 --mem gVehicles+0x5C*0x74:3=choice:0x100,0x200 \
     --mem gVehicles+0x1B8=9 --mem gVehicles+0x60*0x74:4=int
 
-# jbomb_check_surface_above (gp = gJbombState): ground check under (gJbombPos, D_803F7C00) at height D_803F7BFC.
-# ground_scan_guard_tris stubbed (found flag random / 0; D_803EBBFC is its height output), the 200 / 3000 bands
+# jbomb_check_surface_above (gp = gJbombState): ground check under (gJbombPos, D_803F7C00) at height gJbombPosY.
+# ground_scan_guard_tris stubbed (found flag random / 0; gGuardTrisBestY is its height output), the 200 / 3000 bands
 # and their edges, then followed over random triangles
-jbomb_check_surface_above: -n 300 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=rand --mem D_803EBBFC=int:-5000:5000 \
-    --mem D_803F7BFC=int:-5000:5000 --mem gJbombPos=int --mem D_803F7C00=int --mem gJbombState+0x28:0x24=rand \
+jbomb_check_surface_above: -n 300 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=rand --mem gGuardTrisBestY=int:-5000:5000 \
+    --mem gJbombPosY=int:-5000:5000 --mem gJbombPos=int --mem D_803F7C00=int --mem gJbombState+0x28:0x24=rand \
     --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand --mem gJbombThrusting:1=rand
 jbomb_check_surface_above: -n 200 --seed 1 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=1 \
-    --mem D_803F7BFC=1000 --mem D_803EBBFC=choice:999,1000,1001,1199,1200,1201,3999,4000,4001 \
+    --mem gJbombPosY=1000 --mem gGuardTrisBestY=choice:999,1000,1001,1199,1200,1201,3999,4000,4001 \
     --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand --mem gJbombThrusting:1=rand
 # h - y wrapping past 0x7FFFFFFF (signed difference goes negative)
 jbomb_check_surface_above: -n 50 --seed 4 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=1 \
-    --mem D_803F7BFC=choice:-0x7FFFFF00,0 --mem D_803EBBFC=choice:0x7FFFFFF0,0x7FFFFFFF,100 \
+    --mem gJbombPosY=choice:-0x7FFFFF00,0 --mem gGuardTrisBestY=choice:0x7FFFFFF0,0x7FFFFFFF,100 \
     --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand --mem gJbombThrusting:1=rand
-jbomb_check_surface_above: -n 100 --seed 2 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=0 --mem D_803EBBFC=int:-5000:5000 \
-    --mem D_803F7BFC=int:-5000:5000 --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombThrusting:1=rand
+jbomb_check_surface_above: -n 100 --seed 2 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=0 --mem gGuardTrisBestY=int:-5000:5000 \
+    --mem gJbombPosY=int:-5000:5000 --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombThrusting:1=rand
 jbomb_check_surface_above: -n 300 --seed 3 --arg gp=sym:gJbombState \
     --follow ground_scan_guard_tris,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
     --heap 0x64=halves:0,1,2,0xFFFF,0xFFFE,0x20,0xFFE0 --mem gJbombPos=int:-40:40 --mem D_803F7C00=int:-40:40 \
-    --mem D_803F7BFC=int:-3500:500 --mem D_803BDAF4=rel:heap0 --mem D_803BDAF8=rel:heap0+0x14*int:0:5 \
-    --mem D_803EBBFC=int --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand \
+    --mem gJbombPosY=int:-3500:500 --mem gGuardTris=rel:heap0 --mem gGuardTrisEnd=rel:heap0+0x14*int:0:5 \
+    --mem gGuardTrisBestY=int --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand \
     --mem gJbombThrusting:1=rand
 
-# jbomb_check_overhead (x t0, z t1): D_803F7C49 = ground >= 200 above D_803F7BFC; FP results through
-jbomb_check_overhead: -n 300 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=rand --mem D_803EBBFC=int:-5000:5000 \
-    --mem D_803F7BFC=int:-5000:5000 --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+# jbomb_check_overhead (x t0, z t1): gJbombCeilingAbove = ground >= 200 above gJbombPosY; FP results through
+jbomb_check_overhead: -n 300 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=rand --mem gGuardTrisBestY=int:-5000:5000 \
+    --mem gJbombPosY=int:-5000:5000 --mem gJbombCeilingAbove:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
 jbomb_check_overhead: -n 200 --seed 1 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=1 \
-    --mem D_803F7BFC=1000 --mem D_803EBBFC=choice:999,1000,1001,1199,1200,1201 \
-    --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+    --mem gJbombPosY=1000 --mem gGuardTrisBestY=choice:999,1000,1001,1199,1200,1201 \
+    --mem gJbombCeilingAbove:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
 jbomb_check_overhead: -n 50 --seed 4 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=1 \
-    --mem D_803F7BFC=choice:-0x7FFFFF00,0 --mem D_803EBBFC=choice:0x7FFFFFF0,0x7FFFFFFF,100 \
-    --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
-jbomb_check_overhead: -n 100 --seed 2 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=0 --mem D_803EBBFC=int:-5000:5000 \
-    --mem D_803F7BFC=int:-5000:5000 --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+    --mem gJbombPosY=choice:-0x7FFFFF00,0 --mem gGuardTrisBestY=choice:0x7FFFFFF0,0x7FFFFFFF,100 \
+    --mem gJbombCeilingAbove:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+jbomb_check_overhead: -n 100 --seed 2 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=0 --mem gGuardTrisBestY=int:-5000:5000 \
+    --mem gJbombPosY=int:-5000:5000 --mem gJbombCeilingAbove:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
 jbomb_check_overhead: -n 300 --seed 3 --follow ground_scan_guard_tris,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
     --heap 0x64=halves:0,1,2,0xFFFF,0xFFFE,0x20,0xFFE0 --arg t0=int:-40:40 --arg t1=int:-40:40 \
-    --mem D_803F7BFC=int:-500:500 --mem D_803BDAF4=rel:heap0 --mem D_803BDAF8=rel:heap0+0x14*int:0:5 \
-    --mem D_803EBBFC=int --mem D_803F7C49:1=rand
+    --mem gJbombPosY=int:-500:500 --mem gGuardTris=rel:heap0 --mem gGuardTrisEnd=rel:heap0+0x14*int:0:5 \
+    --mem gGuardTrisBestY=int --mem gJbombCeilingAbove:1=rand
 
 # jbomb_update_jet_effects (t6, t7, s0-s4 through to fx_spawn; gp = gJbombState): every branch, ramp edges
 # (0, 0x32/0x33, negative s8), countdown 0 / nonzero; callees stubbed, then followed
 jbomb_update_jet_effects: -n 400 --arg gp=sym:gJbombState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
-    --arg s3=int --arg s4=int --mem D_803F7C43:1=choice:0,0,1 --mem gJbombState+0x96:1=choice:1,1,0,2 \
-    --mem gJbombState+0xA1:1=choice:5,0,1,4 --mem gJbombThrusting:1=choice:0,1 --mem D_803F7C3A:1=choice:0,0,1,4,0xFF \
-    --mem D_803F7C3B:1=choice:0,1,4,0x31,0x32,0x33,0x7F,0x80,0xFF,0xF0 --stub-ret veh_find_point.a0=ptr:0x20 \
+    --arg s3=int --arg s4=int --mem gJbombPrevAirborne:1=choice:0,0,1 --mem gJbombState+0x96:1=choice:1,1,0,2 \
+    --mem gJbombState+0xA1:1=choice:5,0,1,4 --mem gJbombThrusting:1=choice:0,1 --mem gJbombFlameTimer:1=choice:0,0,1,4,0xFF \
+    --mem gJbombJetRamp:1=choice:0,1,4,0x31,0x32,0x33,0x7F,0x80,0xFF,0xF0 --stub-ret veh_find_point.a0=ptr:0x20 \
     --sig veh_shadow_floor_y=a0 --sig veh_find_point=a0,a1 --sig ptcl_start=a0,a1,a2,a3,stack0
 jbomb_update_jet_effects: -n 300 --seed 1 --arg gp=sym:gJbombState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
-    --arg s3=270 --arg s4=int --mem D_803F7C43:1=choice:0,1 --mem gJbombState+0x96:1=choice:1,0 \
-    --mem gJbombState+0xA1:1=choice:5,0,1 --mem gJbombThrusting:1=choice:0,1 --mem D_803F7C3A:1=choice:0,0,1 \
-    --mem D_803F7C3B:1=int:0:0x32 --follow veh_find_point,anim_set_speed,fx_spawn \
+    --arg s3=270 --arg s4=int --mem gJbombPrevAirborne:1=choice:0,1 --mem gJbombState+0x96:1=choice:1,0 \
+    --mem gJbombState+0xA1:1=choice:5,0,1 --mem gJbombThrusting:1=choice:0,1 --mem gJbombFlameTimer:1=choice:0,0,1 \
+    --mem gJbombJetRamp:1=int:0:0x32 --follow veh_find_point,anim_set_speed,fx_spawn \
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:9:bytes:1,2,3 --mem gJbombAnim:0x100=rand \
     --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 --mem gFxTileSlots:16=bytes:0,1 \
-    --mem D_803EB792:1=rand --sig veh_shadow_floor_y=a0 --sig ptcl_start=a0,a1,a2,a3,stack0
+    --mem gFxSpawnTag:1=rand --sig veh_shadow_floor_y=a0 --sig ptcl_start=a0,a1,a2,a3,stack0
 
 # jbomb_ride_attach (id a3): veh_deck_to_local at (gJbombPos, D_803F7C00) -> s16s at +0x6A/+0x6C; FP results through
 jbomb_ride_attach: -n 300 --seed 0 --arg a3=int --mem gJbombPos=int --mem D_803F7C00=int --mem gJbombState+0x6A:4=rand
@@ -386,12 +386,12 @@ jbomb_update_modes: -n 400 --seed 0 --arg gp=sym:gJbombState --sig jbomb_lift_of
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5 --mem gJbombState+0x96:3=bytes:0,1,1,2 \
     --mem gJbombState+0x76:2=halves:0,0x96,0x97,0xFF9C,0xFF9B,0x14,0x15,0xFFEC,0xFFEB,0x7FFF,0x8000,5,0xFFF0 \
     --mem gJbombState+0x9E:1=bytes:0,0,0,1 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x9F:1=bytes:0,100 \
-    --mem D_803F7C20=int:0:1000 --mem D_803F7C24=int:0:1000 --mem D_803F7C28:8=rand \
-    --mem D_803F7C32:2=halves:0,3,5,0xFFFF --mem D_803F7C39:1=bytes:0,0,1 --mem D_803F7C3D:1=bytes:0,0,1,10 \
-    --mem gJbombThrusting:1=rand --mem D_803F7C40:1=bytes:0,0,1,2,3,4,5 --mem D_803F7C41:1=bytes:0,0,1,9 \
-    --mem D_803F7C42:1=bytes:0,0,1 --mem D_803F7C43:1=bytes:0,1,1 --mem D_803F7C44:1=bytes:0,3,3,1 --mem D_803F7C45:3=rand \
-    --mem D_803F7C4A:1=bytes:0,1 --mem gHeldL:4=bytes:0,0,0,1 --mem gShakeTime:1=rand --mem gShakeSize=int \
-    --mem D_803F7BFC=choice:-100,0,100,5000 --mem gJbombMaxY=choice:-100,0,100,5000 --mem gJbombPos=int --mem D_803F7C00=int
+    --mem gJbombSinceStomp2=int:0:1000 --mem gJbombSinceStomp4=int:0:1000 --mem gJbombPitch:8=rand \
+    --mem gJbombStepFrame:2=halves:0,3,5,0xFFFF --mem gJbombKnocked:1=bytes:0,0,1 --mem gJbombThrustHold:1=bytes:0,0,1,10 \
+    --mem gJbombThrusting:1=rand --mem gJbombStompTimer:1=bytes:0,0,1,2,3,4,5 --mem gJbombStompDelay:1=bytes:0,0,1,9 \
+    --mem gJbombPrevHeldB:1=bytes:0,0,1 --mem gJbombPrevAirborne:1=bytes:0,1,1 --mem gJbombTapPhaseL:1=bytes:0,3,3,1 --mem gJbombTapTimerL:3=rand \
+    --mem gJbombStompDropPending:1=bytes:0,1 --mem gHeldL:4=bytes:0,0,0,1 --mem gShakeTime:1=rand --mem gShakeSize=int \
+    --mem gJbombPosY=choice:-100,0,100,5000 --mem gJbombMaxY=choice:-100,0,100,5000 --mem gJbombPos=int --mem D_803F7C00=int
 # landing in mode 4 -> the fx_spawn path (registers zeroed / its results on to jbomb_update_jet_effects), then mode 0
 jbomb_update_modes: -n 200 --seed 1 --arg gp=sym:gJbombState --sig jbomb_lift_off_water= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
     --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 \
@@ -399,57 +399,57 @@ jbomb_update_modes: -n 200 --seed 1 --arg gp=sym:gJbombState --sig jbomb_lift_of
     --stub-ret fx_spawn.t6=int --stub-ret fx_spawn.s1=int \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:4,4,2,5 --mem gJbombState+0x96:3=bytes:0,0,1 \
     --mem gJbombState+0x76:2=halves:0,0x96,0x97,0xFF9C,0xFF9B,0x7FFF,0x8000,5,0xFFF0,0xFFE0 \
-    --mem gJbombState+0x9E:1=0 --mem D_803F7C43:1=1 --mem D_803F7C39:1=0 \
-    --mem D_803F7C20=int:0:1000 --mem D_803F7C24=int:0:1000 --mem D_803F7C28:8=rand --mem D_803F7C32:2=halves:0,3,5 \
-    --mem D_803F7C3D:1=bytes:0,1 --mem gJbombThrusting:1=rand --mem D_803F7C40:1=bytes:0,3,4,5 --mem D_803F7C41:1=bytes:0,1,9 \
-    --mem D_803F7C42:1=rand --mem gHeldL:4=bytes:0,0,1 --mem gShakeTime:1=rand --mem gShakeSize=int \
-    --mem D_803F7BFC=int --mem gJbombMaxY=int --mem gJbombPos=int --mem D_803F7C00=int
-# modes 1-3: the steering path and its exits (D_803F7C39 clamp of +0x76 at +-20; press trackers -> mode 4)
+    --mem gJbombState+0x9E:1=0 --mem gJbombPrevAirborne:1=1 --mem gJbombKnocked:1=0 \
+    --mem gJbombSinceStomp2=int:0:1000 --mem gJbombSinceStomp4=int:0:1000 --mem gJbombPitch:8=rand --mem gJbombStepFrame:2=halves:0,3,5 \
+    --mem gJbombThrustHold:1=bytes:0,1 --mem gJbombThrusting:1=rand --mem gJbombStompTimer:1=bytes:0,3,4,5 --mem gJbombStompDelay:1=bytes:0,1,9 \
+    --mem gJbombPrevHeldB:1=rand --mem gHeldL:4=bytes:0,0,1 --mem gShakeTime:1=rand --mem gShakeSize=int \
+    --mem gJbombPosY=int --mem gJbombMaxY=int --mem gJbombPos=int --mem D_803F7C00=int
+# modes 1-3: the steering path and its exits (gJbombKnocked clamp of +0x76 at +-20; press trackers -> mode 4)
 jbomb_update_modes: -n 300 --seed 2 --arg gp=sym:gJbombState --sig jbomb_lift_off_water= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
     --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 --stub-ret jbomb_thrust_speed=int \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:1,2,3 --mem gJbombState+0x96:3=bytes:0,1,2 \
     --mem gJbombState+0x76:2=halves:0,0x14,0x15,0xFFEC,0xFFEB,0x7FFF,0x8000,0x13,0xFFED \
     --mem gJbombState+0x9E:1=0 --mem gJbombState+0x9C:1=bytes:0,0,1 --mem gJbombState+0x9F:1=bytes:0,0,100,99 \
-    --mem D_803F7C43:1=bytes:0,1 --mem D_803F7C39:1=bytes:0,0,1 --mem D_803F7C20=int:0:1000 --mem D_803F7C24=int:0:1000 \
-    --mem D_803F7C28:8=rand --mem D_803F7C3D:1=bytes:0,1 --mem gJbombThrusting:1=rand --mem D_803F7C40:1=bytes:0,0,1,2 \
-    --mem D_803F7C41:1=bytes:0,0,1 --mem D_803F7C42:1=bytes:0,1 --mem D_803F7C44:1=bytes:0,1,2,3,3 --mem D_803F7C45:3=rand \
-    --mem D_803F7C4A:1=rand --mem gHeldL:4=bytes:0,1 \
-    --mem D_803F7BFC=choice:-100,0,100 --mem gJbombMaxY=choice:-100,0,100
+    --mem gJbombPrevAirborne:1=bytes:0,1 --mem gJbombKnocked:1=bytes:0,0,1 --mem gJbombSinceStomp2=int:0:1000 --mem gJbombSinceStomp4=int:0:1000 \
+    --mem gJbombPitch:8=rand --mem gJbombThrustHold:1=bytes:0,1 --mem gJbombThrusting:1=rand --mem gJbombStompTimer:1=bytes:0,0,1,2 \
+    --mem gJbombStompDelay:1=bytes:0,0,1 --mem gJbombPrevHeldB:1=bytes:0,1 --mem gJbombTapPhaseL:1=bytes:0,1,2,3,3 --mem gJbombTapTimerL:3=rand \
+    --mem gJbombStompDropPending:1=rand --mem gHeldL:4=bytes:0,1 \
+    --mem gJbombPosY=choice:-100,0,100 --mem gJbombMaxY=choice:-100,0,100
 # the same, every asm callee run for real except jbomb_update_tilt with its steering paths (gControlMethod /
-# |D_803F7C34|: those leave s3 = 270 behind, see the C) and anim_blend_channels/FC74 (their f20 scratch)
+# |gContSteerError|: those leave s3 = 270 behind, see the C) and anim_blend_channels/FC74 (their f20 scratch)
 jbomb_update_modes: -n 300 --seed 3 --arg gp=sym:gJbombState --sig snd_play=a0,a1,a2 --sig snd_stop=a0 \
     --sig veh_shadow_src_y=a0 --sig veh_shadow_floor_y=a0 --sig veh_find_point=a0,a1 --sig ptcl_start=a0,a1,a2,a3,stack0 \
     --stub-ret veh_find_point.a0=ptr:0x20 \
     --follow anim_stop,anim_play,anim_set_frame,anim_set_speed,anim_set_reverse,anim_set_loop_mode,anim_set_interp,anim_get_state \
     --follow jbomb_thrust_speed,jbomb_check_surface_above,jbomb_lift_off_water,jbomb_update_jet_effects,jbomb_check_idle,jbomb_update_jet_sounds,jbomb_track_lr_taps,jbomb_update_tilt \
-    --mem gJbombAnim:0x300=rand --mem gJbombAnim+0x10*0x18:32/1=bytes:0,1,1,3 --mem gControlMethod:1=0 --mem D_803F7C34:2=int:-100:100 \
+    --mem gJbombAnim:0x300=rand --mem gJbombAnim+0x10*0x18:32/1=bytes:0,1,1,3 --mem gControlMethod:1=0 --mem gContSteerError:2=int:-100:100 \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5 --mem gJbombState+0x96:3=bytes:0,1,1,2 \
     --mem gJbombState+0xA2:1=4 --mem gJbombState+0x28*4:3=int:-100:100 --mem gJbombState+0x40:4=int:-50:50 \
     --mem gJbombState+0x76:2=halves:0,0x96,0x97,0xFF9C,0xFF9B,0x14,0x15,0xFFEC,0xFFEB,0x7FFF,0x8000,5,0xFFF0 \
     --mem gJbombState+0x9E:1=bytes:0,0,0,1 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x9F:1=bytes:0,100 \
-    --mem D_803F7C20=int:0:1000 --mem D_803F7C24=int:0:1000 --mem D_803F7C28:8=floats:0:1 \
-    --mem D_803F7C32:2=halves:0,3,5,0xFFFF --mem D_803F7C39:1=bytes:0,0,1 --mem D_803F7C3D:1=bytes:0,0,1,10 \
-    --mem gJbombThrusting:1=rand --mem D_803F7C40:1=bytes:0,0,1,2,3,4,5 --mem D_803F7C41:1=bytes:0,0,1,9 \
-    --mem D_803F7C42:1=bytes:0,0,1 --mem D_803F7C43:1=bytes:0,1,1 --mem D_803F7C44:1=bytes:0,3,3,1 --mem D_803F7C45:3=rand \
-    --mem D_803F7C4A:1=bytes:0,1 --mem D_803F7C3A:2=bytes:0,1,4,0x31 --mem D_803F7C4B:1=bytes:0,1,5 \
+    --mem gJbombSinceStomp2=int:0:1000 --mem gJbombSinceStomp4=int:0:1000 --mem gJbombPitch:8=floats:0:1 \
+    --mem gJbombStepFrame:2=halves:0,3,5,0xFFFF --mem gJbombKnocked:1=bytes:0,0,1 --mem gJbombThrustHold:1=bytes:0,0,1,10 \
+    --mem gJbombThrusting:1=rand --mem gJbombStompTimer:1=bytes:0,0,1,2,3,4,5 --mem gJbombStompDelay:1=bytes:0,0,1,9 \
+    --mem gJbombPrevHeldB:1=bytes:0,0,1 --mem gJbombPrevAirborne:1=bytes:0,1,1 --mem gJbombTapPhaseL:1=bytes:0,3,3,1 --mem gJbombTapTimerL:3=rand \
+    --mem gJbombStompDropPending:1=bytes:0,1 --mem gJbombFlameTimer:2=bytes:0,1,4,0x31 --mem gJbombIdleTimer:1=bytes:0,1,5 \
     --mem gJbombThrustSound:8=words:0,0x80123450 --mem gHeldL:4=bytes:0,0,0,1 --mem gShakeTime:1=rand --mem gShakeSize=int \
-    --mem D_803F7BFC=choice:-100,0,100,5000 --mem gJbombMaxY=choice:-100,0,100,5000 --mem gJbombLiftFadeY=choice:-200,-150,-300 \
-    --mem gJbombPos=int --mem D_803F7C00=int --mem gGravity:4=floats:0:2 --mem D_803EBBFC=int:-200:5000
+    --mem gJbombPosY=choice:-100,0,100,5000 --mem gJbombMaxY=choice:-100,0,100,5000 --mem gJbombLiftFadeY=choice:-200,-150,-300 \
+    --mem gJbombPos=int --mem D_803F7C00=int --mem gGravity:4=floats:0:2 --mem gGuardTrisBestY=int:-200:5000
 
 # jbomb_build_model: matrix code followed (it leaves a3 = 0 and s2 = m); modes incl. 5 (no veh_place_parts); then the whole tree
 jbomb_build_model: -n 300 --arg gp=sym:gJbombState --follow mtx_build_model,mtx_scale,mtx_rotate_x,mtx_mul,mtx_rotate_z,mtx_rotate_y,mtx_translate,mtx_to_n64 --heap 0x100 --heap 0x200 --mem gJbombModel=rel:heap0 --mem @heap0=choice:0x40,0x44 --mem @heap0+4=choice:0x60,0x64 --mem @heap0+8=0x80 --mem @heap0+0x18=choice:0x20,0x30 --mem @heap0+0x24=choice:0,0x40 --mem @heap0+0x34=choice:0x80,0xC0 --mem gBufferIndex:1=choice:0,1,0x80 --mem gJbombMtxA=rel:heap1 --mem gJbombMtxB=rel:heap1+0x40 --mem gJbombState+0x4C:2=int:0:0xFFFF --mem gJbombState+0xA1:1=choice:0,1,4,5,6 --mem gJbombPos:12=rand --mem gModelRot:6=rand --arg s1=int --arg s0=int
 jbomb_build_model: -n 200 --seed 1 --arg gp=sym:gJbombState --follow-all --heap 0x100=zero --heap 0x200 --mem gJbombModel=rel:heap0 --mem @heap0=0x40 --mem @heap0+4=0x60 --mem @heap0+8=choice:0x64,0x70,0x7C --mem @heap0+0x18=0x20 --mem @heap0+0x24=choice:0,0x40 --mem @heap0+0x40:0x20=halves:0,5,-5,0x100 --mem @heap0+0x46:2=0 --mem @heap0+0x4E:2=0 --mem @heap0+0x56:2=0 --mem @heap0+0x5E:2=0 --mem @heap0+0x64:4=int --mem @heap0+0x70:4=int --mem gBufferIndex:1=choice:0,1 --mem gJbombMtxA=rel:heap1 --mem gJbombMtxB=rel:heap1+0x40 --mem gJbombState+0x4C:2=int:0:0xFFFF --mem gJbombState+0xA1:1=choice:0,5 --mem gJbombPos:12=rand --mem gModelRot:6=rand --mem gVehBoundSpheres:0x28=rand --mem gVehBoundSpheres+0x24:1=9 --mem gVehPartSpheres:0x50=rand --mem gVehPartSpheres+0x26:1=9 --mem gVehPoints:0x40=rand --mem gVehPoints+0x1C:1=9 --arg s1=int --arg s0=int
 # jbomb_reground (fp in): veh_reground / jbomb_build_model / veh_set_record; the f12-f26 pass-through is not an input (--sig drops it); followed down to the ground scanners
-jbomb_reground: -n 200 --seed 1 --arg fp=int --follow veh_reground,veh_wheel_offset,math_rotate_xz_inv,ground_slot_height,jbomb_build_model,mtx_build_model,mtx_scale,mtx_rotate_x,mtx_mul,mtx_rotate_z,mtx_rotate_y,mtx_translate,mtx_to_n64 --stub-ret math_cos=int:-0x10000:0x10000 --stub-ret math_sin=int:-0x10000:0x10000 --stub-ret ground_scan_part_tris=choice:0x5F5E0FF,100,-50,3000 --stub-ret ground_scan_moveable=choice:0x5F5E0FF,100,200,-50 --stub-ret ground_scan_grid=choice:0,1 --sig ground_scan_part_tris=a0,a1,a2 --sig ground_scan_moveable=a0,a1,a2,a3 --sig ground_scan_grid=a0,a1,a2 --mem gJbombPos=int:-0x100000:0x100000 --mem D_803F7BFC=int:-3000:3000 --mem D_803F7C00=int:-0x100000:0x100000 --mem gJbombState:0xA0=rand --mem gSlotSurface:8=rand --mem gModelRot:6=rand --mem gSlotStandOn:8=rand --mem gSlotGroundY:0x20=rand --heap 0x100 --heap 0x200 --mem gJbombModel=rel:heap0 --mem @heap0=0x40 --mem @heap0+4=0x60 --mem @heap0+8=0x80 --mem @heap0+0x18=0x20 --mem @heap0+0x24=choice:0,0x40 --mem gBufferIndex:1=choice:0,1 --mem gJbombMtxA=rel:heap1 --mem gJbombMtxB=rel:heap1+0x40
+jbomb_reground: -n 200 --seed 1 --arg fp=int --follow veh_reground,veh_wheel_offset,math_rotate_xz_inv,ground_slot_height,jbomb_build_model,mtx_build_model,mtx_scale,mtx_rotate_x,mtx_mul,mtx_rotate_z,mtx_rotate_y,mtx_translate,mtx_to_n64 --stub-ret math_cos=int:-0x10000:0x10000 --stub-ret math_sin=int:-0x10000:0x10000 --stub-ret ground_scan_part_tris=choice:0x5F5E0FF,100,-50,3000 --stub-ret ground_scan_moveable=choice:0x5F5E0FF,100,200,-50 --stub-ret ground_scan_grid=choice:0,1 --sig ground_scan_part_tris=a0,a1,a2 --sig ground_scan_moveable=a0,a1,a2,a3 --sig ground_scan_grid=a0,a1,a2 --mem gJbombPos=int:-0x100000:0x100000 --mem gJbombPosY=int:-3000:3000 --mem D_803F7C00=int:-0x100000:0x100000 --mem gJbombState:0xA0=rand --mem gSlotSurface:8=rand --mem gModelRot:6=rand --mem gSlotStandOn:8=rand --mem gSlotGroundY:0x20=rand --heap 0x100 --heap 0x200 --mem gJbombModel=rel:heap0 --mem @heap0=0x40 --mem @heap0+4=0x60 --mem @heap0+8=0x80 --mem @heap0+0x18=0x20 --mem @heap0+0x24=choice:0,0x40 --mem gBufferIndex:1=choice:0,1 --mem gJbombMtxA=rel:heap1 --mem gJbombMtxB=rel:heap1+0x40
 jbomb_reground: -n 300 --arg fp=int --mem gJbombPos:12=rand --sig veh_reground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5
 # jbomb_ride_follow (id a3; s3 in/out, FP out): callees stubbed, then its own-file callees and the matrix code followed
 jbomb_ride_follow: -n 300 --arg a3=int --arg s3=int --mem gJbombPos:12=rand --mem gJbombState:0xA4=rand --mem gBounceSound:1=rand --sig jbomb_set_gravity= --sig jbomb_set_tuning=
-jbomb_ride_follow: -n 200 --seed 1 --arg a3=choice:0,9,0x7FFF --arg s3=choice:0,-1,0x10E --mem gJbombPos:12=rand --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=choice:0,1,2,5 --mem gBounceSound:1=rand --mem gGravity=rand --mem gBounceThreshold:2=rand --mem D_803F7C48:1=rand --follow jbomb_set_gravity,jbomb_set_tuning,jbomb_build_model --mem gJbombModel=rel:heap0 --mem gJbombMtxA=rel:heap1 --mem gJbombMtxB=rel:heap1+0x40 --follow mtx_build_model,mtx_scale,mtx_rotate_x,mtx_mul,mtx_rotate_z,mtx_rotate_y,mtx_translate,mtx_to_n64 --heap 0x100 --heap 0x200 --mem @heap0=0x40 --mem @heap0+4=0x60 --mem @heap0+8=0x80 --mem @heap0+0x18=0x20 --mem @heap0+0x24=choice:0,0x40 --mem gBufferIndex:1=choice:0,1
+jbomb_ride_follow: -n 200 --seed 1 --arg a3=choice:0,9,0x7FFF --arg s3=choice:0,-1,0x10E --mem gJbombPos:12=rand --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=choice:0,1,2,5 --mem gBounceSound:1=rand --mem gGravity=rand --mem gBounceThreshold:2=rand --mem gJbombThrottleStep:1=rand --follow jbomb_set_gravity,jbomb_set_tuning,jbomb_build_model --mem gJbombModel=rel:heap0 --mem gJbombMtxA=rel:heap1 --mem gJbombMtxB=rel:heap1+0x40 --follow mtx_build_model,mtx_scale,mtx_rotate_x,mtx_mul,mtx_rotate_z,mtx_rotate_y,mtx_translate,mtx_to_n64 --heap 0x100 --heap 0x200 --mem @heap0=0x40 --mem @heap0+4=0x60 --mem @heap0+8=0x80 --mem @heap0+0x18=0x20 --mem @heap0+0x24=choice:0,0x40 --mem gBufferIndex:1=choice:0,1
 # jbomb_update: random over every branch (obj_collide_vehicle's ring-end hit through oracle_D_803A7424.py); own-file callees, the model placement and the heading helpers followed (a3 = 9 from jbomb_zone_alpha, veh_collision_setup's b0/h2 from jbomb_build_model); ring turn-back and mode-2 boundaries. --sig drops the FP pass-through (non-)inputs
-jbomb_update: -n 400 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1,0x80 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5,6 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x76:2=halves:0,1,2,0xFFFF,0xFFFE,0x7FFF,0x8000,0x100 --mem gJbombPos:12=rand --mem D_803F7C36:4=bytes:0,1,0x80,5 --mem D_803F7C30:2=rand --mem gJbombAirborne:1=rand --mem D_803F7C20=choice:0,2,3,4,-1 --mem D_803F7C24=choice:0,2,3,4,-1 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=bytes:0,1 --mem gCollHit:1=rand --mem gBufferIndex:1=bytes:0,1 --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand --stub-ret veh_free_arc_mid=int:0:0xFFF --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1
-jbomb_update: -n 300 --seed 1 --follow jbomb_zone_alpha,jbomb_set_gravity,jbomb_set_tuning,jbomb_steer_rate,jbomb_slow_down,jbomb_update_cam_distance,jbomb_build_model,mtx_build_model,mtx_scale,mtx_rotate_x,mtx_mul,mtx_rotate_z,mtx_rotate_y,mtx_translate,mtx_to_n64,veh_free_arc_mid,veh_reverse_if_behind,veh_turn_into_free_arc,veh_step_heading,veh_hit_slowdown,veh_set_target_heading,veh_coast --heap 4 --heap 0x100 --heap 0x200 --mem gJbombModel=rel:heap1 --mem @heap1=0x40 --mem @heap1+4=choice:0x60,0x64 --mem @heap1+8=0x80 --mem @heap1+0x18=0x20 --mem @heap1+0x24=choice:0,0x40 --mem gJbombMtxA=rel:heap2 --mem gJbombMtxB=rel:heap2+0x40 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x76:2=halves:0,1,2,0xFFFF,0xFFFE,0x100,0xFF00 --mem gJbombState+0x4C:4=halves:0,0x400,0x7FF,0x800,0x801,0xFFF --mem gJbombPos:12=rand --mem D_803F7C36:4=bytes:0,1,5 --mem D_803F7C30:2=rand --mem D_803F7C3C:1=rand --mem gJbombAirborne:1=rand --mem D_803F7C20=choice:0,2,3,4 --mem D_803F7C24=choice:0,2,3,4 --mem gJbombLiftFadeY=int:-1000:1000 --mem gJbombMaxY=int:1001:3000 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=bytes:0,1 --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem gBufferIndex:1=bytes:0,1 --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --mem gBounceSound:1=rand --mem gGravity=rand --mem gBounceThreshold:2=rand --mem D_803F7C48:1=rand --mem gPadStickX:2=bytes:0,0x40,0xC0,0x20 --mem gControlMethod:1=bytes:0,1 --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x4,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig veh_prepare_escape=a0 --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_zone_alpha=a0,a1,a2,a3 --model obj_collide_vehicle=oracle_D_803A7424.py --mem @heap0:1=bytes:0,1
-jbomb_update: -n 300 --seed 2 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1,0x80 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5,6 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x4C:4=halves:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --mem gJbombPos:12=rand --mem D_803F7C36:4=bytes:0,1,0x80,5 --mem D_803F7C30:2=rand --mem gJbombAirborne:1=rand --mem D_803F7C20=choice:0,2,3,4,-1 --mem D_803F7C24=choice:0,2,3,4,-1 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=1 --mem gCollHit:1=rand --mem gBufferIndex:1=bytes:0,1 --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand --stub-ret veh_free_arc_mid=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --stub-ret veh_turn_into_free_arc=int:-0x100:0x100 --stub-ret veh_turn_into_free_arc.a0=int:0:0xFFF --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1
-jbomb_update: -n 300 --seed 3 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1,0x80 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5,6 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x76:2=halves:0,1,2,0xFFFF,0xFFFE,0x7FFF,0x8000,0x100 --mem gJbombPos:12=rand --mem D_803F7C36:4=bytes:0,1,0x80,5 --mem D_803F7C30:2=rand --mem gJbombAirborne:1=rand --mem D_803F7C20=choice:2,3 --mem D_803F7C24=choice:2,3 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=0 --mem gCollHit:1=rand --mem gBufferIndex:1=bytes:0,1 --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand --stub-ret veh_free_arc_mid=int:0:0xFFF --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1,1
+jbomb_update: -n 400 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1,0x80 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5,6 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x76:2=halves:0,1,2,0xFFFF,0xFFFE,0x7FFF,0x8000,0x100 --mem gJbombPos:12=rand --mem gJbombEscaping:4=bytes:0,1,0x80,5 --mem gJbombEscapeHeading:2=rand --mem gJbombAirborne:1=rand --mem gJbombSinceStomp2=choice:0,2,3,4,-1 --mem gJbombSinceStomp4=choice:0,2,3,4,-1 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=bytes:0,1 --mem gCollHit:1=rand --mem gBufferIndex:1=bytes:0,1 --mem gCollVehicleAnim=rand --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand --stub-ret veh_free_arc_mid=int:0:0xFFF --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1
+jbomb_update: -n 300 --seed 1 --follow jbomb_zone_alpha,jbomb_set_gravity,jbomb_set_tuning,jbomb_steer_rate,jbomb_slow_down,jbomb_update_cam_distance,jbomb_build_model,mtx_build_model,mtx_scale,mtx_rotate_x,mtx_mul,mtx_rotate_z,mtx_rotate_y,mtx_translate,mtx_to_n64,veh_free_arc_mid,veh_reverse_if_behind,veh_turn_into_free_arc,veh_step_heading,veh_hit_slowdown,veh_set_target_heading,veh_coast --heap 4 --heap 0x100 --heap 0x200 --mem gJbombModel=rel:heap1 --mem @heap1=0x40 --mem @heap1+4=choice:0x60,0x64 --mem @heap1+8=0x80 --mem @heap1+0x18=0x20 --mem @heap1+0x24=choice:0,0x40 --mem gJbombMtxA=rel:heap2 --mem gJbombMtxB=rel:heap2+0x40 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x76:2=halves:0,1,2,0xFFFF,0xFFFE,0x100,0xFF00 --mem gJbombState+0x4C:4=halves:0,0x400,0x7FF,0x800,0x801,0xFFF --mem gJbombPos:12=rand --mem gJbombEscaping:4=bytes:0,1,5 --mem gJbombEscapeHeading:2=rand --mem gJbombAirSteerRate:1=rand --mem gJbombAirborne:1=rand --mem gJbombSinceStomp2=choice:0,2,3,4 --mem gJbombSinceStomp4=choice:0,2,3,4 --mem gJbombLiftFadeY=int:-1000:1000 --mem gJbombMaxY=int:1001:3000 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=bytes:0,1 --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem gPlayFrames=choice:0,1 --mem gBufferIndex:1=bytes:0,1 --mem gCollVehicleAnim=rand --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --mem gBounceSound:1=rand --mem gGravity=rand --mem gBounceThreshold:2=rand --mem gJbombThrottleStep:1=rand --mem gPadStickX:2=bytes:0,0x40,0xC0,0x20 --mem gControlMethod:1=bytes:0,1 --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x4,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig veh_prepare_escape=a0 --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_zone_alpha=a0,a1,a2,a3 --model obj_collide_vehicle=oracle_D_803A7424.py --mem @heap0:1=bytes:0,1
+jbomb_update: -n 300 --seed 2 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1,0x80 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5,6 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x4C:4=halves:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --mem gJbombPos:12=rand --mem gJbombEscaping:4=bytes:0,1,0x80,5 --mem gJbombEscapeHeading:2=rand --mem gJbombAirborne:1=rand --mem gJbombSinceStomp2=choice:0,2,3,4,-1 --mem gJbombSinceStomp4=choice:0,2,3,4,-1 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=1 --mem gCollHit:1=rand --mem gBufferIndex:1=bytes:0,1 --mem gCollVehicleAnim=rand --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand --stub-ret veh_free_arc_mid=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --stub-ret veh_turn_into_free_arc=int:-0x100:0x100 --stub-ret veh_turn_into_free_arc.a0=int:0:0xFFF --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1
+jbomb_update: -n 300 --seed 3 --mem gJbombState:0xA6=rand --mem gJbombState+0x9A:1=bytes:0,0,1,0x80 --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5,6 --mem gJbombState+0x96:1=bytes:0,1,2 --mem gJbombState+0x9C:1=bytes:0,1 --mem gJbombState+0x76:2=halves:0,1,2,0xFFFF,0xFFFE,0x7FFF,0x8000,0x100 --mem gJbombPos:12=rand --mem gJbombEscaping:4=bytes:0,1,0x80,5 --mem gJbombEscapeHeading:2=rand --mem gJbombAirborne:1=rand --mem gJbombSinceStomp2=choice:2,3 --mem gJbombSinceStomp4=choice:2,3 --mem gTrainContact:1=bytes:0,1 --mem gCollBlocked:1=0 --mem gCollHit:1=rand --mem gBufferIndex:1=bytes:0,1 --mem gCollVehicleAnim=rand --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand --stub-ret veh_free_arc_mid=int:0:0xFFF --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1,1
 # jbomb_spawn (load vehicle 9; x t7, y s3, z s0, heading s1, model s2, fp): callees stubbed (veh_init_ground's FP pass-through dropped), then with the per-frame update jbomb_update followed
 jbomb_spawn: -n 300 --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=0x80B00000 --arg fp=int --heap 0x100 --mem @heap0+4=choice:0x40,0x44 --mem @heap0+8=choice:0x60,0x64 --mem @heap0+0x18=choice:0x20,0x30 --mem gHeapPtr=choice:0x80B10000,0x80B20000 --mem gJbombState:0xA6=rand --mem gJbombPos:0x54=rand --mem gEngineSound=rand --sig veh_init_ground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig jbomb_update= --sig veh_add_shadow=a0:1,a1,a2:2,a3:2 --sig veh_sync_buffers=a0,a1,a2
-jbomb_spawn: -n 200 --seed 1 --follow jbomb_update --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=0x80B00000 --arg fp=int --heap 0x100 --mem @heap0+4=choice:0x40,0x44 --mem @heap0+8=choice:0x60,0x64 --mem @heap0+0x18=choice:0x20,0x30 --mem gHeapPtr=choice:0x80B10000,0x80B20000 --mem gJbombState:0xA6=rand --mem gJbombPos:0x54=rand --mem gEngineSound=rand --sig veh_init_ground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig veh_add_shadow=a0:1,a1,a2:2,a3:2 --sig veh_sync_buffers=a0,a1,a2 --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --mem gCollBlocked:1=bytes:0,1 --mem gTrainContact:1=bytes:0,1 --mem gPlayerX:12=rand --mem D_8036443C:6=rand
+jbomb_spawn: -n 200 --seed 1 --follow jbomb_update --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=0x80B00000 --arg fp=int --heap 0x100 --mem @heap0+4=choice:0x40,0x44 --mem @heap0+8=choice:0x60,0x64 --mem @heap0+0x18=choice:0x20,0x30 --mem gHeapPtr=choice:0x80B10000,0x80B20000 --mem gJbombState:0xA6=rand --mem gJbombPos:0x54=rand --mem gEngineSound=rand --sig veh_init_ground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig veh_add_shadow=a0:1,a1,a2:2,a3:2 --sig veh_sync_buffers=a0,a1,a2 --sig jbomb_zone_alpha= --sig jbomb_update_modes=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig jbomb_check_overhead=a0,a1 --sig jbomb_set_gravity= --sig jbomb_set_tuning= --sig jbomb_update_cam_distance= --sig jbomb_steer_rate= --sig jbomb_slow_down= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig veh_collision_setup=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model obj_collide_vehicle=oracle_D_803A7424.py --mem gCollBlocked:1=bytes:0,1 --mem gTrainContact:1=bytes:0,1 --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand

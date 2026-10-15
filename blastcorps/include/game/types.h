@@ -181,7 +181,7 @@ typedef struct VehShadow {
     /* 0x1024 */ u8 pad1024[0x1C];
 } VehShadow; /* 0x1040 bytes */
 
-/* A level result (D_8036EA60 best, nss this run, D_8036EA80/90). */
+/* A level result (gScoreOld best, nss this run, gScoreRes / gScoreRs2). */
 typedef struct Score {
     s32 ip;
     u32 tc; /* time */
@@ -227,7 +227,7 @@ typedef struct PlayerInfo {
     /* 0x54 */ u8 commPts[60];        /* per level: bit n = communication point n taken (opens routes) */
     /* 0x90 */ u8 academy;            /* bit per academy marker found (6) */
     /* 0x91 */ u8 gameState;          /* academy.c's progress state, 0-13 */
-    /* 0x92 */ u8 bestVehicle[60];    /* per level: the vehicle of the best result (D_802E8C44 -> gBestTimes slot) */
+    /* 0x92 */ u8 bestVehicle[60];    /* per level: the vehicle of the best result (gVehicleTimeSlot -> gBestTimes slot) */
     /* 0xCE */ u8 hintShows[0x12];    /* times each hint window 0x46-0x57 was shown (yoshi_show_hint) */
     /* 0xE0 */ u8 padE0[0xE];
     /* 0xEE */ u8 demosSeen;          /* bits: the vehicle demo sequences 55, 28, 53, 7, 19 seen */

@@ -11,12 +11,12 @@
 # typed by that view).  Untyped, the mask stayed big-endian: wrong pictures.
 802E8FC0 4 w4 44 3C
 #
-# D_802F46C0 (77E20.c, 12 x {u64 from, u64 to}): display-list commands compared
+# gObjFadeCmdSubs (77E20.c, 12 x {u64 from, u64 to}): display-list commands compared
 # with and copied into DLs as whole doublewords; DLs are two host-order u32
 # words (w0, w1), so these are too (a u64 swap would exchange w0 and w1).
 802F46C0 C0 w4
 #
-# D_802F4780 (77E20.c obj_start_sinking_part, u64[6]): six display-list commands copied
+# gObjSinkRenderCmds (77E20.c obj_start_sinking_part, u64[6]): six display-list commands copied
 # into a DL as doublewords; same reason.
 802F4780 30 w4
 #
@@ -42,11 +42,11 @@
 # were drawn where the N64 suppresses them (levels 0, 7: the trail ring).
 802FC080 2E0 w2
 #
-# D_802FA8A0 (2D810.c FmtPair {u16 fmt[2]}): copied whole into a local
-# (`FmtPair fmts = D_802FA8A0;`, one lw in the trace), then read as u16s.
+# gBackdropTileFormats (2D810.c FmtPair {u16 fmt[2]}): copied whole into a local
+# (`FmtPair fmts = gBackdropTileFormats;`, one lw in the trace), then read as u16s.
 802FA8A0 4 w2
 #
-# D_80306270 (77E20.c obj_run_effect_queue): 28 pointers to per-kind debris lists
+# gObjEffectDefLists (77E20.c obj_run_effect_queue): 28 pointers to per-kind debris lists
 # {u8 n; u8 defIndex[n]}, which follow the table without a symbol of their own;
 # the declared pointer array's extent ran over them and swapped them as words
 # (list n read as 0: divide by zero once debris spawns).
@@ -58,17 +58,17 @@
 # - D_802F97B0 (16 Vtx, 26570.c's list gYoshiWindowDl): undeclared;
 # - gBackdropVtx (2D810.c Vtx[2][4]): some words fell under another symbol's
 #   extent and became u32 words (z and flag exchanged);
-# - D_802FDD48 (8 Vtx): inside the extent of the display list D_802FDC08,
+# - D_802FDD48 (8 Vtx): inside the extent of the display list gBlockModels,
 #   which is words.
 802F97B0 100 vtx
 802FA820 80 vtx
 802FDD48 80 vtx
-# - D_802FFF38 (39050.c declares it Gfx[]): 179 Vtx, segment 6 of the nuclear
-#   blast's dome list D_80300A68 (the first 8 are its bounding box).  As
+# - gBlastDomeSeg6 (39050.c declares it Gfx[]): 179 Vtx, segment 6 of the nuclear
+#   blast's dome list gBlastDomeDl (the first 8 are its bounding box).  As
 #   words the dome came out flat (z = 0): a red band across the screen when
 #   the carrier is hit.
 802FFF38 B30 vtx
-# - 802FDFD8 (8 Vtx) inside the extent of the display list D_802FDC08 and
+# - 802FDFD8 (8 Vtx) inside the extent of the display list gBlockModels and
 #   802FE640 (45 Vtx: 16 + 14 + 15) inside gShellTypes, both lists typed as
 #   words; found by scanning every G_VTX in the hd data image (gfx2 notes).
 802FDFD8 80 vtx

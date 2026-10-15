@@ -17,12 +17,12 @@ coll_heading_in_ring: -n 200 --seed 3 --follow veh_free_arc_mid --arg a0=int:0:0
 # coll_begin_probe(x, y, z): reset span to 0/0xFFF, store position, clear flags, set gNonBlockingParts,
 # call veh_contacts_clear (random pre-fill so the zero stores show)
 coll_begin_probe: -n 100 --ret void --sig veh_contacts_clear= --arg a0=int --arg a1=int --arg a2=int --mem gCollX:0x40=rand
-# [e1] coll_spawn_blast_fx(x, y, z): fx_spawn record for D_802C382C at (x, y, z) << 11 (stubbed, then followed)
+# [e1] coll_spawn_blast_fx(x, y, z): fx_spawn record for gFxDefBlast at (x, y, z) << 11 (stubbed, then followed)
 coll_spawn_blast_fx: -n 200 --ret void --arg a0=int --arg a1=int --arg a2=int
 coll_spawn_blast_fx: -n 200 --seed 1 --ret void --follow fx_spawn --sig veh_find_point=a0,a1 --sig tex_queue_palette=a0,a1 \
     --arg a0=int:-0x8000:0x8000 --arg a1=int:-0x8000:0x8000 --arg a2=int:-0x8000:0x8000 \
     --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=choice:0,1,1 --mem gFxTileSlots:16=bytes:0,1,1 \
-    --mem D_803EB792:1=rand
+    --mem gFxSpawnTag:1=rand
 # coll_blast_at_probe(amount, radius): blast damage at gCollX/Y/Z << 11 (obj_blast_damage stubbed, then followed on an empty list)
 coll_blast_at_probe: -n 200 --ret void --arg a0=int --arg a1=int --mem gCollX=int --mem gCollY=int --mem gCollZ=int
 coll_blast_at_probe: -n 100 --seed 1 --ret void --follow obj_blast_damage --arg a0=int --arg a1=int:0:0x1000 \
@@ -131,14 +131,14 @@ coll_probe_vehicle_spheres: -n 300 --seed 2 --arg t4=choice:0,1,5,6,0xFF \
 # coll_probe_vehicles(r): the point gCollX..F8 against the 11 vehicle spheres of gVehBoundSpheres (then the -1 marker)
 coll_probe_vehicles: -n 300 --seed 0 --arg a0=int \
     --mem gVehBoundSpheres:0xF0=rand --mem gVehBoundSpheres+0x10*0x14:11/1=bytes:0,1,5,0xFF --mem gVehBoundSpheres+0x11*0x14:11/1=bytes:0,1,0x80 \
-    --mem gVehBoundSpheres+0xED:1=0xFF --mem D_803649E8=choice:0,1 --mem gProbeHitCarrier:1=rand --mem gProbeHitPlayer:1=rand \
+    --mem gVehBoundSpheres+0xED:1=0xFF --mem gDriverHidden=choice:0,1 --mem gProbeHitCarrier:1=rand --mem gProbeHitPlayer:1=rand \
     --mem gCollX=int --mem gCollY=int --mem gCollZ=int \
     --mem gFreeArcStart:2=choice:0,1,0xFFF --mem gFreeArcEnd:2=choice:0xFFF,0xFFE,0 --mem gCollHit:1=rand --mem gCollBlocked:1=rand \
     --mem gFreeArcCollapsed:1=bytes:0,1 --stub-ret math_spheres_overlap=choice:0,1 --stub-ret coll_probe_vehicle_spheres=choice:0,1
 # coll_probe_vehicle_spheres and the range tests run for real (small coordinates; plane-side updates stubbed)
 coll_probe_vehicles: -n 300 --seed 1 --arg a0=int:0:2000 \
     --mem gVehBoundSpheres:0xF0=rand --mem gVehBoundSpheres+0x10*0x14:11/1=bytes:0,1,5,0xFF --mem gVehBoundSpheres+0x11*0x14:11/1=bytes:0,1,0x80 \
-    --mem gVehBoundSpheres+0xED:1=0xFF --mem D_803649E8=choice:0,1 --mem gProbeHitCarrier:1=rand --mem gProbeHitPlayer:1=rand \
+    --mem gVehBoundSpheres+0xED:1=0xFF --mem gDriverHidden=choice:0,1 --mem gProbeHitCarrier:1=rand --mem gProbeHitPlayer:1=rand \
     --mem gVehBoundSpheres*0x14:11=int:-3000:3000 --mem gVehBoundSpheres+4*0x14:11=int:-3000:3000 --mem gVehBoundSpheres+8*0x14:11=int:-3000:3000 \
     --mem gVehBoundSpheres+0xC*0x14:11=int:0:2000 \
     --mem gVehPartSpheres:0x104=rand --mem gVehPartSpheres+0x12*0x14:12/1=bytes:0,1,5,0xFF --mem gVehPartSpheres+0x13*0x14:12/1=bytes:0,1,0x80 \
@@ -202,34 +202,34 @@ coll_probe_objects: -n 300 --seed 1 --heap 0x300 --arg a0=int:0:2000 --arg a1=ch
 
 # coll_step_xz(x, z, len, angle): offset (x, z) along the heading; stubbed, then with the trig run for real
 coll_step_xz: -n 300 --seed 0 --arg a0=int --arg a1=int --arg a2=int --arg a3=int \
-    --mem D_803F9320=int --mem D_803F9324=int --mem D_803F9328:2=rand
+    --mem gCollStepX=int --mem gCollStepZ=int --mem gCollStepLen:2=rand
 coll_step_xz: -n 300 --seed 1 --arg a0=int:-100000:100000 --arg a1=int:-100000:100000 \
     --arg a2=choice:0,1,-1,100,0x7FFF,0x8000,0x12345 --arg a3=choice:0,1,0x3FF,0x400,0x7FF,0x800,0xBFF,0xC00,0xFFF,0x1000,-1 \
     --follow veh_move_along_heading,math_cos,math_sin,math_cosf,math_sinf
-# coll_probe_tris: tag byte -> D_803A742A, veh_report_world_hits(x>>2, y>>2, z>>2, r>>2, kind, 0), ring span reset if gFreeArcCollapsed
+# coll_probe_tris: tag byte -> gProbeSkipPart, veh_report_world_hits(x>>2, y>>2, z>>2, r>>2, kind, 0), ring span reset if gFreeArcCollapsed
 coll_probe_tris: -n 300 --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=choice:0,1,9,0xC8 --arg stack1=int \
-    --mem D_803A742A:1=rand --mem gFreeArcCollapsed:1=choice:0,1,0xFF --mem gFreeArcStart:2=rand --mem gFreeArcEnd:2=rand
+    --mem gProbeSkipPart:1=rand --mem gFreeArcCollapsed:1=choice:0,1,0xFF --mem gFreeArcStart:2=rand --mem gFreeArcEnd:2=rand
 coll_probe_tris: -n 200 --seed 1 --arg a0=int:-0x80000000:0x7FFFFFFF --arg a1=choice:-1,-4,-5,0,3,4,0x7FFFFFFF,0x80000000 \
     --arg a2=int:-0x80000000:0x7FFFFFFF --arg a3=choice:-1,-4,-5,0,3,4,0x7FFF,0x8000,0xFFFF8000 --arg stack0=int:-0x80000000:0x7FFFFFFF \
-    --arg stack1=choice:0,1,0xFF,0x100,0x1FF,-1 --mem D_803A742A:1=rand --mem gFreeArcCollapsed:1=choice:0,1 --mem gFreeArcStart:2=rand --mem gFreeArcEnd:2=rand
+    --arg stack1=choice:0,1,0xFF,0x100,0x1FF,-1 --mem gProbeSkipPart:1=rand --mem gFreeArcCollapsed:1=choice:0,1 --mem gFreeArcStart:2=rand --mem gFreeArcEnd:2=rand
 # followed veh_report_world_hits (tables as in 56040's veh_report_world_hits seed 1 run; kind 0xC8 weighted so the tag test matters)
 coll_probe_tris: -n 200 --seed 2 --follow veh_report_world_hits --stub-ret math_sphere_tri_plane=1 --stub-ret math_point_in_tri_2d=0 --stub-ret math_sphere_hits_tri_edges=0 \
     --stub-ret math_sphere_hits_tri_vertex0=0 --stub-ret veh_sphere_hits_object=1 --stub-ret obj_end_object_hidden=0 \
     --sig math_sphere_tri_plane=a0,a1,a2,a3,stack0 --sig obj_end_object_hidden= \
     --heap 0x480 --mem @heap0+0x51*0x60:12/1=choice:0,1,1 --mem @heap0+0x4F*0x60:12/1=choice:0,1,5,9,0xC8 \
     --mem @heap0+0x52*0x60:12/2=choice:0,1,7 \
-    --mem D_803059F0*0xC:4=choice:0xFFFF,0,1 --mem D_803059F0+4*0xC:4=choice:5,6,0x38 \
-    --mem D_803059F0+8*0xC:4=choice:1,2,0x200,0x101,0xFFFFFFFF,0x80000000 --mem D_803059F0+0x38=0 \
+    --mem gObjSolidKinds*0xC:4=choice:0xFFFF,0,1 --mem gObjSolidKinds+4*0xC:4=choice:5,6,0x38 \
+    --mem gObjSolidKinds+8*0xC:4=choice:1,2,0x200,0x101,0xFFFFFFFF,0x80000000 --mem gObjSolidKinds+0x38=0 \
     --mem levelno=choice:0,1 --mem gObjects:0x2F4=rand --mem gObjects+0x30*0xFC:3=choice:5,6,0x38 \
     --mem gObjects+4*0xFC:3=rel:heap0+0x60*int:0:2 --mem gObjects+8*0xFC:3=rel:heap0+0x180 \
     --mem gObjectsEnd=rel:gObjects+0xFC*int:0:3 \
-    --mem D_803F9330:0x120=rand --mem D_803F9330+0x51*0x60:3/1=choice:0,1,1 --mem D_803F9330+0x52*0x60:3/2=choice:0,1,7 \
-    --mem D_803FB8B0=rel:D_803F9330+0x60*int:0:3 \
-    --mem D_803BD308=rel:heap0+0x180 --mem D_803BD30C=rel:heap0+0x180+0x60*int:0:3 \
+    --mem gDynTris:0x120=rand --mem gDynTris+0x51*0x60:3/1=choice:0,1,1 --mem gDynTris+0x52*0x60:3/2=choice:0,1,7 \
+    --mem gDynTrisEnd=rel:gDynTris+0x60*int:0:3 \
+    --mem gSwitchTris=rel:heap0+0x180 --mem gSwitchTrisEnd=rel:heap0+0x180+0x60*int:0:3 \
     --mem gCollTris:0x120=rand --mem gCollTris+0x51*0x60:3/1=choice:0,1,1 --mem gCollTris+0x4F*0x60:3/1=choice:0,1,5,9,0xC8 \
     --mem gCollTrisEnd=rel:gCollTris+0x60*int:0:3 \
     --mem gCollCells:2=halves:0,1 --mem gCollCells+2:2=halves:1,0xFFFF --mem gCollCells+4:2=halves:0xFFFF \
     --mem gCollCellsB=rel:heap0+0x2A0 --mem gCollCellsB+4=rel:heap0+0x300 --mem gCollCellsB+8=rel:heap0+0x360 \
     --mem gCollCellsA=rel:heap0+0x360 --mem gCollCellsA+4=rel:heap0+0x3C0 --mem gCollCellsA+8=rel:heap0+0x480 \
-    --mem gFreeArcCollapsed:1=choice:0,1 --mem gFreeArcStart:2=rand --mem gFreeArcEnd:2=rand --mem D_803A742A:1=rand \
+    --mem gFreeArcCollapsed:1=choice:0,1 --mem gFreeArcStart:2=rand --mem gFreeArcEnd:2=rand --mem gProbeSkipPart:1=rand \
     --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=choice:0,1,5,6,9,0xC8,0xC8,0xC8 --arg stack1=choice:0,1,7,0x107

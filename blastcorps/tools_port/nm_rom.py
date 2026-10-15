@@ -72,7 +72,7 @@ HD_GZ_END = 0x7E3AC7
 FRONT_END_VRAM = 0x801E7000     # hd_load_front_end (46C20.c)
 FRONT_END_TEXT_SIZE = 0x21040   # hd_front_end.us.v11.yaml
 FE_GZ_ROM, FE_GZ_END = 0x7E3AD0, 0x7F9BE0   # gzip'd front end (text, data); init stores the range
-                                            # at 0x803FFFF8 / 0x803FFFFC (hd_code D_802FDB30/4)
+                                            # at 0x803FFFF8 / 0x803FFFFC (hd_code gFeRomStartPtr/EndPtr)
 INIT_RANGE = (0x8021ED00, 0x80224B50)
 
 

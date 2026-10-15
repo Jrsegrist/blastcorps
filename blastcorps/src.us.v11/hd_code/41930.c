@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gYoshiFeItems ((MenuItem *) gYoshiFeItems)
-#define D_802E8F38 ((Entry8 *) D_802E8F38)
+#define gAcademyMarkers ((Entry8 *) gAcademyMarkers)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define players ((PlayerInfo *) players)
 /* end of views */
@@ -31,10 +31,10 @@ typedef struct {
     u8 pad2[0xC];
 } MenuItem;
 
-extern u8 D_802FDA60[];
-extern u8 D_802FDA70[];
-extern Entry30 D_8020D7E4[];
-extern char D_8036EBA0[];
+extern u8 gGameStateBackgrounds[];
+extern u8 gGameStateTunes[];
+extern Entry30 gGlobeLevelNameM1[];
+extern char gAcademyNextLevelText[];
 
 
 #define LEVEL_DONE(l) ((players[playerNumber].medal[l] > 0 && players[playerNumber].medal[l] < 6) ? 1 : 0)
@@ -56,13 +56,13 @@ void academy_announce_state(void) {
         players[playerNumber].gameState != 1) {
         gNextGameMode = MODE_ACADEMY_MESSAGE;
         hd_mode_setup();
-        fe_bg_load(D_802FDA60[players[playerNumber].gameState]);
+        fe_bg_load(gGameStateBackgrounds[players[playerNumber].gameState]);
         switch (players[playerNumber].gameState) {
             case 4:
                 found = 0;
                 for (lvl = 0; lvl < 60 && !found; lvl++) {
                     for (i = 0, any = 0; i < 6 && !any; i++) {
-                        if (D_802E8F38[i].a == lvl) {
+                        if (gAcademyMarkers[i].a == lvl) {
                             any = 1;
                             if (!(players[playerNumber].academy & (1 << i))) {
                                 found = 1;
@@ -70,8 +70,8 @@ void academy_announce_state(void) {
                         }
                     }
                 }
-                sprintf(D_8036EBA0, "IN %s.", (char *) D_8020D7E4[lvl].name); /* (char *): N64P via varargs */
-                gYoshiFeItems[82].text = D_8036EBA0;
+                sprintf(gAcademyNextLevelText, "IN %s.", (char *) gGlobeLevelNameM1[lvl].name); /* (char *): N64P via varargs */
+                gYoshiFeItems[82].text = gAcademyNextLevelText;
                 break;
             case 6:
                 fe_player_save_pending();
@@ -85,7 +85,7 @@ void academy_announce_state(void) {
  * Play the current game state's sound */
 void academy_play_state_tune(void) {
     if (((s32) gFramesInMode) == 0) {
-        music_play_tune(D_802FDA70[players[playerNumber].gameState], 1.0f);
+        music_play_tune(gGameStateTunes[players[playerNumber].gameState], 1.0f);
     }
 }
 
@@ -107,7 +107,7 @@ void academy_next_mode(void) {
             ACADEMY_ASSERT(players[playerNumber].levelno==50, 141);
             ACADEMY_ASSERT(frontEndPresent, 142);
             gNextGameMode = MODE_INTRO_FLY;
-            D_803643D5 = 0;
+            gLevelFirstClear = 0;
             fe_best_clear_times(playerNumber);
             break;
         case 7:
@@ -190,7 +190,7 @@ u8 academy_advance_state(void) {
                 }
                 break;
             case 9:
-                if (p->units >= 0xEA || D_802FA26C) {
+                if (p->units >= 0xEA || gDebugStepGameState) {
                     music_fade_to(0.0f);
                     hd_load_front_end();
                     fe_player_regrade_missions();
@@ -202,7 +202,7 @@ u8 academy_advance_state(void) {
             case 10:
                 break;
             case 11:
-                if (p->units < 0x129 || D_802FA26C) {
+                if (p->units < 0x129 || gDebugStepGameState) {
                     advance = 0;
                 } else {
                     music_fade_to(0.0f);
@@ -211,7 +211,7 @@ u8 academy_advance_state(void) {
                 }
                 break;
             case 12:
-                if (p->units >= 0x162 || D_802FA26C) {
+                if (p->units >= 0x162 || gDebugStepGameState) {
                     p->units = 0x168;
                     p->title = 0x1E;
                     debug_printf(" ***** YOU CAN STOP NOW!! ***** \n");
@@ -226,7 +226,7 @@ u8 academy_advance_state(void) {
                 debug_printf("Undefined gameState case !!!!\n");
                 break;
         }
-        if (D_802FA26C && players[playerNumber].gameState != 13) {
+        if (gDebugStepGameState && players[playerNumber].gameState != 13) {
             if (saveIt[playerNumber]) {
                 players[playerNumber].gameState++;
             }
@@ -236,7 +236,7 @@ u8 academy_advance_state(void) {
             }
             debug_printf("going to game state %d\n", players[playerNumber].gameState);
         }
-    } while (advance && !stop && !D_802FA26C);
+    } while (advance && !stop && !gDebugStepGameState);
     changed = players[playerNumber].gameState != oldState;
     debug_printf("game state %d to %d\n", oldState, players[playerNumber].gameState);
     return changed;

@@ -64,8 +64,8 @@ extern u8 gBestRowSlot[];       /* level of each row */
 #ifndef NON_MATCHING
 extern MenuItem *gYoshiHeapItems;
 #endif
-extern char D_80219FD0[][0x20];
-extern char D_8020D800[][4];
+extern char gBestRowText[][0x20];
+extern char gBestRowPrefix[][4];
 
 
 s32 fe_best_slot_shown(u8 lvl);
@@ -100,17 +100,17 @@ void fe_best_build_menu(void) {
     lvl = 0;
     n = 0;
     for (; lvl < 16; lvl++) {
-        if (fe_best_slot_shown(lvl) && gBestTimes[playerNumberAtStart][D_802E8C44[lvl]] > 0) {
+        if (fe_best_slot_shown(lvl) && gBestTimes[playerNumberAtStart][gVehicleTimeSlot[lvl]] > 0) {
             for (i = 0; i < 4; i++) {
                 item = &gYoshiHeapItems[n * 4 + i];
                 p = &players[i];
-                if (gSlotState[i] == 1 && gBestTimes[i][D_802E8C44[lvl]] > 0
+                if (gSlotState[i] == 1 && gBestTimes[i][gVehicleTimeSlot[lvl]] > 0
                     && (gLevelInfo[levelno].kind != 0x80 || p->gameState >= 11)) {
-                    hud_format_time(timeStr, gBestTimes[i][D_802E8C44[lvl]], 0);
-                    sprintf(D_80219FD0[n * 4 + i], "%-7.7s %s", p, timeStr);
-                    item->text = D_80219FD0[n * 4 + i];
+                    hud_format_time(timeStr, gBestTimes[i][gVehicleTimeSlot[lvl]], 0);
+                    sprintf(gBestRowText[n * 4 + i], "%-7.7s %s", p, timeStr);
+                    item->text = gBestRowText[n * 4 + i];
                     item->unk10 = 0;
-                    item->unk14 = fe_stats_grade_time(gBestTimes[i][D_802E8C44[lvl]], levelno, players[i].gameState) % 5 + 0x12;
+                    item->unk14 = fe_stats_grade_time(gBestTimes[i][gVehicleTimeSlot[lvl]], levelno, players[i].gameState) % 5 + 0x12;
                     item->unk18 = i;
                 } else {
                     item->text = 0;
@@ -122,7 +122,7 @@ void fe_best_build_menu(void) {
                 item->unk2 = 0x24;
                 item->unk6 = 0x10;
                 item->unk8 = 0x11;
-                item->unk16 = gBestTimes[i][D_802E8C44[lvl]];
+                item->unk16 = gBestTimes[i][gVehicleTimeSlot[lvl]];
                 item->unk1A = lvl;
             }
             text_shell_sort((u8 *) &gYoshiHeapItems[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) fe_best_cmp);
@@ -134,7 +134,7 @@ void fe_best_build_menu(void) {
                 }
                 if (item->text != 0) {
                     bcopy(item->text, buf, font_strlen((u8 *) item->text) + 1);
-                    sprintf(item->text, "%s %s", D_8020D800[i], buf);
+                    sprintf(item->text, "%s %s", gBestRowPrefix[i], buf);
                 }
             }
             n++;
@@ -256,7 +256,7 @@ void fe_best_clear_times(u8 pn) {
     BT_ASSERT(frontEndPresent, 279);
     if (!((players[pn].medal[levelno] > 0 && players[pn].medal[levelno] < 6) ? 1 : 0)) {
         for (i = 0; i < 16; i++) {
-            gBestTimes[pn][D_802E8C44[i]] = 0;
+            gBestTimes[pn][gVehicleTimeSlot[i]] = 0;
         }
     }
 }

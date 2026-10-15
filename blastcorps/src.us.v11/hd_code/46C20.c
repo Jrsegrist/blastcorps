@@ -5,8 +5,8 @@
 /* Front-end loader: DMAs a (possibly compressed) block from ROM in 16 KB
  * pieces and decompresses it. */
 
-extern s32 * N64P D_802FDB30; /* ROM start of the front end */
-extern s32 * N64P D_802FDB34; /* ROM end of the front end */
+extern s32 * N64P gFeRomStartPtr; /* ROM start of the front end */
+extern s32 * N64P gFeRomEndPtr; /* ROM end of the front end */
 
 #if defined(NON_MATCHING) && defined(PORT_HOST)
 /* Windows port: byte order on load (port/src/load/port_load.h) */
@@ -18,13 +18,13 @@ void port_on_load(u32 rom, u32 dst, u32 len);
  * of its 0x37D00-byte area and starts the pak thread ("got front end") (0x8028B3E0).
  * Load the front end overlay to 0x801E7000 once */
 void hd_load_front_end(void) {
-    u32 size = *D_802FDB34 - *D_802FDB30;
+    u32 size = *gFeRomEndPtr - *gFeRomStartPtr;
 
     osViBlack(1);
     if (frontEndPresent == 0) {
         osInvalDCache((void *) 0x801E7000, 0x37D00);
         osInvalICache((void *) 0x801E7000, 0x37D00);
-        hd_rom_load(*D_802FDB30, 0x801E7000, &size, 0xD, 10, 1);
+        hd_rom_load(*gFeRomStartPtr, 0x801E7000, &size, 0xD, 10, 1);
         bzero((void *) (size + 0x801E7000), 0x37D00 - size);
         PORT_FE_LOADED();
         frontEndPresent = 1;

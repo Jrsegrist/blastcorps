@@ -1,7 +1,7 @@
 /* osGetTime / osGetCount from the virtual clock, with injection.
  *
  * The game reads osGetTime() every frame as a random source (00000.c
- * D_803649D8, camera shake, animation choice), so matching an emulator
+ * gFrameDrawTime, camera shake, animation choice), so matching an emulator
  * trace needs the emulator's values:
  *
  *  --gettime FILE     one value per line (decimal or 0x hex), consumed by

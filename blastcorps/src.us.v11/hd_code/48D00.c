@@ -57,10 +57,10 @@ typedef struct {
 extern BoxDef48D00 D_802FDB98_boxes[];
 
 extern s32 gTntCount;
-extern s32 D_8039B614;
-extern s32 D_8039B618;
-extern s32 D_8039B61C;
-extern u8 D_8039B620;
+extern s32 gTntPrevPlayerX;
+extern s32 gTntPrevPlayerY;
+extern s32 gTntPrevPlayerZ;
+extern u8 gTntPrevVehicle;
 #ifndef NON_MATCHING
 extern Vtx *gHeapPtr; /* vertex allocator */
 #endif
@@ -79,10 +79,10 @@ void port_vtx_stale(void *v, u32 n);
  * the ground; each box gets its face textures and 8 vertices. */
 void tnt_spawn_all(u8 *arg0, u8 *arg1) {
     gTntCount = 0;
-    D_8039B614 = 0;
-    D_8039B618 = 0;
-    D_8039B61C = 0;
-    D_8039B620 = 0;
+    gTntPrevPlayerX = 0;
+    gTntPrevPlayerY = 0;
+    gTntPrevPlayerZ = 0;
+    gTntPrevVehicle = 0;
     while (arg0 != arg1) {
         D_8039B070_entries[gTntCount].unk0 = *(s16 *) (arg0 + 0) << 5;
         D_8039B070_entries[gTntCount].unk4 = *(s16 *) (arg0 + 2) << 5;
@@ -174,10 +174,10 @@ void tnt_build_vertices(Vtx *v, u8 arg1) {
 /* Activate entry arg0. The mix of struct-field and per-field-symbol
  * accesses below is deliberate: it is the spelling whose schedule matches. */
 extern u8 gTntCrates;
-extern u8 D_8039B088;
-extern u8 D_8039B089;
-extern u8 D_8039B0B0;
-extern u8 D_8039B0B4;
+extern u8 gTntCrate0Live;
+extern u8 gTntCrate0State;
+extern u8 gTntCrate0TickSnd;
+extern u8 gTntCrate0Snd;
 #ifndef NON_MATCHING
 extern s32 gSfxBank;
 #endif
@@ -189,7 +189,7 @@ void tnt_explode(u8 arg0) {
     Entry48D00 *match;
 
     coll_spawn_blast_fx(D_8039B070_entries[arg0].unk0, D_8039B070_entries[arg0].unk4, D_8039B070_entries[arg0].unk8);
-    *(&D_8039B089 + arg0 * 0x48) = 5;
+    *(&gTntCrate0State + arg0 * 0x48) = 5;
     D_8039B070_entries[arg0].unk18 = 0;
     gShakeTime = 10;
     gShakeSize = 0x190;
@@ -200,8 +200,8 @@ void tnt_explode(u8 arg0) {
             snd_play(gSfxBank, SFX_TICK_LOOP, (void *) N64_IPTR(((s32) &match->unk40)));
         }
     }
-    if (*(s32 *) (&D_8039B0B4 + arg0 * 0x48) != 0) {
-        snd_stop((void *) N64_IPTR((*(s32 *) (&D_8039B0B4 + arg0 * 0x48))));
+    if (*(s32 *) (&gTntCrate0Snd + arg0 * 0x48) != 0) {
+        snd_stop((void *) N64_IPTR((*(s32 *) (&gTntCrate0Snd + arg0 * 0x48))));
     }
     snd_play(gSfxBank, SFX_EXPLOSION, 0);
 }
@@ -222,7 +222,7 @@ Entry48D00 *tnt_find_lit(void) {
     return NULL;
 }
 
-extern s16 D_802FDB70[]; /* speed cap per mode */
+extern s16 gTntPushSpeedMax[]; /* speed cap per mode */
 
 
 /* Fuses, throb, pushes, collisions, sounds (0x8028DF14).
@@ -289,8 +289,8 @@ void tnt_update(u8 arg0) {
             if (D_8039B070_entries[i].unk1E != 0 && radar_has_marker(i + 0x100) == 0) {
                 coll_step_xz(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8, D_8039B070_entries[i].unk1E,
                               D_8039B070_entries[i].unk0C);
-                D_8039B070_entries[i].unk0 = D_803F9320;
-                D_8039B070_entries[i].unk8 = D_803F9324;
+                D_8039B070_entries[i].unk0 = gCollStepX;
+                D_8039B070_entries[i].unk8 = gCollStepZ;
                 D_8039B070_entries[i].unk4 = coll_ground_height(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8,
                                                            D_8039B070_entries[i].unk4);
                 D_8039B070_entries[i].unk23 = gGroundTriId;
@@ -311,12 +311,12 @@ void tnt_update(u8 arg0) {
                     }
                     D_8039B070_entries[i].unk14 = ((s32) gFramesInMode);
                 }
-                if (D_8039B620 == arg0) {
-                    dx = gPlayerX - D_8039B614, dy = gPlayerY - D_8039B618;
-                    dz = gPlayerZ - D_8039B61C;
+                if (gTntPrevVehicle == arg0) {
+                    dx = gPlayerX - gTntPrevPlayerX, dy = gPlayerY - gTntPrevPlayerY;
+                    dz = gPlayerZ - gTntPrevPlayerZ;
                     D_8039B070_entries[i].unk1E = sqrtf(dx * dx + dy * dy + dz * dz) + 8.0f;
-                    if (D_8039B070_entries[i].unk1E > D_802FDB70[arg0] && levelno != 0x22) {
-                        D_8039B070_entries[i].unk1E = D_802FDB70[arg0];
+                    if (D_8039B070_entries[i].unk1E > gTntPushSpeedMax[arg0] && levelno != 0x22) {
+                        D_8039B070_entries[i].unk1E = gTntPushSpeedMax[arg0];
                     }
                 } else {
                     D_8039B070_entries[i].unk1E = 0;
@@ -375,10 +375,10 @@ void tnt_update(u8 arg0) {
             }
         }
     }
-    D_8039B614 = gPlayerX;
-    D_8039B618 = gPlayerY;
-    D_8039B61C = gPlayerZ;
-    D_8039B620 = arg0;
+    gTntPrevPlayerX = gPlayerX;
+    gTntPrevPlayerY = gPlayerY;
+    gTntPrevPlayerZ = gPlayerZ;
+    gTntPrevVehicle = arg0;
 }
 
 
@@ -470,7 +470,7 @@ void tnt_draw(Gfx **gdl, Dyn48D00 *dyn) {
     *gdl = gfx;
 }
 
-extern u8 D_8039B094;
+extern u8 gTntCrate0Riding;
 
 /* Crates standing on a vehicle ride on it (on entering) (0x8028F6B4). */
 void tnt_attach_to_vehicle(u8 arg0) {
@@ -479,7 +479,7 @@ void tnt_attach_to_vehicle(u8 arg0) {
     for (i = 0; i < gTntCount; i++) {
         if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk23 == arg0) {
             D_8039B070_entries[i].unk1E = 0;
-            *(&D_8039B094 + i * 0x48) = 1;
+            *(&gTntCrate0Riding + i * 0x48) = 1;
             veh_deck_to_local_c(arg0, D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8,
                           &D_8039B070_entries[i].unk26, &D_8039B070_entries[i].unk28);
         }
@@ -527,14 +527,14 @@ void tnt_ride_vehicle(u8 arg0) {
     }
 }
 
-extern u8 D_8039B094;
+extern u8 gTntCrate0Riding;
 
 /* Unpins all crates (on leaving a vehicle) (0x8028F93C). */
 void tnt_detach_all(void) {
     s32 i;
 
     for (i = 0; i < gTntCount; i++) {
-        *(&D_8039B094 + i * 0x48) = 0;
+        *(&gTntCrate0Riding + i * 0x48) = 0;
     }
 }
 
@@ -582,7 +582,7 @@ void tnt_test_sphere(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
 /* START held at boot (0x8028FC10).
  * Boot-time controller check: read the pads (osContStartReadData,
  * osRecvMesg, osContGetReadData), note whether START is held, latch it
- * into D_802FDBD0 if controller 1 is present, and set D_802FDBD4 when
+ * into gBootPakManager if controller 1 is present, and set gBootEraseSave when
  * START is held but was not latched. */
 void cont_boot_check_start(void) {
     u8 mask;
@@ -597,9 +597,9 @@ void cont_boot_check_start(void) {
         start = 1;
     }
     if (cont_query_present(&gSiMesgQueue, &mask) == 0 && (mask & 1)) {
-        D_802FDBD0 = start;
+        gBootPakManager = start;
     }
-    D_802FDBD4 = start && !D_802FDBD0;
+    gBootEraseSave = start && !gBootPakManager;
 }
 
 typedef struct {

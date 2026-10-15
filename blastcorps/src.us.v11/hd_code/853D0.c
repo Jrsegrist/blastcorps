@@ -18,14 +18,14 @@ extern u8 * N64P gBallistaModel;   /* its model */
 extern u64 * N64P gBallistaMtxA;  /* save copy pair */
 extern u64 * N64P gBallistaMtxB;
 extern f32 gBallistaLean;
-extern u8 D_803F8B76;
+extern u8 gBallistaDustTimer;
 extern u8 D_803F8B77;
-extern s8 D_803F8B78;
-extern u8 D_803F8B7A;
-extern u8 D_803F8B7B;
-extern u8 D_803F8B7C;
-extern u8 D_803F8B7D;
-extern u8 D_803F8B7E;
+extern s8 gBallistaEscaping;
+extern u8 gBallistaThrottleHold;
+extern u8 gBallistaBounced;
+extern u8 gBallistaJumping;
+extern u8 gBallistaFireCooldown;
+extern u8 gBallistaFireSide;
 
 /* Sets up Ballista (type 10) (0x802C9B90).
  * Load vehicle 10 (the 5CB60 dispatcher lvl_spawn_vehicles, record type 10):
@@ -39,7 +39,7 @@ extern u8 D_803F8B7E;
  * +0x78..0x94, its flags and counters, parts (veh_register_parts, scale 0x3E80),
  * veh_add_shadow(10, 100, 45, 45), one update with +0x9A set
  * (ballista_update), copy the model matrix from the second copy to the first
- * (mtx_copy_at) and D_80364A6B = 1.
+ * (mtx_copy_at) and gHaveBallista = 1.
  * Register convention (conventions.txt): x t7, y s3, z s0, heading s1,
  * model s2, fp (handed to veh_init_ground, which stores it into gSlotSurface:
  * the dispatcher's leftover $fp in the game). The FP block veh_init_ground
@@ -73,8 +73,8 @@ void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     gBallistaPos[0] = x;
     gBallistaPos[1] = y;
     gBallistaPos[2] = z;
-    D_803F8B7C = 0;
-    D_803F8B7E = 0;
+    gBallistaJumping = 0;
+    gBallistaFireSide = 0;
     gBallistaLean = 0.5f;
     *(s16 *) (gBallistaState + 0x4C) = heading;
     *(s16 *) (gBallistaState + 0x4E) = heading;
@@ -107,12 +107,12 @@ void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     *(s16 *) (gBallistaState + 0x90) = 0xFA;
     *(s16 *) (gBallistaState + 0x92) = 0x104;
     *(s16 *) (gBallistaState + 0x94) = 2;
-    D_803F8B78 = 0;
-    D_803F8B7B = 0;
-    D_803F8B7A = 0;
-    D_803F8B76 = 0;
+    gBallistaEscaping = 0;
+    gBallistaBounced = 0;
+    gBallistaThrottleHold = 0;
+    gBallistaDustTimer = 0;
     D_803F8B77 = 0x32;
-    D_803F8B7D = 0;
+    gBallistaFireCooldown = 0;
     gBallistaMissiles = 0;
     m = gBallistaModel;
     veh_register_parts(10, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x3E80);
@@ -122,7 +122,7 @@ void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     gBallistaState[0x9A] = 0;
     m = gBallistaModel;
     mtx_copy_at((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, *(s32 *) (m + *(s32 *) (m + 0x18) + 4));
-    D_80364A6B = 1;
+    gHaveBallista = 1;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_spawn.s")
@@ -176,15 +176,15 @@ void ballista_enter(void) {
 #ifdef NON_MATCHING
 /* Functional rewrite (tools_port/eqcheck.py verified). Vehicle-type 10
  * "can exit" check: 0 if any of the vehicle's bytes 0x96..0x98 equals 1 or
- * D_803F8B7C (= its byte 0xDC) is nonzero, else 1. Same shape as
+ * gBallistaJumping (= its byte 0xDC) is nonzero, else 1. Same shape as
  * police_exit_check, ateam_exit_check, starski_exit_check, cyclone_exit_check. 00000.c
  * declares it void and ignores the result, but the asm returns 0/1 in v0. */
 extern u8 gBallistaState[];
-extern u8 D_803F8B7C;
+extern u8 gBallistaJumping;
 
 /* Ballista's exit check (not during a wheelie) (0x802CA140). */
 s32 ballista_exit_check(void) {
-    if (gBallistaState[0x96] == 1 || gBallistaState[0x97] == 1 || gBallistaState[0x98] == 1 || D_803F8B7C != 0) {
+    if (gBallistaState[0x96] == 1 || gBallistaState[0x97] == 1 || gBallistaState[0x98] == 1 || gBallistaJumping != 0) {
         return 0;
     }
     return 1;
@@ -350,13 +350,13 @@ void ballista_ride_follow(s32 id, s32 *s3, InterpRegs *r) {
 #ifdef NON_MATCHING
 extern u64 * N64P gBallistaMtxA;
 extern u64 * N64P gBallistaMtxB;
-extern u8 D_803F8B7A;  /* throttle hold-off countdown */
-extern s8 D_803F8B78;  /* "turning back to the ring" flag */
-extern s16 D_803F8B74; /* ring target heading */
-extern s8 D_803F8B79;  /* sound to start this frame (-1 = none) */
-extern u8 D_803F8B7B;  /* bounced off the ring end */
-extern f32 D_8030D990;
-extern u8 D_80306420[];
+extern u8 gBallistaThrottleHold;  /* throttle hold-off countdown */
+extern s8 gBallistaEscaping;  /* "turning back to the ring" flag */
+extern s16 gBallistaEscapeHeading; /* ring target heading */
+extern s8 gBallistaHitSound;  /* sound to start this frame (-1 = none) */
+extern u8 gBallistaBounced;  /* bounced off the ring end */
+extern f32 gBallistaEscapeTurnRate;
+extern u8 gBallistaNonBlockingParts[];
 void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 s32 ballista_steer_rate(void);
 
@@ -369,20 +369,20 @@ s32 ballista_steer_rate(void);
  * its init ballista_spawn): zone lookup (ballista_zone_alpha), save copy
  * (veh_snapshot), effects (ballista_update_actions, unless +0x9A is set), the shared
  * veh_start_turbo (when gTurboPending), timers, steering (veh_steer at rate
- * ballista_steer_rate()), throttle (veh_throttle, held off while D_803F8B7A
+ * ballista_steer_rate()), throttle (veh_throttle, held off while gBallistaThrottleHold
  * counts down), heading (veh_turn_heading), slope and drag (veh_slope /
- * veh_apply_slope), ring turn-back (veh_set_target_heading when D_803F8B78), the
+ * veh_apply_slope), ring turn-back (veh_set_target_heading when gBallistaEscaping), the
  * forward step (veh_move_along_heading) and ground contact (veh_ground_contact), the
  * model's animation (anim_update_model on the current copy pair) and placement
  * (ballista_build_model), collision (veh_collision_setup / veh_collide_spheres /
  * veh_collide_world). Then either (no ring hit, gCollBlocked == 0) obj_collide_vehicle
  * and, if that set gCollHit, a bounce off the ring end (speed reversed
- * into 0x41..0x82 or -0x25..-0x4B, D_803F8B7A = 5) unless one is already
- * running; or (ring hit) veh_prepare_escape, D_803F8B78 = 1, and the turn back
+ * into 0x41..0x82 or -0x25..-0x4B, gBallistaThrottleHold = 5) unless one is already
+ * running; or (ring hit) veh_prepare_escape, gBallistaEscaping = 1, and the turn back
  * toward the ring midpoint (veh_reverse_if_behind, veh_turn_into_free_arc, veh_step_heading,
  * veh_hit_slowdown(0), obj_collide_vehicle). Finally the position, speed and angles
- * go to gPlayerX.. / D_8036443C.., veh_set_record(z, 10, x, y, block), and
- * sound D_803F8B79 (12, or -1 after obj_collide_vehicle) is started if >= 0.
+ * go to gPlayerX.. / gPlayerSpeed.., veh_set_record(z, 10, x, y, block), and
+ * sound gBallistaHitSound (12, or -1 after obj_collide_vehicle) is started if >= 0.
  * Register notes (FIDELITY, see tools_port/port_followups.md): the asm
  * hands ballista_zone_alpha (and so ballista_update_actions -> fx_spawn) the caller's
  * t6, t7, s0-s4 on the paths where veh_zone_alpha doesn't set them, and
@@ -420,17 +420,17 @@ void ballista_update(void) {
     }
     ballista_set_physics();
     veh_steer(ballista_steer_rate(), &V853_U16(VS_HEADING));
-    if (D_803F8B7A == 0) {
+    if (gBallistaThrottleHold == 0) {
         veh_throttle(gBallistaState, &V853_S16(VS_SPEED), 3, &V853_U8(VS_SLOT_AIRBORNE), &V853_S16(VS_BANDS), 0x10);
     } else {
-        D_803F8B7A--;
+        gBallistaThrottleHold--;
     }
     veh_turn_heading(gBallistaState, &V853_U16(VS_MOMENTUM_HEADING), 0x3E80, &V853_S16(VS_SPEED), &V853_U16(VS_HEADING), &V853_U16(VS_MOVE_HEADING),
                   (s8 *) &V853_U8(VS_SKIDDING), 1);
     f.pz = veh_slope(&V853_S16(VS_SPEED), &V853_U8(VS_SLOT_AIRBORNE), (s32 *) (gBallistaState + 4), (f32 *) (gBallistaState + 0));
     veh_apply_slope(gBallistaState, &V853_S16(VS_SPEED), 10, (s8 *) &V853_U8(VS_SLOT_AIRBORNE), (s32 *) (gBallistaState + 4), 1, 640.0f);
-    if (D_803F8B78 != 0) {
-        veh_set_target_heading(gBallistaState, &D_803F8B74);
+    if (gBallistaEscaping != 0) {
+        veh_set_target_heading(gBallistaState, &gBallistaEscapeHeading);
     }
     x = veh_move_along_heading(f.pz, V853_U16(VS_MOVE_HEADING), &V853_S16(VS_SPEED), (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[2],
                       &o860c);
@@ -449,24 +449,24 @@ void ballista_update(void) {
     regs.s0 = (s32) &V853_U8(VS_SLOT_AIRBORNE);
     regs.s1 = (s32) &gBallistaPos[2];
     ballista_build_model(&regs);
-    veh_collision_setup(gBallistaPos[2], (s32) D_80306420, 1, 1, gBallistaPos[0], gBallistaPos[1], 8, V853_S16(VS_SPEED), 0x64, 0, 10,
+    veh_collision_setup(gBallistaPos[2], (s32) gBallistaNonBlockingParts, 1, 1, gBallistaPos[0], gBallistaPos[1], 8, V853_S16(VS_SPEED), 0x64, 0, 10,
                   gBallistaState);
     veh_collide_spheres(10, gBallistaState);
     veh_collide_world(10);
-    D_803F8B79 = 12;
+    gBallistaHitSound = 12;
     if (gCollBlocked == 0) {
         gCollHit = 0;
-        D_803F77D0 = gBallistaAnim;
+        gCollVehicleAnim = gBallistaAnim;
         obj_collide_vehicle(10, gBallistaState);
-        D_803F8B79 = -1;
+        gBallistaHitSound = -1;
         if (gCollHit == 0) {
-            D_803F8B78 = 0;
-            D_803F8B7B = 0;
+            gBallistaEscaping = 0;
+            gBallistaBounced = 0;
         } else {
-            D_803F8B78 = 0;
-            if (D_803F8B7B == 0 && D_803F8B7A == 0) {
+            gBallistaEscaping = 0;
+            if (gBallistaBounced == 0 && gBallistaThrottleHold == 0) {
                 /* bounce off the ring end */
-                D_803F8B7A = 5;
+                gBallistaThrottleHold = 5;
                 v = V853_S16(VS_SPEED);
                 if (v >= 0) {
                     if (v < 0x41) {
@@ -480,13 +480,13 @@ void ballista_update(void) {
                     v = -0x4B;
                 }
                 V853_S16(VS_SPEED) = -v;
-                D_803F8B7B = 1;
+                gBallistaBounced = 1;
             }
         }
     } else {
         /* turn back toward the ring */
         veh_prepare_escape(gBallistaState);
-        D_803F8B78 = 1;
+        gBallistaEscaping = 1;
         mid = veh_free_arc_mid();
         v = V853_U16(VS_MOVE_HEADING) - 0x800;
         if (v < 0) {
@@ -500,24 +500,24 @@ void ballista_update(void) {
             v = 0xFFF - v;
         }
         veh_reverse_if_behind(gBallistaState);
-        turn = veh_turn_into_free_arc(gBallistaState, V853_U16(VS_MOVE_HEADING), V853_U16(VS_HEADING), &cur, D_8030D990);
-        D_803F8B74 = cur;
+        turn = veh_turn_into_free_arc(gBallistaState, V853_U16(VS_MOVE_HEADING), V853_U16(VS_HEADING), &cur, gBallistaEscapeTurnRate);
+        gBallistaEscapeHeading = cur;
         V853_S16(VS_MOVE_HEADING) = cur;
         V853_S16(VS_MOMENTUM_HEADING) = cur;
         veh_step_heading(gBallistaState, turn, v, &tgt);
         veh_hit_slowdown(gBallistaState, 0);
-        D_803F77D0 = gBallistaAnim;
+        gCollVehicleAnim = gBallistaAnim;
         obj_collide_vehicle(10, gBallistaState);
     }
     gPlayerX = gBallistaPos[0];
     gPlayerY = gBallistaPos[1];
     gPlayerZ = gBallistaPos[2];
-    D_8036443C = V853_S16(VS_SPEED);
-    D_8036443E = V853_U16(VS_MOVE_HEADING);
-    D_80364440 = V853_U16(VS_HEADING);
+    gPlayerSpeed = V853_S16(VS_SPEED);
+    gPlayerMoveHeading = V853_U16(VS_MOVE_HEADING);
+    gPlayerHeading = V853_U16(VS_HEADING);
     veh_set_record(gBallistaPos[2], 10, gBallistaPos[0], gBallistaPos[1], gBallistaState);
-    if (D_803F8B79 >= 0) {
-        snd_play(gSfxBank, D_803F8B79, NULL);
+    if (gBallistaHitSound >= 0) {
+        snd_play(gSfxBank, gBallistaHitSound, NULL);
     }
 }
 #else
@@ -544,17 +544,17 @@ void ballista_update(void) {
     } while (0)
 #endif
 extern f32 gBallistaLean; /* engine/tilt animation value (0.5 = centred) */
-extern s32 D_803F8B64; /* jump: a (initial speed) */
-extern s32 D_803F8B68; /* jump: n (frame) */
-extern s32 D_803F8B6C; /* jump: base height */
-extern u16 D_803F8B70; /* jump: boost frames */
-extern u8 D_803F8B76;  /* record cooldown */
-extern u8 D_803F8B7D;  /* horn cooldown */
-extern u8 D_803F8B7E;  /* horn side toggle */
-extern f32 D_8030D994;
-extern f32 D_8030D998;
-extern f32 D_8030D99C;
-extern f32 D_8030D9A0;
+extern s32 gBallistaJumpSpeed; /* jump: a (initial speed) */
+extern s32 gBallistaJumpFrame; /* jump: n (frame) */
+extern s32 gBallistaJumpBaseY; /* jump: base height */
+extern u16 gBallistaJumpBoosts; /* jump: boost frames */
+extern u8 gBallistaDustTimer;  /* record cooldown */
+extern u8 gBallistaFireCooldown;  /* horn cooldown */
+extern u8 gBallistaFireSide;  /* horn side toggle */
+extern f32 gBallistaLeanStepLeft;
+extern f32 gBallistaLeanStepRight;
+extern f32 gBallistaLeanRecentreStep;
+extern f32 gBallistaJumpFullHeight;
 void ballista_add_tyre_trail(void);
 f32 ballista_lean_limit(s32 side);
 
@@ -572,18 +572,18 @@ f32 ballista_lean_limit(s32 side);
 
 /* Dust, lean, missiles (L/R), wheelie, engine (0x802CAAFC).
  * Per-frame effects of vehicle type 10 ($gp = gBallistaState, read as the
- * global): with +0x99 set and no cooldown (D_803F8B76), and fewer than 4
+ * global): with +0x99 set and no cooldown (gBallistaDustTimer), and fewer than 4
  * active gEffects records (fx_count_active), sets up a fx_spawn record
- * (def D_802C2954, data 0x30D40, type 1 at (10, 1, 1), the caller's t6, t7,
+ * (def gFxExhaustSmoke, data 0x30D40, type 1 at (10, 1, 1), the caller's t6, t7,
  * s0-s4 passed through); channel 1 gets the speed sign and |speed| / 6, the
  * engine sound |speed| >> 3 (veh_set_engine_level), then the trail (ballista_add_tyre_trail).
  * gBallistaLean steers towards ballista_lean_limit's limit while gHeldLeft /
  * gHeldRight is held (else back to 0.5) and drives channel 3. The horn
- * (gHeldL/gHeldR, gBallistaMissiles presses, cooldown D_803F8B7D = 5) alternates
+ * (gHeldL/gHeldR, gBallistaMissiles presses, cooldown gBallistaFireCooldown = 5) alternates
  * channels 4 / 5 and fires shell_fire from record (10, 3|1) to (10, 4|2)
  * at speed |speed| * 320 / 260 + 640. A jump (gPadStickY >= 60, not near a
- * band bound per veh_near_top_speed) starts or boosts the parabola D_803F8B64 /
- * 68 / 6C; while it is active channel 2 gets height / D_8030D9A0 (at most
+ * band bound per veh_near_top_speed) starts or boosts the parabola gBallistaJumpSpeed /
+ * 68 / 6C; while it is active channel 2 gets height / gBallistaJumpFullHeight (at most
  * 1.0), and on landing it bounces (when the impact is >= 61 and no flag
  * +0x96..0x98 is 1) or ends.
  * Register convention (conventions.txt): t6, t7, s0-s4 come in (from the
@@ -603,15 +603,15 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
     f32 f;
     f32 lim;
 
-    if (D_803F8B76 != 0) {
-        D_803F8B76--;
+    if (gBallistaDustTimer != 0) {
+        gBallistaDustTimer--;
     } else if (gBallistaState[0x99] != 0) {
-        D_803F8B76 = 1;
+        gBallistaDustTimer = 1;
         if (fx_count_active() < 4) {
             io.a3 = 0;
             io.t6 = t6;
             io.s1 = s1;
-            fx_spawn(&io, D_802C2954, 0x30D40, 1, 10, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x30D40, 1, 10, 1, 1, t7, s0, s2, s3, s4, 1);
         }
     }
 
@@ -630,24 +630,24 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
 
     f = gBallistaLean;
     if (gHeldLeft != 0) {
-        f -= D_8030D994;
+        f -= gBallistaLeanStepLeft;
         lim = ballista_lean_limit(0);
         if (f < lim) {
             f = lim;
         }
     } else if (gHeldRight != 0) {
-        f += D_8030D998;
+        f += gBallistaLeanStepRight;
         lim = ballista_lean_limit(1);
         if (!(f <= lim)) {
             f = lim;
         }
     } else if (f < 0.5f) {
-        f += D_8030D99C;
+        f += gBallistaLeanRecentreStep;
         if (!(f <= 0.5f)) {
             f = 0.5f;
         }
     } else {
-        f -= D_8030D99C;
+        f -= gBallistaLeanRecentreStep;
         if (f < 0.5f) {
             f = 0.5f;
         }
@@ -655,13 +655,13 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
     gBallistaLean = f;
     anim_set_frame(f, (AnimChannel *) gBallistaAnim, 3, 0);
 
-    if (D_803F8B7D != 0) {
-        D_803F8B7D--;
+    if (gBallistaFireCooldown != 0) {
+        gBallistaFireCooldown--;
     } else if ((gHeldL != 0 || gHeldR != 0) && ((u16) gBallistaMissiles) != 0) {
         gBallistaMissiles--;
         snd_play(gSfxBank, SFX_BALLISTA_MISSILE, NULL);
-        D_803F8B7E ^= 1;
-        if (D_803F8B7E != 0) {
+        gBallistaFireSide ^= 1;
+        if (gBallistaFireSide != 0) {
             anim_set_frame(0.0f, (AnimChannel *) gBallistaAnim, 4, 0);
             anim_play((AnimChannel *) gBallistaAnim, 4, 1);
             veh_find_point(10, 3, (u8 **) &rec);
@@ -684,34 +684,34 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
         }
         /* the asm passes the whole word; the callee takes an s16 */
         shell_fire((u32) (speed * 0x140) / 0x104 + 0x280, rec[0], rec[1], rec[2], x1, y1, z1, 0, 0x1A4);
-        D_803F8B7D = 5;
+        gBallistaFireCooldown = 5;
     }
 
     if (veh_near_top_speed(gBallistaState, 10) == 0 && gPadStickY >= 0x3C) {
-        if (D_803F8B7C == 0) {
+        if (gBallistaJumping == 0) {
             /* take off */
-            D_803F8B7C = 1;
-            D_803F8B6C = 0;
-            D_803F8B68 = 1;
-            D_803F8B64 = 0x3C;
-            D_803F8B70 = 0;
-        } else if (D_803F8B70 < 0x17) {
+            gBallistaJumping = 1;
+            gBallistaJumpBaseY = 0;
+            gBallistaJumpFrame = 1;
+            gBallistaJumpSpeed = 0x3C;
+            gBallistaJumpBoosts = 0;
+        } else if (gBallistaJumpBoosts < 0x17) {
             /* boost: rebase the parabola at the current height */
-            D_803F8B70++;
-            JUMP_HEIGHT(cur, D_803F8B64, D_803F8B68);
-            D_803F8B6C += cur;
-            JUMP_HEIGHT(prev, D_803F8B64, D_803F8B68 - 1);
-            D_803F8B64 = cur - prev + 0x33;
-            D_803F8B68 = 1;
+            gBallistaJumpBoosts++;
+            JUMP_HEIGHT(cur, gBallistaJumpSpeed, gBallistaJumpFrame);
+            gBallistaJumpBaseY += cur;
+            JUMP_HEIGHT(prev, gBallistaJumpSpeed, gBallistaJumpFrame - 1);
+            gBallistaJumpSpeed = cur - prev + 0x33;
+            gBallistaJumpFrame = 1;
         }
     }
 
-    if (D_803F8B7C != 0) {
-        JUMP_HEIGHT(cur, D_803F8B64, D_803F8B68);
-        h = D_803F8B6C + cur;
+    if (gBallistaJumping != 0) {
+        JUMP_HEIGHT(cur, gBallistaJumpSpeed, gBallistaJumpFrame);
+        h = gBallistaJumpBaseY + cur;
         if (h <= 0) {
             /* landed: bounce with half the impact speed, or stop */
-            JUMP_HEIGHT(prev, D_803F8B64, D_803F8B68 - 1);
+            JUMP_HEIGHT(prev, gBallistaJumpSpeed, gBallistaJumpFrame - 1);
             prev -= cur;
             if (prev < 0) {
                 prev = -prev;
@@ -719,21 +719,21 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
             if (prev < 0x3D || gBallistaState[0x96] == 1 || gBallistaState[0x97] == 1 || gBallistaState[0x98] == 1) {
                 goto stop;
             }
-            D_803F8B6C = 0;
-            D_803F8B64 = (u32) prev / 2;
-            D_803F8B68 = 1;
+            gBallistaJumpBaseY = 0;
+            gBallistaJumpSpeed = (u32) prev / 2;
+            gBallistaJumpFrame = 1;
             h = 0;
         }
-        f = (f32) h / D_8030D9A0;
+        f = (f32) h / gBallistaJumpFullHeight;
         if (!(f <= 1.0f)) {
             f = 1.0f;
         }
         anim_set_frame(f, (AnimChannel *) gBallistaAnim, 2, 0);
-        D_803F8B68++;
+        gBallistaJumpFrame++;
         return;
     }
 stop:
-    D_803F8B7C = 0;
+    gBallistaJumping = 0;
     anim_set_frame(0.0f, (AnimChannel *) gBallistaAnim, 2, 0);
 }
 #else
@@ -859,11 +859,11 @@ void ballista_build_model(MtxChainRegs *regs) {
     } while (0)
 #endif
 
-extern f32 D_8030D9A4;
+extern f32 gBallistaSteerDivisor;
 
 /* Ballista's steering rate (0x802CB564).
  * Speed (s16 at +0x76 of gBallistaState, the asm's $gp) / 6.0 when any of the
- * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D9A4, rounded to nearest.
+ * bytes at +0x96/+0x97/+0x98 is 1, else / gBallistaSteerDivisor, rounded to nearest.
  * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
  * ballista_update keeps a0-a3 live (a mixed N64 build would need a thunk).
  * Same shape as sideswipe_steer_rate (6B4A0). */
@@ -874,7 +874,7 @@ s32 ballista_steer_rate(void) {
     if (gBallistaState[0x96] == 1 || gBallistaState[0x97] == 1 || gBallistaState[0x98] == 1) {
         div = 6.0f;
     } else {
-        div = D_8030D9A4;
+        div = gBallistaSteerDivisor;
     }
     CVT_W_S(r, *(s16 *) (gBallistaState + 0x76) / div);
     return r;

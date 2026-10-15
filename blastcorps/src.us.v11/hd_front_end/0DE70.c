@@ -50,7 +50,7 @@ extern Gfx * N64P gCommPointDls[2][2];
 extern Mtx gCommPointTranslate;
 extern Mtx gCommPointScale;
 extern Mtx gCommPointTilt;
-extern u8 D_80218430[];
+extern u8 gCommPointAnim[];
 extern u32 gCommPointAngle;
 extern u16 gCommPointPerspNorm;
 
@@ -122,7 +122,7 @@ Gfx *fe_comm_point_draw(FeDyn *dyn, Gfx *arg1) {
 
         base = ((FeHdr *) (((FeHdr *) gCommPointModel)->unk18 + gCommPointModel))->unk4;
         m = (Mtx *) ((u32) gCommPointBufs[gBufferIndex] + base);
-        fe_anim_update_model(D_80218430, gCommPointBufs[gBufferIndex], gCommPointBufs[gBufferIndex ^ 1]);
+        fe_anim_update_model(gCommPointAnim, gCommPointBufs[gBufferIndex], gCommPointBufs[gBufferIndex ^ 1]);
         gCommPointAngle += 3;
         guRotate(m, gCommPointAngle % 360, 0.0f, 1.0f, 0.0f);
         osWritebackDCache(m, sizeof(Mtx));
@@ -150,9 +150,9 @@ void fe_comm_point_load(void) {
     fe_load_model(0x96, &gCommPointModel, (u8 * N64P *) gCommPointBufs, (u8 * N64P *) gCommPointDls[0]);
     guTranslate(&gCommPointTranslate, 150.0f, -45.0f, 0.0f);
     guScale(&gCommPointScale, 1.5f, 1.5f, 1.5f);
-    fe_anim_init_model(gCommPointModel, (u32 * N64P *) gCommPointBufs, D_80218430);
-    fe_anim_start_channel(D_80218430, 1, 0, 0, 0.0f, 2, 0);
-    fe_anim_start_channel(D_80218430, 2, 0, 0, 0.0f, 1, 1);
+    fe_anim_init_model(gCommPointModel, (u32 * N64P *) gCommPointBufs, gCommPointAnim);
+    fe_anim_start_channel(gCommPointAnim, 1, 0, 0, 0.0f, 2, 0);
+    fe_anim_start_channel(gCommPointAnim, 2, 0, 0, 0.0f, 1, 1);
     guRotate(&gCommPointTilt, 20.0f, 1.0f, 0.0f, 0.0f);
     for (i = 0; i < 2; i++) {
         dyn = &gDynamicBufs[i];

@@ -62,7 +62,7 @@
 u64 gMainThreadStack[0x400]; /* 0x80310D80: the main thread's stack, its low half filled with a guard pattern */
 u64 gGameMode; /* 0x80364A90: the current game mode */
 u64 gNextGameMode; /* 0x80364A98: the mode to switch to; nonzero ends the frame loop */
-u64 D_803649D8; /* osGetTime() at the frame's draw (seeds the screen shake and part jitter) */
+u64 gFrameDrawTime; /* osGetTime() at the frame's draw (seeds the screen shake and part jitter) */
 u64 gPrevGameMode; /* 0x80364A88 */
 u64 gGameModeAfterNext; /* 0x80364AA0: set during a switch; becomes gNextGameMode after it */
 u64 gFrameStartTime; /* 0x80364AD0: osGetTime() at the start of the frame */
@@ -73,9 +73,9 @@ void hd_main_thread(void *);
 
 extern OSThread gIdleThread;
 extern u64 gIdleThreadStack[]; /* idle thread stack */
-extern u8 D_80314D80[];
-extern u8 D_80314D98[];
-extern u32 D_803649F4;
+extern u8 gPiMesgQueue[];
+extern u8 gPiMesgBuf[];
+extern u32 gHudMoney;
 
 /* A gVehicles record: one per loaded vehicle model (veh_add_record), 0x74 bytes */
 typedef struct {
@@ -106,7 +106,7 @@ extern VehRecord *gVehiclesEnd;
 extern u8 romStaticSegment[]; /* the static segment (segment 1: display lists) in ROM */
 extern u8 romStaticSegmentEnd[];
 extern u8 gPendingTune;
-extern u8 D_803FF600[];
+extern u8 gStaticSegmentBuf[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* heap pointer */
 #ifndef NON_MATCHING
@@ -114,7 +114,7 @@ extern s32 gRdpOutputBuffer;
 #endif
 #endif
 /* (gLevelInfo[]: LevelInfo, game/types.h) */
-extern u8 D_80358088[];
+extern u8 gVehicleShadowPool[];
 
 void hd_clear_framebuffer(Gfx *, s32 *);
 void hd_close_display_list(Gfx *, s32 *);
@@ -127,18 +127,18 @@ void hd_close_display_list(Gfx *, s32 *);
     debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "hd.c", line)
 
 /* (players[]: PlayerInfo, game/types.h) */
-extern u8 D_803649EC;
+extern u8 gVehEntered;
 extern s32 gEnterRefusedSound;
 #ifndef NON_MATCHING
 extern s32 gSfxBank;
 #endif
 s32 veh_enter(s32);
 
-extern OSMesg D_803150B8[];
-extern OSMesg D_80315198[];
+extern OSMesg gDmaMesgBuf[];
+extern OSMesg gTextureDmaMesgBuf[];
 extern u64 gSchedStack[];
-extern OSMesg D_803153F8[];
-extern u8 D_8021ED00[];
+extern OSMesg gTaskDoneMesgBuf[];
+extern u8 gDepthBuffer[];
 extern f32 gCamHeadingGoal;
 extern u8 gCamTurnPos;
 extern u8 gCamTurnNeg;
@@ -150,10 +150,10 @@ u8 cam_fixed_heading_area(void);
 extern s32 gLevelData;
 #endif
 
-extern f32 D_80364AB4;
-extern f32 D_80364AB8;
-extern f32 D_80364ABC;
-extern u8 D_80364AC0;
+extern f32 gFailSpinAngle;
+extern f32 gFailSpinRate;
+extern f32 gFailSpinScale;
+extern u8 gFailSpinDone;
 
 typedef struct {
     s32 unk0;
@@ -162,28 +162,28 @@ typedef struct {
     u8 unk8;
     u8 unk9;
 } Message; /* 0xC bytes */
-extern Message D_80364A00[5];
-extern u8 D_80364A3C;
-extern u8 D_80364A3D;
-extern s32 D_80364A44;
-extern u8 D_80364A48;
-extern s16 D_80364A4A;
-extern s16 D_80364A4C;
-extern u8 D_80364A4E;
+extern Message gValuePopups[5];
+extern u8 gValuePopupHead;
+extern u8 gValuePopupTail;
+extern s32 gValuePopupValue;
+extern u8 gValuePopupAlpha;
+extern s16 gValuePopupX;
+extern s16 gValuePopupY;
+extern u8 gValuePopupForward;
 
-extern u8 D_803156F5;
+extern u8 gVehDrawBufferIndex;
 
 
-extern u16 D_802E8BF4[]; /* sprite ids (spr_load) */
+extern u16 gCamFixedIconSprIds[]; /* sprite ids (spr_load) */
 extern s32 gCamEyeHeight;
-extern u8 D_80364434;
+extern u8 gCamLiftBlocked;
 extern f32 gCamTilt;
 extern f32 gCamTurn;
 extern s16 gCamPitch;
-extern f32 D_803649F8;
-extern s32 D_80364A5C;
-extern u8 D_80364A6F;
-extern u8 D_80364A86;
+extern f32 gAttractCamZoom;
+extern s32 gTimeInLevel;
+extern u8 gCarrierDanger;
+extern u8 gCamFixedIconSprite;
 #ifndef NON_MATCHING
 extern s32 gDriverPos;
 #endif
@@ -199,7 +199,7 @@ extern s32 gLeaveRefusedSound;
 u8 veh_exit_check(void);
 s32 veh_is_loaded(u8);
 
-extern u8 D_803153F0;
+extern u8 gCarrierDangerPrev;
 extern s32 gCarrierAlarmSound;
 
 /* menu tables, 0x1C-byte entries */
@@ -293,15 +293,15 @@ extern u8 romLevel57Raw[]; /* level57 */
 extern u8 romLevel58Raw[]; /* level58 */
 extern u8 romLevel59Raw[]; /* level59 */
 
-extern s32 D_8036506C;
+extern s32 gShadowVtxCount;
 
 #ifndef NON_MATCHING
 extern u32 gLevelSegment8;
 #endif
-extern u16 D_80304904[]; /* glyph lists */
-extern u16 D_80304910[];
-extern u16 D_8030491C[];
-extern u16 D_80304938[];
+extern u16 gShuttleViewGlyphs[]; /* glyph lists */
+extern u16 gMissileViewGlyphs[];
+extern u16 gTurnPagesGlyphs[];
+extern u16 gMoveMapGlyphs[];
 void veh_draw_shadows(Gfx **, DynamicBuf *, u8);
 void veh_draw_chopper_shadow(Gfx **, DynamicBuf *);
 void veh_update_fail_spin(void);
@@ -311,31 +311,31 @@ void cam_update(Mtx *, LookAt *, Mtx *);
 #define MS_ASSERT(EX, line) \
     if (!(EX)) \
     debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "./master_switch.c", line)
-extern u16 D_803047A0[];
-extern u16 D_803047B4[];
-extern u16 D_803047CC[];
-extern u16 D_803047DC[];
-extern u8 D_80315438;
-extern u32 D_80364A54;
-extern u8 D_80364A60;
-extern s32 D_80364AC4;
+extern u16 gEnterNameGlyphs[];
+extern u16 gEraseSaveGlyphs[];
+extern u16 gQuitGameGlyphs[];
+extern u16 gGuestPlayerGlyphs[];
+extern u8 gResultsGrade;
+extern u32 gReplayStartTime;
+extern u8 gRankGained;
+extern s32 gAttractPicIndex;
 extern u32 gFrameCpuTime;
 extern u32 gFrameStartLag;
-extern u8 D_80365065;
-extern u8 D_80365066;
-extern u8 D_8039C4F8[];
+extern u8 gWorldEntered;
+extern u8 gCheatResultPending;
+extern u8 gReplayStatus[];
 #define LEVEL_SAVE_SIZE 0x40
 void hd_game_frame(void);
 void hd_init(void);
 void hd_check_stack(void);
-#define MODE_PAGE(m) gYoshiWindows[D_802F4868[lowest_set_bit(m)]]
+#define MODE_PAGE(m) gYoshiWindows[gYoshiResultsWindowByKind[lowest_set_bit(m)]]
 #define MODE_ENTRY(m) gYoshiFeItems[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
 
-extern s32 D_80364A78;
-extern u8 D_80364A7C;
-extern s32 D_80364A80;
+extern s32 gMapViewScrollZ;
+extern u8 gCamZoomInLock;
+extern s32 gMapViewScrollSpeed;
 extern f32 gCamZoom;
-extern u8 D_80364A85;
+extern u8 gCamWindowView;
 #ifndef NON_MATCHING
 extern s32 gMusicPlayer;
 #endif
@@ -380,10 +380,10 @@ void hd_idle_thread(void *arg0) {
     s32 pad;
 
     osDpSetStatus(4);
-    osCreatePiManager(0x96, (OSMesgQueue *) D_80314D80, (void * N64P *) D_80314D98, 0xC2);
+    osCreatePiManager(0x96, (OSMesgQueue *) gPiMesgQueue, (void * N64P *) gPiMesgBuf, 0xC2);
     osCreateThread(&gMainThread, 3, hd_main_thread, arg0, gMainThreadStack + 0x400, 10);
     osStartThread(&gMainThread);
-    if (D_802FA254 == 0) {
+    if (gDebugFlagD == 0) {
         osStartThread(&gMainThread);
     }
     osSetThreadPri(NULL, 0);
@@ -416,8 +416,8 @@ void hd_main_thread(void *arg) {
                 case MODE_BOOT_SCREEN1:
                     hd_mode_setup();
                     fe_boot_screen_init(1);
-                    start2 = D_803156C4;
-                    while ((u32) (D_803156C4 - start2) < 15) {
+                    start2 = gSchedFrameCount;
+                    while ((u32) (gSchedFrameCount - start2) < 15) {
                         PORT_SPIN();
                     }
                     break;
@@ -464,7 +464,7 @@ void hd_main_thread(void *arg) {
                         gGameModeAfterNext = MODE_PAK_CHECK;
                     } else {
                         playerNumber = 0;
-                        D_80364AE9 = 0;
+                        gLoadedPlayer = 0;
                         playerNumberAtStart = 0, osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000010, 1);
                         osRecvMesg(&pakToGameMessageQ, &gEepromPresent, 1);
                         if (gEepromPresent == NULL) {
@@ -493,15 +493,15 @@ void hd_main_thread(void *arg) {
                     yoshi_demand(0x8038);
                     break;
                 case MODE_ATTRACT_START:
-                    D_802E8BEC = -1;
-                    D_802E8BF0 = 1;
-                    D_80365065 = 0;
+                    gRecDemoNumber = -1;
+                    gRecDemoNoLogo = 1;
+                    gWorldEntered = 0;
                     gGameModeAfterNext = MODE_ATTRACT;
                     gIgnorePak = 0;
                     fe_player_update_level_kinds();
                     break;
                 case MODE_ATTRACT:
-                    switch (D_802E8BEC) {
+                    switch (gRecDemoNumber) {
                         case 1:
                         case 3:
                         case 4:
@@ -510,26 +510,26 @@ void hd_main_thread(void *arg) {
                                 gNextGameMode = MODE_ATTRACT_PICTURE;
                                 hd_mode_setup();
                                 fe_bg_load(7);
-                                fe_attract_pic_load(D_80364AC4 & 3);
+                                fe_attract_pic_load(gAttractPicIndex & 3);
                                 yoshi_demand(0x8035);
-                                fe_player_panel_init(D_80364AC4 & 3);
-                                D_80364AC4++;
+                                fe_player_panel_init(gAttractPicIndex & 3);
+                                gAttractPicIndex++;
                                 break;
                             }
                         default:
-                        D_802E8BEC++;
-                        if (D_802E8BEC == 9) {
-                            D_802E8BEC = 0;
-                            D_802E8BF0 = 0;
+                        gRecDemoNumber++;
+                        if (gRecDemoNumber == 9) {
+                            gRecDemoNumber = 0;
+                            gRecDemoNoLogo = 0;
                         } else {
-                            D_802E8BF0 ^= 1;
+                            gRecDemoNoLogo ^= 1;
                         }
                         gPadDisplayAlpha = 0;
                         hd_mode_setup();
                         title_setup_logo();
                         hud_load_pad_image();
-                        rec_start_playback(D_802E8BEC, &levelno);
-                        if (D_802E8BEC == 0) {
+                        rec_start_playback(gRecDemoNumber, &levelno);
+                        if (gRecDemoNumber == 0) {
                             hud_load_demo_banner();
                         }
                         hd_setup_level(0);
@@ -538,22 +538,22 @@ void hd_main_thread(void *arg) {
                     break;
                 case MODE_WORLD:
                     if (playerNumber != playerNumberAtStart) {
-                        D_80364AE9 = playerNumberAtStart;
+                        gLoadedPlayer = playerNumberAtStart;
                         playerNumber = playerNumberAtStart;
                     }
                     hd_load_front_end();
                     debug_printf("World screen centred on level %d\n", levelno);
                     playerNumber = playerNumberAtStart;
                     fe_player_update_level_kinds();
-                    if (!D_80365065) {
-                        D_80365065 = 1;
-                        D_80364A87 = 0;
-                        D_803643D5 = 0;
+                    if (!gWorldEntered) {
+                        gWorldEntered = 1;
+                        gRouteRevealFlags = 0;
+                        gLevelFirstClear = 0;
                         fe_open_reachable_levels(8);
                         levelno = players[playerNumber].levelno;
                         debug_printf("going to level %d\n", levelno);
                     }
-                    if ((D_8039CA60 = 0, ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0)) &&
+                    if ((gGhostRetry = 0, ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0)) &&
                         levelno >= 0x2B && levelno < 0x2E) {
                         if (!((players[playerNumber].medal[levelno + 1] > 0 && players[playerNumber].medal[levelno + 1] < 6) ? 1 : 0)) {
                             levelno++;
@@ -595,8 +595,8 @@ void hd_main_thread(void *arg) {
                     hd_mode_setup();
                     if (gLevelInfo[levelno].kind != 1) {
                         hd_setup_level(0);
-                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
-                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA80);
+                        stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
+                        stats_copy_result((u8 *) &nss, (u8 *) &gScoreRes);
                         gPauseRequest = 1;
                     } else {
                         if ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) {
@@ -604,8 +604,8 @@ void hd_main_thread(void *arg) {
                         } else {
                             hd_setup_level(0);
                         }
-                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
-                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA80);
+                        stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
+                        stats_copy_result((u8 *) &nss, (u8 *) &gScoreRes);
                         gGameModeAfterNext = MODE_LEVEL;
                     }
                     break;
@@ -634,21 +634,21 @@ void hd_main_thread(void *arg) {
                             }
                             gPauseRequest = !gUnpauseRequest;
                             debug_printf("Unpause at start = %d\n", gUnpauseRequest);
-                            D_80364A58 = ((s32) PORT_GVI("hd_main_thread:4A58", D_803156C0));
-                            D_80358064 = 0;
+                            gLevelStartTime = ((s32) PORT_GVI("hd_main_thread:4A58", gSchedRetraceCount));
+                            gPlayFrames = 0;
                             rec_start_recording();
                             debug_printf("snew ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n",
                                           nss.ip, nss.tc, nss.bd, nss.cr, nss.rt,
                                           nss.coin, nss.bdn);
                             debug_printf("sold ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n",
-                                          D_8036EA60.ip, D_8036EA60.tc, D_8036EA60.bd, D_8036EA60.cr, D_8036EA60.rt,
-                                          D_8036EA60.coin, D_8036EA60.bdn);
+                                          gScoreOld.ip, gScoreOld.tc, gScoreOld.bd, gScoreOld.cr, gScoreOld.rt,
+                                          gScoreOld.coin, gScoreOld.bdn);
                             debug_printf("sres ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n",
-                                          D_8036EA80.ip, D_8036EA80.tc, D_8036EA80.bd, D_8036EA80.cr, D_8036EA80.rt,
-                                          D_8036EA80.coin, D_8036EA80.bdn);
+                                          gScoreRes.ip, gScoreRes.tc, gScoreRes.bd, gScoreRes.cr, gScoreRes.rt,
+                                          gScoreRes.coin, gScoreRes.bdn);
                             debug_printf("srs2 ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n",
-                                          D_8036EA90.ip, D_8036EA90.tc, D_8036EA90.bd, D_8036EA90.cr, D_8036EA90.rt,
-                                          D_8036EA90.coin, D_8036EA90.bdn);
+                                          gScoreRs2.ip, gScoreRs2.tc, gScoreRs2.bd, gScoreRs2.cr, gScoreRs2.rt,
+                                          gScoreRs2.coin, gScoreRs2.bdn);
                             break;
                     }
                     break;
@@ -667,8 +667,8 @@ void hd_main_thread(void *arg) {
                         case MODE_BEST_TIMES:
                         case MODE_BEST_TIMES_UNUSED:
                         case MODE_GUEST_PLAYER:
-                            if (playerNumber != D_80364AE9) {
-                                D_80364AE9 = playerNumber, debug_printf("switching to new player ...........\n");
+                            if (playerNumber != gLoadedPlayer) {
+                                gLoadedPlayer = playerNumber, debug_printf("switching to new player ...........\n");
                                 stats_save_status();
                             }
                             break;
@@ -680,16 +680,16 @@ void hd_main_thread(void *arg) {
                     MODE_ENTRY(gLevelKind).unk0 &= ~1;
                     MODE_ENTRY(gLevelKind).unk0 |= 0x800;
                     yoshi_set_target_icons();
-                    yoshi_demand(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(gYoshiResultsWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
                     MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
                     MODE_PAGE(gLevelKind).unk8 &= ~8;
-                    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
-                    D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0), fe_player_panel_init(playerNumber);
-                    fe_player_medals_init(D_80315438);
-                    fe_player_medals_show_quiet(D_80315438);
+                    stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
+                    gResultsGrade = fe_stats_grade_level(&gRankGained, 1, 0), fe_player_panel_init(playerNumber);
+                    fe_player_medals_init(gResultsGrade);
+                    fe_player_medals_show_quiet(gResultsGrade);
                     fe_bg_load(1);
-                    D_80364A71 = fe_stats_count_unlocks();
-                    if (D_80364A71 != -1) {
+                    gUnlockCount = fe_stats_count_unlocks();
+                    if (gUnlockCount != -1) {
                         fe_comm_point_load();
                     }
                     break;
@@ -707,18 +707,18 @@ void hd_main_thread(void *arg) {
                     break;
                 case MODE_PROMOTION:
                     hd_mode_setup();
-                    start = D_803156C4;
-                    while ((u32) (D_803156C4 - start) < 15) {
+                    start = gSchedFrameCount;
+                    while ((u32) (gSchedFrameCount - start) < 15) {
                         PORT_SPIN();
                     }
                     fe_promo_init();
                     fe_bg_load(3);
-                    D_80364A71 = fe_stats_count_unlocks();
-                    if (D_80364A71 != -1) {
+                    gUnlockCount = fe_stats_count_unlocks();
+                    if (gUnlockCount != -1) {
                         fe_comm_point_load();
                     }
                     fe_player_panel_init(playerNumber);
-                    fe_player_medals_init(D_80315438);
+                    fe_player_medals_init(gResultsGrade);
                     break;
                 case MODE_RESULTS:
                     switch (gGameMode) {
@@ -727,15 +727,15 @@ void hd_main_thread(void *arg) {
                         case MODE_VEHICLE_SELECT:
                             hd_mode_setup();
                             fe_bg_load(1);
-                            D_80364A71 = fe_stats_count_unlocks();
-                            if (D_80364A71 != -1) {
+                            gUnlockCount = fe_stats_count_unlocks();
+                            if (gUnlockCount != -1) {
                                 fe_comm_point_load();
                             }
                             fe_player_panel_init(playerNumber);
-                            stats_copy_result((u8 *) &D_8036EA90, (u8 *) &nss);
-                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0);
-                            fe_player_medals_init(D_80315438);
-                            fe_player_medals_show_quiet(D_80315438);
+                            stats_copy_result((u8 *) &gScoreRs2, (u8 *) &nss);
+                            gResultsGrade = fe_stats_grade_level(&gRankGained, 1, 0);
+                            fe_player_medals_init(gResultsGrade);
+                            fe_player_medals_show_quiet(gResultsGrade);
                             break;
                         case MODE_PROMOTION:
                             gPendingTune = music_tune_for_mode(gNextGameMode);
@@ -743,22 +743,22 @@ void hd_main_thread(void *arg) {
                         case MODE_BEST_TIMES:
                         case MODE_BEST_TIMES_UNUSED:
                         case MODE_GUEST_PLAYER:
-                            if (playerNumber != D_80364AE9) {
+                            if (playerNumber != gLoadedPlayer) {
                                 debug_printf("switching to new player ...........\n");
-                                D_80364AE9 = playerNumber;
-                                D_803643D5 = 0;
+                                gLoadedPlayer = playerNumber;
+                                gLevelFirstClear = 0;
                                 stats_save_status();
                             }
                             hd_mode_setup();
-                            D_80364A71 = fe_stats_count_unlocks();
-                            if (D_80364A71 != -1) {
+                            gUnlockCount = fe_stats_count_unlocks();
+                            if (gUnlockCount != -1) {
                                 fe_comm_point_load();
                             }
                             fe_player_panel_init(playerNumber);
-                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0);
+                            gResultsGrade = fe_stats_grade_level(&gRankGained, 1, 0);
                             fe_bg_load(1);
-                            fe_player_medals_init(D_80315438);
-                            fe_player_medals_show_quiet(D_80315438);
+                            fe_player_medals_init(gResultsGrade);
+                            fe_player_medals_show_quiet(gResultsGrade);
                             break;
                         default:
                             MS_ASSERT(!saveIt[playerNumber] || saveIt[playerNumber]==levelno+1, 488);
@@ -766,13 +766,13 @@ void hd_main_thread(void *arg) {
                             if (gLevelDone) {
                                 obj_tally(gLevelInfo[levelno].kind == 0x20 || gLevelInfo[levelno].kind == 0x80);
                             }
-                            D_803643D5 = !((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0);
+                            gLevelFirstClear = !((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0);
                             if (playerNumber == playerNumberAtStart) {
-                                D_80364A87 |= D_803643D5;
+                                gRouteRevealFlags |= gLevelFirstClear;
                             }
-                            if (gLevelKind == 1 && !D_803643D5) {
+                            if (gLevelKind == 1 && !gLevelFirstClear) {
                                 for (i = 0; i < 0x40; i++) {
-                                    D_8039C4F8[i] = pakBuffer[i];
+                                    gReplayStatus[i] = pakBuffer[i];
                                 }
                             }
                             commpt_save_flags();
@@ -781,10 +781,10 @@ void hd_main_thread(void *arg) {
                                 MS_ASSERT(record_status(pakBuffer)<=LEVEL_SAVE_SIZE-4, 513);
                                 MS_ASSERT(!saveLevel || saveLevel==levelno+1, 515);
                                 saveLevel = levelno + 1;
-                                if ((u32) (stats_frames_to_tenths(D_80364A5C) + nss.tc) >= 60000) {
+                                if ((u32) (stats_frames_to_tenths(gTimeInLevel) + nss.tc) >= 60000) {
                                     nss.tc = 59999;
                                 } else {
-                                    nss.tc = stats_frames_to_tenths(D_80364A5C) + nss.tc;
+                                    nss.tc = stats_frames_to_tenths(gTimeInLevel) + nss.tc;
                                 }
                             } else if (gLevelDone) {
                                 hud_race_time_left();
@@ -797,25 +797,25 @@ void hd_main_thread(void *arg) {
                                 nss.tc = 1;
                             }
                             hd_mode_setup();
-                            if (D_80365066) {
-                                nss.bd = D_8036EB92;
-                                D_80365066 = 0;
+                            if (gCheatResultPending) {
+                                nss.bd = gBuildingCount;
+                                gCheatResultPending = 0;
                             }
-                            if (D_803643D5) {
-                                stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+                            if (gLevelFirstClear) {
+                                stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
                             } else {
-                                stats_copy_result((u8 *) &D_8036EA80, (u8 *) &D_8036EA60);
+                                stats_copy_result((u8 *) &gScoreRes, (u8 *) &gScoreOld);
                             }
-                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 1), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA90);
-                            if (D_80364A60) {
+                            gResultsGrade = fe_stats_grade_level(&gRankGained, 1, 1), stats_copy_result((u8 *) &nss, (u8 *) &gScoreRs2);
+                            if (gRankGained) {
                                 gGameModeAfterNext = MODE_PROMOTION;
-                                D_80364A64 = 0xDC;
+                                gPromoCueDelay = 0xDC;
                                 gPendingTune = 0;
                             } else {
-                                fe_player_medals_init(D_80315438);
+                                fe_player_medals_init(gResultsGrade);
                                 fe_bg_load(1);
-                                D_80364A71 = fe_stats_count_unlocks();
-                                if (D_80364A71 != -1) {
+                                gUnlockCount = fe_stats_count_unlocks();
+                                if (gUnlockCount != -1) {
                                     fe_comm_point_load();
                                 }
                                 fe_player_panel_init(playerNumber);
@@ -824,7 +824,7 @@ void hd_main_thread(void *arg) {
                             MODE_ENTRY(gLevelKind).unk0 &= ~0x800;
                             break;
                     }
-                    if (D_803643D5 && playerNumber == playerNumberAtStart) {
+                    if (gLevelFirstClear && playerNumber == playerNumberAtStart) {
                         MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 1;
                     } else {
                         MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
@@ -834,13 +834,13 @@ void hd_main_thread(void *arg) {
                     if (gUseEeprom) {
                         gYoshiFeItems[29].unk0 &= ~1;
                     }
-                    yoshi_demand(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(gYoshiResultsWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
                     break;
                 case MODE_REPLAY:
                     if (gGameMode & (MODE_CARRIER_END | MODE_TIMED_END)) {
                         hd_load_front_end();
-                        nss.tc = stats_frames_to_tenths(D_80364A5C), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
-                        fe_stats_grade_level(&D_80364A60, 0, 1);
+                        nss.tc = stats_frames_to_tenths(gTimeInLevel), stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
+                        fe_stats_grade_level(&gRankGained, 0, 1);
                     }
                     gYoshiGameItems[24].unk0 |= 1;
                     gYoshiGameItems[24].unk0 &= ~0x800;
@@ -853,13 +853,13 @@ void hd_main_thread(void *arg) {
                     } else {
                         gYoshiWindows[6].unk18 = 0x17, gYoshiWindows[7].unk18 = 0x21;
                     }
-                    D_80364A50 = 0;
-                    D_80364A54 = PORT_GVI("hd_main_thread:4A54", D_803156C4);
+                    gReplayMenuShown = 0;
+                    gReplayStartTime = PORT_GVI("hd_main_thread:4A54", gSchedFrameCount);
                     hd_mode_setup();
                     if (gLevelInfo[levelno].kind == 1 &&
                         ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) &&
-                        !D_803643D5) {
-                        hd_setup_level((s32) D_8039C4F8);
+                        !gLevelFirstClear) {
+                        hd_setup_level((s32) gReplayStatus);
                     } else {
                         hd_setup_level(0);
                     }
@@ -882,7 +882,7 @@ void hd_main_thread(void *arg) {
                 case MODE_NAME_ENTRY:
                     osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 0x14 | 0x01000000), 1);
                     osRecvMesg(&pakToGameMessageQ, NULL, 1);
-                    fe_player_name_entry_open("ENTER NAME!", D_803047A0, 7, 0x1E, (char *) &players[playerNumber]);
+                    fe_player_name_entry_open("ENTER NAME!", gEnterNameGlyphs, 7, 0x1E, (char *) &players[playerNumber]);
                     yoshi_demand(0x800B);
                     title_setup_logo();
                     gPendingTune = music_tune_for_mode(gNextGameMode);
@@ -890,7 +890,7 @@ void hd_main_thread(void *arg) {
                 case MODE_QUIT_GAME:
                     hd_mode_setup();
                     fe_bg_load(1);
-                    gYoshiFeItems[9].unkC = "QUIT GAME!", gYoshiFeItems[9].unk10 = D_803047CC, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 22;
+                    gYoshiFeItems[9].unkC = "QUIT GAME!", gYoshiFeItems[9].unk10 = gQuitGameGlyphs, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 22;
                     yoshi_demand(0x800C);
                     break;
                 case MODE_ACADEMY_MARKER:
@@ -918,14 +918,14 @@ void hd_main_thread(void *arg) {
                     if (gEepromPresent != NULL) {
                         title_setup_logo();
                         fe_bg_load(1);
-                        gYoshiFeItems[9].unkC = "ERASE SAVED GAME!", gYoshiFeItems[9].unk10 = D_803047B4, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
+                        gYoshiFeItems[9].unkC = "ERASE SAVED GAME!", gYoshiFeItems[9].unk10 = gEraseSaveGlyphs, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
                         yoshi_demand(0x800C);
                     } else {
                         gGameModeAfterNext = MODE_BOOT_SCREEN1;
                     }
                     break;
                 case MODE_GUEST_PLAYER:
-                    gYoshiFeItems[9].unkC = "BECOME GUEST PLAYER:", gYoshiFeItems[9].unk10 = D_803047DC, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
+                    gYoshiFeItems[9].unkC = "BECOME GUEST PLAYER:", gYoshiFeItems[9].unk10 = gGuestPlayerGlyphs, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
                     yoshi_demand(0x800C);
                     break;
                 case MODE_ERASE_MENU:
@@ -983,7 +983,7 @@ void hd_main_thread(void *arg) {
             }
             hd_check_stack();
             gFramesInMode++;
-            D_80358064++;
+            gPlayFrames++;
             if (!gPaused) {
                 gUnpausedFrames++;
             }
@@ -1036,9 +1036,9 @@ void hd_game_frame(void) {
         }
         if ((gContButtons & 0x2000) && gLevelDoneRequest) {
             gCheatAllDestroyed = 1;
-            D_8036EA7C = gRduCount;
-            D_8036EA79 = D_8036EB93;
-            D_80365066 = 1;
+            gScoreRdus = gRduCount;
+            gScorePeople = gPeopleTotal;
+            gCheatResultPending = 1;
             stats_set_level_flag(2);
             stats_set_level_flag(1);
         }
@@ -1094,7 +1094,7 @@ void hd_game_frame(void) {
         mb_render_view(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((gVehicles[i].unk58)),
                       gVehicles[i].unk0, gVehicles[i].unk4, gVehicles[i].alpha);
     }
-    D_803649D8 = osGetTime();
+    gFrameDrawTime = osGetTime();
     cont_start_read();
     rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 3, 1, 0x4D2, 1);
     tex_reset_decode_queue();
@@ -1105,27 +1105,27 @@ void hd_game_frame(void) {
                 gPaused = 1;
                 gUnpauseRequest = 0;
                 gPauseRequest = 0;
-                D_803156F4 = gBufferIndex ^ 1;
+                gPausedBufferIndex = gBufferIndex ^ 1;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    if (!D_8036EB99) {
+                    if (!gBonusLevelExit) {
                         snd_set_slot_volume(0, 0);
                     }
                     music_fade_to(0.5f);
                     if (gGameMode == MODE_LEVEL && (gHaveCarrier || gHaveShuttle) && currentYoshiWindow == 0) {
                         gNextGameMode = MODE_MAP_VIEW;
                         cull_restart(10);
-                        D_80364A78 = 0;
+                        gMapViewScrollZ = 0;
                     }
                 }
             }
             break;
         case 1:
-            if (gUnpauseRequest && gBufferIndex != D_803156F4) {
+            if (gUnpauseRequest && gBufferIndex != gPausedBufferIndex) {
                 gPauseRequest = 0;
                 gUnpauseRequest = 0;
                 gPaused = 0;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    if (D_80358064) {
+                    if (gPlayFrames) {
                         debug_printf("LOCKING KEYS!\n");
                         gSwallowB = 1;
                     }
@@ -1136,16 +1136,16 @@ void hd_game_frame(void) {
                         cull_restart(10);
                     }
                     if (gUnpausedFrames == 0) {
-                        D_80358064 = 0;
+                        gPlayFrames = 0;
                     }
                 }
             }
             break;
     }
     if (gPaused) {
-        D_803156F5 = D_803156F4;
+        gVehDrawBufferIndex = gPausedBufferIndex;
     } else {
-        D_803156F5 = gBufferIndex;
+        gVehDrawBufferIndex = gBufferIndex;
     }
     if (gHaveCarrier && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         carrier_update_sound();
@@ -1154,7 +1154,7 @@ void hd_game_frame(void) {
         chopper_update_sound();
     }
     util_check_board_zone();
-    D_803649EE = 0;
+    gVehJustSwitched = 0;
     if (gCurVehicle == 0 && !(gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING))) {
         veh_apply_switch();
     }
@@ -1173,7 +1173,7 @@ void hd_game_frame(void) {
         }
         if (zoom == 0) {
             if ((gContButtons & 8) && !(gContButtons & 4)) {
-                if (gCamZoom > 1.0 && gGameMode == MODE_LEVEL && D_80364A7C == 0) {
+                if (gCamZoom > 1.0 && gGameMode == MODE_LEVEL && gCamZoomInLock == 0) {
                     zoom = 1;
                     if (!(gContPrevButtons & 8)) {
                         snd_play(gSfxBank, SFX_CAM_IN, NULL);
@@ -1182,7 +1182,7 @@ void hd_game_frame(void) {
                     zoom = 4;
                 }
             } else {
-                D_80364A7C = 0;
+                gCamZoomInLock = 0;
             }
         }
         switch (zoom) {
@@ -1204,12 +1204,12 @@ void hd_game_frame(void) {
                 if (gHaveCarrier || gHaveShuttle) {
                     cull_restart(10);
                     gNextGameMode = MODE_MAP_VIEW;
-                    D_80364A78 = 0;
+                    gMapViewScrollZ = 0;
                     snd_play(gSfxBank, SFX_MAP_VIEW, NULL);
                 }
                 break;
             case 4:
-                D_80364A7C = 1;
+                gCamZoomInLock = 1;
                 if (gHaveCarrier || gHaveShuttle) {
                     cull_restart(10);
                     gNextGameMode = MODE_LEVEL;
@@ -1220,27 +1220,27 @@ void hd_game_frame(void) {
     }
     if (gGameMode == MODE_MAP_VIEW && gPaused && yoshiState == 2 && gHaveCarrier && currentYoshiWindow == 0) {
         if (!(gContButtons & 0x2000) && !(gContButtons & 0x10)) {
-            D_80364A80 = 0;
+            gMapViewScrollSpeed = 0;
         } else {
-            D_80364A80 += 100;
-            if (D_80364A80 > 800) {
-                D_80364A80 = 800;
+            gMapViewScrollSpeed += 100;
+            if (gMapViewScrollSpeed > 800) {
+                gMapViewScrollSpeed = 800;
             }
             if (gContButtons & 0x2000) {
-                D_80364A78 += D_80364A80;
+                gMapViewScrollZ += gMapViewScrollSpeed;
             }
             if (gContButtons & 0x10) {
-                D_80364A78 -= D_80364A80;
+                gMapViewScrollZ -= gMapViewScrollSpeed;
             }
         }
-        pos = gCarrierZ + D_80364A78;
+        pos = gCarrierZ + gMapViewScrollZ;
         lo = gCarrierStartZ - 400;
         hi = gCarrierStartZ + gCarrierRouteLen;
         if (pos > hi) {
-            D_80364A78 = hi - gCarrierZ;
+            gMapViewScrollZ = hi - gCarrierZ;
         }
         if (pos < lo) {
-            D_80364A78 = lo - gCarrierZ;
+            gMapViewScrollZ = lo - gCarrierZ;
         }
         if (gContButtons & 0x2010) {
             gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 - 0x18 < -0x100) ? -0x100 : gYoshiWindows[0].unk4 - 0x18;
@@ -1254,14 +1254,14 @@ void hd_game_frame(void) {
             }
         }
     } else {
-        D_80364A80 = 0;
+        gMapViewScrollSpeed = 0;
         gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[0].unk4 + 0x20;
         gYoshiScale = (gYoshiScale / 0.8 < 1.0) ? gYoshiScale / 0.8 : 1.0;
         if (gYoshiScale == 1.0) {
             gYoshiWindows[0].unk8 |= 0x20;
         }
     }
-    if (gHeldZ && !gPaused && gCurVehicle && !D_8036443C && (gLevelKind == 1 || gLevelKind == 0x80)) {
+    if (gHeldZ && !gPaused && gCurVehicle && !gPlayerSpeed && (gLevelKind == 1 || gLevelKind == 0x80)) {
         veh_leave();
     }
     veh_update_others();
@@ -1304,7 +1304,7 @@ void hd_game_frame(void) {
             people_update();
         }
     }
-    if (!gPaused && !D_80364A84) {
+    if (!gPaused && !gPlayerHidden) {
         veh_update_player();
     }
     if (gGhostRecording && !gPaused) {
@@ -1351,23 +1351,23 @@ void hd_game_frame(void) {
             hud_update_value_popups();
             hud_tick_money_counter();
         }
-        if (gLevelKind != 1 && gTurboActive && (u32) (((s32) D_803156C0) - D_80364A58) > 90) {
+        if (gLevelKind != 1 && gTurboActive && (u32) (((s32) gSchedRetraceCount) - gLevelStartTime) > 90) {
             gTurboActive = 0;
             mb_stop();
         }
     }
-    if ((gCarrierHit || gLevelDone || (levelno == 0x32 && gTargetsCleared && !(LEVEL_DONE(0x32)))) && gLevelKind == 1 && D_80364A5C == 0) {
-        debug_printf("TIME IN LEVEL=%d\n", D_80364A5C = ((s32) D_803156C0) - D_80364A58);
+    if ((gCarrierHit || gLevelDone || (levelno == 0x32 && gTargetsCleared && !(LEVEL_DONE(0x32)))) && gLevelKind == 1 && gTimeInLevel == 0) {
+        debug_printf("TIME IN LEVEL=%d\n", gTimeInLevel = ((s32) gSchedRetraceCount) - gLevelStartTime);
     }
     cam_apply_height_zone(gLevelData);
     if (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) {
         cull_restart(2);
     }
     if (currentYoshiWindow == 0x58 && yoshiState != 8 && !gCamFixedEye) {
-        if (!D_80364A85) {
+        if (!gCamWindowView) {
             cull_restart(10);
         }
-    } else if (D_80364A85) {
+    } else if (gCamWindowView) {
         cull_restart(10);
     }
     obj_draw_all((u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x1E0]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x578]),
@@ -1380,7 +1380,7 @@ void hd_game_frame(void) {
     lvl_build_visible_dls((u32 *) N64_IPTR(gLevelDl0[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl1[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl2[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl3[gBufferIndex]),
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x140]));
     water_update(gBufferIndex);
-    if (!gPaused || (gHaveCarrier && gCarrierHit) || D_8036EB99) {
+    if (!gPaused || (gHaveCarrier && gCarrierHit) || gBonusLevelExit) {
         obj_run_effect_queue();
         obj_update_delayed_damage();
     }
@@ -1432,8 +1432,8 @@ void hd_game_frame(void) {
             gdl = title_draw_attract(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
             PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
         }
-        if (D_802E8BF0 || gLogoState == 3 || D_802E8BEC >= 9) {
-            if ((yoshiState == 1 || yoshiState == 8 || D_802E8BEC >= 9) && (!D_802E8BF0 || gFramesInMode <= D_80366A04)) {
+        if (gRecDemoNoLogo || gLogoState == 3 || gRecDemoNumber >= 9) {
+            if ((yoshiState == 1 || yoshiState == 8 || gRecDemoNumber >= 9) && (!gRecDemoNoLogo || gFramesInMode <= gRecDemoLength)) {
                 if (gPadDisplayAlpha + 20 > 0xFF) {
                     gPadDisplayAlpha = 0xFF;
                 } else {
@@ -1445,12 +1445,12 @@ void hd_game_frame(void) {
                 gPadDisplayAlpha -= 20;
             }
         }
-        if (gPadDisplayAlpha && D_802E8BEC && gPadDisplayLoaded) {
+        if (gPadDisplayAlpha && gRecDemoNumber && gPadDisplayLoaded) {
             PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
             gdl = hud_draw_pad((s32) &gDynamicBufs[gBufferIndex], gdl, gPadDisplayAlpha / 2 - 103,
                                 0x55 - ((gGameMode == MODE_GLOBE_SEQ) << 5), gPadDisplayAlpha);
         }
-        if (D_802E8BEC == 0 && gLogoState == 3 && gGameMode == MODE_ATTRACT) {
+        if (gRecDemoNumber == 0 && gLogoState == 3 && gGameMode == MODE_ATTRACT) {
             PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
             gdl = hud_draw_demo_banner((s32) gDynamicBufs, gdl);
         }
@@ -1468,15 +1468,15 @@ void hd_game_frame(void) {
     }
     PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
     gdl = hd_debug_dl_stub(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
-    if ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && D_803156C4 - D_80364A54 > 160 && !D_80364A50) {
-        D_80364A50 = 1;
+    if ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && gSchedFrameCount - gReplayStartTime > 160 && !gReplayMenuShown) {
+        gReplayMenuShown = 1;
         if (yoshiState == 1) {
             if (!(LEVEL_DONE(levelno)) || gLevelKind == 1) {
-                yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
+                yoshi_demand(gYoshiReplayWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
             }
         }
     }
-    if (gGameMode == MODE_LEVEL_CLEAR && !areWeFading() && (!alCSPGetState(gMusicPlayer) || D_803156C4 - gDoneTuneStartTime > 300)) {
+    if (gGameMode == MODE_LEVEL_CLEAR && !areWeFading() && (!alCSPGetState(gMusicPlayer) || gSchedFrameCount - gDoneTuneStartTime > 300)) {
         fade_to_mode(MODE_RESULTS);
     }
     if (levelno == 0x31 && yoshiState == 1) {
@@ -1526,11 +1526,11 @@ void hd_game_frame(void) {
                     gNextGameMode = MODE_RESULTS;
                     snd_play(gSfxBank, SFX_SELECT, NULL);
                 } else if (yoshiState == 1) {
-                    yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(gYoshiReplayWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
                 }
                 break;
             case MODE_ATTRACT:
-                if (D_80366A18) {
+                if (gAttractStartOk) {
                     snd_play(gSfxBank, SFX_SELECT, NULL);
                     snd_set_slot_volume(0, 0);
                     snd_set_slot_volume(5, 0);
@@ -1538,7 +1538,7 @@ void hd_game_frame(void) {
                 }
                 break;
             case MODE_GLOBE_SEQ:
-                if (D_803A6B04) {
+                if (gSeqSkippable) {
                     gNextGameMode = MODE_SEQ_SKIP;
                 }
                 break;
@@ -1586,10 +1586,10 @@ void hd_game_frame(void) {
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
         tex_decode_next();
     }
-    D_803649E0 = D_803649D8 % 40 - 20;
-    D_803649E2 = D_803649D8 / 100 % 40 - 20;
-    D_803649E4 = D_803649D8 / 10000 % 40 - 20;
-    D_803643D8 = gCarrierHit;
+    gPartJitterX = gFrameDrawTime % 40 - 20;
+    gPartJitterY = gFrameDrawTime / 100 % 40 - 20;
+    gPartJitterZ = gFrameDrawTime / 10000 % 40 - 20;
+    gCarrierHitSeen = gCarrierHit;
     if (!gLevelDone && !gCarrierHit) {
         if (gLevelDoneRequest) {
             HD_ASSERT(!cmo_hit_request, 1529);
@@ -1602,67 +1602,67 @@ void hd_game_frame(void) {
     }
 }
 
-/* Queues the value of a destroyed object (D_80364A40) as a "$N" popup placed by the camera heading quadrant,
+/* Queues the value of a destroyed object (gValuePopupNew) as a "$N" popup placed by the camera heading quadrant,
  * and fades the current popup in and out over 30 frames (0x8024A348).
- * The "$value" popups: queues D_80364A40 (a destroyed object's value) and fades the current one */
+ * The "$value" popups: queues gValuePopupNew (a destroyed object's value) and fades the current one */
 void hud_update_value_popups(void) {
     s32 pad;
 
-    if (D_80364A40 != 0) {
-        if (D_80364A3D + 1 != D_80364A3C && (D_80364A3D != 4 || D_80364A3C != 0)) {
-            D_80364A00[D_80364A3D].unk0 = D_80364A40;
-            D_80364A00[D_80364A3D].unk9 = 30;
-            if (D_8036443E >= 0xE00 || D_8036443E < 0x200) {
+    if (gValuePopupNew != 0) {
+        if (gValuePopupTail + 1 != gValuePopupHead && (gValuePopupTail != 4 || gValuePopupHead != 0)) {
+            gValuePopups[gValuePopupTail].unk0 = gValuePopupNew;
+            gValuePopups[gValuePopupTail].unk9 = 30;
+            if (gPlayerMoveHeading >= 0xE00 || gPlayerMoveHeading < 0x200) {
                 if (gLevelKind == 8) {
-                    D_80364A00[D_80364A3D].unk4 = 30;
-                    D_80364A00[D_80364A3D].unk6 = 60;
-                    D_80364A00[D_80364A3D].unk8 = 1;
+                    gValuePopups[gValuePopupTail].unk4 = 30;
+                    gValuePopups[gValuePopupTail].unk6 = 60;
+                    gValuePopups[gValuePopupTail].unk8 = 1;
                 } else {
-                    D_80364A00[D_80364A3D].unk4 = 30;
-                    D_80364A00[D_80364A3D].unk6 = 30;
-                    D_80364A00[D_80364A3D].unk8 = 1;
+                    gValuePopups[gValuePopupTail].unk4 = 30;
+                    gValuePopups[gValuePopupTail].unk6 = 30;
+                    gValuePopups[gValuePopupTail].unk8 = 1;
                 }
             }
-            if (D_8036443E >= 0x200 && D_8036443E < 0x600) {
-                D_80364A00[D_80364A3D].unk4 = 30;
-                D_80364A00[D_80364A3D].unk6 = 160;
-                D_80364A00[D_80364A3D].unk8 = 1;
+            if (gPlayerMoveHeading >= 0x200 && gPlayerMoveHeading < 0x600) {
+                gValuePopups[gValuePopupTail].unk4 = 30;
+                gValuePopups[gValuePopupTail].unk6 = 160;
+                gValuePopups[gValuePopupTail].unk8 = 1;
             }
-            if (D_8036443E >= 0x600 && D_8036443E < 0xA00) {
-                D_80364A00[D_80364A3D].unk4 = 250;
-                D_80364A00[D_80364A3D].unk6 = 160;
-                D_80364A00[D_80364A3D].unk8 = 0;
+            if (gPlayerMoveHeading >= 0x600 && gPlayerMoveHeading < 0xA00) {
+                gValuePopups[gValuePopupTail].unk4 = 250;
+                gValuePopups[gValuePopupTail].unk6 = 160;
+                gValuePopups[gValuePopupTail].unk8 = 0;
             }
-            if (D_8036443E >= 0xA00 && D_8036443E < 0xE00) {
-                D_80364A00[D_80364A3D].unk4 = 250;
-                D_80364A00[D_80364A3D].unk6 = 37;
-                D_80364A00[D_80364A3D].unk8 = 0;
+            if (gPlayerMoveHeading >= 0xA00 && gPlayerMoveHeading < 0xE00) {
+                gValuePopups[gValuePopupTail].unk4 = 250;
+                gValuePopups[gValuePopupTail].unk6 = 37;
+                gValuePopups[gValuePopupTail].unk8 = 0;
             }
-            D_80364A3D++;
-            if (D_80364A3D == 5) {
-                D_80364A3D = 0;
+            gValuePopupTail++;
+            if (gValuePopupTail == 5) {
+                gValuePopupTail = 0;
             }
         }
-        D_80364A40 = 0;
+        gValuePopupNew = 0;
     }
-    if (D_80364A3C != D_80364A3D) {
-        D_80364A44 = D_80364A00[D_80364A3C].unk0;
-        D_80364A4A = D_80364A00[D_80364A3C].unk4;
-        D_80364A4C = D_80364A00[D_80364A3C].unk6;
-        D_80364A4E = D_80364A00[D_80364A3C].unk8;
-        if (D_80364A00[D_80364A3C].unk9 >= 16) {
-            D_80364A48 = 255.0f - (f32) (D_80364A00[D_80364A3C].unk9 - 15) / 15.0f * 255.0f;
+    if (gValuePopupHead != gValuePopupTail) {
+        gValuePopupValue = gValuePopups[gValuePopupHead].unk0;
+        gValuePopupX = gValuePopups[gValuePopupHead].unk4;
+        gValuePopupY = gValuePopups[gValuePopupHead].unk6;
+        gValuePopupForward = gValuePopups[gValuePopupHead].unk8;
+        if (gValuePopups[gValuePopupHead].unk9 >= 16) {
+            gValuePopupAlpha = 255.0f - (f32) (gValuePopups[gValuePopupHead].unk9 - 15) / 15.0f * 255.0f;
         } else {
-            D_80364A48 = (f32) D_80364A00[D_80364A3C].unk9 / 15.0f * 255.0f;
+            gValuePopupAlpha = (f32) gValuePopups[gValuePopupHead].unk9 / 15.0f * 255.0f;
         }
-        if (!(D_80364A00[D_80364A3C].unk9--)) {
-            D_80364A3C++;
-            if (D_80364A3C == 5) {
-                D_80364A3C = 0;
+        if (!(gValuePopups[gValuePopupHead].unk9--)) {
+            gValuePopupHead++;
+            if (gValuePopupHead == 5) {
+                gValuePopupHead = 0;
             }
         }
     } else {
-        D_80364A44 = 0;
+        gValuePopupValue = 0;
     }
 }
 
@@ -1729,24 +1729,24 @@ void carrier_update_proximity(u32 dist) {
             near = 6000;
             break;
     }
-    D_803153F0 = D_80364A6F;
+    gCarrierDangerPrev = gCarrierDanger;
     if (dist < far) {
         if (dist < near) {
-            D_80364A6F = 2;
+            gCarrierDanger = 2;
         } else {
-            D_80364A6F = 1;
+            gCarrierDanger = 1;
         }
     } else {
-        D_80364A6F = 0;
+        gCarrierDanger = 0;
     }
-    if (D_80364A6F != D_803153F0) {
-        if (D_803153F0 == 0 && util_dist2d(gCarrierX, gCarrierZ, gPlayerX, gPlayerZ) > 20000) {
+    if (gCarrierDanger != gCarrierDangerPrev) {
+        if (gCarrierDangerPrev == 0 && util_dist2d(gCarrierX, gCarrierZ, gPlayerX, gPlayerZ) > 20000) {
             hud_panel_start(1, 1, 7, SFX_PANEL_WARNING);
             debug_printf("TOO FAR AWAY FROM CMO\n");
         }
-        switch (D_80364A6F) {
+        switch (gCarrierDanger) {
             case 1:
-                switch (D_803153F0) {
+                switch (gCarrierDangerPrev) {
                     case 0:
                         music_push_danger_tune();
                     case 2:
@@ -1755,7 +1755,7 @@ void carrier_update_proximity(u32 dist) {
                 }
                 break;
             case 2:
-                switch (D_803153F0) {
+                switch (gCarrierDangerPrev) {
                     case 0:
                         music_push_danger_tune();
                     case 1:
@@ -1771,13 +1771,13 @@ void carrier_update_proximity(u32 dist) {
                 } else {
                     debug_printf("WILL THIS FIX IT!!?\n");
                 }
-                if (D_803153F0 == 2) {
+                if (gCarrierDangerPrev == 2) {
                     snd_play(gSfxBank, SFX_UNK_0x68_CHIME, NULL);
                 }
                 break;
         }
     }
-    switch (D_80364A6F) {
+    switch (gCarrierDanger) {
         case 1:
             if (!yoshi_show_hint(0x49) && currentYoshiWindow != 3) {
                 yoshi_demand(0x8003);
@@ -1797,17 +1797,17 @@ void carrier_update_proximity(u32 dist) {
     }
 }
 
-/* Moves the displayed money (D_803649F4) toward the money total (D_803649F0) by a tenth of the gap plus 10
+/* Moves the displayed money (gHudMoney) toward the money total (gLevelMoney) by a tenth of the gap plus 10
  * each frame (0x8024ADD8).
- * Eases D_803649F4 towards D_803649F0 by a tenth of the gap plus 10 */
+ * Eases gHudMoney towards gLevelMoney by a tenth of the gap plus 10 */
 void hud_tick_money_counter(void) {
     u32 d;
 
-    d = D_803649F0 - D_803649F4;
-    D_803649F4 = d / 10 + D_803649F4;
-    D_803649F4 += 10;
-    if (D_803649F0 < D_803649F4) {
-        D_803649F4 = D_803649F0;
+    d = gLevelMoney - gHudMoney;
+    gHudMoney = d / 10 + gHudMoney;
+    gHudMoney += 10;
+    if (gLevelMoney < gHudMoney) {
+        gHudMoney = gLevelMoney;
     }
 }
 
@@ -1832,9 +1832,9 @@ void veh_apply_switch(void) {
                 }
             }
             players[playerNumber].vehiclesUnlocked |= 1 << gCurVehicle;
-            D_803649E8 = 1;
-            D_803649EC = 1;
-            D_803649EE = 1;
+            gDriverHidden = 1;
+            gVehEntered = 1;
+            gVehJustSwitched = 1;
         } else if (!snd_get_state((void *) N64_IPTR(gEnterRefusedSound))) {
             snd_play(gSfxBank, SFX_ERROR, &gEnterRefusedSound);
         }
@@ -1961,7 +1961,7 @@ void veh_leave(void) {
 #endif
     }
     if (ok) {
-        D_803649E8 = 0;
+        gDriverHidden = 0;
         mb_cancel();
         tnt_detach_all();
         block_detach_all();
@@ -2417,7 +2417,7 @@ void hd_handle_yoshi_selection(u16 *sel) {
                     gNextGameMode = MODE_LEVEL;
                     break;
                 case 2:
-                    stats_finish_level(D_80364A58);
+                    stats_finish_level(gLevelStartTime);
                     break;
                 case 7:
                     cont_show_method_option();
@@ -2601,11 +2601,11 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gSPSegment(gdl++, 8, PHYS(gLevelSegment8));
     gSPClearGeometryMode(gdl++, -1);
     gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(gLevelDl0[gBufferIndex])));
-    gSPDisplayList(gdl++, D_803BE6E0);
+    gSPDisplayList(gdl++, gLevelFileDl0);
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
     gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(gLevelDl1[gBufferIndex])));
-    gSPDisplayList(gdl++, D_803BE6E4);
+    gSPDisplayList(gdl++, gLevelFileDl1);
     if (!gCarrierHit && !gLevelDone) {
         gSPClearGeometryMode(gdl++, -1);
         gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
@@ -2614,10 +2614,10 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     switch (gBufferIndex) {
         case 0:
-            gSPSegment(gdl++, 10, osVirtualToPhysical(D_803F7820));
+            gSPSegment(gdl++, 10, osVirtualToPhysical(gObjPartMtx0));
             break;
         case 1:
-            gSPSegment(gdl++, 10, osVirtualToPhysical(D_803F7824));
+            gSPSegment(gdl++, 10, osVirtualToPhysical(gObjPartMtx1));
             break;
     }
     gDPPipeSync(gdl++);
@@ -2631,7 +2631,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     veh_update_fail_spin();
     veh_draw_shadows(&gdl, dyn, 0);
     obj_draw_ground_shadows(&gdl, (struct VtxBuf *) dyn);
-    if (!gPaused && gLevelKind != 0x40 && !(gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && !D_80364A84) {
+    if (!gPaused && gLevelKind != 0x40 && !(gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && !gPlayerHidden) {
         mb_draw(&gdl, (s32) dyn, gBufferIndex);
     }
     gSPClearGeometryMode(gdl++, -1);
@@ -2658,21 +2658,21 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
             break;
     }
     ptcl_draw(&gdl, gBufferIndex);
-    if (!(gGameMode & MODE_ATTRACT) || !D_802E8BF0) {
+    if (!(gGameMode & MODE_ATTRACT) || !gRecDemoNoLogo) {
         veh_draw_layer(&gdl, 0);
     }
     academy_draw_marker(&gdl);
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
     gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(gLevelDl2[gBufferIndex])));
-    gSPDisplayList(gdl++, D_803BE6E8);
-    if (!(gGameMode & MODE_ATTRACT) || !D_802E8BF0) {
+    gSPDisplayList(gdl++, gLevelFileDl2);
+    if (!(gGameMode & MODE_ATTRACT) || !gRecDemoNoLogo) {
         veh_draw_layer(&gdl, 1);
     }
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
     gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(gLevelDl3[gBufferIndex])));
-    gSPDisplayList(gdl++, D_803BE6EC);
+    gSPDisplayList(gdl++, gLevelFileDl3);
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
     gSPDisplayList(gdl++, SEG2(0x0A918));
@@ -2683,7 +2683,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         gSPDisplayList(gdl++, SEG2(0x21478));
         gDPPipeSync(gdl++);
     }
-    if (!(gGameMode & MODE_ATTRACT) || !D_802E8BF0) {
+    if (!(gGameMode & MODE_ATTRACT) || !gRecDemoNoLogo) {
         veh_draw_layer(&gdl, 2);
     }
     ghost_draw(&gdl, (Mtx *) dyn);
@@ -2731,14 +2731,14 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         hud_draw_veh_overlay(&gdl, gCurVehicle);
     }
     if ((gLevelKind & 1) && (gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END | MODE_TIMED_END))) {
-        util_itoa(D_803649F4, (u8 *) &money[1]);
+        util_itoa(gHudMoney, (u8 *) &money[1]);
         money[0] = '$';
         text_print((Gfx * N64P *) dyn, (u8 *) money, 0, 1, 0, 0x118, 0x12, 0x14, 0x14, 0, 0xFF, 0xFF, 0xFF, gHudAlpha);
-        if (D_80364A44 && !gPaused) {
-            util_itoa(D_80364A44, (u8 *) &bonus[1]);
+        if (gValuePopupValue && !gPaused) {
+            util_itoa(gValuePopupValue, (u8 *) &bonus[1]);
             bonus[0] = '$';
-            text_print((Gfx * N64P *) dyn, (u8 *) bonus, 0, 1, 0, D_80364A4A, D_80364A4C, 0x23, 0x23, D_80364A4E, 0xFF, 0xFF, 0xFF,
-                          D_80364A48);
+            text_print((Gfx * N64P *) dyn, (u8 *) bonus, 0, 1, 0, gValuePopupX, gValuePopupY, 0x23, 0x23, gValuePopupForward, 0xFF, 0xFF, 0xFF,
+                          gValuePopupAlpha);
         }
     }
     if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_YOSHI_PAGES)) && (!(gLevelKind & 0x81) || gHaveCarrier || gHaveShuttle)) {
@@ -2746,28 +2746,28 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         hud_draw_target_marker((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & MODE_MAP_VIEW) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
     }
     if (gNextGameMode == 0 && !areWeFading()) {
-        if (!(gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END | MODE_LEVEL_START | MODE_TIMED_END | MODE_ACADEMY_MARKER | MODE_YOSHI_PAGES)) && PORT_GVI("hd_build_frame_dl", D_803156C4) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
-            (!(gGameMode & MODE_ATTRACT) || (D_802E8BEC && (gLogoState == 3 || D_802E8BEC == 1))) &&
-            (gGameMode != MODE_GLOBE_SEQ || D_803A6B04) &&
+        if (!(gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END | MODE_LEVEL_START | MODE_TIMED_END | MODE_ACADEMY_MARKER | MODE_YOSHI_PAGES)) && PORT_GVI("hd_build_frame_dl", gSchedFrameCount) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
+            (!(gGameMode & MODE_ATTRACT) || (gRecDemoNumber && (gLogoState == 3 || gRecDemoNumber == 1))) &&
+            (gGameMode != MODE_GLOBE_SEQ || gSeqSkippable) &&
             (!(gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) || players[playerNumber].gameState) && levelno != 0x2F) {
             text_print((Gfx * N64P *) dyn, (u8 *) ("PRESS START"), 0, 1, 0, 0x5C, 0xC4, 0x1A, 0x1A, 1, 0xFF, 0xFF, 0xFF, 0xFF);
         }
-        if (PORT_GVI("hd_build_frame_dl", D_803156C4) % 40 * 60 / 60 >= 16) {
+        if (PORT_GVI("hd_build_frame_dl", gSchedFrameCount) % 40 * 60 / 60 >= 16) {
             if (gPaused) {
                 if (gGameMode == MODE_YOSHI_PAGES && yoshiState == 2) {
-                    text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), D_8030491C, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), gTurnPagesGlyphs, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
                 } else if (gGameMode == MODE_MAP_VIEW && currentYoshiWindow == 0 && yoshiState == 2 && gHaveCarrier &&
                            !(gContButtons & 0x2010)) {
-                    text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO MOVE MAP"), D_80304938, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO MOVE MAP"), gMoveMapGlyphs, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
                 }
             } else if (gGameMode == MODE_MAP_VIEW) {
                 if (gHaveShuttle) {
-                    text_print((Gfx * N64P *) dyn, (u8 *) ("SHUTTLE VIEW"), D_80304904, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("SHUTTLE VIEW"), gShuttleViewGlyphs, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
                                   0xFF);
                 } else {
-                    text_print((Gfx * N64P *) dyn, (u8 *) ("MISSILE VIEW"), D_80304910, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("MISSILE VIEW"), gMissileViewGlyphs, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
                                   0xFF);
                 }
             }
@@ -2776,15 +2776,15 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     if (((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) || levelno == 0x26) && yoshiState == 1 && !areWeFading()) {
         if ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && gLevelKind != 1) {
             PORT_WTAG(gdl, PORT_WTAG_RIGHT, 0, 0);
-            spr_draw_blinking(&gdl, (s32) dyn, D_80365580, 0x108, 0x12);
+            spr_draw_blinking(&gdl, (s32) dyn, gRecReplaySprite, 0x108, 0x12);
         } else {
             PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
-            spr_draw_blinking(&gdl, (s32) dyn, D_80365580, 0x18, 0x12);
+            spr_draw_blinking(&gdl, (s32) dyn, gRecReplaySprite, 0x18, 0x12);
         }
     }
     if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gCamFixedEye) {
         PORT_WTAG(gdl, PORT_WTAG_RIGHT, 0, 0);
-        spr_draw_blinking(&gdl, (s32) dyn, D_80364A86, 0x108, 0xBE);
+        spr_draw_blinking(&gdl, (s32) dyn, gCamFixedIconSprite, 0x108, 0xBE);
     }
     if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gLevelKind == 1 && !gPaused) {
         stats_award_bonuses();
@@ -2847,7 +2847,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     u8 spin;
 
     if (layer == 0) {
-        D_8036506C = 0;
+        gShadowVtxCount = 0;
     }
     gDPPipeSync(gdl++);
     gDPSetTexturePersp(gdl++, G_TP_PERSP);
@@ -2858,12 +2858,12 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
     gDPSetTextureFilter(gdl++, G_TF_BILERP);
     gDPSetRenderMode(gdl++, 0x504340, 0);
-    all = !D_803649E8 && (D_803649EC || (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)));
+    all = !gDriverHidden && (gVehEntered || (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)));
     i = 0;
     while (&gVehicleShadows[i] != gVehicleShadowsEnd) {
         if ((gVehicleShadows[i].type != 0 || all) && gVehicleShadows[i].type != 0xFE &&
             (gVehicleShadows[i].type != 0xFF || !gCarrierExplodeDone) &&
-            (gVehicleShadows[i].type == 0xFD || !D_80364A84 || !gHaveShuttle) && gVehicleShadows[i].layer == layer) {
+            (gVehicleShadows[i].type == 0xFD || !gPlayerHidden || !gHaveShuttle) && gVehicleShadows[i].layer == layer) {
             x = gVehicleShadows[i].x >> 5;
             y = gVehicleShadows[i].floorY >> 5;
             z = gVehicleShadows[i].z >> 5;
@@ -2871,7 +2871,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             d = gVehicleShadows[i].halfDepth;
             spin = gVehicleShadows[i].type == gCurVehicle && gSurfaceMax == 0x65;
             if (spin) {
-                guRotateF(tmp, (f32) D_80364440 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+                guRotateF(tmp, (f32) gPlayerHeading * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             }
             guRotateF(mf, (f32) -gVehicleShadows[i].rotY * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             if (spin) {
@@ -2887,7 +2887,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             guMtxCatF(mf, tmp, mf);
             guMtxF2L(mf, &dyn->unk2C0[i]);
             if (spin) {
-                gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_802FA940), G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0,
+                gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gHudArrowTex), G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0,
                                     G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                 th = 32, tw = 32;
             } else {
@@ -2896,56 +2896,56 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
                                     G_TX_NOLOD);
                 th = 64, tw = 64;
             }
-            dyn->unk15C0[D_8036506C].v.ob[0] = -w;
-            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
-            dyn->unk15C0[D_8036506C].v.ob[2] = d;
-            dyn->unk15C0[D_8036506C].v.flag = 0;
-            dyn->unk15C0[D_8036506C].v.tc[0] = (th - 1) << 5;
-            dyn->unk15C0[D_8036506C].v.tc[1] = (tw - 1) << 5;
-            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
-            D_8036506C++;
-            dyn->unk15C0[D_8036506C].v.ob[0] = w;
-            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
-            dyn->unk15C0[D_8036506C].v.ob[2] = d;
-            dyn->unk15C0[D_8036506C].v.flag = 0;
-            dyn->unk15C0[D_8036506C].v.tc[0] = 0;
-            dyn->unk15C0[D_8036506C].v.tc[1] = (tw - 1) << 5;
-            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
-            D_8036506C++;
-            dyn->unk15C0[D_8036506C].v.ob[0] = w;
-            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
-            dyn->unk15C0[D_8036506C].v.ob[2] = -d;
-            dyn->unk15C0[D_8036506C].v.flag = 0;
-            dyn->unk15C0[D_8036506C].v.tc[0] = 0;
-            dyn->unk15C0[D_8036506C].v.tc[1] = 0;
-            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
-            D_8036506C++;
-            dyn->unk15C0[D_8036506C].v.ob[0] = -w;
-            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
-            dyn->unk15C0[D_8036506C].v.ob[2] = -d;
-            dyn->unk15C0[D_8036506C].v.flag = 0;
-            dyn->unk15C0[D_8036506C].v.tc[0] = (th - 1) << 5;
-            dyn->unk15C0[D_8036506C].v.tc[1] = 0;
-            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
-            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
-            D_8036506C++;
+            dyn->unk15C0[gShadowVtxCount].v.ob[0] = -w;
+            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.ob[2] = d;
+            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
+            dyn->unk15C0[gShadowVtxCount].v.tc[0] = (th - 1) << 5;
+            dyn->unk15C0[gShadowVtxCount].v.tc[1] = (tw - 1) << 5;
+            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            gShadowVtxCount++;
+            dyn->unk15C0[gShadowVtxCount].v.ob[0] = w;
+            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.ob[2] = d;
+            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
+            dyn->unk15C0[gShadowVtxCount].v.tc[0] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.tc[1] = (tw - 1) << 5;
+            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            gShadowVtxCount++;
+            dyn->unk15C0[gShadowVtxCount].v.ob[0] = w;
+            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.ob[2] = -d;
+            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
+            dyn->unk15C0[gShadowVtxCount].v.tc[0] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.tc[1] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            gShadowVtxCount++;
+            dyn->unk15C0[gShadowVtxCount].v.ob[0] = -w;
+            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.ob[2] = -d;
+            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
+            dyn->unk15C0[gShadowVtxCount].v.tc[0] = (th - 1) << 5;
+            dyn->unk15C0[gShadowVtxCount].v.tc[1] = 0;
+            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
+            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            gShadowVtxCount++;
             PORT_ITAG(gdl, PORT_ITAG_SHADOW, i);
             if (gCarrierHit && !(gLevelKind & 0x81) && gVehicleShadows[i].type == gCurVehicle) {
                 gSPMatrix(gdl++, &seg2Base[0x55], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             }
             gSPMatrix(gdl++, &seg2Base[i + 11], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-            gSPVertex(gdl++, (Vtx *) seg2Base + D_8036506C + 0x158, 4, 0);
+            gSPVertex(gdl++, (Vtx *) seg2Base + gShadowVtxCount + 0x158, 4, 0);
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
             gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
@@ -3037,7 +3037,7 @@ void veh_draw_chopper_shadow(Gfx **gfx, DynamicBuf *dyn) {
     dyn->unk18C0[3].v.cn[2] = 10;
     dyn->unk18C0[3].v.cn[3] = 0x8C;
     guTranslate(&dyn->unk240, x, y, z);
-    guRotate(&dyn->unk280, (f32) D_803EF326 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+    guRotate(&dyn->unk280, (f32) gChopperShadowHeading * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
     PORT_ITAG(gdl, PORT_ITAG_SHADOWFE, 0);
     gSPMatrix(gdl++, &seg2Base[9], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(gdl++, &seg2Base[10], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
@@ -3058,17 +3058,17 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
     u8 alt;
     u8 all;
 
-    all = !D_803649E8 && (D_803649EC || (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)));
+    all = !gDriverHidden && (gVehEntered || (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)));
     i = 0;
     while (&gVehicles[i] != gVehiclesEnd) {
         if ((gVehicles[i].type != 0 || all) && (gVehicles[i].type != 0xFF || !gCarrierExplodeDone) &&
-            (gVehicles[i].type == 0xFD || !D_80364A84 || !gHaveShuttle)) {
+            (gVehicles[i].type == 0xFD || !gPlayerHidden || !gHaveShuttle)) {
             PORT_ITAG(gdl, PORT_ITAG_OBJ, i | (lod << 8));
             gSPSegment(gdl++, 6, osVirtualToPhysical(gVehicles[i].unk0));
             if ((gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) && (gVehicles[i].type == 0xFE || gVehicles[i].type == 0)) {
                 alt = gBufferIndex;
             } else {
-                alt = D_803156F5;
+                alt = gVehDrawBufferIndex;
             }
             if (alt) {
                 gSPSegment(gdl++, 7, osVirtualToPhysical(gVehicles[i].unk4));
@@ -3127,9 +3127,9 @@ void veh_update_fail_spin(void) {
 
     if (gCarrierHit != 0 && !(gLevelKind & 0x81)) {
         guTranslateF(mf, -(f32) gPlayerX / 32.0, -(f32) gPlayerY / 32.0, -(f32) gPlayerZ / 32.0);
-        guScaleF(tmp, D_80364ABC, D_80364ABC, D_80364ABC);
+        guScaleF(tmp, gFailSpinScale, gFailSpinScale, gFailSpinScale);
         guMtxCatF(mf, tmp, mf);
-        guRotateF(tmp, D_80364AB4, 0.0f, 1.0f, 0.0f);
+        guRotateF(tmp, gFailSpinAngle, 0.0f, 1.0f, 0.0f);
         guMtxCatF(mf, tmp, mf);
         guTranslateF(tmp, (f32) gPlayerX / 32.0, (f32) gPlayerY / 32.0, (f32) gPlayerZ / 32.0);
         guMtxCatF(mf, tmp, mf);
@@ -3142,25 +3142,25 @@ void veh_update_fail_spin(void) {
         y = gVehicleShadows[i].floorY >> 5;
         z = gVehicleShadows[i].z >> 5;
         guTranslateF(mf, -x, -y, -z);
-        guScaleF(tmp, D_80364ABC, D_80364ABC, D_80364ABC);
+        guScaleF(tmp, gFailSpinScale, gFailSpinScale, gFailSpinScale);
         guMtxCatF(mf, tmp, mf);
-        guRotateF(tmp, D_80364AB4, 0.0f, 1.0f, 0.0f);
+        guRotateF(tmp, gFailSpinAngle, 0.0f, 1.0f, 0.0f);
         guMtxCatF(mf, tmp, mf);
         guTranslateF(tmp, x, y, z);
         guMtxCatF(mf, tmp, mf);
         guMtxF2L(mf, &gDynamicBufs[gBufferIndex].unk1540);
-        if (D_80364AC0 == 0) {
-            D_80364ABC = D_80364ABC - 0.04;
-            if (D_80364ABC < 0.0) {
-                D_80364ABC = 0.0f;
+        if (gFailSpinDone == 0) {
+            gFailSpinScale = gFailSpinScale - 0.04;
+            if (gFailSpinScale < 0.0) {
+                gFailSpinScale = 0.0f;
             }
         }
-        if (D_80364ABC == 0.0 && D_80364AC0 == 0) {
+        if (gFailSpinScale == 0.0 && gFailSpinDone == 0) {
             fx_spawn_at(gPlayerX, gPlayerY, gPlayerZ, 0x13, 400000);
-            D_80364AC0 = 1;
+            gFailSpinDone = 1;
         }
-        D_80364AB4 += D_80364AB8;
-        D_80364AB8 = D_80364AB8 + 3.0;
+        gFailSpinAngle += gFailSpinRate;
+        gFailSpinRate = gFailSpinRate + 3.0;
     }
 }
 
@@ -3185,9 +3185,9 @@ extern Node88 *gRdus;
 #endif
 extern u8 gCamAtSettled; /* target easing settled */
 extern s32 gCamAtHeight; /* target height offset */
-extern u8 D_8030F668;
-extern u8 D_8030F669;
-extern u8 D_8030F66A;
+extern u8 gCamOnEndObject;
+extern u8 gCamOnMarkedTarget;
+extern u8 gCamOnCarrierTarget;
 extern s32 gCamEyeGoalX; /* wanted eye x, y, z (<< 11) */
 extern s32 gCamEyeGoalY;
 extern s32 gCamEyeGoalZ;
@@ -3285,53 +3285,53 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
 
     changed = 0;
     cam_turn_heading();
-    if (D_8036B965 && (gGameMode & (MODE_CARRIER_END | MODE_REPLAY_CARRIER_END))) {
-        D_8036B965 = 0;
+    if (gShuttleCamFollow && (gGameMode & (MODE_CARRIER_END | MODE_REPLAY_CARRIER_END))) {
+        gShuttleCamFollow = 0;
     }
-    inShuttle = gHaveShuttle && ((gGameMode & (MODE_REPLAY | MODE_MAP_VIEW | MODE_INTRO_FLY)) || D_8036B965);
+    inShuttle = gHaveShuttle && ((gGameMode & (MODE_REPLAY | MODE_MAP_VIEW | MODE_INTRO_FLY)) || gShuttleCamFollow);
     if (gGameMode == MODE_LEVEL_CLEAR || (currentYoshiWindow == 0x4B && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x14D)) {
-        if (!D_8030F668) {
+        if (!gCamOnEndObject) {
             changed = 1;
         }
-        D_8030F668 = 1;
+        gCamOnEndObject = 1;
     } else {
-        if (D_8030F668) {
+        if (gCamOnEndObject) {
             changed = 1;
         }
-        D_8030F668 = 0;
+        gCamOnEndObject = 0;
     }
     if (currentYoshiWindow == 0x49 && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x130) {
-        if (!D_8030F66A) {
+        if (!gCamOnCarrierTarget) {
             changed = 1;
         }
-        D_8030F66A = 1;
+        gCamOnCarrierTarget = 1;
     } else {
-        if (D_8030F66A) {
+        if (gCamOnCarrierTarget) {
             changed = 1;
         }
-        D_8030F66A = 0;
+        gCamOnCarrierTarget = 0;
     }
     if (currentYoshiWindow == 0x4D && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 != 0x164) {
-        if (!D_8030F669) {
+        if (!gCamOnMarkedTarget) {
             changed = 1;
         }
-        D_8030F669 = 1;
+        gCamOnMarkedTarget = 1;
     } else {
-        if (D_8030F669) {
+        if (gCamOnMarkedTarget) {
             changed = 1;
         }
-        D_8030F669 = 0;
+        gCamOnMarkedTarget = 0;
     }
     if (currentYoshiWindow == 0x58 && yoshiState != 8 && !gCamFixedEye) {
-        if (!D_80364A85) {
+        if (!gCamWindowView) {
             gCamSnap = changed = 1;
         }
-        D_80364A85 = 1;
+        gCamWindowView = 1;
     } else {
-        if (D_80364A85) {
+        if (gCamWindowView) {
             gCamSnap = changed = 1;
         }
-        D_80364A85 = 0;
+        gCamWindowView = 0;
     }
     gCamSnap |= inShuttle || gGameMode == MODE_MAP_VIEW;
     gCamSnap |= gFramesInMode < 2;
@@ -3395,11 +3395,11 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             gCamType = gCurVehicle;
             break;
     }
-    tilt = D_8036443C;
-    if (!D_803649EC) {
+    tilt = gPlayerSpeed;
+    if (!gVehEntered) {
         gCamAtHeight = cam_load_level_defaults();
     }
-    if (((gGameMode & MODE_ATTRACT) && D_802E8BF0) || !D_803649EC) {
+    if (((gGameMode & MODE_ATTRACT) && gRecDemoNoLogo) || !gVehEntered) {
         radius = 0;
         tiltRate = 0.0f;
         turnRate = 0.0f;
@@ -3547,9 +3547,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                tilt = D_803EF328;
+                tilt = gChopperCamSpeed;
                 gCamAtHeight = 0;
-                D_8036443E = D_803EF32A;
+                gPlayerMoveHeading = gChopperCamHeading;
                 gCamTiltMax = 0;
                 gCamTiltMin = 0;
                 break;
@@ -3559,7 +3559,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 turnRate = 30.0f;
                 gCamAtHeight = 0;
                 tilt = tilt / 2;
-                D_8036443E = D_8036443E / 2;
+                gPlayerMoveHeading = gPlayerMoveHeading / 2;
                 gCamTiltMax = 0;
                 gCamTiltMin = 0;
                 break;
@@ -3596,39 +3596,39 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             }
         }
     }
-    diff = D_8036443E - gCamTurn;
+    diff = gPlayerMoveHeading - gCamTurn;
     if (diff < 0.0) {
         diff = 0.0 - diff;
     }
     if (diff > 2048.0) {
-        if (gCamTurn > D_8036443E) {
+        if (gCamTurn > gPlayerMoveHeading) {
             gCamTurn = gCamTurn + turnRate;
             if (gCamTurn > 4095.0) {
                 gCamTurn = gCamTurn - 4095.0;
-                if (D_8036443E < gCamTurn) {
-                    gCamTurn = D_8036443E;
+                if (gPlayerMoveHeading < gCamTurn) {
+                    gCamTurn = gPlayerMoveHeading;
                 }
             }
         } else {
             gCamTurn = gCamTurn - turnRate;
             if (gCamTurn < 0.0) {
                 gCamTurn = gCamTurn + 4095.0;
-                if (gCamTurn < D_8036443E) {
-                    gCamTurn = D_8036443E;
+                if (gCamTurn < gPlayerMoveHeading) {
+                    gCamTurn = gPlayerMoveHeading;
                 }
             }
         }
     } else {
-        if (gCamTurn > D_8036443E) {
+        if (gCamTurn > gPlayerMoveHeading) {
             gCamTurn = gCamTurn - turnRate;
-            if (gCamTurn < D_8036443E) {
-                gCamTurn = D_8036443E;
+            if (gCamTurn < gPlayerMoveHeading) {
+                gCamTurn = gPlayerMoveHeading;
             }
         }
-        if (gCamTurn < D_8036443E) {
+        if (gCamTurn < gPlayerMoveHeading) {
             gCamTurn = gCamTurn + turnRate;
-            if (D_8036443E < gCamTurn) {
-                gCamTurn = D_8036443E;
+            if (gPlayerMoveHeading < gCamTurn) {
+                gCamTurn = gPlayerMoveHeading;
             }
         }
     }
@@ -3654,17 +3654,17 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         case MODE_MAP_VIEW:
             if (gHaveShuttle) {
                 if (gCamSnap) {
-                    gCamEasedHeading = D_803FCD68 * 16;
+                    gCamEasedHeading = gShuttleHeading * 16;
                 } else {
-                    gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
+                    gCamEasedHeading = (s16) ((u16) gShuttleHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
                 gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
-                gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
-                gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
+                gCamEyeGoalY = (gShuttlePosY + 0xDAC) << 11;
+                gCamEyeGoalZ = (s32) (gShuttlePosZ - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
                 gCamEyeGoalX = (gCarrierX + 4000) << 11;
                 gCamEyeGoalY = (gCarrierY + 25000) << 11;
-                gCamEyeGoalZ = (gCarrierZ + D_80364A78 + 7000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + gMapViewScrollZ + 7000) << 11;
             }
             break;
         case MODE_REPLAY:
@@ -3678,13 +3678,13 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     }
                     if (gHaveShuttle) {
                         if (gFramesInMode < 2) {
-                            gCamEasedHeading = D_803FCD68 * 16;
+                            gCamEasedHeading = gShuttleHeading * 16;
                         } else {
-                            gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
+                            gCamEasedHeading = (s16) ((u16) gShuttleHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                         }
                         gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
-                        gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
-                        gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
+                        gCamEyeGoalY = (gShuttlePosY + 0xDAC) << 11;
+                        gCamEyeGoalZ = (s32) (gShuttlePosZ - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
                     }
                     if (gHaveCarrier || gHaveShuttle) {
                         break;
@@ -3692,9 +3692,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 case 4:
                 case 8:
                     if (!gCamSnap) {
-                        gCamEasedHeading = (s16) ((u16) D_8036443E * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
+                        gCamEasedHeading = (s16) ((u16) gPlayerMoveHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                     } else {
-                        gCamEasedHeading = D_8036443E * 16;
+                        gCamEasedHeading = gPlayerMoveHeading * 16;
                     }
                     gCamEyeGoalX = (s32) (gPlayerX - SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offX) << 11;
                     gCamEyeGoalY = (gCamHeight + gPlayerY) << 11;
@@ -3703,9 +3703,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 case 2:
                 case 0x20:
                     if (!gCamSnap) {
-                        gCamEasedHeading = (s16) ((u16) D_8036443E * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
+                        gCamEasedHeading = (s16) ((u16) gPlayerMoveHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                     } else {
-                        gCamEasedHeading = D_8036443E * 16;
+                        gCamEasedHeading = gPlayerMoveHeading * 16;
                     }
                     gCamEyeGoalX = (s32) (SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + gPlayerX + offX) << 11;
                     gCamEyeGoalY = (gCamHeight + gPlayerY + gPadStickY * 50) << 11;
@@ -3713,17 +3713,17 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     break;
                 case 0x10:
                 case 0x40:
-                    gCamEyeGoalX = ((gRdus[gRduLitOrder[D_8036EA7C]].unk0 << 5) + offX) << 11;
-                    gCamEyeGoalY = ((gRdus[gRduLitOrder[D_8036EA7C]].unk2 << 5) + 2000) << 11;
-                    gCamEyeGoalZ = ((gRdus[gRduLitOrder[D_8036EA7C]].unk4 << 5) + offZ) << 11;
+                    gCamEyeGoalX = ((gRdus[gRduLitOrder[gScoreRdus]].unk0 << 5) + offX) << 11;
+                    gCamEyeGoalY = ((gRdus[gRduLitOrder[gScoreRdus]].unk2 << 5) + 2000) << 11;
+                    gCamEyeGoalZ = ((gRdus[gRduLitOrder[gScoreRdus]].unk4 << 5) + offZ) << 11;
                     break;
             }
             break;
         case MODE_CARRIER_END:
             if (gHaveShuttle) {
                 gCamEyeGoalX = (gShuttlePos + offX - 6000) << 11;
-                gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
-                gCamEyeGoalZ = (D_803FCD50 + offZ + 6000) << 11;
+                gCamEyeGoalY = (gShuttlePosY + 0xD48) << 11;
+                gCamEyeGoalZ = (gShuttlePosZ + offZ + 6000) << 11;
             } else if (gCarrierHit) {
                 gCamEyeGoalX = (gCarrierX + offX + 16000) << 11;
                 gCamEyeGoalY = (gCarrierY + 15000) << 11;
@@ -3740,8 +3740,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         case MODE_REPLAY_CARRIER_END:
             if (gHaveShuttle) {
                 gCamEyeGoalX = (gShuttlePos + offX + 6000) << 11;
-                gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
-                gCamEyeGoalZ = (D_803FCD50 + offZ - 6000) << 11;
+                gCamEyeGoalY = (gShuttlePosY + 0xD48) << 11;
+                gCamEyeGoalZ = (gShuttlePosZ + offZ - 6000) << 11;
             } else if (gCarrierHit) {
                 gCamEyeGoalX = (gCarrierX + offX - 16000) << 11;
                 gCamEyeGoalY = (gCarrierY + 15000) << 11;
@@ -3759,13 +3759,13 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         case MODE_INTRO_FLY:
             if (gHaveShuttle) {
                 if (gFramesInMode < 2) {
-                    gCamEasedHeading = D_803FCD68 * 16;
+                    gCamEasedHeading = gShuttleHeading * 16;
                 } else {
-                    gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
+                    gCamEasedHeading = (s16) ((u16) gShuttleHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
                 gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
-                gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
-                gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
+                gCamEyeGoalY = (gShuttlePosY + 0xDAC) << 11;
+                gCamEyeGoalZ = (s32) (gShuttlePosZ - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
                 gCamEyeGoalX = (gPlayerX + offX - 500) << 11;
                 gCamEyeGoalY = (gPlayerY + 6000) << 11;
@@ -3790,23 +3790,23 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 }
                 if (gHaveShuttle && gCamPathActive) {
                     gCamEyeGoalX = (gShuttlePos + gCamPathX) << 11;
-                    gCamEyeGoalY = (D_803FCD4C + gCamPathY) << 11;
-                    gCamEyeGoalZ = (D_803FCD50 + gCamPathZ) << 11;
+                    gCamEyeGoalY = (gShuttlePosY + gCamPathY) << 11;
+                    gCamEyeGoalZ = (gShuttlePosZ + gCamPathZ) << 11;
                 } else if (gHaveCarrier && gCamPathActive) {
                     gCamEyeGoalX = (gCarrierX + gCamPathX) << 11;
                     gCamEyeGoalY = (gCarrierY + gCamPathY) << 11;
                     gCamEyeGoalZ = (gCarrierZ + gCamPathZ) << 11;
-                } else if (D_8030F668) {
+                } else if (gCamOnEndObject) {
                     cam_polar_offset(2500, gCamHeading, &px, &pz);
                     gCamEyeGoalX = ((gEndObjectX << 5) + px) << 11;
                     gCamEyeGoalY = ((gEndObjectY << 5) + 5000) << 11;
                     gCamEyeGoalZ = ((gEndObjectZ << 5) + pz) << 11;
-                } else if (D_8030F66A) {
+                } else if (gCamOnCarrierTarget) {
                     cam_polar_offset(2500, gCamHeading, &px, &pz);
                     gCamEyeGoalX = (px + gCarrierTargetX) << 11;
                     gCamEyeGoalY = (gCarrierTargetY + 5000) << 11;
                     gCamEyeGoalZ = (pz + gCarrierTargetZ) << 11;
-                } else if (D_8030F669) {
+                } else if (gCamOnMarkedTarget) {
                     if (gMarkedTargetPts != NULL) {
                         cam_polar_offset(2500, gCamHeading, &px, &pz);
                         gCamEyeGoalX = ((gMarkedTargetPts->unk12 + gMarkedTargetPts->unk0) / 2 << 16) + (px << 11);
@@ -3814,8 +3814,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                         gCamEyeGoalZ = ((gMarkedTargetPts->unk16 + gMarkedTargetPts->unk4) / 2 << 16) + (pz << 11);
                     }
                 } else {
-                    if (D_80364A85) {
-                        angle = (f32) (D_8036443E * 360 / 4096) - gCamHeading + 180.0f;
+                    if (gCamWindowView) {
+                        angle = (f32) (gPlayerMoveHeading * 360 / 4096) - gCamHeading + 180.0f;
                         if (angle < 0) {
                             angle += 360;
                         }
@@ -3832,7 +3832,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                         offZ = 0;
                     } else {
                         cam_polar_offset(gCamDistance, gCamHeading, &px, &pz);
-                        if (D_80364411 && gCamHeading >= 134.0 && gCamHeading <= 136.0) {
+                        if (gCamNoHeightZone && gCamHeading >= 134.0 && gCamHeading <= 136.0) {
                             gCamEyeGoalY = (gPlayerY + 0x3908) << 11;
                         } else {
                             gCamEyeGoalY = (gPlayerY + gCamEyeHeight) << 11;
@@ -3848,20 +3848,20 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         case MODE_MAP_VIEW:
             if (gHaveShuttle) {
                 gCamAtGoalX = gShuttlePos / 32.0f;
-                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
-                gCamAtGoalZ = D_803FCD50 / 32.0f;
+                gCamAtGoalY = (gShuttlePosY + 2000) / 32.0f;
+                gCamAtGoalZ = gShuttlePosZ / 32.0f;
             } else {
                 gCamAtGoalX = gCarrierX / 32.0f;
                 gCamAtGoalY = gCarrierY / 32.0f;
-                gCamAtGoalZ = (gCarrierZ + D_80364A78 + 11000) / 32.0f;
+                gCamAtGoalZ = (gCarrierZ + gMapViewScrollZ + 11000) / 32.0f;
             }
             break;
         case MODE_CARRIER_END:
         case MODE_REPLAY_CARRIER_END:
             if (gHaveShuttle) {
                 gCamAtGoalX = (gShuttlePos + offX) / 32.0f;
-                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
-                gCamAtGoalZ = (D_803FCD50 + offZ) / 32.0f;
+                gCamAtGoalY = (gShuttlePosY + 2000) / 32.0f;
+                gCamAtGoalZ = (gShuttlePosZ + offZ) / 32.0f;
             } else {
                 gCamAtGoalX = (gCarrierX + offX) / 32.0f;
                 gCamAtGoalY = gCarrierY / 32.0f;
@@ -3873,39 +3873,39 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         case MODE_INTRO_LANDING:
             if (gHaveShuttle) {
                 gCamAtGoalX = gShuttlePos / 32.0f;
-                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
-                gCamAtGoalZ = D_803FCD50 / 32.0f;
+                gCamAtGoalY = (gShuttlePosY + 2000) / 32.0f;
+                gCamAtGoalZ = gShuttlePosZ / 32.0f;
             } else {
                 gCamAtGoalX = (gChopperX + offX) / 32.0f;
-                gCamAtGoalY = D_803EF314 / 32.0f;
+                gCamAtGoalY = gChopperDropY / 32.0f;
                 gCamAtGoalZ = (gChopperZ + offZ) / 32.0f;
             }
             break;
         case MODE_REPLAY:
             if (gHaveShuttle) {
                 gCamAtGoalX = gShuttlePos / 32.0f;
-                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
-                gCamAtGoalZ = D_803FCD50 / 32.0f;
+                gCamAtGoalY = (gShuttlePosY + 2000) / 32.0f;
+                gCamAtGoalZ = gShuttlePosZ / 32.0f;
                 break;
             }
         default:
             if (gHaveShuttle && gCamPathActive) {
                 gCamAtGoalX = gShuttlePos / 32.0f;
-                gCamAtGoalY = (D_803FCD4C + 6000) / 32.0f;
-                gCamAtGoalZ = D_803FCD50 / 32.0f;
+                gCamAtGoalY = (gShuttlePosY + 6000) / 32.0f;
+                gCamAtGoalZ = gShuttlePosZ / 32.0f;
             } else if (gHaveCarrier && gCamPathActive) {
                 gCamAtGoalX = gCarrierX / 32.0f;
                 gCamAtGoalY = gCarrierY / 32.0f;
                 gCamAtGoalZ = gCarrierZ / 32.0f;
-            } else if (D_8030F668) {
+            } else if (gCamOnEndObject) {
                 gCamAtGoalX = gEndObjectX;
                 gCamAtGoalY = gEndObjectY;
                 gCamAtGoalZ = gEndObjectZ;
-            } else if (D_8030F66A) {
+            } else if (gCamOnCarrierTarget) {
                 gCamAtGoalX = gCarrierTargetX / 32.0f;
                 gCamAtGoalY = gCarrierTargetY / 32.0f;
                 gCamAtGoalZ = gCarrierTargetZ / 32.0f;
-            } else if (D_8030F669) {
+            } else if (gCamOnMarkedTarget) {
                 if (gMarkedTargetPts != NULL) {
                     gCamAtGoalX = (f32) (gMarkedTargetPts->unk12 + gMarkedTargetPts->unk0) / 2.0;
                     gCamAtGoalY = (f32) (gMarkedTargetPts->unk14 + gMarkedTargetPts->unk2) / 2.0;
@@ -3923,18 +3923,18 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamEyeGoalY = (gCarrierY + 15000) << 11;
         gCamEyeGoalZ = (gCarrierZ + offZ - 3000) << 11;
     }
-    if (gHaveShuttle && D_8036B965) {
+    if (gHaveShuttle && gShuttleCamFollow) {
         if (gCamSnap) {
-            gCamEasedHeading = D_803FCD68 * 16;
+            gCamEasedHeading = gShuttleHeading * 16;
         } else {
-            gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
+            gCamEasedHeading = (s16) ((u16) gShuttleHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
         }
         gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
-        gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
-        gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
+        gCamEyeGoalY = (gShuttlePosY + 0xDAC) << 11;
+        gCamEyeGoalZ = (s32) (gShuttlePosZ - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
         gCamAtGoalX = gShuttlePos / 32.0f;
-        gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
-        gCamAtGoalZ = D_803FCD50 / 32.0f;
+        gCamAtGoalY = (gShuttlePosY + 2000) / 32.0f;
+        gCamAtGoalZ = gShuttlePosZ / 32.0f;
     }
     if (gGameMode == MODE_REPLAY && levelno == 0x3B) {
         gCamEyeGoalX = (gPlayerX + 0x1900) << 11;
@@ -3945,7 +3945,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamAtGoalZ = gPlayerZ / 32.0f;
     }
     if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_LEVEL_START | MODE_YOSHI_PAGES)) && !gCamPathActive && !inShuttle && gGameMode != MODE_MAP_VIEW && levelno != 0x23 &&
-        !D_80364A85) {
+        !gCamWindowView) {
         tx = gCamAtGoalX * 65536.0;
         ty = gCamAtGoalY * 65536.0;
         tz = gCamAtGoalZ * 65536.0;
@@ -3968,34 +3968,34 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamEyeZ = gCamEyeGoalZ;
         gCamPrevType = !gCamType;
     }
-    if (D_80364424 && (gCamHeading < 134.0 || gCamHeading > 136.0)) {
+    if (gCamLift && (gCamHeading < 134.0 || gCamHeading > 136.0)) {
         coll_begin_probe(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11);
         coll_probe_tris(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
-                      D_80364434 ? D_80364430 : D_80364430 + 1600, 0xBE, 0);
-        if (D_80364434) {
+                      gCamLiftBlocked ? gCamLiftRadius : gCamLiftRadius + 1600, 0xBE, 0);
+        if (gCamLiftBlocked) {
             if (gCollHit) {
-                gCamEyeHeight += D_8036442C;
-                if (gCamEyeHeight > D_80364428) {
-                    gCamEyeHeight = D_80364428;
+                gCamEyeHeight += gCamLiftStep;
+                if (gCamEyeHeight > gCamLiftMax) {
+                    gCamEyeHeight = gCamLiftMax;
                 }
-                D_80364434 = 1;
+                gCamLiftBlocked = 1;
             } else {
-                D_80364434 = 0;
+                gCamLiftBlocked = 0;
             }
         } else if (gCollHit) {
-            D_80364434 = 1;
+            gCamLiftBlocked = 1;
         } else {
-            gCamEyeHeight -= D_8036442C;
+            gCamEyeHeight -= gCamLiftStep;
             if (gCamEyeHeight < gCamHeight) {
                 gCamEyeHeight = gCamHeight;
             }
-            D_80364434 = 0;
+            gCamLiftBlocked = 0;
         }
     }
-    if (!D_80364424) {
+    if (!gCamLift) {
         gCamEyeHeight = gCamHeight;
     } else if (gCamHeading >= 134.0 && gCamHeading <= 136.0) {
-        gCamEyeHeight -= D_8036442C;
+        gCamEyeHeight -= gCamLiftStep;
         if (gCamEyeHeight < gCamHeight) {
             gCamEyeHeight = gCamHeight;
         }
@@ -4028,9 +4028,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gShakeSize = 1;
     }
     if (gShakeTime && (gGameMode & (MODE_ATTRACT | MODE_LEVEL | MODE_CARRIER_END | MODE_GLOBE_SEQ | MODE_YOSHI_PAGES))) {
-        shakeX = D_803649D8 % gShakeSize - (gShakeSize >> 1);
-        shakeY = D_803649D8 / 100 % gShakeSize - (gShakeSize >> 1);
-        shakeZ = D_803649D8 / 10000 % gShakeSize - (gShakeSize >> 1);
+        shakeX = gFrameDrawTime % gShakeSize - (gShakeSize >> 1);
+        shakeY = gFrameDrawTime / 100 % gShakeSize - (gShakeSize >> 1);
+        shakeZ = gFrameDrawTime / 10000 % gShakeSize - (gShakeSize >> 1);
     } else {
         shakeX = 0;
         shakeY = 0;
@@ -4044,12 +4044,12 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     eyeX = (f32) gCamEyeX / 65536.0;
     eyeY = (f32) gCamEyeY / 65536.0;
     eyeZ = (f32) gCamEyeZ / 65536.0;
-    if ((gGameMode & MODE_ATTRACT) && D_802E8BF0 && gFramesInMode > D_80366A04) {
-        eyeX = (eyeX - gCamAtX) * D_803649F8 + gCamAtX;
-        eyeY = (eyeY - gCamAtY) * D_803649F8 + gCamAtY;
-        eyeZ = (eyeZ - gCamAtZ) * D_803649F8 + gCamAtZ;
-        if (D_803649F8 > 0.4) {
-            D_803649F8 = D_803649F8 - 0.01;
+    if ((gGameMode & MODE_ATTRACT) && gRecDemoNoLogo && gFramesInMode > gRecDemoLength) {
+        eyeX = (eyeX - gCamAtX) * gAttractCamZoom + gCamAtX;
+        eyeY = (eyeY - gCamAtY) * gAttractCamZoom + gCamAtY;
+        eyeZ = (eyeZ - gCamAtZ) * gAttractCamZoom + gCamAtZ;
+        if (gAttractCamZoom > 0.4) {
+            gAttractCamZoom = gAttractCamZoom - 0.01;
         }
     }
     atX = (gCamAtX * 32.0f + shakeX) / 32.0f;
@@ -4375,10 +4375,10 @@ void hd_init(void) {
 
     one = 1.0f;
     gGameMode = MODE_BOOT_SCREEN2;
-    osCreateMesgQueue(&gDmaMesgQueue, D_803150B8, 50);
-    osCreateMesgQueue(&textureDmaMessageQ, D_80315198, 0x90);
-    sched_create((struct BcSched *) gScheduler, gSchedStack + 0x400, 13, (D_80000300 != 1) ? 0x10 : 2, 1);
-    osCreateMesgQueue(&gTaskDoneQueue, D_803153F8, 16);
+    osCreateMesgQueue(&gDmaMesgQueue, gDmaMesgBuf, 50);
+    osCreateMesgQueue(&textureDmaMessageQ, gTextureDmaMesgBuf, 0x90);
+    sched_create((struct BcSched *) gScheduler, gSchedStack + 0x400, 13, (osTvType != 1) ? 0x10 : 2, 1);
+    osCreateMesgQueue(&gTaskDoneQueue, gTaskDoneMesgBuf, 16);
     sched_add_client((struct BcSched *) gScheduler, (struct BcScClient *) gMainSchedClient, &gTaskDoneQueue, 1, 1);
     status = cont_init();
     music_init_audio();
@@ -4387,15 +4387,15 @@ void hd_init(void) {
     osViSetSpecialFeatures(OS_VI_DITHER_FILTER_ON);
     gFrameBufferPhys[0] = PHYS(gFrameBuffers[0]);
     gFrameBufferPhys[1] = PHYS(gFrameBuffers[1]);
-    gDepthBufferPhys = PHYS(D_8021ED00);
+    gDepthBufferPhys = PHYS(gDepthBuffer);
     rsp_init_ucode_table();
     osWritebackDCacheAll();
     cont_boot_check_start();
     if (!(status & 1)) {
         gNextGameMode = MODE_NO_CONTROLLER;
-    } else if (D_802FDBD0) {
+    } else if (gBootPakManager) {
         gNextGameMode = MODE_PAK_MANAGER;
-    } else if (D_802FDBD4) {
+    } else if (gBootEraseSave) {
         gNextGameMode = MODE_ERASE_SAVE;
     } else {
         gNextGameMode = MODE_BOOT_SCREEN1;
@@ -4435,9 +4435,9 @@ void hd_mode_setup(void) {
     gPendingTune = music_tune_for_mode(gNextGameMode);
     osWritebackDCacheAll();
     osInvalDCache((void *) 0x80000000, 0x400000);
-    D_803649F4 = 0;
+    gHudMoney = 0;
     gUnpausedFrames = 0;
-    D_80358064 = 0;
+    gPlayFrames = 0;
     gFramesInMode = 0;
     gBufferIndex = 0;
     gHudAlpha = 0;
@@ -4445,9 +4445,9 @@ void hd_mode_setup(void) {
     util_seed_rand2();
     cont_clear();
     cont_steer_reset();
-    gStaticSegment = D_803FF600;
-    hd_rom_load((u32) romStaticSegment, (u32) D_803FF600, &size, 10, 0, 2);
-    end = (u32) (romStaticSegmentEnd - romStaticSegment) + (u32) D_803FF600;
+    gStaticSegment = gStaticSegmentBuf;
+    hd_rom_load((u32) romStaticSegment, (u32) gStaticSegmentBuf, &size, 10, 0, 2);
+    end = (u32) (romStaticSegmentEnd - romStaticSegment) + (u32) gStaticSegmentBuf;
     debug_printf("Static end = 0x%x, space=0x%x (%d) bytes\n", end, 0x80400000 - end, 0x80400000 - end);
     gFrameDlLen = 0;
     hd_clear_framebuffer(gDynamicBufs[gBufferIndex].dl, &gFrameDlLen);
@@ -4462,18 +4462,18 @@ void hd_mode_setup(void) {
     }
     gTexTableLoaded = 0;
     tex_load_table();
-    gVehicleShadows = (VehShadow *) (((u32) D_80358088 + 0x40) & ~0x3F);
+    gVehicleShadows = (VehShadow *) (((u32) gVehicleShadowPool + 0x40) & ~0x3F);
     mb_init();
     cmo_hit_request = 0;
     gLevelDoneRequest = 0;
-    D_803643D8 = 0;
+    gCarrierHitSeen = 0;
     gCarrierHit = 0;
     gLevelDone = 0;
     gPauseRequest = 0;
     gUnpauseRequest = 0;
     gPaused = 0;
-    D_8036EB99 = 0;
-    D_803669B4 = 0;
+    gBonusLevelExit = 0;
+    gRecVehiclePending = 0;
     if (gNextGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2 | MODE_LEVEL_STATUS | MODE_WORLD | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_VEHICLE_SELECT | MODE_PROMOTION | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_33 | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_DELETE_CONFIRM | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_ACADEMY_MESSAGE | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_BOOT_CHECK | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_NO_CONTROLLER | MODE_QUIT_GAME | MODE_LOAD_GAME_EXIT)) {
         hd_load_front_end();
     }
@@ -4754,11 +4754,11 @@ void hd_setup_level(s32 arg0) {
     gHudDialLoaded = 0;
     gHaveSkyfall = 0;
     gHudMissileIconLoaded = 0;
-    D_80364A6B = 0;
+    gHaveBallista = 0;
     gHudRamIconLoaded = 0;
     gHaveSideswipe = 0;
-    D_803649E8 = 0;
-    D_803649EC = 0;
+    gDriverHidden = 0;
+    gVehEntered = 0;
     gVehicleShadowsEnd = gVehicleShadows;
     gLevelKind = gLevelInfo[levelno].kind;
     gShakeTime = 0;
@@ -4766,16 +4766,16 @@ void hd_setup_level(s32 arg0) {
     gPlayerX = 0;
     gPlayerY = 0;
     gPlayerZ = 0;
-    D_8036443C = 0;
+    gPlayerSpeed = 0;
     gCamHeading = 135.0f;
     gCamHeadingGoal = 135.0f;
     gCamTurnPos = 0;
     gCamTurnNeg = 0;
     gCamEyeHeight = 3000;
-    D_80364434 = 1;
+    gCamLiftBlocked = 1;
     gTrainContactFrames = 0;
-    D_803649EE = 0;
-    D_80364A84 = 0;
+    gVehJustSwitched = 0;
+    gPlayerHidden = 0;
     gCurVehicle = 0;
     if (frontEndPresent) {
         HD_ASSERT(!pakBusy, 4162);
@@ -4786,7 +4786,7 @@ void hd_setup_level(s32 arg0) {
     gGhostRecording = 0;
     gGhostPlaying = 0;
     if (gLevelKind == 2 && gNextGameMode == MODE_LEVEL_START) {
-        if (!D_8039CA60) {
+        if (!gGhostRetry) {
             ghost_init();
         }
         ghost_start_recording();
@@ -4816,13 +4816,13 @@ void hd_setup_level(s32 arg0) {
     obj_tally(gLevelKind == 0x20 || gLevelKind == 0x80);
     hud_init_objective(levelno);
     if (gCamFixedEye) {
-        D_80364A86 = spr_load((u16 *) D_802E8BF4, 0, 1, 1, 1, 1.0f);
+        gCamFixedIconSprite = spr_load((u16 *) gCamFixedIconSprIds, 0, 1, 1, 1, 1.0f);
     }
     hud_panel_init();
     if (gHaveSkyfall) {
         hud_init_boost_dial();
     }
-    if (D_80364A6B) {
+    if (gHaveBallista) {
         hud_init_missile_icon();
     }
     if (gHaveSideswipe) {
@@ -4867,28 +4867,28 @@ void hd_setup_level(s32 arg0) {
     gCamEyeZ = 0;
     gCamTilt = 0.0f;
     gCamTurn = 0.0f;
-    D_803649F8 = 1.0f;
-    D_80364A3C = 0;
-    D_80364A3D = 0;
-    D_80364A40 = 0;
-    D_80364A44 = 0;
-    D_80364A6F = 0;
-    D_80364AB4 = 0.0f;
-    D_80364AB8 = 1.0f;
-    D_80364ABC = 1.0f;
-    D_80364AC0 = 0;
+    gAttractCamZoom = 1.0f;
+    gValuePopupHead = 0;
+    gValuePopupTail = 0;
+    gValuePopupNew = 0;
+    gValuePopupValue = 0;
+    gCarrierDanger = 0;
+    gFailSpinAngle = 0.0f;
+    gFailSpinRate = 1.0f;
+    gFailSpinScale = 1.0f;
+    gFailSpinDone = 0;
     gPlayerX = gDriverPos;
-    gPlayerY = D_803ED80C;
-    gPlayerZ = D_803ED810;
+    gPlayerY = gDriverY;
+    gPlayerZ = gDriverZ;
     D_802FDB14 = 0;
     if (gUseEeprom) {
-        D_803649F0 = nss.ip;
+        gLevelMoney = nss.ip;
     } else {
-        D_803649F0 = players[playerNumber].money;
+        gLevelMoney = players[playerNumber].money;
     }
-    D_80364A5C = 0;
-    D_80364A58 = 0;
-    if (D_803669B4) {
+    gTimeInLevel = 0;
+    gLevelStartTime = 0;
+    if (gRecVehiclePending) {
         rec_restore_start_vehicle();
     }
     debug_printf("Level %d: mem_pool=0x%x, code seg=0x%x, space=%d bytes\n", levelno, gHeapPtr, 0x802447C0,
@@ -4951,7 +4951,7 @@ void lvl_alloc_dl_buffers(void) {
             d = 2000;
             break;
         default:
-            switch (D_803BE739) {
+            switch (gLevelDlProfile) {
                 case 0:
                     a = 6000;
                     b = 5000;

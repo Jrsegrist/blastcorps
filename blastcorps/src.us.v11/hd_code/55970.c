@@ -17,8 +17,8 @@
 
 extern u8 romCopyright[];
 extern u8 romVehicleModels[];
-extern void * N64P D_803A6B10;
-extern s16 D_803A6B14;
+extern void * N64P gDemoBannerTex;
+extern s16 gDemoBannerAlpha;
 
 /* The 256x16 attract-demo banner from ROM (0x8029A130).
  * Load the 256x16 IA8 overlay texture from ROM into the heap */
@@ -26,9 +26,9 @@ void hud_load_demo_banner(void) {
     s32 size = romVehicleModels - romCopyright;
 
     hd_rom_load((u32) romCopyright, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
-    D_803A6B10 = gHeapPtr;
+    gDemoBannerTex = gHeapPtr;
     gHeapPtr = (u8 *) gHeapPtr + size;
-    D_803A6B14 = 0;
+    gDemoBannerAlpha = 0;
 }
 
 /* Draws it, fading in (0x8029A1A8).
@@ -41,13 +41,13 @@ Gfx *hud_draw_demo_banner(s32 arg0, Gfx *arg1) {
     gDPSetTexturePersp(gfx++, G_TP_NONE);
     gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
     gDPSetCombineMode(gfx++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-    if (D_803A6B14 + 0x40 >= 0x100) {
-        D_803A6B14 = 0xFF;
+    if (gDemoBannerAlpha + 0x40 >= 0x100) {
+        gDemoBannerAlpha = 0xFF;
     } else {
-        D_803A6B14 += 0x40;
+        gDemoBannerAlpha += 0x40;
     }
-    gDPSetPrimColor(gfx++, 0, 0, 0xFF, 0xFF, 0xFF, D_803A6B14);
-    gDPLoadTextureBlock(gfx++, D_803A6B10, G_IM_FMT_IA, G_IM_SIZ_8b, 256, 16, 0, G_TX_CLAMP, G_TX_CLAMP,
+    gDPSetPrimColor(gfx++, 0, 0, 0xFF, 0xFF, 0xFF, gDemoBannerAlpha);
+    gDPLoadTextureBlock(gfx++, gDemoBannerTex, G_IM_FMT_IA, G_IM_SIZ_8b, 256, 16, 0, G_TX_CLAMP, G_TX_CLAMP,
                         G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     gSPTextureRectangleOld(gfx++, 32 << 2, 208 << 2, 288 << 2, 224 << 2, G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
     gDPPipeSync(gfx++);

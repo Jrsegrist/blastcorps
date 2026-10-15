@@ -43,19 +43,19 @@ typedef struct {
 extern MbSample gMbSamples[11]; /* ring of samples */
 extern s32 gMbHead;         /* ring head */
 extern s32 gMbTail;         /* ring tail */
-extern Mtx D_8036CC70[][10];   /* view matrices per slot */
+extern Mtx gMbCopyMtx[][10];   /* view matrices per slot */
 extern u8 * N64P gMbBuffer;         /* 0x5460-byte buffer */
 extern u8 gMbState;
 extern s32 gMbCopies;
-extern MbRemap D_802FC060[3];
-extern f32 D_8036D174;         /* view angle, degrees */
+extern MbRemap gMbRenderModeRemap[3];
+extern f32 gMbViewAngle;         /* view angle, degrees */
 extern s32 gMbMaxCopies;
-extern f32 D_8036D184;
-extern Vtx D_802FBEE0[];       /* 6 x 4 grid of view points */
-extern Gfx D_8036D188[40];     /* display list for the view */
-extern Mtx D_8036D2C8;         /* its projection */
-extern Mtx D_8036D388;         /* its look-at */
-extern Vp D_802FBED0;
+extern f32 gMbSpacing;
+extern Vtx gMbStripVtx[];       /* 6 x 4 grid of view points */
+extern Gfx gMbViewDl[40];     /* display list for the view */
+extern Mtx gMbProjMtx;         /* its projection */
+extern Mtx gMbLookAtMtx;         /* its look-at */
+extern Vp gMbViewport;
 #ifndef NON_MATCHING
 extern void *gDepthBufferPhys; /* depth buffer */
 #endif
@@ -89,14 +89,14 @@ void mb_copy_dl(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
                     i = 0;
                     found = 0;
                     do {
-                        if (D_802FC060[i].from == w1) {
+                        if (gMbRenderModeRemap[i].from == w1) {
                             found = 1;
                         } else {
                             i++;
                         }
                     } while (!found && i < 3);
                     MB_ASSERT(found, 157);
-                    dst->words.w1 = D_802FC060[i].to;
+                    dst->words.w1 = gMbRenderModeRemap[i].to;
                     dst++, src++;
                 } else {
                     *dst++ = *src++;
@@ -172,7 +172,7 @@ void mb_start(s32 n, f32 scale, s32 arg2) {
         scale = 1.0f;
     }
     gMbMaxCopies = n;
-    D_8036D184 = scale;
+    gMbSpacing = scale;
     gMbCopies = 0;
     gMbState = 1;
     ok = mb_get_samples(1, &i0, &i1);
@@ -183,38 +183,38 @@ void mb_start(s32 n, f32 scale, s32 arg2) {
             r = 1;
         }
         v = math_atan_c((arg2 <<= 16) / r);
-        D_8036D174 = (f32) v / 65536.0 * 360.0;
+        gMbViewAngle = (f32) v / 65536.0 * 360.0;
     } else {
-        D_8036D174 = 25.0f;
+        gMbViewAngle = 25.0f;
     }
-    ang = D_8036D174 / 2.0;
-    step = D_8036D174 / 6.0;
+    ang = gMbViewAngle / 2.0;
+    step = gMbViewAngle / 6.0;
     yaw = ang * 1.3333334f;
     for (i = 0; i < 6; i++) {
         guRotateF(mf1, ang, 1.0f, 0.0f, 0.0f);
         guMtxXFMF(mf1, 0.0f, 0.0f, -100.0f, &p[0], &p[1], &p[2]);
         guRotateF(mf2, yaw, 0.0f, 1.0f, 0.0f);
         guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
-        D_802FBEE0[k].v.ob[0] = q[0];
-        D_802FBEE0[k].v.ob[1] = q[1];
-        D_802FBEE0[k].v.ob[2] = q[2];
+        gMbStripVtx[k].v.ob[0] = q[0];
+        gMbStripVtx[k].v.ob[1] = q[1];
+        gMbStripVtx[k].v.ob[2] = q[2];
         guRotateF(mf2, -yaw, 0.0f, 1.0f, 0.0f);
         guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
-        D_802FBEE0[k + 3].v.ob[0] = q[0];
-        D_802FBEE0[k + 3].v.ob[1] = q[1];
-        D_802FBEE0[k + 3].v.ob[2] = q[2];
+        gMbStripVtx[k + 3].v.ob[0] = q[0];
+        gMbStripVtx[k + 3].v.ob[1] = q[1];
+        gMbStripVtx[k + 3].v.ob[2] = q[2];
         guRotateF(mf1, ang - step, 1.0f, 0.0f, 0.0f);
         guMtxXFMF(mf1, 0.0f, 0.0f, -100.0f, &p[0], &p[1], &p[2]);
         guRotateF(mf2, yaw, 0.0f, 1.0f, 0.0f);
         guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
-        D_802FBEE0[k + 1].v.ob[0] = q[0];
-        D_802FBEE0[k + 1].v.ob[1] = q[1];
-        D_802FBEE0[k + 1].v.ob[2] = q[2];
+        gMbStripVtx[k + 1].v.ob[0] = q[0];
+        gMbStripVtx[k + 1].v.ob[1] = q[1];
+        gMbStripVtx[k + 1].v.ob[2] = q[2];
         guRotateF(mf2, -yaw, 0.0f, 1.0f, 0.0f);
         guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
-        D_802FBEE0[k + 2].v.ob[0] = q[0];
-        D_802FBEE0[k + 2].v.ob[1] = q[1];
-        D_802FBEE0[k + 2].v.ob[2] = q[2];
+        gMbStripVtx[k + 2].v.ob[0] = q[0];
+        gMbStripVtx[k + 2].v.ob[1] = q[1];
+        gMbStripVtx[k + 2].v.ob[2] = q[2];
         k += 4;
         ang -= step;
     }
@@ -306,8 +306,8 @@ void mb_render_view(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *se
     f32 dz;
 
     if (gMbState) {
-        gdl = D_8036D188;
-        gSPViewport(gdl++, PHYS(&D_802FBED0));
+        gdl = gMbViewDl;
+        gSPViewport(gdl++, PHYS(&gMbViewport));
         gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
         gSPSegment(gdl++, 0, 0);
         gSPSegment(gdl++, 6, PHYS(seg6));
@@ -326,8 +326,8 @@ void mb_render_view(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *se
         gDPSetFillColor(gdl++, 0);
         gDPFillRectangle(gdl++, 0, 0, 119, 89);
         gDPPipeSync(gdl++);
-        guPerspective(&D_8036D2C8, &perspNorm, D_8036D174, 1.3333334f, 100.0f, 5000.0f, 1.0f);
-        gSPMatrix(gdl++, PHYS(&D_8036D2C8), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        guPerspective(&gMbProjMtx, &perspNorm, gMbViewAngle, 1.3333334f, 100.0f, 5000.0f, 1.0f);
+        gSPMatrix(gdl++, PHYS(&gMbProjMtx), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
         gImmp1(gdl++, G_RDPHALF_1, perspNorm); /* old F3D gSPPerspNormalize */
         tx = x / 32.0f;
         ty = y / 32.0f;
@@ -344,15 +344,15 @@ void mb_render_view(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *se
             dz = 0.0 - dz;
         }
         if (dx > 0.5 || dz > 0.5) {
-            guLookAt(&D_8036D388, ex, ey, ez, tx, ty, tz, 0.0f, 1.0f, 0.0f);
+            guLookAt(&gMbLookAtMtx, ex, ey, ez, tx, ty, tz, 0.0f, 1.0f, 0.0f);
         } else {
-            guLookAt(&D_8036D388, ex + 2.0, ey, ez + 2.0, tx, ty, tz, 0.0f, 1.0f, 0.0f);
+            guLookAt(&gMbLookAtMtx, ex + 2.0, ey, ez + 2.0, tx, ty, tz, 0.0f, 1.0f, 0.0f);
         }
-        gSPMatrix(gdl++, PHYS(&D_8036D388), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, PHYS(&gMbLookAtMtx), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPSetEnvColor(gdl++, 0, 0, 0, alpha);
         gSPDisplayList(gdl++, PHYS(dl));
         gSPEndDisplayList(gdl++);
-        rsp_send_task((u64 *) D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
+        rsp_send_task((u64 *) gMbViewDl, gdl - gMbViewDl, 2, 0, 0x54D, 0);
     }
 }
 
@@ -420,7 +420,7 @@ void mb_draw(Gfx **gfxp, s32 arg1, u8 slot) {
             ea = (gMbSamples[i1].a - gMbSamples[i0].a) * t + gMbSamples[i0].a;
             eb = (gMbSamples[i1].b - gMbSamples[i0].b) * t + gMbSamples[i0].b;
             ec = (gMbSamples[i1].c - gMbSamples[i0].c) * t + gMbSamples[i0].c;
-            t += D_8036D184;
+            t += gMbSpacing;
             if (t >= 1.0) {
                 n++;
                 t = 0.0f;
@@ -440,9 +440,9 @@ void mb_draw(Gfx **gfxp, s32 arg1, u8 slot) {
             }
             flag = mb_mtx4_invert(inv, mf);
             MB_ASSERT_BELL(flag, 547);
-            guMtxF2L(inv, &D_8036CC70[slot][i]);
-            gSPMatrix(gdl++, PHYS(&D_8036CC70[slot][i]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-            gSPVertex(gdl++, PHYS(D_802FBEE0), 16, 0);
+            guMtxF2L(inv, &gMbCopyMtx[slot][i]);
+            gSPMatrix(gdl++, PHYS(&gMbCopyMtx[slot][i]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPVertex(gdl++, PHYS(gMbStripVtx), 16, 0);
             vi = 0;
             off = 0;
             mb_draw_strip(&gdl, off, vi);
@@ -453,7 +453,7 @@ void mb_draw(Gfx **gfxp, s32 arg1, u8 slot) {
             off += 0xE10, vi += 4;
             mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;
-            gSPVertex(gdl++, PHYS(&D_802FBEE0[16]), 8, 0);
+            gSPVertex(gdl++, PHYS(&gMbStripVtx[16]), 8, 0);
             vi = 0;
             mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;

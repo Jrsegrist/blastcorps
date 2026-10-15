@@ -91,8 +91,8 @@ s32 trail_in_zone(x, y, z)
 
 extern u8 gTrailTail;
 extern u8 gTrailHead;
-extern u8 D_8036DC92;
-extern s32 D_8036DC94;
+extern u8 gTrailSegCalls;
+extern s32 gTrailLastFrame;
 
 /* Empties the tyre-track ring (0x8027BE4C).
  * The dead mid-function `addiu sp` pair is an unused local (-O1 gives
@@ -102,8 +102,8 @@ void trail_init(void) {
 
     gTrailTail = 0;
     gTrailHead = 0;
-    D_8036DC92 = 0;
-    D_8036DC94 = -1;
+    gTrailSegCalls = 0;
+    gTrailLastFrame = -1;
 }
 
 /* Adds a tyre-track segment (wheel offsets, yaw) (0x8027BE7C).
@@ -135,7 +135,7 @@ void trail_add(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s
     c2z = (s32) ((f32) z + p2z) >> 5;
     y >>= 5;
     guMtxXFMF(mf, halfw, 0.0f, 0.0f, &hx, &py, &hz);
-    if (D_8036DC94 + 1 != ((s32) gFramesInMode) || D_8036DC94 == -1) {
+    if (gTrailLastFrame + 1 != ((s32) gFramesInMode) || gTrailLastFrame == -1) {
         gTrails[gTrailHead].c = 1;
         gTrailHead++;
         if (gTrailHead == 80) {
@@ -163,9 +163,9 @@ void trail_add(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s
     gTrails[gTrailHead].v[11] = c2z - (s16) hz;
     gTrails[gTrailHead].a = a;
     gTrails[gTrailHead].b = b;
-    D_8036DC92++;
-    if (D_8036DC92 >= period) {
-        D_8036DC92 = 0;
+    gTrailSegCalls++;
+    if (gTrailSegCalls >= period) {
+        gTrailSegCalls = 0;
         gTrails[gTrailHead].c = 0;
         gTrailHead++;
         if (gTrailHead == 80) {
@@ -178,7 +178,7 @@ void trail_add(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s
             }
         }
     }
-    D_8036DC94 = ((s32) gFramesInMode);
+    gTrailLastFrame = ((s32) gFramesInMode);
 }
 
 /* The tracks' strips and cull boxes (0x8027C4C8).

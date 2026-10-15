@@ -19,13 +19,13 @@ typedef struct {
 u32 lzss_read_bits(u32 mask, LzBits *b);
 void lzss_decode(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits);
 
-extern u8 * N64P D_803F7830;
-extern u8 * N64P D_803F7834;
+extern u8 * N64P gKiunzipSrc;
+extern u8 * N64P gKiunzipDst;
 extern void * N64P gHornSound; /* the horn loop's handle (L/R held) */
 extern s16 gHornHeld;  /* its on/off flag; veh_update_horn uses the high byte */
-extern s32 D_80364AB0;  /* force the next veh_set_engine_level update */
-extern f32 D_8030D940;
-extern f32 D_8030D944;
+extern s32 gEngineLevelForce;  /* force the next veh_set_engine_level update */
+extern f32 gEnginePitchStep;
+extern f32 gEnginePitchStepSideswipe;
 #endif
 
 /* C-callable (46C20.c hd_rom_load): saves s0-s7/gp/s8, then
@@ -41,8 +41,8 @@ void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/lzss_decompress.s")
 #endif
 
-/* Saves s-regs, stores a0/a1 to D_803F7830/D_803F7834 and calls
- * kiunzip(&D_803F7830, &D_803F7834, a2); returns the updated values in
+/* Saves s-regs, stores a0/a1 to gKiunzipSrc/gKiunzipDst and calls
+ * kiunzip(&gKiunzipSrc, &gKiunzipDst, a2); returns the updated values in
  * a0/a1 (non-ABI outputs). */
 #ifdef NON_MATCHING
 /* The asm entry of kiunzip (method 1 of the loader): inflates *src into *dst with the given window and
@@ -52,11 +52,11 @@ void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type) {
  * s-register. Asm callers (5CB60's lvl_load_object, lvl_load_model_plain,
  * lvl_load_model) keep a2, f12 and f14 live across the call. */
 void kiunzip_entry(u8 **src, u8 **dst, s32 work) {
-    D_803F7830 = *src;
-    D_803F7834 = *dst;
-    kiunzip(&D_803F7830, &D_803F7834, work);
-    *src = D_803F7830;
-    *dst = D_803F7834;
+    gKiunzipSrc = *src;
+    gKiunzipDst = *dst;
+    kiunzip(&gKiunzipSrc, &gKiunzipDst, work);
+    *src = gKiunzipSrc;
+    *dst = gKiunzipDst;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/kiunzip_entry.s")
@@ -198,9 +198,9 @@ void veh_stop_engine_sounds(void) {
 #endif
 
 /* Save-everything sound wrapper: non-ABI input s5 (a signed level). Stores
- * |s5| in gEngineSoundLevel and, when it changed (or D_80364AB0 was set, which it
+ * |s5| in gEngineSoundLevel and, when it changed (or gEngineLevelForce was set, which it
  * clears), sets the gEngineSound sound's parameter 0x10 (likely pitch) to
- * 0.5 + |s5| * (D_8030D940, or D_8030D944 when gCurVehicle == 1) via
+ * 0.5 + |s5| * (gEnginePitchStep, or gEnginePitchStepSideswipe when gCurVehicle == 1) via
  * snd_modify. */
 #ifdef NON_MATCHING
 /* The engine sound's pitch from |level| when it changes (0x802C4584).
@@ -212,7 +212,7 @@ void veh_stop_engine_sounds(void) {
  * skyfall_update_anims: a0, t6, t7, f12, f14) rely on that (a mixed N64 build would
  * need a thunk; the native port won't). */
 void veh_set_engine_level(s32 level) {
-    s32 force = D_80364AB0;
+    s32 force = gEngineLevelForce;
     s16 old = gEngineSoundLevel;
     union {
         f32 f;
@@ -224,11 +224,11 @@ void veh_set_engine_level(s32 level) {
     }
     gEngineSoundLevel = level;
     if (force != 0) {
-        D_80364AB0 = 0;
+        gEngineLevelForce = 0;
     } else if (old == level) {
         return;
     }
-    u.f = 0.5f + (f32) level * ((gCurVehicle == 1) ? D_8030D944 : D_8030D940);
+    u.f = 0.5f + (f32) level * ((gCurVehicle == 1) ? gEnginePitchStepSideswipe : gEnginePitchStep);
     snd_modify(gEngineSound, 0x10, u.i);
 }
 #else
@@ -272,7 +272,7 @@ void veh_update_horn(s32 sfx) {
 #ifdef NON_MATCHING
 /* The tables of the 7D9D0 bin (ROM 0x7D9D0-0x7F8B0, 0x802C2190-0x802C4070),
  * just before this file's code: twelve texture-animation entries
- * (D_802C2190.., list D_802C23B4; 56040.c anim_tex_init/anim_tex_step, the
+ * (gRamdozerTrackTexAnimA.., list gTexAnimDefList; 56040.c anim_tex_init/anim_tex_step, the
  * vehicle files' channel keys) and the 28 billboard effect definitions
  * (EffectDef + texture ids, list gFxDefsByKind; fx_spawn, fx_draw_all).
  * The NON_MATCHING build defines it in C and links this file's .data (it has
@@ -280,107 +280,107 @@ void veh_update_horn(s32 sfx) {
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
  * bin. Code reaches it through the absolute D_ symbols. */
 typedef struct {
-    /* 802C2190 */ u8 ta802C2190[4]; /* D_802C2190: id, n = 4 frames, k = 1 textures per frame, blend */
+    /* 802C2190 */ u8 ta802C2190[4]; /* gRamdozerTrackTexAnimA: id, n = 4 frames, k = 1 textures per frame, blend */
     /* 802C2194 */ u16 ta802C2190_keys[4];
     /* 802C219C */ u16 ta802C2190_ids[4];
-    /* 802C21A4 */ u8 ta802C21A4[4]; /* D_802C21A4: id, n = 4 frames, k = 1 textures per frame, blend */
+    /* 802C21A4 */ u8 ta802C21A4[4]; /* gRamdozerTrackTexAnimB: id, n = 4 frames, k = 1 textures per frame, blend */
     /* 802C21A8 */ u16 ta802C21A4_keys[4];
     /* 802C21B0 */ u16 ta802C21A4_ids[4];
-    /* 802C21B8 */ u8 ta802C21B8[4]; /* D_802C21B8: id, n = 19 frames, k = 1 textures per frame, blend */
+    /* 802C21B8 */ u8 ta802C21B8[4]; /* gRamdozerHeadingTexAnim: id, n = 19 frames, k = 1 textures per frame, blend */
     /* 802C21BC */ u16 ta802C21B8_keys[19];
     /* 802C21E2 */ u16 ta802C21B8_ids[19];
-    /* 802C2208 */ u8 ta802C2208[4]; /* D_802C2208: id, n = 24 frames, k = 1 textures per frame, blend */
+    /* 802C2208 */ u8 ta802C2208[4]; /* gBacklashYawTexAnimA: id, n = 24 frames, k = 1 textures per frame, blend */
     /* 802C220C */ u16 ta802C2208_keys[24];
     /* 802C223C */ u16 ta802C2208_ids[24];
-    /* 802C226C */ u8 ta802C226C[4]; /* D_802C226C: id, n = 24 frames, k = 1 textures per frame, blend */
+    /* 802C226C */ u8 ta802C226C[4]; /* gBacklashYawTexAnimB: id, n = 24 frames, k = 1 textures per frame, blend */
     /* 802C2270 */ u16 ta802C226C_keys[24];
     /* 802C22A0 */ u16 ta802C226C_ids[24];
-    /* 802C22D0 */ u8 ta802C22D0[4]; /* D_802C22D0: id, n = 13 frames, k = 1 textures per frame, blend */
+    /* 802C22D0 */ u8 ta802C22D0[4]; /* gTexAnimCyclone: id, n = 13 frames, k = 1 textures per frame, blend */
     /* 802C22D4 */ u16 ta802C22D0_keys[13];
     /* 802C22EE */ u16 ta802C22D0_ids[13];
-    /* 802C2308 */ u8 ta802C2308[4]; /* D_802C2308: id, n = 2 frames, k = 1 textures per frame, blend */
+    /* 802C2308 */ u8 ta802C2308[4]; /* gThunderfistTexAnim: id, n = 2 frames, k = 1 textures per frame, blend */
     /* 802C230C */ u16 ta802C2308_keys[2];
     /* 802C2310 */ u16 ta802C2308_ids[2];
-    /* 802C2314 */ u8 ta802C2314[4]; /* D_802C2314: id, n = 3 frames, k = 1 textures per frame, blend */
+    /* 802C2314 */ u8 ta802C2314[4]; /* gSkyfallBoostTexAnim: id, n = 3 frames, k = 1 textures per frame, blend */
     /* 802C2318 */ u16 ta802C2314_keys[3];
     /* 802C231E */ u16 ta802C2314_ids[3];
-    /* 802C2324 */ u8 ta802C2324[4]; /* D_802C2324: id, n = 8 frames, k = 1 textures per frame, blend */
+    /* 802C2324 */ u8 ta802C2324[4]; /* gTexAnimPoliceLightsA: id, n = 8 frames, k = 1 textures per frame, blend */
     /* 802C2328 */ u16 ta802C2324_keys[8];
     /* 802C2338 */ u16 ta802C2324_ids[8];
-    /* 802C2348 */ u8 ta802C2348[4]; /* D_802C2348: id, n = 8 frames, k = 1 textures per frame, blend */
+    /* 802C2348 */ u8 ta802C2348[4]; /* gTexAnimPoliceLightsB: id, n = 8 frames, k = 1 textures per frame, blend */
     /* 802C234C */ u16 ta802C2348_keys[8];
     /* 802C235C */ u16 ta802C2348_ids[8];
-    /* 802C236C */ u8 ta802C236C[4]; /* D_802C236C: id, n = 8 frames, k = 1 textures per frame, blend */
+    /* 802C236C */ u8 ta802C236C[4]; /* gCarrierTexAnim: id, n = 8 frames, k = 1 textures per frame, blend */
     /* 802C2370 */ u16 ta802C236C_keys[8];
     /* 802C2380 */ u16 ta802C236C_ids[8];
-    /* 802C2390 */ u8 ta802C2390[4]; /* D_802C2390: id, n = 8 frames, k = 1 textures per frame, blend */
+    /* 802C2390 */ u8 ta802C2390[4]; /* gSideswipeTexAnim: id, n = 8 frames, k = 1 textures per frame, blend */
     /* 802C2394 */ u16 ta802C2390_keys[8];
     /* 802C23A4 */ u16 ta802C2390_ids[8];
-    /* 802C23B4 */ u8 * N64P texAnims[12]; /* D_802C23B4 */
+    /* 802C23B4 */ u8 * N64P texAnims[12]; /* gTexAnimDefList */
     /* 802C23E4 */ s32 texAnimsEnd;
     /* 802C23E8 */ u32 pad802C23E8[2];
-    /* 802C23F0 */ EffectDef ed802C23F0; /* D_802C23F0 */
+    /* 802C23F0 */ EffectDef ed802C23F0; /* gFxDefKind00 */
     /* 802C2400 */ u16 ed802C23F0_ids[116];
-    /* 802C24E8 */ EffectDef ed802C24E8; /* D_802C24E8 */
+    /* 802C24E8 */ EffectDef ed802C24E8; /* gFxDefKind01 */
     /* 802C24F8 */ u16 ed802C24E8_ids[240];
-    /* 802C26D8 */ EffectDef ed802C26D8; /* D_802C26D8 */
+    /* 802C26D8 */ EffectDef ed802C26D8; /* gFxDefKind02 */
     /* 802C26E8 */ u16 ed802C26D8_ids[45];
     /* 802C2742 */ u16 ed802C26D8_pad;
-    /* 802C2744 */ EffectDef ed802C2744; /* D_802C2744 */
+    /* 802C2744 */ EffectDef ed802C2744; /* gFxDefKind03 */
     /* 802C2754 */ u16 ed802C2744_ids[200];
-    /* 802C28E4 */ EffectDef ed802C28E4; /* D_802C28E4 */
+    /* 802C28E4 */ EffectDef ed802C28E4; /* gFxDefKind04 */
     /* 802C28F4 */ u16 ed802C28E4_ids[47];
     /* 802C2952 */ u16 ed802C28E4_pad;
-    /* 802C2954 */ EffectDef ed802C2954; /* D_802C2954 */
+    /* 802C2954 */ EffectDef ed802C2954; /* gFxExhaustSmoke */
     /* 802C2964 */ u16 ed802C2954_ids[15];
     /* 802C2982 */ u16 ed802C2954_pad;
-    /* 802C2984 */ EffectDef ed802C2984; /* D_802C2984 */
+    /* 802C2984 */ EffectDef ed802C2984; /* gFxSparks */
     /* 802C2994 */ u16 ed802C2984_ids[30];
-    /* 802C29D0 */ EffectDef ed802C29D0; /* D_802C29D0 */
+    /* 802C29D0 */ EffectDef ed802C29D0; /* gFxDefKind07 */
     /* 802C29E0 */ u16 ed802C29D0_ids[61];
     /* 802C2A5A */ u16 ed802C29D0_pad;
-    /* 802C2A5C */ EffectDef ed802C2A5C; /* D_802C2A5C */
+    /* 802C2A5C */ EffectDef ed802C2A5C; /* gFxDefNodeHit */
     /* 802C2A6C */ u16 ed802C2A5C_ids[9];
     /* 802C2A7E */ u16 ed802C2A5C_pad;
-    /* 802C2A80 */ EffectDef ed802C2A80; /* D_802C2A80 */
+    /* 802C2A80 */ EffectDef ed802C2A80; /* gFxDefKind09 */
     /* 802C2A90 */ u16 ed802C2A80_ids[240];
-    /* 802C2C70 */ EffectDef ed802C2C70; /* D_802C2C70 */
+    /* 802C2C70 */ EffectDef ed802C2C70; /* gFxDefKind10 */
     /* 802C2C80 */ u16 ed802C2C70_ids[240];
-    /* 802C2E60 */ EffectDef ed802C2E60; /* D_802C2E60 */
+    /* 802C2E60 */ EffectDef ed802C2E60; /* gFxDefKind11 */
     /* 802C2E70 */ u16 ed802C2E60_ids[240];
-    /* 802C3050 */ EffectDef ed802C3050; /* D_802C3050 */
+    /* 802C3050 */ EffectDef ed802C3050; /* gFxDefKind12 */
     /* 802C3060 */ u16 ed802C3050_ids[240];
-    /* 802C3240 */ EffectDef ed802C3240; /* D_802C3240 */
+    /* 802C3240 */ EffectDef ed802C3240; /* gFxDefKind13 */
     /* 802C3250 */ u16 ed802C3240_ids[240];
-    /* 802C3430 */ EffectDef ed802C3430; /* D_802C3430 */
+    /* 802C3430 */ EffectDef ed802C3430; /* gFxDefKind14 */
     /* 802C3440 */ u16 ed802C3430_ids[240];
-    /* 802C3620 */ EffectDef ed802C3620; /* D_802C3620 */
+    /* 802C3620 */ EffectDef ed802C3620; /* gFxDefKind15 */
     /* 802C3630 */ u16 ed802C3620_ids[200];
-    /* 802C37C0 */ EffectDef ed802C37C0; /* D_802C37C0 */
+    /* 802C37C0 */ EffectDef ed802C37C0; /* gFxSkyfallBoost */
     /* 802C37D0 */ u16 ed802C37C0_ids[10];
-    /* 802C37E4 */ EffectDef ed802C37E4; /* D_802C37E4 */
+    /* 802C37E4 */ EffectDef ed802C37E4; /* gFxDefKind17 */
     /* 802C37F4 */ u16 ed802C37E4_ids[7];
     /* 802C3802 */ u16 ed802C37E4_pad;
-    /* 802C3804 */ EffectDef ed802C3804; /* D_802C3804 */
+    /* 802C3804 */ EffectDef ed802C3804; /* gFxDefJetFlame */
     /* 802C3814 */ u16 ed802C3804_ids[12];
-    /* 802C382C */ EffectDef ed802C382C; /* D_802C382C */
+    /* 802C382C */ EffectDef ed802C382C; /* gFxDefBlast */
     /* 802C383C */ u16 ed802C382C_ids[6];
-    /* 802C3848 */ EffectDef ed802C3848; /* D_802C3848 */
+    /* 802C3848 */ EffectDef ed802C3848; /* gFxDefKind20 */
     /* 802C3858 */ u16 ed802C3848_ids[10];
-    /* 802C386C */ EffectDef ed802C386C; /* D_802C386C */
+    /* 802C386C */ EffectDef ed802C386C; /* gFxDefKind21 */
     /* 802C387C */ u16 ed802C386C_ids[6];
-    /* 802C3888 */ EffectDef ed802C3888; /* D_802C3888 */
+    /* 802C3888 */ EffectDef ed802C3888; /* gFxDefKind22 */
     /* 802C3898 */ u16 ed802C3888_ids[129];
     /* 802C399A */ u16 ed802C3888_pad;
-    /* 802C399C */ EffectDef ed802C399C; /* D_802C399C */
+    /* 802C399C */ EffectDef ed802C399C; /* gFxDefKind23 */
     /* 802C39AC */ u16 ed802C399C_ids[204];
-    /* 802C3B44 */ EffectDef ed802C3B44; /* D_802C3B44 */
+    /* 802C3B44 */ EffectDef ed802C3B44; /* gFxCarrierExplosion */
     /* 802C3B54 */ u16 ed802C3B44_ids[96];
-    /* 802C3C14 */ EffectDef ed802C3C14; /* D_802C3C14 */
+    /* 802C3C14 */ EffectDef ed802C3C14; /* gFxDefKind25 */
     /* 802C3C24 */ u16 ed802C3C14_ids[216];
-    /* 802C3DD4 */ EffectDef ed802C3DD4; /* D_802C3DD4 */
+    /* 802C3DD4 */ EffectDef ed802C3DD4; /* gFxDefKind26 */
     /* 802C3DE4 */ u16 ed802C3DD4_ids[104];
-    /* 802C3EB4 */ EffectDef ed802C3EB4; /* D_802C3EB4 */
+    /* 802C3EB4 */ EffectDef ed802C3EB4; /* gFxDefKind27 */
     /* 802C3EC4 */ u16 ed802C3EB4_ids[156];
     /* 802C3FFC */ u8 * N64P effectDefs[28]; /* gFxDefsByKind */
     /* 802C406C */ u32 pad802C406C;

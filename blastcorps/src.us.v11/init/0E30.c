@@ -1,12 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
 
-extern s32 D_80222A1C;
-extern s32 D_80222A20;
-extern s32 D_802229E4;
-extern u32 D_802229E8;
-extern u32 D_802229EC;
-extern u8 *D_802229F0;
+extern s32 inptr;
+extern s32 outcnt;
+extern s32 bb;
+extern u32 bk;
+extern u32 hufts;
+extern u8 *inbuf;
 
 typedef struct Huft {
     u8 e;
@@ -24,15 +24,15 @@ extern u16 cpdist[];
 extern u8 cpdext[];
 
 extern u16 mask_bits[];
-extern u8 D_80222740[];  /* border[] - RFC1951 bit-length code transmission order */
-extern s32 D_80222834;   /* lbits - default lit/length table lookup bits */
-extern s32 D_80222838;   /* dbits - default distance table lookup bits */
+extern u8 border[];  /* border[] - RFC1951 bit-length code transmission order */
+extern s32 lbits;   /* lbits - default lit/length table lookup bits */
+extern s32 dbits;   /* dbits - default distance table lookup bits */
 
 extern int huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
 extern s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
 
 /* inflate_dynamic - decompresses a type-2 (dynamic Huffman codes) block:
- * reads the bit-length code lengths (in `border`/D_80222740 order), builds a
+ * reads the bit-length code lengths (in `border`/border order), builds a
  * 7-bit table for them, decodes the literal/length and distance code lengths
  * (with the 16/17/18 repeat escapes), then builds the real tables and hands
  * off to inflate_codes. The reference's inflate_dynamic() minus every
@@ -63,11 +63,11 @@ s32 inflate_dynamic(void) {
     register u32 b;
     s32 ll[LL_SIZE];
 
-    k = D_802229E8;
-    b = D_802229E4;
+    k = bk;
+    b = bb;
 
     while (k < 5) {
-        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        b |= (u32) inbuf[inptr++] << k;
         k += 8;
     }
     nl = 257 + (b & 0x1F);
@@ -75,7 +75,7 @@ s32 inflate_dynamic(void) {
     k -= 5;
 
     while (k < 5) {
-        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        b |= (u32) inbuf[inptr++] << k;
         k += 8;
     }
     nd = 1 + (b & 0x1F);
@@ -83,7 +83,7 @@ s32 inflate_dynamic(void) {
     k -= 5;
 
     while (k < 4) {
-        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        b |= (u32) inbuf[inptr++] << k;
         k += 8;
     }
     nb = 4 + (b & 0xF);
@@ -92,15 +92,15 @@ s32 inflate_dynamic(void) {
 
     for (j = 0; j < nb; j++) {
         while (k < 3) {
-            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            b |= (u32) inbuf[inptr++] << k;
             k += 8;
         }
-        ll[D_80222740[j]] = b & 7;
+        ll[border[j]] = b & 7;
         b >>= 3;
         k -= 3;
     }
     for (; j < 19; j++) {
-        ll[D_80222740[j]] = 0;
+        ll[border[j]] = 0;
     }
 
     bl = 7;
@@ -111,7 +111,7 @@ s32 inflate_dynamic(void) {
     i = l = 0;
     while ((u32) i < n) {
         while (k < (u32) bl) {
-            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            b |= (u32) inbuf[inptr++] << k;
             k += 8;
         }
         td = tl + (b & m);
@@ -123,7 +123,7 @@ s32 inflate_dynamic(void) {
             ll[i++] = l = j;
         } else if (j == 16) {
             while (k < 2) {
-                b |= (u32) D_802229F0[D_80222A1C++] << k;
+                b |= (u32) inbuf[inptr++] << k;
                 k += 8;
             }
             j = 3 + (b & 3);
@@ -134,7 +134,7 @@ s32 inflate_dynamic(void) {
             }
         } else if (j == 17) {
             while (k < 3) {
-                b |= (u32) D_802229F0[D_80222A1C++] << k;
+                b |= (u32) inbuf[inptr++] << k;
                 k += 8;
             }
             j = 3 + (b & 7);
@@ -146,7 +146,7 @@ s32 inflate_dynamic(void) {
             l = 0;
         } else {
             while (k < 7) {
-                b |= (u32) D_802229F0[D_80222A1C++] << k;
+                b |= (u32) inbuf[inptr++] << k;
                 k += 8;
             }
             j = 11 + (b & 0x7F);
@@ -159,12 +159,12 @@ s32 inflate_dynamic(void) {
         }
     }
 
-    D_802229E4 = b;
-    D_802229E8 = k;
+    bb = b;
+    bk = k;
 
-    bl = D_80222834;
+    bl = lbits;
     huft_build(ll, nl, 257, cplens, cplext, &tl, &bl);
-    bd = D_80222838;
+    bd = dbits;
     huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
     inflate_codes(tl, td, bl, bd);
     return 0;
@@ -190,11 +190,11 @@ s32 inflate_block(s32 *arg0) {
     register u32 k;
     register u32 b;
 
-    k = D_802229E8;
-    b = D_802229E4;
+    k = bk;
+    b = bb;
 
     while (k == 0) {
-        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        b |= (u32) inbuf[inptr++] << k;
         k += 8;
     }
     *arg0 = b & 1;
@@ -202,15 +202,15 @@ s32 inflate_block(s32 *arg0) {
     k -= 1;
 
     while (k < 2) {
-        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        b |= (u32) inbuf[inptr++] << k;
         k += 8;
     }
     type = b & 3;
     b = b >> 2;
     k -= 2;
 
-    D_802229E4 = b;
-    D_802229E8 = k;
+    bb = b;
+    bk = k;
 
     if (type == 2) {
         return inflate_dynamic();
@@ -229,29 +229,29 @@ s32 inflate(void) {
     s32 sp20;
     u32 sp1C;
 
-    D_80222A20 = 0;
-    D_802229E8 = 0;
-    D_802229E4 = 0;
+    outcnt = 0;
+    bk = 0;
+    bb = 0;
     sp1C = 0;
     for (;;) {
-        D_802229EC = 0;
+        hufts = 0;
         sp20 = inflate_block(&sp24);
         if (sp20 != 0) {
             return sp20;
         }
-        if (D_802229EC > sp1C) {
-            sp1C = D_802229EC;
+        if (hufts > sp1C) {
+            sp1C = hufts;
         }
         if (sp24 != 0) {
             break;
         }
     }
-    if (D_802229E8 >= 8) {
+    if (bk >= 8) {
         do {
-            D_802229E8 -= 8;
-            D_80222A1C -= 1;
-        } while (D_802229E8 >= 8);
+            bk -= 8;
+            inptr -= 1;
+        } while (bk >= 8);
     }
-    D_80222A1C += 8;
+    inptr += 8;
     return 0;
 }

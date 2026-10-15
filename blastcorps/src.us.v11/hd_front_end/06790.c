@@ -30,15 +30,15 @@ extern s32 gPromoRank; /* rank */
 extern u8 gPromoRankLine1[]; /* rank name, first line */
 extern u8 gPromoRankLine2[]; /* rank name, second line */
 extern s16 gPromoPulse;
-extern u16 D_80303B78[];
-extern u16 D_80303B88[];
+extern u16 gPromoTitle1JText[];
+extern u16 gPromoTitle2JText[];
 
 
 /* title lines and their glyph lists */
 u8 * N64P gPromoTitle1 = N64_DPTR((u8 *) "CONGRATULATIONS");
 u8 * N64P gPromoTitle2 = N64_DPTR((u8 *) "ON YOUR PROMOTION!");
-u16 * N64P gPromoTitle1Glyphs = N64_DPTR(D_80303B78);
-u16 * N64P gPromoTitle2Glyphs = N64_DPTR(D_80303B88);
+u16 * N64P gPromoTitle1Glyphs = N64_DPTR(gPromoTitle1JText);
+u16 * N64P gPromoTitle2Glyphs = N64_DPTR(gPromoTitle2JText);
 s8 gPromoPulseDir = 1; /* colour cycle direction */
 
 /* The promotion screen: scene, state, the rank (0x801ED790).

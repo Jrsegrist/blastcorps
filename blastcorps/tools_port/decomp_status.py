@@ -148,6 +148,12 @@ def defines(text, name):
 
 SHARED_HEADERS = ['include/game/types.h', 'include/game/object.h']
 UNNAMED_FIELD_RE = re.compile(r'^(unk|pad)[0-9A-Fa-f]*$')
+# the other named-constant families: (header, (prefixes...))
+CONST_HEADERS = (('include/game/types.h', ('VEH_', 'SURFACE_')),
+                 ('include/game/object.h', ('OBJ_KIND_', 'OBJ_TOUGH_', 'DMG_RULE_', 'TRI_AXIS_', 'TRI_SIDE_')),
+                 ('include/game/game.h', ('LEVEL_KIND_', 'YW_', 'YOSHI_DEMAND_', 'NO_YOSHI_')),
+                 ('include/game/sound.h', ('EFFECT_KIND_',)))
+NOT_CONSTS = ('VEH_STATE_SIZE',)   # a size, not one of the named values
 
 
 def naming_counts():
@@ -174,19 +180,43 @@ def naming_counts():
                 structs.append((m.group(2), len(named), len(fields)))
     consts = {}
     for h, prefixes in (('include/game/game.h', ('MODE_',)), ('include/game/sound.h', ('SFX_', 'MUS_', 'SND_GROUP_')),
-                        ('include/game/types.h', ('VS_',))):
+                        ('include/game/types.h', ('VS_',))) + CONST_HEADERS:
         if os.path.exists(h):
             for m in re.finditer(r'^#define ((?:%s)\w*)\s' % '|'.join(prefixes), open(h).read(), re.M):
+                if m.group(1) in NOT_CONSTS:
+                    continue
                 p = next(x for x in prefixes if m.group(1).startswith(x))
                 consts[p] = consts.get(p, 0) + 1
     return funcs, data, structs, consts
+
+
+DATA_ADDR_RE = re.compile(r'(?<![\w$])D_[0-9A-F]{8}(?![\w$])')
+
+
+def data_address_names():
+    """the D_XXXXXXXX names still in the C sources and headers: (all, statics)"""
+    left, statics = set(), set()
+    for top in ('src.us.v11', 'include'):
+        for d, _, fs in os.walk(top):
+            for f in fs:
+                if not f.endswith(('.c', '.h')):
+                    continue
+                for line in open(os.path.join(d, f), errors='replace'):
+                    found = DATA_ADDR_RE.findall(line)
+                    left.update(found)
+                    if found and re.match(r'\s*static\b', line):
+                        statics.update(n for n in found if re.search(r'\b%s\b\s*(?:N64_KEEP\s*)?(\[|=|;)' % n, line))
+    return left, statics
 
 
 def print_naming(markdown):
     funcs, data, structs, consts = naming_counts()
     named = sum(s[1] for s in structs)
     total = sum(s[2] for s in structs)
+    left, statics = data_address_names()
     lines = ['rename map (tools_port/names.txt): %d functions, %d data symbols' % (funcs, data),
+             'data named: %d; address names (D_XXXXXXXX) left in src/include: %d (%d of them static, kept by rule)'
+             % (data, len(left), len(statics)),
              'shared structs (%s): %d of %d fields named, in %d structs' % (', '.join(SHARED_HEADERS), named, total,
                                                                           len(structs)),
              'named constants: ' + ', '.join('%s* %d' % (k, v) for k, v in sorted(consts.items()))]

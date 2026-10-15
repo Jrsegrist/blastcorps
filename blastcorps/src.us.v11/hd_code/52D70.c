@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802E8F38 ((D_802E8F38_s *) D_802E8F38)
+#define gAcademyMarkers ((D_802E8F38_s *) gAcademyMarkers)
 #define players ((PlayerInfo *) players)
 /* end of views */
 
@@ -16,8 +16,8 @@ typedef struct {
     /* 0x06 */ s16 z;
 } D_802E8F38_s;
 
-extern u8 D_8039CAB8;
-extern Mtx * N64P D_8039CAC4;
+extern u8 gAcademyMarkerTouched;
+extern Mtx * N64P gAcademyMarkerMtx;
 extern u8 gAcademyBits;
 
 
@@ -42,15 +42,15 @@ void academy_place_marker(arg0)
     gAcademyBits = players[playerNumber].academy;
     if (found) {
         gAcademyMarkerOn = 1;
-        D_8039CAB0 = D_802E8F38[idx].x;
-        D_8039CAB2 = D_802E8F38[idx].y;
-        D_8039CAB4 = D_802E8F38[idx].z;
-        D_8039CAB6 = idx;
-        D_8039CAB8 = 0;
-        D_8039CAC4 = (Mtx *) gHeapPtr;
+        gAcademyMarkerX = gAcademyMarkers[idx].x;
+        gAcademyMarkerY = gAcademyMarkers[idx].y;
+        gAcademyMarkerZ = gAcademyMarkers[idx].z;
+        gAcademyMarkerIndex = idx;
+        gAcademyMarkerTouched = 0;
+        gAcademyMarkerMtx = (Mtx *) gHeapPtr;
         gHeapPtr = (u8 *) gHeapPtr + 0x80;
-        guTranslate(D_8039CAC4, 0, 0, 0);
-        guTranslate(D_8039CAC4 + 1, 0, 0, 0);
+        guTranslate(gAcademyMarkerMtx, 0, 0, 0);
+        guTranslate(gAcademyMarkerMtx + 1, 0, 0, 0);
     } else {
         gAcademyMarkerOn = 0;
     }
@@ -64,7 +64,7 @@ u8 academy_find_level(u8 arg0, u8 *arg1) {
     found = 0;
     i = 0;
     do {
-        if (D_802E8F38[i].id == arg0) {
+        if (gAcademyMarkers[i].id == arg0) {
             found = 1;
         } else {
             i++;
@@ -81,10 +81,10 @@ void academy_draw_marker(Gfx **arg0) {
     Gfx *gdl = *arg0;
 
     if (gAcademyMarkerOn) {
-        gSPSegment(gdl++, 6, osVirtualToPhysical(D_8039CAC0));
-        gSPSegment(gdl++, 7, osVirtualToPhysical(D_8039CAC4));
+        gSPSegment(gdl++, 6, osVirtualToPhysical(gAcademyMarkerVtx));
+        gSPSegment(gdl++, 7, osVirtualToPhysical(gAcademyMarkerMtx));
         gSPClearGeometryMode(gdl++, -1);
-        gSPDisplayList(gdl++, osVirtualToPhysical(D_8039CABC));
+        gSPDisplayList(gdl++, osVirtualToPhysical(gAcademyMarkerDl));
         gDPPipeSync(gdl++);
     }
     *arg0 = gdl;
@@ -93,13 +93,13 @@ void academy_draw_marker(Gfx **arg0) {
 /* Within 0x50: the bit set, mode switch (0x80297804). */
 void academy_check_marker(s32 x, s32 y, s32 z) {
     if (gAcademyMarkerOn && players[playerNumber].gameState < 5) {
-        if (D_8039CAB8) {
-            if (util_dist3d(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) >= 0x8D) {
-                D_8039CAB8 = 0;
+        if (gAcademyMarkerTouched) {
+            if (util_dist3d(x >> 5, y >> 5, z >> 5, gAcademyMarkerX, gAcademyMarkerY, gAcademyMarkerZ) >= 0x8D) {
+                gAcademyMarkerTouched = 0;
             }
-        } else if (util_dist3d(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) < 0x50) {
-            D_8039CAB8 = 1;
-            gAcademyBits |= 1 << D_8039CAB6;
+        } else if (util_dist3d(x >> 5, y >> 5, z >> 5, gAcademyMarkerX, gAcademyMarkerY, gAcademyMarkerZ) < 0x50) {
+            gAcademyMarkerTouched = 1;
+            gAcademyBits |= 1 << gAcademyMarkerIndex;
             gNextGameMode = MODE_ACADEMY_MARKER;
         }
     }
@@ -108,7 +108,7 @@ void academy_check_marker(s32 x, s32 y, s32 z) {
 /* The markers into players[].academy bits (0x80297960). */
 void academy_save_markers(void) {
     if (gDebugCheats && (gContButtons & 0x2000) && gAcademyMarkerOn) {
-        gAcademyBits |= 1 << D_8039CAB6;
+        gAcademyBits |= 1 << gAcademyMarkerIndex;
     }
     players[playerNumber].academy = gAcademyBits;
 }

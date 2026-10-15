@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802F49F4 ((Font *) D_802F49F4)
+#define gYoshiSprites ((Font *) gYoshiSprites)
 #define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gYoshiHeapItems (*(MenuItem * N64P *) &gYoshiHeapItems)
@@ -71,10 +71,10 @@ typedef struct {
     /* 0x2E */ u8 unk2E[2];
 } Font;
 
-extern u8 D_8039CAD0;
-extern u8 D_802FF180[];
-extern MenuText D_802FF188[][20];
-extern u8 D_802FF5E8[];
+extern u8 gAcademyPage;
+extern u8 gAcademyMarkerLevels[];
+extern MenuText gAcademyPageText[][20];
+extern u8 gAcademyPageSelectable[];
 #ifndef NON_MATCHING
 extern MenuItem *gYoshiHeapItems;
 #endif
@@ -107,17 +107,17 @@ void academy_build_window(u8 level) {
         left--;
     }
     if (left == 0) {
-        D_8039CAD0 = 6;
+        gAcademyPage = 6;
     } else {
         stop = 0;
-        for (i = D_8039CAB6; i < D_8039CAB6 + 6 && !stop;) {
-            if (!academy_marker_found(D_802FF180[i % 6]) && D_802FF180[i % 6] != level) {
+        for (i = gAcademyMarkerIndex; i < gAcademyMarkerIndex + 6 && !stop;) {
+            if (!academy_marker_found(gAcademyMarkerLevels[i % 6]) && gAcademyMarkerLevels[i % 6] != level) {
                 stop = 1;
             } else {
                 i++;
             }
         }
-        D_8039CAD0 = i % 6;
+        gAcademyPage = i % 6;
     }
     i = 0;
     gYoshiHeapItems = (MenuItem *) gHeapPtr;
@@ -126,13 +126,13 @@ void academy_build_window(u8 level) {
     n = 0;
     stop = 0;
     for (; i < 20 && !stop; i++) {
-        text = D_802FF188[D_8039CAD0][i].text;
-        jtext = D_802FF188[D_8039CAD0][i].jtext;
+        text = gAcademyPageText[gAcademyPage][i].text;
+        jtext = gAcademyPageText[gAcademyPage][i].jtext;
         item = &gYoshiHeapItems[i];
         if (text != NULL) {
             n++;
             item->flags = 0x1020;
-            if (D_802FF5E8[D_8039CAD0 * 5 + nsel] == i) {
+            if (gAcademyPageSelectable[gAcademyPage * 5 + nsel] == i) {
                 item->flags |= 1;
                 nsel++;
             }
@@ -159,10 +159,10 @@ void academy_build_window(u8 level) {
     item->x = 0x26;
     item->font = 0x18;
     item->unk16 = item->unk1A = 0;
-    font = &D_802F49F4[item->font];
+    font = &gYoshiSprites[item->font];
     item->unk1A = spr_load((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
     win->count = n + 1;
-    win->cursor = D_802FF5E8[D_8039CAD0 * 5];
+    win->cursor = gAcademyPageSelectable[gAcademyPage * 5];
     if (!academy_marker_found(level)) {
         left--;
     }
@@ -179,7 +179,7 @@ void academy_build_window(u8 level) {
 
 /* Puts window 0x15's cursor on the current academy page's first selectable item (0x80297ECC). */
 void academy_reset_window_cursor(void) {
-    *(s16 *) (gYoshiWindows + 0x264) = D_802FF5E8[D_8039CAD0 * 5];
+    *(s16 *) (gYoshiWindows + 0x264) = gAcademyPageSelectable[gAcademyPage * 5];
 }
 
 /* Whether the level's academy marker is saved as found (a players[playerNumber].academy bit) (0x80297EF8).
@@ -216,18 +216,18 @@ typedef struct Huft {
     } v;
 } Huft;
 
-extern u32 D_8039CAE4;  /* bb */
-extern u32 D_8039CAE8;  /* bk */
-extern u32 D_8039CAEC;  /* hufts */
+extern u32 hd_bb;  /* bb */
+extern u32 hd_bk;  /* bk */
+extern u32 hd_hufts;  /* hufts */
 
-extern u8 D_802FF630[];  /* border */
-extern u16 D_802FF644[]; /* cplens */
-extern u8 D_802FF684[];  /* cplext */
-extern u16 D_802FF6A4[]; /* cpdist */
-extern u8 D_802FF6E0[];  /* cpdext */
-extern u16 D_802FF700[]; /* mask_bits */
-extern s32 D_802FF724;   /* lbits */
-extern s32 D_802FF728;   /* dbits */
+extern u8 hd_border[];  /* border */
+extern u16 hd_cplens[]; /* cplens */
+extern u8 hd_cplext[];  /* cplext */
+extern u16 hd_cpdist[]; /* cpdist */
+extern u8 hd_cpdext[];  /* cpdext */
+extern u16 hd_mask_bits[]; /* mask_bits */
+extern s32 hd_lbits;   /* lbits */
+extern s32 hd_dbits;   /* dbits */
 
 int hd_huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m);
 s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
@@ -236,7 +236,7 @@ s32 hd_inflate_stored(void);
 s32 hd_inflate_fixed(void);
 
 /* huft_build: build a Huffman decode table from code lengths b[0..n-1]
- * (classic inflate.c, bump-allocated from the D_8039CAE0 arena). It returns
+ * (classic inflate.c, bump-allocated from the gHdInflateHuftArena arena). It returns
  * `int`, not s32 (long): with s32, IDO puts the `&&` result in $s6 and
  * adds a move to $v0. */
 #define BMAX 16
@@ -347,8 +347,8 @@ int hd_huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m) {
                 }
                 z = 1 << j;
 
-                q = (Huft *) (D_8039CAEC * 8 + D_8039CAE0);
-                D_8039CAEC += z + 1;
+                q = (Huft *) (hd_hufts * 8 + gHdInflateHuftArena);
+                hd_hufts += z + 1;
                 *t = q + 1;
                 *(t = (Huft * N64P *) &(q->v.t)) = NULL;
                 u[h] = ++q;
@@ -408,16 +408,16 @@ s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
     register u32 k;
     register u32 b;
 
-    b = D_8039CAE4;
-    k = D_8039CAE8;
-    w = D_803669F0;
+    b = hd_bb;
+    k = hd_bk;
+    w = hd_outcnt;
 
-    ml = D_802FF700[bl];
-    md = D_802FF700[bd];
+    ml = hd_mask_bits[bl];
+    md = hd_mask_bits[bd];
 
     for (;;) {
         while (k < bl) {
-            b |= (u32) D_803669C0[D_803669EC++] << k;
+            b |= (u32) hd_inbuf[hd_inptr++] << k;
             k += 8;
         }
         t = tl + (b & ml);
@@ -428,17 +428,17 @@ s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
                 k -= t->b;
                 e -= 16;
                 while (k < e) {
-                    b |= (u32) D_803669C0[D_803669EC++] << k;
+                    b |= (u32) hd_inbuf[hd_inptr++] << k;
                     k += 8;
                 }
-                t = t->v.t + (b & D_802FF700[e]);
+                t = t->v.t + (b & hd_mask_bits[e]);
                 e = t->e;
             } while (e > 16);
         }
         b >>= t->b;
         k -= t->b;
         if (e == 16) {
-            D_803669C4[w++] = (u8) t->v.n;
+            hd_slide[w++] = (u8) t->v.n;
             continue;
         }
         if (e == 15) {
@@ -446,15 +446,15 @@ s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
         }
 
         while (k < e) {
-            b |= (u32) D_803669C0[D_803669EC++] << k;
+            b |= (u32) hd_inbuf[hd_inptr++] << k;
             k += 8;
         }
-        n = t->v.n + (b & D_802FF700[e]);
+        n = t->v.n + (b & hd_mask_bits[e]);
         k -= e;
         b >>= e;
 
         while (k < bd) {
-            b |= (u32) D_803669C0[D_803669EC++] << k;
+            b |= (u32) hd_inbuf[hd_inptr++] << k;
             k += 8;
         }
         t = td + (b & md);
@@ -465,10 +465,10 @@ s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
                 k -= t->b;
                 e -= 16;
                 while (k < e) {
-                    b |= (u32) D_803669C0[D_803669EC++] << k;
+                    b |= (u32) hd_inbuf[hd_inptr++] << k;
                     k += 8;
                 }
-                t = t->v.t + (b & D_802FF700[e]);
+                t = t->v.t + (b & hd_mask_bits[e]);
                 e = t->e;
             } while (e > 16);
         }
@@ -476,24 +476,24 @@ s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
         k -= t->b;
 
         while (k < e) {
-            b |= (u32) D_803669C0[D_803669EC++] << k;
+            b |= (u32) hd_inbuf[hd_inptr++] << k;
             k += 8;
         }
-        d = (w - t->v.n) - (b & D_802FF700[e]);
+        d = (w - t->v.n) - (b & hd_mask_bits[e]);
         b >>= e;
         k -= e;
 
         do {
             n -= (e = n);
             do {
-                D_803669C4[w++] = D_803669C4[d++];
+                hd_slide[w++] = hd_slide[d++];
             } while (--e);
         } while (n);
     }
 
-    D_803669F0 = w;
-    D_8039CAE4 = b;
-    D_8039CAE8 = k;
+    hd_outcnt = w;
+    hd_bb = b;
+    hd_bk = k;
     return 0;
 }
 
@@ -505,16 +505,16 @@ s32 hd_inflate_stored(void) {
     register u32 k;
     register u32 b;
 
-    k = D_8039CAE8;
-    b = D_8039CAE4;
-    w = D_803669F0;
+    k = hd_bk;
+    b = hd_bb;
+    w = hd_outcnt;
 
     n = k & 7;
     b >>= n;
     k -= n;
 
     while (k < 16) {
-        b |= (u32) D_803669C0[D_803669EC++] << k;
+        b |= (u32) hd_inbuf[hd_inptr++] << k;
         k += 8;
     }
     n = b & 0xffff;
@@ -522,7 +522,7 @@ s32 hd_inflate_stored(void) {
     k -= 16;
 
     while (k < 16) {
-        b |= (u32) D_803669C0[D_803669EC++] << k;
+        b |= (u32) hd_inbuf[hd_inptr++] << k;
         k += 8;
     }
     b >>= 16;
@@ -530,17 +530,17 @@ s32 hd_inflate_stored(void) {
 
     while (n--) {
         while (k < 8) {
-            b |= (u32) D_803669C0[D_803669EC++] << k;
+            b |= (u32) hd_inbuf[hd_inptr++] << k;
             k += 8;
         }
-        D_803669C4[w++] = (u8) b;
+        hd_slide[w++] = (u8) b;
         b >>= 8;
         k -= 8;
     }
 
-    D_803669F0 = w;
-    D_8039CAE4 = b;
-    D_8039CAE8 = k;
+    hd_outcnt = w;
+    hd_bb = b;
+    hd_bk = k;
     return 0;
 }
 
@@ -567,13 +567,13 @@ s32 hd_inflate_fixed(void) {
         l[i] = 8;
     }
     bl = 7;
-    hd_huft_build(l, 288, 257, D_802FF644, D_802FF684, &tl, &bl);
+    hd_huft_build(l, 288, 257, hd_cplens, hd_cplext, &tl, &bl);
 
     for (i = 0; i < 30; i++) {
         l[i] = 5;
     }
     bd = 5;
-    hd_huft_build(l, 30, 0, D_802FF6A4, D_802FF6E0, &td, &bd);
+    hd_huft_build(l, 30, 0, hd_cpdist, hd_cpdext, &td, &bd);
 
     hd_inflate_codes(tl, td, bl, bd);
     return 0;
@@ -600,11 +600,11 @@ s32 hd_inflate_dynamic(void) {
     register u32 b;
     s32 ll[LL_SIZE];
 
-    k = D_8039CAE8;
-    b = D_8039CAE4;
+    k = hd_bk;
+    b = hd_bb;
 
     while (k < 5) {
-        b |= (u32) D_803669C0[D_803669EC++] << k;
+        b |= (u32) hd_inbuf[hd_inptr++] << k;
         k += 8;
     }
     nl = 257 + (b & 0x1F);
@@ -612,7 +612,7 @@ s32 hd_inflate_dynamic(void) {
     k -= 5;
 
     while (k < 5) {
-        b |= (u32) D_803669C0[D_803669EC++] << k;
+        b |= (u32) hd_inbuf[hd_inptr++] << k;
         k += 8;
     }
     nd = 1 + (b & 0x1F);
@@ -620,7 +620,7 @@ s32 hd_inflate_dynamic(void) {
     k -= 5;
 
     while (k < 4) {
-        b |= (u32) D_803669C0[D_803669EC++] << k;
+        b |= (u32) hd_inbuf[hd_inptr++] << k;
         k += 8;
     }
     nb = 4 + (b & 0xF);
@@ -629,26 +629,26 @@ s32 hd_inflate_dynamic(void) {
 
     for (j = 0; j < nb; j++) {
         while (k < 3) {
-            b |= (u32) D_803669C0[D_803669EC++] << k;
+            b |= (u32) hd_inbuf[hd_inptr++] << k;
             k += 8;
         }
-        ll[D_802FF630[j]] = b & 7;
+        ll[hd_border[j]] = b & 7;
         b >>= 3;
         k -= 3;
     }
     for (; j < 19; j++) {
-        ll[D_802FF630[j]] = 0;
+        ll[hd_border[j]] = 0;
     }
 
     bl = 7;
     hd_huft_build(ll, 19, 19, NULL, NULL, &tl, &bl);
 
     n = nl + nd;
-    m = D_802FF700[bl];
+    m = hd_mask_bits[bl];
     i = l = 0;
     while ((u32) i < n) {
         while (k < (u32) bl) {
-            b |= (u32) D_803669C0[D_803669EC++] << k;
+            b |= (u32) hd_inbuf[hd_inptr++] << k;
             k += 8;
         }
         td = tl + (b & m);
@@ -660,7 +660,7 @@ s32 hd_inflate_dynamic(void) {
             ll[i++] = l = j;
         } else if (j == 16) {
             while (k < 2) {
-                b |= (u32) D_803669C0[D_803669EC++] << k;
+                b |= (u32) hd_inbuf[hd_inptr++] << k;
                 k += 8;
             }
             j = 3 + (b & 3);
@@ -671,7 +671,7 @@ s32 hd_inflate_dynamic(void) {
             }
         } else if (j == 17) {
             while (k < 3) {
-                b |= (u32) D_803669C0[D_803669EC++] << k;
+                b |= (u32) hd_inbuf[hd_inptr++] << k;
                 k += 8;
             }
             j = 3 + (b & 7);
@@ -683,7 +683,7 @@ s32 hd_inflate_dynamic(void) {
             l = 0;
         } else {
             while (k < 7) {
-                b |= (u32) D_803669C0[D_803669EC++] << k;
+                b |= (u32) hd_inbuf[hd_inptr++] << k;
                 k += 8;
             }
             j = 11 + (b & 0x7F);
@@ -696,13 +696,13 @@ s32 hd_inflate_dynamic(void) {
         }
     }
 
-    D_8039CAE4 = b;
-    D_8039CAE8 = k;
+    hd_bb = b;
+    hd_bk = k;
 
-    bl = D_802FF724;
-    hd_huft_build(ll, nl, 257, D_802FF644, D_802FF684, &tl, &bl);
-    bd = D_802FF728;
-    hd_huft_build(ll + nl, nd, 0, D_802FF6A4, D_802FF6E0, &td, &bd);
+    bl = hd_lbits;
+    hd_huft_build(ll, nl, 257, hd_cplens, hd_cplext, &tl, &bl);
+    bd = hd_dbits;
+    hd_huft_build(ll + nl, nd, 0, hd_cpdist, hd_cpdext, &td, &bd);
     hd_inflate_codes(tl, td, bl, bd);
     return 0;
 }
@@ -712,11 +712,11 @@ s32 hd_inflate_block(s32 *arg0) {
     register u32 k;
     register u32 b;
 
-    k = D_8039CAE8;
-    b = D_8039CAE4;
+    k = hd_bk;
+    b = hd_bb;
 
     while (k == 0) {
-        b |= (u32) D_803669C0[D_803669EC++] << k;
+        b |= (u32) hd_inbuf[hd_inptr++] << k;
         k += 8;
     }
     *arg0 = b & 1;
@@ -724,15 +724,15 @@ s32 hd_inflate_block(s32 *arg0) {
     k -= 1;
 
     while (k < 2) {
-        b |= (u32) D_803669C0[D_803669EC++] << k;
+        b |= (u32) hd_inbuf[hd_inptr++] << k;
         k += 8;
     }
     type = b & 3;
     b = b >> 2;
     k -= 2;
 
-    D_8039CAE4 = b;
-    D_8039CAE8 = k;
+    hd_bb = b;
+    hd_bk = k;
 
     if (type == 2) {
         return hd_inflate_dynamic();
@@ -753,29 +753,29 @@ s32 hd_inflate(void) {
     s32 sp20;
     u32 sp1C;
 
-    D_803669F0 = 0;
-    D_8039CAE8 = 0;
-    D_8039CAE4 = 0;
+    hd_outcnt = 0;
+    hd_bk = 0;
+    hd_bb = 0;
     sp1C = 0;
     for (;;) {
-        D_8039CAEC = 0;
+        hd_hufts = 0;
         sp20 = hd_inflate_block(&sp24);
         if (sp20 != 0) {
             return sp20;
         }
-        if (D_8039CAEC > sp1C) {
-            sp1C = D_8039CAEC;
+        if (hd_hufts > sp1C) {
+            sp1C = hd_hufts;
         }
         if (sp24 != 0) {
             break;
         }
     }
-    if (D_8039CAE8 >= 8) {
+    if (hd_bk >= 8) {
         do {
-            D_8039CAE8 -= 8;
-            D_803669EC -= 1;
-        } while (D_8039CAE8 >= 8);
+            hd_bk -= 8;
+            hd_inptr -= 1;
+        } while (hd_bk >= 8);
     }
-    D_803669EC += 8;
+    hd_inptr += 8;
     return 0;
 }

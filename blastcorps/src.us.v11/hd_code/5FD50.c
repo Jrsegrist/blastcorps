@@ -18,30 +18,30 @@
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
 extern s16 gCullDelay;
-extern u8 D_803C2B90[];
-extern u8 * N64P D_803C2B88;
-extern s16 * N64P D_803C3170;
-extern s16 D_803C3178[];
+extern u8 gCullQuadStack[];
+extern u8 * N64P gCullQuadTop;
+extern s16 * N64P gCullCellsEnd;
+extern s16 gCullCells[];
 
 /* Body shared by cull_restart_now / cull_restart: gCullDelay = value, reset
- * the D_803C2B88 cursor, fill both index lists with 0..n-1 for n =
- * gLevelCols * gLevelRows, point D_803C3170 past the D_803C3178 list and
+ * the gCullQuadTop cursor, fill both index lists with 0..n-1 for n =
+ * gLevelCols * gLevelRows, point gCullCellsEnd past the gCullCells list and
  * terminate the gVisibleCells list with -1. The asm loops with `!=` on the
- * 32-bit product. The -1 is stored after D_803C3170, so with n == 100 it
- * overwrites D_803C3170's high half, as in the asm. */
+ * 32-bit product. The -1 is stored after gCullCellsEnd, so with n == 100 it
+ * overwrites gCullCellsEnd's high half, as in the asm. */
 #define RESET_INDEX_LISTS(value)                \
     {                                           \
         u32 n_;                                 \
         u32 i_;                                 \
                                                 \
         gCullDelay = (value);                   \
-        D_803C2B88 = D_803C2B90;                \
+        gCullQuadTop = gCullQuadStack;                \
         n_ = (u32) ((u16) gLevelCols) * gLevelRows;     \
         for (i_ = 0; i_ != n_; i_++) {          \
-            D_803C3178[i_] = i_;                \
+            gCullCells[i_] = i_;                \
             gVisibleCells[i_] = i_;                \
         }                                       \
-        D_803C3170 = &D_803C3178[n_];           \
+        gCullCellsEnd = &gCullCells[n_];           \
         gVisibleCells[n_] = -1;                    \
     }
 #endif
@@ -101,9 +101,9 @@ void cull_test_cells(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x,
 
 /* One step of the visibility walk over the level grid (header `lvl`: s16
  * columns/stride at +0, rows at +2, scales at +4/+6, grid offset at +0x48).
- * When the quad stack D_803C2B88 is empty (at D_803C2B90): pushes the whole
+ * When the quad stack gCullQuadTop is empty (at gCullQuadStack): pushes the whole
  * grid {0, 0, columns, rows}, insertion-sorts the cells found visible so far
- * ([D_803C3178, D_803C3170)) into gVisibleCells (ascending s16, an equal value
+ * ([gCullCells, gCullCellsEnd)) into gVisibleCells (ascending s16, an equal value
  * goes after the existing ones), ends it with -1 and empties the cell list.
  * Then pops a quad and tests it with cull_test_cells (task data a1-a3), which
  * may push sub-quads or add a cell; the cursors are stored back.
@@ -111,10 +111,10 @@ void cull_test_cells(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x,
  * the asm leaves s0-s7 changed (conventions.txt); its add/addi trap. */
 void cull_walk_grid(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
     u8 *lvl = (u8 *) N64_IPTR(arg0);
-    s16 *q = (s16 *) D_803C2B88;
+    s16 *q = (s16 *) gCullQuadTop;
     Io802A484C io;
 
-    if (q == (s16 *) D_803C2B90) {
+    if (q == (s16 *) gCullQuadStack) {
         s16 *src;
         s16 *end;
         s16 *top;
@@ -125,9 +125,9 @@ void cull_walk_grid(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
         q[2] = *(s16 *) (lvl + 0);
         q[3] = *(s16 *) (lvl + 2);
         q += 4;
-        end = D_803C3170;
+        end = gCullCellsEnd;
         top = (s16 *) gVisibleCells;
-        for (src = D_803C3178; src != end; src++, top++) {
+        for (src = gCullCells; src != end; src++, top++) {
             s16 val = *src;
             s16 cur;
 
@@ -151,15 +151,15 @@ void cull_walk_grid(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
             } while (p != top);
         }
         *top = -1;
-        D_803C3170 = D_803C3178;
+        gCullCellsEnd = gCullCells;
     }
     q -= 4;
     io.quads = q;
-    io.cells = D_803C3170;
+    io.cells = gCullCellsEnd;
     cull_test_cells(&io, dataPtr, v, dataSize, q[0], q[1], q[2], q[3], *(s16 *) (lvl + 0),
                   lvl + *(s32 *) (lvl + 0x48), *(s16 *) (lvl + 4), *(s16 *) (lvl + 6));
-    D_803C3170 = io.cells;
-    D_803C2B88 = (u8 *) io.quads;
+    gCullCellsEnd = io.cells;
+    gCullQuadTop = (u8 *) io.quads;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_walk_grid.s")
@@ -297,15 +297,15 @@ void cull_box_corners(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803BE740[];  /* scheduler task: header words, then an OSTask at +0x10 */
-extern u8 D_802E77B0[];   /* gfx ucode text */
-extern u8 D_8030EE60[];   /* gfx ucode data */
-extern u8 D_803BE780[];   /* dram stack (0x400) */
-extern u8 D_803BEB80[];   /* output buffer */
-extern u8 D_803C2B80[];   /* output buffer end */
+extern u32 gCullTask[];  /* scheduler task: header words, then an OSTask at +0x10 */
+extern u8 gCullUcodeText[];   /* gfx ucode text */
+extern u8 gCullUcodeData[];   /* gfx ucode data */
+extern u8 gCullDramStack[];   /* dram stack (0x400) */
+extern u8 gCullOutput[];   /* output buffer */
+extern u8 gCullOutputEnd[];   /* output buffer end */
 
 /* Unless the level grid is 1 x 1 (gLevelCols == gLevelRows == 1, returns 1),
- * fills the task D_803BE740 (an M_GFXTASK OSTask at +0x10 with data_ptr /
+ * fills the task gCullTask (an M_GFXTASK OSTask at +0x10 with data_ptr /
  * data_size from the arguments), writes back `wb` (0x80 bytes) and the task,
  * invalidates the first 0x20 bytes of the output buffer, sends the task to
  * gScheduler, calls rsp_wait_task(0x4D3), and returns 0 if the output
@@ -318,18 +318,18 @@ s32 cull_rsp_test(void *dataPtr, void *wb, s32 dataSize) {
     if (((u16) gLevelCols) == 1 && gLevelRows == 1) {
         return 1;
     }
-    t = D_803BE740;
+    t = gCullTask;
     t[4] = M_GFXTASK;
     t[5] = 0;
-    t[6] = (u32) D_802E6820;
-    t[8] = (u32) D_802E77B0;
+    t[6] = (u32) gRspBootText;
+    t[8] = (u32) gCullUcodeText;
     t[9] = 0x1000;
-    t[10] = (u32) D_8030EE60;
+    t[10] = (u32) gCullUcodeData;
     t[11] = 0x800;
-    t[12] = (u32) D_803BE780;
+    t[12] = (u32) gCullDramStack;
     t[13] = 0x400;
-    t[14] = (u32) D_803BEB80;
-    t[15] = (u32) D_803C2B80;
+    t[14] = (u32) gCullOutput;
+    t[15] = (u32) gCullOutputEnd;
     t[18] = (u32) gYieldBuffer;
     t[19] = 0x900;
     t[2] = 1;
@@ -337,15 +337,15 @@ s32 cull_rsp_test(void *dataPtr, void *wb, s32 dataSize) {
     t[22] = 0x4D3;
     t[3] = 0;
     t[16] = (u32) dataPtr;
-    t[7] = D_802E68F0 - D_802E6820;
+    t[7] = gAspMainText - gRspBootText;
     t[17] = dataSize;
     t[20] = (u32) gMainSchedClient;
     osWritebackDCache(wb, 0x80);
     osWritebackDCache(t, 0x40);
-    osInvalDCache(D_803BEB80, 0x20);
+    osInvalDCache(gCullOutput, 0x20);
     osSendMesg(&gScheduler, (OSMesg) t, OS_MESG_BLOCK);
     rsp_wait_task(0x4D3);
-    if (*(u32 *) D_803BEB80 == 0xE8000000) {
+    if (*(u32 *) gCullOutput == 0xE8000000) {
         return 0;
     }
     return 1;
@@ -420,7 +420,7 @@ void lvl_build_dl_calls(s32 arg0, u32 *gfx, u32 *dl, u32 *end) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803C2EB0[];
+extern s16 gCullDlGroupIds[];
 s32 lvl_find_tex_anim(u8 *base, s32 id);
 u32 *lvl_copy_dl_tex_anim(u8 *base, u32 *dst, s32 start, s32 end, s32 patch);
 u32 *lvl_copy_visible_groups(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end);
@@ -469,7 +469,7 @@ static s32 port_cells_listed(s32 *cells, s32 n) {
  * time), then walks the 0x14-byte records [rec, recEnd) (+0 / +4 / +8: DL
  * start, alternate start, end offsets; +0xC: id; +0x10: cell). A record whose
  * cell is listed in gVisibleCells starts a group: its id is appended to the s16
- * list D_803C2EB0, its DL copied with lvl_copy_dl_tex_anim patched by
+ * list gCullDlGroupIds, its DL copied with lvl_copy_dl_tex_anim patched by
  * lvl_find_tex_anim(lvl, id); the following records with the same id whose cell
  * is listed are copied from their alternate start, unpatched. After each
  * group the variable-size records [grp, grpEnd) (+0xC id, +0x10 count n, n
@@ -484,7 +484,7 @@ static s32 port_cells_listed(s32 *cells, s32 n) {
 u32 *lvl_build_visible_dl(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd) {
     u32 *src = (u32 *) (lvl + *(s32 *) (lvl + 0x88));
     u32 *srcEnd = (u32 *) (lvl + *(s32 *) (lvl + 0x8C));
-    s16 *excl = D_803C2EB0;
+    s16 *excl = gCullDlGroupIds;
     u8 *g;
     s32 id;
     s32 patch;
@@ -582,18 +582,18 @@ void lvl_step_tex_anims(u8 *base) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803C3240; /* texture address for the current frame (0 = keep) */
-extern u32 D_803C3244; /* texture address for the next frame (0 = keep) */
-extern u8 D_803C324A;  /* fade flag */
-extern u8 D_803C324B;  /* alpha */
+extern u32 gLevelTexAnimCur; /* texture address for the current frame (0 = keep) */
+extern u32 gLevelTexAnimNext; /* texture address for the next frame (0 = keep) */
+extern u8 gLevelTexAnimFade;  /* fade flag */
+extern u8 gLevelTexAnimAlpha;  /* alpha */
 
 /* Finds the texture animation record with this id and stores its current (and, when fading, next) image and
  * its alpha for the DL copy; nonzero if a patch is needed (0x802A50DC).
  * Looks up the animation record (see AnimRecord below; frame words from +8)
  * with unk0 == id in the list [base + *(base+0x2C), base + *(base+0x30)).
- * Not found: returns 0. Found: D_803C3240 = frame word `frame` (0 for frame
- * 0), D_803C324A = fade; without fade returns frame != 0; with fade also sets
- * D_803C3244 = frame word frame + 1 (0 when that is nFrames) and D_803C324B
+ * Not found: returns 0. Found: gLevelTexAnimCur = frame word `frame` (0 for frame
+ * 0), gLevelTexAnimFade = fade; without fade returns frame != 0; with fade also sets
+ * gLevelTexAnimNext = frame word frame + 1 (0 when that is nFrames) and gLevelTexAnimAlpha
  * = alpha, and returns 1. The asm walks the list with `!=`.
  * asm: base in a0, id in t4, result in gp; it saves v0, v1, a1, a2.
  * Asm callers rely on preserved: lvl_build_visible_dl keeps a0-a3, t4, t8, t9;
@@ -607,21 +607,21 @@ s32 lvl_find_tex_anim(u8 *base, s32 id) {
         if (*(s32 *) p == id) {
             frame = p[5];
             if (frame != 0) {
-                D_803C3240 = *(u32 *) (p + 8 + frame * 4);
+                gLevelTexAnimCur = *(u32 *) (p + 8 + frame * 4);
             } else {
-                D_803C3240 = 0;
+                gLevelTexAnimCur = 0;
             }
-            D_803C324A = p[6];
+            gLevelTexAnimFade = p[6];
             if (p[6] == 0) {
                 return frame != 0;
             }
             frame++;
             if (p[4] == frame) {
-                D_803C3244 = 0;
+                gLevelTexAnimNext = 0;
             } else {
-                D_803C3244 = *(u32 *) (p + 8 + frame * 4);
+                gLevelTexAnimNext = *(u32 *) (p + 8 + frame * 4);
             }
-            D_803C324B = p[7];
+            gLevelTexAnimAlpha = p[7];
             return 1;
         }
     }
@@ -645,9 +645,9 @@ s32 lvl_find_tex_anim(u8 *base, s32 id) {
  * fade alpha into the G_SETPRIMCOLOR (0x802A51FC).
  * Copies the display list [base + start, base + end) (8-byte commands) to dst
  * and returns dst advanced past the copy. If `patch` (lvl_find_tex_anim's
- * result): sets the address of the first G_SETTIMG (0xFD) to D_803C3240 if
- * nonzero; if D_803C324A, also the second G_SETTIMG's to D_803C3244 if
- * nonzero, and ORs D_803C324B into the first word of the next
+ * result): sets the address of the first G_SETTIMG (0xFD) to gLevelTexAnimCur if
+ * nonzero; if gLevelTexAnimFade, also the second G_SETTIMG's to gLevelTexAnimNext if
+ * nonzero, and ORs gLevelTexAnimAlpha into the first word of the next
  * G_SETPRIMCOLOR (0xFA). The copy loop uses `!=`.
  * asm: base/dst in a0/a1 (a1 returned advanced), start/end in t5/t6, patch
  * in gp (clobbered).
@@ -668,16 +668,16 @@ u32 *lvl_copy_dl_tex_anim(u8 *base, u32 *dst, s32 start, s32 end, s32 patch) {
     if (patch != 0) {
         q = dst;
         SKIP_TO_CMD(q, 0xFD, w0);
-        if (D_803C3240 != 0) {
-            q[-1] = D_803C3240;
+        if (gLevelTexAnimCur != 0) {
+            q[-1] = gLevelTexAnimCur;
         }
-        if (D_803C324A != 0) {
+        if (gLevelTexAnimFade != 0) {
             SKIP_TO_CMD(q, 0xFD, w0);
-            if (D_803C3244 != 0) {
-                q[-1] = D_803C3244;
+            if (gLevelTexAnimNext != 0) {
+                q[-1] = gLevelTexAnimNext;
             }
             SKIP_TO_CMD(q, 0xFA, w0);
-            q[-2] = w0 | D_803C324B;
+            q[-2] = w0 | gLevelTexAnimAlpha;
         }
     }
     return d;
@@ -688,7 +688,7 @@ u32 *lvl_copy_dl_tex_anim(u8 *base, u32 *dst, s32 start, s32 end, s32 patch) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803C2EB0[]; /* sorted ids to leave out, up to the caller's end pointer */
+extern s16 gCullDlGroupIds[]; /* sorted ids to leave out, up to the caller's end pointer */
 
 /* Appends the DLs of the group records that have a visible cell and whose ids the record pass did not already
  * copy (texture animations patched) (0x802A5334).
@@ -696,11 +696,11 @@ extern s16 D_803C2EB0[]; /* sorted ids to leave out, up to the caller's end poin
  * start, alternate start and end offsets from base; +0xC: id; +0x10: count
  * n; +0x14: n sorted words) and, for each record whose word list shares a
  * value with the sorted, -1-terminated s16 list gVisibleCells and whose id
- * isn't in the sorted list [D_803C2EB0, exclEnd): copies its display list
+ * isn't in the sorted list [gCullDlGroupIds, exclEnd): copies its display list
  * (from the alternate start when the id equals the previous copied record's)
  * to dst, 8 bytes at a time. Unless it used the alternate start, the copy is
  * patched like lvl_copy_dl_tex_anim when lvl_find_tex_anim(base, id) is nonzero:
- * G_SETTIMG addresses from D_803C3240 / D_803C3244 and D_803C324B ORed into
+ * G_SETTIMG addresses from gLevelTexAnimCur / gLevelTexAnimNext and gLevelTexAnimAlpha ORed into
  * the G_SETPRIMCOLOR. Returns dst advanced past the copies.
  * The asm takes base/dst/exclEnd/rec/end in a0/a1/v1/t8/t9 and returns dst
  * in a1 (conventions.txt); it leaves lvl_find_tex_anim's result (or a D_803C32xx
@@ -741,7 +741,7 @@ u32 *lvl_copy_visible_groups(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end)
         }
     found:
         id = *(s32 *) (rec + 0xC);
-        for (e = D_803C2EB0; e != exclEnd; e++) {
+        for (e = gCullDlGroupIds; e != exclEnd; e++) {
             if (id < *e) {
                 break;
             }
@@ -767,16 +767,16 @@ u32 *lvl_copy_visible_groups(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end)
         }
         if (patch != 0 && q != NULL) {
             SKIP_TO_CMD(q, 0xFD, w0);
-            if (D_803C3240 != 0) {
-                q[-1] = D_803C3240;
+            if (gLevelTexAnimCur != 0) {
+                q[-1] = gLevelTexAnimCur;
             }
-            if (D_803C324A != 0) {
+            if (gLevelTexAnimFade != 0) {
                 SKIP_TO_CMD(q, 0xFD, w0);
-                if (D_803C3244 != 0) {
-                    q[-1] = D_803C3244;
+                if (gLevelTexAnimNext != 0) {
+                    q[-1] = gLevelTexAnimNext;
                 }
                 SKIP_TO_CMD(q, 0xFA, w0);
-                q[-2] = w0 | D_803C324B;
+                q[-2] = w0 | gLevelTexAnimAlpha;
             }
         }
     next:

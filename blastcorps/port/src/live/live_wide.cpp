@@ -18,7 +18,7 @@
  *    sky always covered it on the N64);
  *  - the fade to black of a failed mission (17E10.c hud_mission_failed) and
  *    at the end of the attract demo (title_draw_attract): a full-screen
- *    quad (D_802FA8B0, 0..319 x 0..239) under DynamicBuf.ortho;
+ *    quad (gFadeVtx, 0..319 x 0..239) under DynamicBuf.ortho;
  *  - the dark panels behind the full-width message windows (26570.c
  *    yoshi_run_window, gYoshiWindowDl: a +-1000 square scaled to the
  *    window, its edges fading out);
@@ -97,7 +97,7 @@ unsigned g_sky, g_fade, g_window, g_bgRects;
 
 /* physical addresses (tools_port/names.txt) */
 constexpr uint32_t kBackdropVtx0 = 0x2FA820u, kBackdropVtx1 = 0x2FA860u;   /* gBackdropVtx[2][4] */
-constexpr uint32_t kFadeVtx0 = 0x2FA8B0u, kFadeVtx1 = 0x2FA8F0u;           /* D_802FA8B0[2][4] */
+constexpr uint32_t kFadeVtx0 = 0x2FA8B0u, kFadeVtx1 = 0x2FA8F0u;           /* gFadeVtx[2][4] */
 constexpr uint32_t kWindowVtx = 0x2F97B0u, kWindowVtxEnd = 0x2F98B0u;      /* gYoshiWindowDl's vertices */
 constexpr uint32_t kBgPicturePtr = 0x8021AB80u;                            /* gBgPicture (front end) */
 /* a little wider than the picture: no seam at its edges after rounding */

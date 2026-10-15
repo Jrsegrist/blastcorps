@@ -39,10 +39,10 @@ def rd(a, n):
 # A0C30 bin = gfx text | rspboot | audio text | gfx (dram) text, back to back
 UCODES = [
     ("rspboot", 0x802E6820, 0xD0, None, 0),
-    ("hd gfx (slots 1-3, D_802E53F0)", 0x802E53F0, 0x802E6820 - 0x802E53F0, 0x8030E390, 0x800),
-    ("hd audio (D_802E68F0)", 0x802E68F0, 0x802E77B0 - 0x802E68F0, 0x8030EB90, 0x8030EE60 - 0x8030EB90),
-    ("hd gfx to-DRAM task (D_802E77B0, 5FD50 cull_rsp_test)", 0x802E77B0, 0x802E8BD0 - 0x802E77B0, 0x8030EE60, 0x800),
-    ("front-end gfx (slot 0, D_80207090)", 0x80207090, 0x80208040 - 0x80207090, 0x80210690, 0x800),
+    ("hd gfx (slots 1-3, gF3dText)", 0x802E53F0, 0x802E6820 - 0x802E53F0, 0x8030E390, 0x800),
+    ("hd audio (gAspMainText)", 0x802E68F0, 0x802E77B0 - 0x802E68F0, 0x8030EB90, 0x8030EE60 - 0x8030EB90),
+    ("hd gfx to-DRAM task (gCullUcodeText, 5FD50 cull_rsp_test)", 0x802E77B0, 0x802E8BD0 - 0x802E77B0, 0x8030EE60, 0x800),
+    ("front-end gfx (slot 0, gL3dText)", 0x80207090, 0x80208040 - 0x80207090, 0x80210690, 0x800),
 ]
 
 
@@ -75,13 +75,13 @@ for name, ta, tn, da, dn in UCODES:
     print("   rsp-hle sum_bytes(text, 0x%X) = 0x%X" % (n, sum(text[:n])))
 
 # how the two Fast3D copies differ
-a, b = blobs["hd gfx (slots 1-3, D_802E53F0)"], blobs["front-end gfx (slot 0, D_80207090)"]
+a, b = blobs["hd gfx (slots 1-3, gF3dText)"], blobs["front-end gfx (slot 0, gL3dText)"]
 for what, x, y in (("text", a[0], b[0]), ("data", a[1], b[1])):
     n = min(len(x), len(y))
     diff = [i for i in range(n) if x[i] != y[i]]
     print("hd gfx vs front-end gfx %s: sizes 0x%X/0x%X, %d of 0x%X common bytes differ%s" %
           (what, len(x), len(y), len(diff), n, (", first at 0x%X, last at 0x%X" % (diff[0], diff[-1])) if diff else ""))
-a2 = blobs["hd gfx to-DRAM task (D_802E77B0, 5FD50 cull_rsp_test)"]
+a2 = blobs["hd gfx to-DRAM task (gCullUcodeText, 5FD50 cull_rsp_test)"]
 for what, x, y in (("text", a[0], a2[0]), ("data", a[1], a2[1])):
     n = min(len(x), len(y))
     diff = [i for i in range(n) if x[i] != y[i]]

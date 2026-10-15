@@ -120,7 +120,11 @@ function of the three code segments by category. Permanent hand-written assembly
 (Earlier counts included 17 leftover SDK alias symbols, func_802D4020 = osInitialize and
 the like, as matched hd_code functions: 1615 / 887.)  `--naming` adds the rename map's size,
 the shared structs' named fields and the named constants (game modes, sounds, the vehicle
-state offsets).
+state offsets, vehicle types, surfaces, object kinds, level kinds, Yoshi windows, effect kinds).
+After naming phase 4 (the data): 2075 data symbols named; 41 `D_XXXXXXXX` names are left in the
+C and headers (4 statics, kept by rule, and 37 symbols with no evidence: unreferenced, only cleared,
+or array elements that only comments mention); 226 of the shared structs' 258 fields are named (the
+rest are padding or never read).
 
 - **matched C**: compiled from C in the byte-matching build (game code and the ultralib-based SDK).
 - **hand asm**: Rare's hand-written game code (hd_code 56040–8DDB0, the front end's 1B100
@@ -145,6 +149,9 @@ known.
 | a name the game or the SDK itself gives (assert and debug strings, file names, libultra, the SDK demos' scheduler and audio manager) | exactly that name | `levelno`, `playerNumber`, `yoshiState`, `__scMain`, `osSendMesg` |
 | functions | `module_verb_object`, lower snake case; the module is the subsystem or the original file (`hd_` hd.c, `cam_` camera, `veh_` vehicles, `lvl_` levels, `obj_` objects and buildings, `mode_` game modes) | `hd_main_thread`, `cam_build_projection` |
 | global variables | `g` + CamelCase | `gGameMode`, `gNextGameMode` |
+| tables of ROM data, `.rodata` constants the `NON_MATCHING` C reads through `extern` | `g` + CamelCase, named for the content / the value's role | `gLevelTunes`, `gMathTwoPi` |
+| ROM offsets of files and blobs (`D_00xxxxxx`) | `rom` + CamelCase of the file | `romLagpRaw`, `romMusicBankCtl` |
+| segment addresses (`D_01xxxxxx`, `D_02xxxxxx`) | `seg1` / `seg2` + CamelCase | `seg2Base`, `seg1RspInitDl` |
 | file-scope and function-local `static` data | keep `D_XXXXXXXX`: the port's `coffpin.py` pins statics at the address their name carries | |
 | types | CamelCase | `DynamicBuf`, `LevelInfo` |
 | struct fields | lowerCamelCase; unidentified ones stay `unkXX` / `padXX` (XX = the offset) | `modelId`, `unk5C` |

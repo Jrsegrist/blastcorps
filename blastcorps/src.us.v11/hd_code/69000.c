@@ -16,7 +16,7 @@
 /* Last 5 words of the u16 table gAtanTable (data, not code): the matching
  * build has to assemble them into this file's .text. */
 GLOBAL_ASM(
-glabel D_802AD7C0
+glabel gAtanTableTail
 .word 0x35EF35F1, 0x35F335F6, 0x35F835FB, 0x35FD35FF, 0x36020000
 )
 #else

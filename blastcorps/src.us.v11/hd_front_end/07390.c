@@ -29,7 +29,7 @@ void fe_pak_error_frame(s32 arg0) {
     tex_reset_decode_queue();
     font_age_cache();
     if (currentYoshiWindow != arg0) {
-        yoshi_demand(arg0 | 0x8000 | 0x2000);
+        yoshi_demand(arg0 | YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE);
         snd_stop_all_looping();
         gPakErrorFrames = 0;
     }
@@ -42,8 +42,8 @@ void fe_pak_error_frame(s32 arg0) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(buf));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000038);
-    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
+    gSPDisplayList(gdl++, seg1RspInitDl);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPPipeSync(gdl++);

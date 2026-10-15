@@ -269,7 +269,7 @@ for _n in decls:
 
 def fits(b, a, esz, one):
     """is the symbol at b just a field (or element) inside an array of `one`
-    elements starting at a?  (05C450's `extern f32 D_8020BDE4; /* gSolarNodes[3].unk0 */`)"""
+    elements starting at a?  (05C450's `extern f32 gSolarEarthSize; /* gSolarNodes[3].unk0 */`)"""
     rel = (b - a) % esz
     for n in by_addr.get(b, []):
         for sz, lv in decls[n].values():

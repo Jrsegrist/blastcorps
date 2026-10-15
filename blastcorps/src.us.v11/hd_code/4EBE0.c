@@ -106,9 +106,9 @@ void spline_object_matrix(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, 
     guTranslateF(tmp, x / 32.0f, y / 32.0f, z / 32.0f);
     guMtxCatF(mf, tmp, mf);
     guMtxF2L(mf, mtx);
-    D_803F7664 = (rx << 5) + x;
-    D_803F7668 = (ry << 5) + y;
-    D_803F766C = (rz << 5) + z;
+    gSplinePosX = (rx << 5) + x;
+    gSplinePosY = (ry << 5) + y;
+    gSplinePosZ = (rz << 5) + z;
     gSPMatrix(gfx1++, osVirtualToPhysical(mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(gfx2++, osVirtualToPhysical(mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
 }
@@ -321,7 +321,7 @@ void spline_walk_maze(mf, x, z, ox, oz, px, py, pz, state, speed)
         *pz = oz - z;
     }
     guRotateF(mf, state->angle, 0.0f, 1.0f, 0.0f);
-    if (gPowerPillTimer == 0 || (D_803156C4 & 0xF) >= 7) {
+    if (gPowerPillTimer == 0 || (gSchedFrameCount & 0xF) >= 7) {
         guTranslateF(m, *px, *py, *pz);
     } else {
         guTranslateF(m, 0.0f, 20000.0f, 0.0f);
@@ -472,9 +472,9 @@ void spline_set_basis(s32 idx) {
 /* Turns up to a limit about y (a gate or door) (0x80294B64). */
 void spline_swing(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *state, s32 delay) {
     if (state->time == 0) {
-        state->time = delay + D_803156C4;
+        state->time = delay + gSchedFrameCount;
     }
-    if (D_803156C4 > state->time && gPaused == 0) {
+    if (gSchedFrameCount > state->time && gPaused == 0) {
         state->angle++;
         if (state->angle > limit) {
             state->angle = limit;

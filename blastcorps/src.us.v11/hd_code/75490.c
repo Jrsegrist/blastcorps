@@ -29,11 +29,11 @@ extern u8 * N64P gCarrierModel;   /* its model header */
 extern u8 gCarrierState[];  /* its state block */
 extern u8 gCarrierAnim[];  /* its animation channels */
 extern s32 gCarrierStartX;   /* start point x, z */
-extern s16 D_803EF6D6;
+extern s16 gCarrierLastSoundSpeed;
 extern u8 gCarrierExplodeDelay;
-extern u8 D_803EF700;
-extern u8 D_803EF701;
-extern u8 D_802C236C[];  /* its anim_tex_find entry key */
+extern u8 gCarrierExplodeFrames;
+extern u8 gCarrierExplodeStarted;
+extern u8 gCarrierTexAnim[];  /* its anim_tex_find entry key */
 void carrier_load_collide_dists(void);
 s32 carrier_build_model(MtxChainRegs *regs);
 
@@ -42,9 +42,9 @@ s32 carrier_build_model(MtxChainRegs *regs);
  * header -> gCarrierModel, two 0xC00-byte matrix buffers from gHeapPtr
  * (gCarrierMtxA / gCarrierMtxB; the allocator advances by 0x1800),
  * veh_add_record(0xFF, 0, buffers, model); position x/z (and the start point
- * gCarrierStartX/Z), target speed gCarrierTargetSpeed, gCarrierRouteLen = limit, D_803EF6D6 =
+ * gCarrierStartX/Z), target speed gCarrierTargetSpeed, gCarrierRouteLen = limit, gCarrierLastSoundSpeed =
  * 0; veh_reset_state on gCarrierState, heading +0x4E/+0x4C; effect counters
- * gCarrierExplodeDelay = 5, D_803EF700 = D_803EF701 = 0; carrier_load_collide_dists (level spawn
+ * gCarrierExplodeDelay = 5, gCarrierExplodeFrames = gCarrierExplodeStarted = 0; carrier_load_collide_dists (level spawn
  * point); wheel-slot offsets (+-0x190 / 0x4B0, +-0x1A4 / 0x4D8) at
  * +0x52..+0x68; the ground slots (veh_init_ground at y 0x7FFF, writing y to
  * gCarrierY, key 0xFF); the model channels (anim_init_model on gCarrierAnim,
@@ -52,7 +52,7 @@ s32 carrier_build_model(MtxChainRegs *regs);
  * scale 0x59D8); veh_add_shadow(0xFF, 0x96, 0x3C, 0x3C); the model rebuild
  * carrier_build_model; one update with +0x9A set (carrier_update); the root matrix
  * copied from buffer B to A (mtx_copy_at); channels 1 and 2 reset and
- * restarted with -1; the D_802C236C entry set (0x64, 0, 1) and restarted.
+ * restarted with -1; the gCarrierTexAnim entry set (0x64, 0, 1) and restarted.
  * The asm's addi/add trap on overflow.
  * Register convention (conventions.txt): model s2, x t4, z t5, target speed
  * s1, limit t7, heading t6, and fp, which the asm hands to veh_init_ground
@@ -73,20 +73,20 @@ void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     gCarrierMtxA = (u8 *) N64_IPTR(buf);
     gCarrierMtxB = (u8 *) N64_IPTR((buf + 0xC00));
     gHeapPtr = buf + 0x1800;
-    veh_add_record(0xFF, 0, (s32) gCarrierMtxA, (s32) gCarrierMtxB, model);
+    veh_add_record(VEH_CARRIER, 0, (s32) gCarrierMtxA, (s32) gCarrierMtxB, model);
     gCarrierX = x;
     gCarrierStartX = x;
     gCarrierZ = z;
     gCarrierStartZ = z;
     gCarrierTargetSpeed = speed;
-    D_803EF6D6 = 0;
+    gCarrierLastSoundSpeed = 0;
     gCarrierRouteLen = limit;
     veh_reset_state(gCarrierState);
     *(s16 *) (gCarrierState + 0x4E) = heading;
     *(s16 *) (gCarrierState + 0x4C) = heading;
     gCarrierExplodeDelay = 5;
-    D_803EF700 = 0;
-    D_803EF701 = 0;
+    gCarrierExplodeFrames = 0;
+    gCarrierExplodeStarted = 0;
     carrier_load_collide_dists();
     /* wheel slot offsets */
     *(s16 *) (gCarrierState + 0x52) = 0x190;
@@ -122,7 +122,7 @@ void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     anim_update_model(gCarrierMtxB, gCarrierMtxA, (AnimChannel *) gCarrierAnim);
     hdr = gCarrierModel;
     veh_register_parts(0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x59D8);
-    veh_add_shadow(0xFF, 0x96, 0x3C, 0x3C);
+    veh_add_shadow(VEH_CARRIER, 0x96, 0x3C, 0x3C);
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s0 = 0;
@@ -140,10 +140,10 @@ void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     anim_set_reverse((AnimChannel *) gCarrierAnim, 2, 0);
     anim_set_loop_mode((AnimChannel *) gCarrierAnim, 2, 1);
     anim_play((AnimChannel *) gCarrierAnim, 2, -1);
-    anim_tex_set_speed((s32) D_802C236C, 0x64);
-    anim_tex_set_reverse((s32) D_802C236C, 0);
-    anim_tex_set_loop_mode((s32) D_802C236C, 1);
-    anim_tex_play((s32) D_802C236C, -1);
+    anim_tex_set_speed((s32) gCarrierTexAnim, 0x64);
+    anim_tex_set_reverse((s32) gCarrierTexAnim, 0);
+    anim_tex_set_loop_mode((s32) gCarrierTexAnim, 1);
+    anim_tex_play((s32) gCarrierTexAnim, -1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_spawn.s")
@@ -162,7 +162,7 @@ typedef struct {
     u16 x;
     u16 z;
 } LevelPos;
-extern LevelPos D_80305D74[];
+extern LevelPos gCarrierCollideDists[];
 extern s32 gCarrierWorldHitDist;
 extern s32 gCarrierObjHitDist;
 extern u8 gCarrierWorldHitOn;
@@ -178,7 +178,7 @@ void carrier_load_collide_dists(void) {
     gCarrierObjHitDist = 0;
     gCarrierObjHitOn = 0;
     level = levelno;
-    for (e = D_80305D74; e->level >= 0; e++) {
+    for (e = gCarrierCollideDists; e->level >= 0; e++) {
         if (e->level == level) {
             gCarrierWorldHitDist = e->x << 5;
             gCarrierObjHitDist = e->z << 5;
@@ -404,10 +404,10 @@ typedef struct {
     u8 level;
     u8 value;
 } ZoneEntry;
-extern ZoneEntry D_80305D62[];
+extern ZoneEntry gCarrierSpeedZones[];
 
 /* Per-level z ranges set its target speed (0x802BA638).
- * Scans D_80305D62 (terminated by a negative z) for entries of the current
+ * Scans gCarrierSpeedZones (terminated by a negative z) for entries of the current
  * level (levelno) whose z <= player z / 32 (gCarrierZ >> 5); the last
  * one's value wins (0 if none). A nonzero result is stored in gCarrierTargetSpeed.
  * The asm leaves its scan registers behind and asm caller carrier_update
@@ -422,7 +422,7 @@ s32 carrier_scan_speed_zones(s32 *termZ, s32 *lastLevel, s32 *level) {
     ZoneEntry *e;
     s32 z;
 
-    for (e = D_80305D62; (z = e->z) >= 0; e++) {
+    for (e = gCarrierSpeedZones; (z = e->z) >= 0; e++) {
         *lastLevel = e->level;
         if (e->level == lv && !(pz < z)) {
             result = e->value;
@@ -458,35 +458,35 @@ s32 carrier_scan_speed_zones(s32 *termZ, s32 *lastLevel, s32 *level) {
     } while (0)
 
 extern u8 gCarrierState[];  /* this vehicle's state block (the asm's $gp) */
-extern s16 D_803EF6D6;   /* last speed sent to the engine sound */
-extern f32 D_8030D920;
-extern f32 D_8030D924;
-extern f32 D_8030D928;
+extern s16 gCarrierLastSoundSpeed;   /* last speed sent to the engine sound */
+extern f32 gCarrierPitchScale;
+extern f32 gCarrierYawThirdWidth;
+extern f32 gCarrierWheelAnimScale;
 extern u8 gCarrierAnim[];  /* animation channel table (AnimChannel, 56040.c) */
 
 /* Engine pitch, wheel channel, the camera-angle channel (0x802BA6AC).
  * Engine sound and animation channels for vehicle gCarrierState (speed = s16 at
- * +0x76). When the speed changed since the last call (D_803EF6D6) and the
+ * +0x76). When the speed changed since the last call (gCarrierLastSoundSpeed) and the
  * sound gCarrierSound is playing, its parameter 0x10 is set to the float
- * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (gCamYaw +
+ * 1.5 + speed * gCarrierPitchScale (passed as raw bits). Then a = (gCamYaw +
  * 0x800) wrapped by -0xFFF at 0x1000; channel 2 gets value a / 0x555
- * (0, 1, else 2) and fraction (a % 0x555) / D_8030D924 (anim_set_frame);
- * channel 1 gets round(speed * D_8030D928) (0 while gPaused is set,
+ * (0, 1, else 2) and fraction (a % 0x555) / gCarrierYawThirdWidth (anim_set_frame);
+ * channel 1 gets round(speed * gCarrierWheelAnimScale) (0 while gPaused is set,
  * anim_set_speed). Returns a / 0x555 (the asm's s4; conventions.txt). The asm
  * also clobbers s5; asm caller carrier_update keeps a2, a3, t7, f12, f14 live
  * (a mixed N64 build would need a thunk; the native port won't). The asm's
  * `addi` traps on overflow, which can't happen for a u16. */
 s32 carrier_update_anims(void) {
     s32 speed = *(s16 *) (gCarrierState + 0x76);
-    s16 last = D_803EF6D6;
+    s16 last = gCarrierLastSoundSpeed;
     u32 a;
     u32 q;
     s32 v;
     f32 frac;
 
-    D_803EF6D6 = speed;
+    gCarrierLastSoundSpeed = speed;
     if (last != speed && gCarrierSound != NULL) {
-        f32 p = 1.5f + (f32) speed * D_8030D920;
+        f32 p = 1.5f + (f32) speed * gCarrierPitchScale;
 
         snd_modify(gCarrierSound, 0x10, *(s32 *) &p);
     }
@@ -495,7 +495,7 @@ s32 carrier_update_anims(void) {
         a -= 0xFFF;
     }
     q = a / 0x555;
-    frac = (f32) (s32) (a % 0x555) / D_8030D924;
+    frac = (f32) (s32) (a % 0x555) / gCarrierYawThirdWidth;
     if (q == 0) {
         anim_set_frame(frac, (AnimChannel *) gCarrierAnim, 2, 0);
     } else if (q == 1) {
@@ -504,7 +504,7 @@ s32 carrier_update_anims(void) {
         anim_set_frame(frac, (AnimChannel *) gCarrierAnim, 2, 2);
     }
     v = gPaused != 0 ? 0 : *(s16 *) (gCarrierState + 0x76);
-    CVT_W_S(v, (f32) v * D_8030D928);
+    CVT_W_S(v, (f32) v * gCarrierWheelAnimScale);
     anim_set_speed((AnimChannel *) gCarrierAnim, 1, v);
     return q;
 }
@@ -536,28 +536,28 @@ void carrier_check_arrival(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80305D60[];
-extern u8 D_802C3B44[]; /* fx_spawn definition */
+extern u8 gCarrierNonBlockingParts[];
+extern u8 gFxCarrierExplosion[]; /* fx_spawn definition */
 extern u8 gCarrierExplodeDelay;   /* countdown before the effect */
-extern u8 D_803EF700;   /* effect frame count */
-extern u8 D_803EF701;   /* effect started */
+extern u8 gCarrierExplodeFrames;   /* effect frame count */
+extern u8 gCarrierExplodeStarted;   /* effect started */
 
 #define ABS_BA9A0(v) ((v) < 0 ? -(v) : (v))
 
 /* Hit or tilted: cmo_hit_request; explosion effects (0x802BA9A0).
  * Collision/effect step of the type-0xFF object (gCarrierState, the asm's $gp).
  * Unless gCarrierHit is set: veh_collision_setup((x, y, z) = gCarrierX/Y/Z, table
- * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), veh_collide_spheres(0xFF, gCarrierState);
+ * gCarrierNonBlockingParts, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), veh_collide_spheres(0xFF, gCarrierState);
  * then, unless gCarrierContact is set, gCollHit = 0, veh_collide_world(0xFF) when
- * gCarrierWorldHitOn is set and obj_collide_vehicle(0xFF, veh) (with D_803F77D0 =
+ * gCarrierWorldHitOn is set and obj_collide_vehicle(0xFF, veh) (with gCollVehicleAnim =
  * &gCarrierAnim) when gCarrierObjHitOn is set; if gCollHit is then still 0 and the
  * three height pairs at +4/+8, +0x10/+0x14, +0x1C/+0x20 each differ by at most
  * 10000, it returns. Otherwise cmo_hit_request = gPauseRequest = 1. Then, unless
- * D_803643D8 is set: hud_panel_stop, anim_stop(1, &gCarrierAnim),
+ * gCarrierHitSeen is set: hud_panel_stop, anim_stop(1, &gCarrierAnim),
  * fx_finish_all, obj_clear_effect_queue. Finally the effect: gCarrierExplodeDelay counts down
  * first; then, until gCarrierExplodeDone is set, the first frame sets up a
- * fx_spawn record (def D_802C3B44, data 0x7A120, type 1 at (0xFF, 2, 0))
- * and sets D_803EF701, and later frames count D_803EF700 up to 0x12, which
+ * fx_spawn record (def gFxCarrierExplosion, data 0x7A120, type 1 at (0xFF, 2, 0))
+ * and sets gCarrierExplodeStarted, and later frames count gCarrierExplodeFrames up to 0x12, which
  * sets gCarrierExplodeDone.
  * Leaked registers (kept): b0 is the asm's t0 = &gCarrierHit (so gImpactEffectScale
  * gets 0xD6) and h2 its t2, carrier_build_model's leftover point-list end pointer
@@ -574,7 +574,7 @@ void carrier_check_crash(s32 h2) {
     s32 n;
 
     if (gCarrierHit == 0) {
-        veh_collision_setup(gCarrierZ, (s32) D_80305D60, 0, 0, gCarrierX, gCarrierY, (s32) &gCarrierHit,
+        veh_collision_setup(gCarrierZ, (s32) gCarrierNonBlockingParts, 0, 0, gCarrierX, gCarrierY, (s32) &gCarrierHit,
                       *(s16 *) (gCarrierState + 0x76), h2, 0, 0xFF, gCarrierState);
         veh_collide_spheres(0xFF, gCarrierState);
         if (((u8) gCarrierContact) == 0) {
@@ -583,7 +583,7 @@ void carrier_check_crash(s32 h2) {
                 veh_collide_world(0xFF);
             }
             if (gCarrierObjHitOn != 0) {
-                D_803F77D0 = gCarrierAnim;
+                gCollVehicleAnim = gCarrierAnim;
                 obj_collide_vehicle(0xFF, gCarrierState);
             }
             if (gCollHit == 0 && ABS_BA9A0(ys[1] - ys[0]) < 0x2711 && ABS_BA9A0(ys[4] - ys[3]) < 0x2711 &&
@@ -594,7 +594,7 @@ void carrier_check_crash(s32 h2) {
         cmo_hit_request = 1;
         gPauseRequest = 1;
     }
-    if (D_803643D8 == 0) {
+    if (gCarrierHitSeen == 0) {
         hud_panel_stop();
         anim_stop(1, (AnimChannel *) gCarrierAnim);
         fx_finish_all();
@@ -607,16 +607,16 @@ void carrier_check_crash(s32 h2) {
     if (gCarrierExplodeDone != 0) {
         return;
     }
-    if (D_803EF701 == 0) {
+    if (gCarrierExplodeStarted == 0) {
         io.a3 = 1;
         io.t6 = 0;
         io.s1 = 0;
-        fx_spawn(&io, D_802C3B44, 0x7A120, 1, 0xFF, 2, 0, 0, 0, 0, 0, 0, 0);
-        D_803EF701 = 1;
+        fx_spawn(&io, gFxCarrierExplosion, 0x7A120, 1, 0xFF, 2, 0, 0, 0, 0, 0, 0, 0);
+        gCarrierExplodeStarted = 1;
         return;
     }
-    n = D_803EF700 + 1;
-    D_803EF700 = n;
+    n = gCarrierExplodeFrames + 1;
+    gCarrierExplodeFrames = n;
     if (n == 0x12) {
         gCarrierExplodeDone = 1;
     }
@@ -635,7 +635,7 @@ extern u8 * N64P gCarrierModel; /* model header */
  * Rebuilds the type-0xFF object's model matrices and points, as
  * backlash_build_model (71140) does for vehicle 5: header gCarrierModel, buffers
  * gCarrierMtxA (gBufferIndex set) / gCarrierMtxB, rotation y = u16 +0x4C of
- * gCarrierState (the asm's $gp; both callers point it there) in D_803ED392, root
+ * gCarrierState (the asm's $gp; both callers point it there) in gModelRotY, root
  * matrix at gCarrierX/Y/Z with scale 0x59D8 (mtx_build_model), parts tag
  * 0xFF (veh_place_parts) and points id 0xFF (veh_points_transform).
  * Register convention: mtx_chain_transform's chain registers pass through regs
@@ -652,7 +652,7 @@ s32 carrier_build_model(MtxChainRegs *regs) {
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
     u8 *end;
 
-    D_803ED392 = *(u16 *) (gCarrierState + 0x4C);
+    gModelRotY = *(u16 *) (gCarrierState + 0x4C);
     mtx_build_model(gCarrierX, gCarrierY, gCarrierZ, 0x59D8, m);
     regs->s2 = (s32) m;
     buf = gBufferIndex != 0 ? gCarrierMtxA : gCarrierMtxB;
@@ -728,7 +728,7 @@ void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     gCraneMtxA = (u64 *) N64_IPTR(buf);
     gCraneMtxB = (u64 *) N64_IPTR((buf + 0x800));
     gHeapPtr = buf + 0x1000;
-    veh_add_record(6, 0, (s32) gCraneMtxA, (s32) gCraneMtxB, model);
+    veh_add_record(VEH_CRANE, 0, (s32) gCraneMtxA, (s32) gCraneMtxB, model);
     veh_reset_state(gCraneState);
     /* wheel slot offsets (x, z pairs and heights) */
     *(s16 *) (gCraneState + 0x52) = 0x50;
@@ -772,7 +772,7 @@ void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     gCraneState[0xA2] = 0;
     hdr = gCraneModel;
     veh_register_parts(6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x1B58);
-    veh_add_shadow(6, 0x96, 0x2D, 0x2D);
+    veh_add_shadow(VEH_CRANE, 0x96, 0x2D, 0x2D);
     gCraneState[0x9A] = 1;
     crane_update();
     gCraneState[0x9A] = 0;
@@ -877,7 +877,7 @@ s32 crane_zone_alpha(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80305DF0[];
+extern u8 gCraneNonBlockingParts[];
 void crane_update_controls(void);
 s32 crane_build_model(MtxChainRegs *regs, s32 *t2Out);
 
@@ -888,11 +888,11 @@ s32 crane_build_model(MtxChainRegs *regs, s32 *t2Out);
  * of the three wheel slots (veh_update_stand_on at gCranePos[0]/[2], key 6);
  * animate the model (anim_update_model on the current buffer pair, channels
  * gCraneAnim); rebuild it (crane_build_model); clear +0xA2; vehicle-state reset
- * veh_collision_setup (table D_80305DF0, kind 6), veh_collide_spheres(6), the part
+ * veh_collision_setup (table gCraneNonBlockingParts, kind 6), veh_collide_spheres(6), the part
  * lookup crane_check_part_hits, the collision pass obj_collide_vehicle(6) (with
- * D_803F77D0 = gCraneAnim) and veh_collide_world(6); +0xA2 = 1 if gCollHit got
+ * gCollVehicleAnim = gCraneAnim) and veh_collide_world(6); +0xA2 = 1 if gCollHit got
  * set; finally the player globals gPlayerX/Y/Z = the position,
- * D_8036443C = 0, D_8036443E / D_80364440 = u16 +0x4E / +0x4C.
+ * gPlayerSpeed = 0, gPlayerMoveHeading / gPlayerHeading = u16 +0x4E / +0x4C.
  * veh_collision_setup's b0 and h2 are what crane_build_model leaves in t0 / t2 (x and
  * 6), kept here.
  * Leaked registers (FIDELITY AUDIT): veh_update_stand_on's fp and f12-f26 inputs
@@ -942,11 +942,11 @@ void crane_update(void) {
     regs.s0 = 0;
     x = crane_build_model(&regs, &h2);
     gCraneState[0xA2] = 0;
-    veh_collision_setup(gCranePos[2], (s32) D_80305DF0, 0, 0, gCranePos[0], gCranePos[1], x, 0, h2, 0, 6,
+    veh_collision_setup(gCranePos[2], (s32) gCraneNonBlockingParts, 0, 0, gCranePos[0], gCranePos[1], x, 0, h2, 0, 6,
                   gCraneState);
     veh_collide_spheres(6, gCraneState);
     crane_check_part_hits(0, 0, 0, 0);
-    D_803F77D0 = gCraneAnim;
+    gCollVehicleAnim = gCraneAnim;
     obj_collide_vehicle(6, gCraneState);
     veh_collide_world(6);
     if (gCollHit != 0) {
@@ -955,9 +955,9 @@ void crane_update(void) {
     gPlayerX = gCranePos[0];
     gPlayerY = gCranePos[1];
     gPlayerZ = gCranePos[2];
-    D_8036443C = 0;
-    D_8036443E = *(u16 *) (gCraneState + 0x4E);
-    D_80364440 = *(u16 *) (gCraneState + 0x4C);
+    gPlayerSpeed = 0;
+    gPlayerMoveHeading = *(u16 *) (gCraneState + 0x4E);
+    gPlayerHeading = *(u16 *) (gCraneState + 0x4C);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_update.s")
@@ -965,8 +965,8 @@ void crane_update(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_8030D930; /* channel 5 limits */
-extern f32 D_8030D934;
+extern f32 gCraneArmMaxPos; /* channel 5 limits */
+extern f32 gCraneArmMinPos;
 s32 crane_part_on_ground(void);
 
 /* A/B, Left/Right and L/R drive channels 5, 4 and 2 with sounds (0x802BB4C0).
@@ -974,8 +974,8 @@ s32 crane_part_on_ground(void);
  * the global; channels in gCraneAnim, an AnimChannel table).
  * - Byte +0xA2 set: channels 5, 4 off (unk14 = 0), channel 2 unk11 = 0 and
  *   restarted (anim_play), +0xA1 = 1.
- * - Otherwise channel 5 follows input gHeldA while its unk4 <= D_8030D930
- *   (direction 0) or gHeldB while !(unk4 < D_8030D934) (direction 1),
+ * - Otherwise channel 5 follows input gHeldA while its unk4 <= gCraneArmMaxPos
+ *   (direction 0) or gHeldB while !(unk4 < gCraneArmMinPos) (direction 1),
  *   starting sound 0x6F (handle gCraneArmSound) if needed, else it is switched
  *   off and that sound stopped; channel 4 likewise follows gHeldLeft /
  *   gHeldRight with sound 0x6E (gCraneSwingSound). Then, when crane_part_on_ground reports
@@ -1004,12 +1004,12 @@ void crane_update_controls(void) {
         goto check2;
     }
 
-    if (gHeldA != 0 && (anim_get_state(5, (AnimChannel *) gCraneAnim, e), ((f32 *) e)[7] <= D_8030D930)) {
+    if (gHeldA != 0 && (anim_get_state(5, (AnimChannel *) gCraneAnim, e), ((f32 *) e)[7] <= gCraneArmMaxPos)) {
         anim_set_reverse((AnimChannel *) gCraneAnim, 5, 0);
         anim_set_speed((AnimChannel *) gCraneAnim, 5, 1);
         goto start5;
     }
-    if (gHeldB != 0 && (anim_get_state(5, (AnimChannel *) gCraneAnim, e), !(((f32 *) e)[7] < D_8030D934))) {
+    if (gHeldB != 0 && (anim_get_state(5, (AnimChannel *) gCraneAnim, e), !(((f32 *) e)[7] < gCraneArmMinPos))) {
         anim_set_reverse((AnimChannel *) gCraneAnim, 5, 1);
         anim_set_speed((AnimChannel *) gCraneAnim, 5, 1);
         goto start5;
@@ -1160,7 +1160,7 @@ s32 crane_build_model(MtxChainRegs *regs, s32 *t2Out) {
 
     gModelRot = 0;
     (&gModelRot)[2] = 0;
-    D_803ED392 = *(u16 *) (gCraneState + 0x4C);
+    gModelRotY = *(u16 *) (gCraneState + 0x4C);
     mtx_build_model(gCranePos[0], gCranePos[1], gCranePos[2], 0x1B58, m);
     regs->s2 = (s32) m;
     buf = gBufferIndex != 0 ? (u8 *) gCraneMtxA : (u8 *) gCraneMtxB;

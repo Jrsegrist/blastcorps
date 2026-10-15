@@ -5,7 +5,7 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_gVehiclesEnd
-#define LEGACY_D_8036B974
+#define LEGACY_gHintLastHitObject
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -15,7 +15,7 @@
 #define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gVehiclesEnd (*(Struct80364460 * N64P *) &gVehiclesEnd)
-#define D_8036B974 (*(s32 *) &D_8036B974)
+#define gHintLastHitObject (*(s32 *) &gHintLastHitObject)
 #endif
 /* end of views */
 
@@ -128,10 +128,10 @@ extern Struct802F3C24 gCamPaths[];
 extern Struct802F3C48 gCamPathPoints[];
 extern Struct802F41E8 gShuttlePaths[];
 extern Struct802F4224 gShuttlePathPoints[];
-extern u16 D_80303AF4[];
-extern u16 D_80303B00[];
-extern u16 D_80303B10[];
-extern u16 D_80303B24[];
+extern u16 gShuttleLandingAbortedJText[];
+extern u16 gShuttleDitchingJText[];
+extern u16 gShuttleFinalApproachJText[];
+extern u16 gShuttleLandedJText[];
 #ifndef NON_MATCHING
 extern Struct80364460 *gVehiclesEnd;
 #endif
@@ -143,17 +143,17 @@ extern f32 gShuttlePathBasis[4][4];
 extern s32 gShuttlePathT;
 extern u8 gShuttlePathPoint;
 extern u8 gShuttlePathIndex;
-extern u8 D_8036B958[4];
+extern u8 gShuttlePathAltBranch[4];
 extern u8 gShuttlePathBranch;
-extern u8 D_8036B960[4];
-extern u8 D_8036B966;
+extern u8 gShuttlePathWindow[4];
+extern u8 gShuttlePathInLevel;
 extern s32 gRandSeed2;
-extern u8 D_8036B970;
+extern u8 gHintNearVehicle;
 #ifndef NON_MATCHING
-extern s32 D_8036B974;
+extern s32 gHintLastHitObject;
 #endif
-extern u8 D_8036B978;
-extern u8 D_8036B979;
+extern u8 gHintPrevVehicle;
+extern u8 gHintLastVehicle;
 
 /* On foot near a zone's vehicle: switch to it (0x802683E0).
  * Checks the trigger zones for the current level; sets gNextVehicle on a hit. */
@@ -306,7 +306,7 @@ s32 util_find_shuttle_path(s32 id) {
     i = 0;
     do {
         if (gShuttlePaths[i].id == id) {
-            D_803FCD75 = gShuttlePaths[i].unk5;
+            gShuttlePathKind = gShuttlePaths[i].unk5;
             return 1;
         }
         i++;
@@ -322,13 +322,13 @@ void util_shuttle_path_init(void) {
 
     found = 0;
     if (gNextGameMode == MODE_INTRO_FLY) {
-        D_8036B966 = 0;
+        gShuttlePathInLevel = 0;
     } else {
-        D_8036B966 = 1;
+        gShuttlePathInLevel = 1;
     }
     gShuttlePathIndex = 0;
     while (!found) {
-        if (gShuttlePaths[gShuttlePathIndex].id == levelno && gShuttlePaths[gShuttlePathIndex].unk4 == D_8036B966) {
+        if (gShuttlePaths[gShuttlePathIndex].id == levelno && gShuttlePaths[gShuttlePathIndex].unk4 == gShuttlePathInLevel) {
             found = 1;
         } else {
             gShuttlePathIndex++;
@@ -351,16 +351,16 @@ void util_shuttle_path_init(void) {
     gShuttlePathBasis[3][1] = -s;
     gShuttlePathBasis[3][2] = 0.0f;
     gShuttlePathBasis[3][3] = 0.0f;
-    D_803FCD60 = gShuttlePaths[gShuttlePathIndex].unkC << 5;
+    gShuttleTriggerY = gShuttlePaths[gShuttlePathIndex].unkC << 5;
     gShuttlePathT = 0;
     gShuttlePathPoint = 1;
-    D_8036B958[0] = 0;
-    D_8036B958[1] = 0;
-    D_8036B958[2] = 0;
-    D_8036B958[3] = 0;
+    gShuttlePathAltBranch[0] = 0;
+    gShuttlePathAltBranch[1] = 0;
+    gShuttlePathAltBranch[2] = 0;
+    gShuttlePathAltBranch[3] = 0;
     gShuttlePathBranch = 0;
-    D_8036B964 = 0;
-    D_8036B965 = 0;
+    gShuttleAborted = 0;
+    gShuttleCamFollow = 0;
 }
 
 /* The shuttle along its path: position, angles, landing events (0x80269258).
@@ -382,16 +382,16 @@ void util_shuttle_path_step(void) {
     u8 found;
     u8 lim;
 
-    D_8036B960[0] = gShuttlePathPoint - 1;
-    D_8036B960[1] = gShuttlePathPoint;
-    D_8036B960[2] = gShuttlePathPoint + 1;
-    D_8036B960[3] = gShuttlePathPoint + 2;
+    gShuttlePathWindow[0] = gShuttlePathPoint - 1;
+    gShuttlePathWindow[1] = gShuttlePathPoint;
+    gShuttlePathWindow[2] = gShuttlePathPoint + 1;
+    gShuttlePathWindow[3] = gShuttlePathPoint + 2;
     for (j = 0; j < 4; j++) {
         i = 0;
         found = 0;
         while (i < 49 && !found) {
-            if (gShuttlePathPoints[i].id == levelno && gShuttlePathPoints[i].unk4 == D_8036B966
-                && gShuttlePathPoints[i].idx == D_8036B960[j] && gShuttlePathPoints[i].unk13 == gShuttlePathBranch) {
+            if (gShuttlePathPoints[i].id == levelno && gShuttlePathPoints[i].unk4 == gShuttlePathInLevel
+                && gShuttlePathPoints[i].idx == gShuttlePathWindow[j] && gShuttlePathPoints[i].unk13 == gShuttlePathBranch) {
                 found = 1;
             } else {
                 i++;
@@ -400,8 +400,8 @@ void util_shuttle_path_step(void) {
         if (!found) {
             i = 0;
             while (i < 49 && !found) {
-                if (gShuttlePathPoints[i].id == levelno && gShuttlePathPoints[i].unk4 == D_8036B966
-                    && gShuttlePathPoints[i].idx == D_8036B960[j] && gShuttlePathPoints[i].unk13 == D_8036B958[j]) {
+                if (gShuttlePathPoints[i].id == levelno && gShuttlePathPoints[i].unk4 == gShuttlePathInLevel
+                    && gShuttlePathPoints[i].idx == gShuttlePathWindow[j] && gShuttlePathPoints[i].unk13 == gShuttlePathAltBranch[j]) {
                     found = 1;
                 } else {
                     i++;
@@ -423,7 +423,7 @@ void util_shuttle_path_step(void) {
     util_unwrap_angle(a1, &a2);
     util_unwrap_angle(a2, &a3);
     r0 = util_shuttle_path_eval(a0, a1, a2, a3, t, t2, t3);
-    D_803FCD6A = r0 / 360.0 * 4095.0;
+    gShuttleRotX = r0 / 360.0 * 4095.0;
 
     a0 = gShuttlePathPoints[pts[0]].rot[1];
     a1 = gShuttlePathPoints[pts[1]].rot[1];
@@ -433,7 +433,7 @@ void util_shuttle_path_step(void) {
     util_unwrap_angle(a1, &a2);
     util_unwrap_angle(a2, &a3);
     r1 = util_shuttle_path_eval(a0, a1, a2, a3, t, t2, t3);
-    D_803FCD6C = r1 / 360.0 * 4095.0;
+    gShuttleRotY = r1 / 360.0 * 4095.0;
 
     a0 = gShuttlePathPoints[pts[0]].rot[2];
     a1 = gShuttlePathPoints[pts[1]].rot[2];
@@ -443,16 +443,16 @@ void util_shuttle_path_step(void) {
     util_unwrap_angle(a1, &a2);
     util_unwrap_angle(a2, &a3);
     r2 = util_shuttle_path_eval(a0, a1, a2, a3, t, t2, t3);
-    D_803FCD6E = r2 / 360.0 * 4095.0;
+    gShuttleRotZ = r2 / 360.0 * 4095.0;
 
     gShuttlePos = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].x << 5, gShuttlePathPoints[pts[1]].x << 5, gShuttlePathPoints[pts[2]].x << 5,
                                gShuttlePathPoints[pts[3]].x << 5, t, t2, t3);
-    D_803FCD4C = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].y << 5, gShuttlePathPoints[pts[1]].y << 5, gShuttlePathPoints[pts[2]].y << 5,
+    gShuttlePosY = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].y << 5, gShuttlePathPoints[pts[1]].y << 5, gShuttlePathPoints[pts[2]].y << 5,
                                gShuttlePathPoints[pts[3]].y << 5, t, t2, t3);
-    D_803FCD50 = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].z << 5, gShuttlePathPoints[pts[1]].z << 5, gShuttlePathPoints[pts[2]].z << 5,
+    gShuttlePosZ = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].z << 5, gShuttlePathPoints[pts[1]].z << 5, gShuttlePathPoints[pts[2]].z << 5,
                                gShuttlePathPoints[pts[3]].z << 5, t, t2, t3);
-    if (gShuttlePaths[gShuttlePathIndex].unkE != -1 && D_803FCD4C < gShuttlePaths[gShuttlePathIndex].unkE << 5) {
-        D_803FCD4C = gShuttlePaths[gShuttlePathIndex].unkE << 5;
+    if (gShuttlePaths[gShuttlePathIndex].unkE != -1 && gShuttlePosY < gShuttlePaths[gShuttlePathIndex].unkE << 5) {
+        gShuttlePosY = gShuttlePaths[gShuttlePathIndex].unkE << 5;
     }
     gShuttlePathEvent = 0;
     if (!gLevelDone && !gCarrierHit && !areWeFading()) {
@@ -476,7 +476,7 @@ void util_shuttle_path_step(void) {
         if (gShuttlePathPoint >= lim) {
             switch (gShuttlePathBranch) {
                 case 0:
-                    if (D_803FCD75 == 1) {
+                    if (gShuttlePathKind == 1) {
                         fade_to_mode_speed(MODE_SEQ_END, 0.5f);
                     } else {
                         gLevelDoneRequest = 1;
@@ -493,16 +493,16 @@ void util_shuttle_path_step(void) {
             case 0:
                 break;
             case 1:
-                if (((s32) gLevelKind) == 0x80) {
+                if (((s32) gLevelKind) == LEVEL_KIND_MISSION_TIMED) {
                     gShuttlePathBranch = 1;
                 } else {
                     obj_tally(0);
-                    if (D_8036EA78 < D_8036EB92) {
-                        D_8036B964 = 1;
+                    if (gScoreBuildings < gBuildingCount) {
+                        gShuttleAborted = 1;
                         gShuttlePathBranch = 1;
                     }
-                    D_8036B965 = 1;
-                    D_80364A84 = 1;
+                    gShuttleCamFollow = 1;
+                    gPlayerHidden = 1;
                 }
                 break;
             case 2:
@@ -514,58 +514,58 @@ void util_shuttle_path_step(void) {
                 break;
             case 5:
                 gYoshiGameItems[42].text = "LANDING ABORTED!";
-                gYoshiGameItems[42].jtext = D_80303AF4;
-                gYoshiWindows[23].unk12 = 0xDA;
+                gYoshiGameItems[42].jtext = gShuttleLandingAbortedJText;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xDA;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 6:
                 gYoshiGameItems[42].text = "DITCHING IN SEA!";
-                gYoshiGameItems[42].jtext = D_80303B00;
-                gYoshiWindows[23].unk12 = 0x77;
+                gYoshiGameItems[42].jtext = gShuttleDitchingJText;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0x77;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 4:
                 gYoshiGameItems[42].text = "ON FINAL APPROACH!";
-                gYoshiGameItems[42].jtext = D_80303B10;
-                gYoshiWindows[23].unk12 = 0xD7;
+                gYoshiGameItems[42].jtext = gShuttleFinalApproachJText;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD7;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 7:
                 gYoshiGameItems[42].text = "SUCCESSFUL LANDING!";
-                gYoshiGameItems[42].jtext = D_80303B24;
-                gYoshiWindows[23].unk12 = 0x82;
+                gYoshiGameItems[42].jtext = gShuttleLandedJText;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0x82;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 8:
                 gYoshiGameItems[42].text = "3000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
-                gYoshiWindows[23].unk12 = 0xD5;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD5;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 9:
                 gYoshiGameItems[42].text = "2000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
-                gYoshiWindows[23].unk12 = 0xD3;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD3;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 10:
                 gYoshiGameItems[42].text = "1000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
-                gYoshiWindows[23].unk12 = 0xD1;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD1;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                     music_push_danger_tune();
                 }
                 break;
@@ -713,11 +713,11 @@ void util_seed_rand2(void) {
 
 /* Clears the hint-event latches (0x8026A988). */
 void util_reset_hint_events(void) {
-    D_8036B970 = 0;
-    D_8036B971 = 0;
-    D_8036B974 = 0;
-    D_8036B978 = 0;
-    D_8036B979 = 0;
+    gHintNearVehicle = 0;
+    gHintBuildingHit = 0;
+    gHintLastHitObject = 0;
+    gHintPrevVehicle = 0;
+    gHintLastVehicle = 0;
 }
 
 /* Per frame: hint windows near other vehicles and at level spots (0x8026A9B4).
@@ -730,52 +730,52 @@ void util_check_hint_events(void) {
 
     minDist = 999999;
     if (gTrainContactFrames == 15) {
-        yoshi_show_hint(0x50);
+        yoshi_show_hint(YW_HINT_TRAIN);
     }
     if (levelno == 0x12 && (gPlayerX >> 5) < 0x578
         && util_dist2d(gPlayerX >> 5, gPlayerZ >> 5, 0x531, 0x1061) < 0x82) {
-        yoshi_show_hint(0x51);
+        yoshi_show_hint(YW_HINT_LEVEL12_SPOT);
     }
-    if (gCurVehicle != D_8036B979) {
-        D_8036B978 = D_8036B979;
+    if (gCurVehicle != gHintLastVehicle) {
+        gHintPrevVehicle = gHintLastVehicle;
     }
     if (gCurVehicle) {
-        D_8036B979 = gCurVehicle;
+        gHintLastVehicle = gCurVehicle;
     }
     p = gVehicles;
     done = 0;
     while (!done && gVehiclesEnd != p) {
-        if (p->unk5C != D_8036B978 && p->unk5C != gCurVehicle && gCurVehicle != 0 && p->unk5C != 0
-            && p->unk5C != 0xFE && p->unk5C != 0xFF && p->unk5C != 7 && p->unk5C != 6) {
+        if (p->unk5C != gHintPrevVehicle && p->unk5C != gCurVehicle && gCurVehicle != VEH_DRIVER && p->unk5C != VEH_DRIVER
+            && p->unk5C != VEH_CHOPPER && p->unk5C != VEH_CARRIER && p->unk5C != VEH_TRAIN && p->unk5C != VEH_CRANE) {
             d = util_dist3d(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, p->unk64 >> 5, p->unk68 >> 5,
                               p->unk6C >> 5);
             if (d < minDist) {
                 minDist = d;
             }
-            if (d < 100 && !D_8036B970 && (!veh_is_riding(p->unk5C) || !D_803EFECB)) {
-                yoshi_show_hint(0x4C);
-                D_8036B970 = 1;
+            if (d < 100 && !gHintNearVehicle && (!veh_is_riding(p->unk5C) || !gTrainClosed)) {
+                yoshi_show_hint(YW_HINT_OTHER_VEHICLE);
+                gHintNearVehicle = 1;
                 done = 1;
             }
         }
         p++;
     }
-    if (D_8036B970 && minDist > 400) {
-        D_8036B970 = 0;
+    if (gHintNearVehicle && minDist > 400) {
+        gHintNearVehicle = 0;
     }
     if (levelno == 0 && gMarkerArrowsOnScreen >= 2) {
-        yoshi_show_hint(0x4D);
+        yoshi_show_hint(YW_HINT_MARKER_ARROWS);
     }
-    if (levelno == 0 && gCurVehicle == 7 && (gPlayerX >> 5) >= 0x899) {
-        yoshi_show_hint(0x53);
+    if (levelno == 0 && gCurVehicle == VEH_TRAIN && (gPlayerX >> 5) >= 0x899) {
+        yoshi_show_hint(YW_HINT_LEVEL0_TRAIN);
     }
-    if (D_8036B971) {
+    if (gHintBuildingHit) {
         if (!((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0)
             && !gTargetsCleared) {
-            if (!yoshi_show_hint(0x4E)) {
-                yoshi_show_hint(0x4F);
+            if (!yoshi_show_hint(YW_HINT_BUILDING_HIT)) {
+                yoshi_show_hint(YW_HINT_BUILDING_HIT2);
             }
-            D_8036B971 = 0;
+            gHintBuildingHit = 0;
         }
     }
 }

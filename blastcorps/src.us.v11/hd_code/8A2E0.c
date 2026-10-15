@@ -29,25 +29,25 @@ typedef struct {
 } UnkEntry8A2E0; /* size 0x14 */
 
 
-extern u8 D_803FBBE0[]; /* channel tables of the boxes' two models */
-extern u8 D_803FBEE0[];
-extern u8 * N64P D_803FBBD8;  /* the boxes' model data */
-extern u8 * N64P D_803FC1E0;  /* four 0x300-byte save copies */
-extern u8 * N64P D_803FC1E4;
-extern u8 * N64P D_803FC1E8;
-extern u8 * N64P D_803FC1EC;
+extern u8 gCommPtTakenAnims[]; /* channel tables of the boxes' two models */
+extern u8 gCommPtFreeAnims[];
+extern u8 * N64P gCommPtBoxModel;  /* the boxes' model data */
+extern u8 * N64P gCommPtTakenPose0;  /* four 0x300-byte save copies */
+extern u8 * N64P gCommPtTakenPose1;
+extern u8 * N64P gCommPtFreePose0;
+extern u8 * N64P gCommPtFreePose1;
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 void commpt_set_box_verts(s32 x, s32 y, s32 z);
 
-/* Load channels for one model: anim_init_model(b, a, ch, D_803FBBD8), channel 0
+/* Load channels for one model: anim_init_model(b, a, ch, gCommPtBoxModel), channel 0
  * = (100, 0, 0, 0.0, 1), run it into both copies (anim_update_model, then
  * anim_rewind and anim_play(1) between them). */
 #define BOX_MODEL_CHANNELS(ch, a, b)                                          \
     {                                                                         \
-        anim_init_model((u32 *) (b), (u32 *) (a), (AnimChannel *) (ch), D_803FBBD8); \
+        anim_init_model((u32 *) (b), (u32 *) (a), (AnimChannel *) (ch), gCommPtBoxModel); \
         anim_set_speed((AnimChannel *) (ch), 0, 100);                     \
         anim_set_reverse((AnimChannel *) (ch), 0, 0);                       \
         anim_set_loop_mode((AnimChannel *) (ch), 0, 0);                       \
@@ -63,12 +63,12 @@ void commpt_set_box_verts(s32 x, s32 y, s32 z);
  * Level setup of the boxes (pickups, level object in obj; its list at
  * obj + obj[0x28] .. obj + obj[0x2C], 8-byte records {s16 x, y, z; u16 w}):
  * gCommPtCount = 0; if the list isn't empty, load model 0x96 (lvl_load_model)
- * into D_803FBBD8, then for each record: entry pos = (x, y, z) << 5, the
+ * into gCommPtBoxModel, then for each record: entry pos = (x, y, z) << 5, the
  * box vertices (commpt_set_box_verts(x, y, z), unshifted), unkC = 0x280, flag 0,
  * unk12 = w, gCommPtCount++. If any box exists: four 0x300-byte copies from
- * the gHeapPtr bump pointer (D_803FC1E0..EC; trapping adds), model
- * channels D_803FBBE0 (copies 1E0/1E4) with channels 1 and 2 set to (2, 0,
- * 0, -1), and D_803FBEE0 (copies 1E8/1EC).
+ * the gHeapPtr bump pointer (gCommPtTakenPose0..EC; trapping adds), model
+ * channels gCommPtTakenAnims (copies 1E0/1E4) with channels 1 and 2 set to (2, 0,
+ * 0, -1), and gCommPtFreeAnims (copies 1E8/1EC).
  * Register convention: obj in t0 (conventions.txt); the asm saves t0 (asm
  * caller initlevel keeps it) and leaves t1/t2 (list end, the model
  * pointer), lvl_load_model's s2/s4 and the channel routines' s0-s5, fp,
@@ -87,7 +87,7 @@ void commpt_setup(u8 *obj) {
     end = (s16 *) (obj + *(s32 *) (obj + 0x2C));
     if (p != end) {
         lvl_load_model(0x96, &o);
-        D_803FBBD8 = o.s2;
+        gCommPtBoxModel = o.s2;
         e = gCommPts;
         while (p != end) {
             e->pos[0] = p[0] << 5;
@@ -106,21 +106,21 @@ void commpt_setup(u8 *obj) {
         return;
     }
     h = gHeapPtr;
-    D_803FC1E0 = (u8 *) h;
-    D_803FC1E4 = (u8 *) (h + 0x300);
-    D_803FC1E8 = (u8 *) (h + 0x600);
-    D_803FC1EC = (u8 *) (h + 0x900);
+    gCommPtTakenPose0 = (u8 *) h;
+    gCommPtTakenPose1 = (u8 *) (h + 0x300);
+    gCommPtFreePose0 = (u8 *) (h + 0x600);
+    gCommPtFreePose1 = (u8 *) (h + 0x900);
     gHeapPtr = h + 0xC00;
-    BOX_MODEL_CHANNELS(D_803FBBE0, D_803FC1E0, D_803FC1E4);
-    anim_set_speed((AnimChannel *) D_803FBBE0, 1, 2);
-    anim_set_reverse((AnimChannel *) D_803FBBE0, 1, 0);
-    anim_set_loop_mode((AnimChannel *) D_803FBBE0, 1, 0);
-    anim_play((AnimChannel *) D_803FBBE0, 1, -1);
-    anim_set_speed((AnimChannel *) D_803FBBE0, 2, 2);
-    anim_set_reverse((AnimChannel *) D_803FBBE0, 2, 0);
-    anim_set_loop_mode((AnimChannel *) D_803FBBE0, 2, 0);
-    anim_play((AnimChannel *) D_803FBBE0, 2, -1);
-    BOX_MODEL_CHANNELS(D_803FBEE0, D_803FC1E8, D_803FC1EC);
+    BOX_MODEL_CHANNELS(gCommPtTakenAnims, gCommPtTakenPose0, gCommPtTakenPose1);
+    anim_set_speed((AnimChannel *) gCommPtTakenAnims, 1, 2);
+    anim_set_reverse((AnimChannel *) gCommPtTakenAnims, 1, 0);
+    anim_set_loop_mode((AnimChannel *) gCommPtTakenAnims, 1, 0);
+    anim_play((AnimChannel *) gCommPtTakenAnims, 1, -1);
+    anim_set_speed((AnimChannel *) gCommPtTakenAnims, 2, 2);
+    anim_set_reverse((AnimChannel *) gCommPtTakenAnims, 2, 0);
+    anim_set_loop_mode((AnimChannel *) gCommPtTakenAnims, 2, 0);
+    anim_play((AnimChannel *) gCommPtTakenAnims, 2, -1);
+    BOX_MODEL_CHANNELS(gCommPtFreeAnims, gCommPtFreePose0, gCommPtFreePose1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/commpt_setup.s")
@@ -128,7 +128,7 @@ void commpt_setup(u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern Vtx D_803FBAB0[]; /* 8 vertices per box */
+extern Vtx gCommPtVtx[]; /* 8 vertices per box */
 
 /* The 8 corner vertices of point n (0x802CEE14).
  * Writes the 8 corner positions of the box x-10..x+10, y..y+20, z-10..z+20
@@ -137,7 +137,7 @@ extern Vtx D_803FBAB0[]; /* 8 vertices per box */
  * asm caller commpt_setup keeps a1-a3, t1-t3, f12 and f14 live across the
  * call (a mixed N64 build would need a thunk, the native port doesn't). */
 void commpt_set_box_verts(s32 x, s32 y, s32 z) {
-    Vtx *v = &D_803FBAB0[gCommPtCount * 8];
+    Vtx *v = &gCommPtVtx[gCommPtCount * 8];
     s32 x0 = x - 10;
     s32 x1 = x + 10;
     s32 y1 = y + 20;
@@ -165,20 +165,20 @@ void commpt_set_box_verts(s32 x, s32 y, s32 z) {
 /* The display list of every communication point (0x802CEEFC).
  * Draw the boxes (00000.c: gdl = commpt_draw(gdl, gBufferIndex, dl2, mtx)):
  * if there are any, gdl gets segment 6 = the model data's part at
- * D_803FBBD8 + [5] (G_MOVEWORD 0xBC001806); then per box i: segment 7 = the
- * box's save copy (taken: D_803FC1E4 / D_803FC1E0, else D_803FC1EC /
- * D_803FC1E8, the second of each pair when `cur` is clear) and a G_DL to
- * dl2; dl2 gets G_VTX of the box's 8 vertices (D_803FBAB0 + 0x80 i), a
+ * gCommPtBoxModel + [5] (G_MOVEWORD 0xBC001806); then per box i: segment 7 = the
+ * box's save copy (taken: gCommPtTakenPose1 / gCommPtTakenPose0, else gCommPtFreePose1 /
+ * gCommPtFreePose0, the second of each pair when `cur` is clear) and a G_DL to
+ * dl2; dl2 gets G_VTX of the box's 8 vertices (gCommPtVtx + 0x80 i), a
  * G_CULLDL 0..8, its translation matrix (mtx_translate(pos << 11) into
  * mtx, converted by mtx_to_n64, G_MTX 0x01040040), G_DLs to the model's
  * parts [9] and [11], G_POPMTX and G_ENDDL; mtx advances 0x40 per box. Then
- * the box channels run into the two copies (anim_update_model on D_803FBBE0,
+ * the box channels run into the two copies (anim_update_model on gCommPtTakenAnims,
  * current copy first). Returns the advanced gdl; dl2 and mtx aren't handed
  * back (the caller doesn't need them). cur is tested as a whole register\n * (00000.c declares it u8). The asm's pointer adds trap; it saves
  * s0-s7, gp, fp but not the f20/f30 that anim_update_model changes
  * (conventions.txt: clobbers). */
 Gfx *commpt_draw(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
-    u8 *data = D_803FBBD8;
+    u8 *data = gCommPtBoxModel;
     UnkEntry8A2E0 *e;
     u8 *seg;
     s32 n;
@@ -193,16 +193,16 @@ Gfx *commpt_draw(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
     e = gCommPts;
     for (n = gCommPtCount, i = 0; n != 0; n--, e++, i++) {
         if (e->unk10 != 0) {
-            seg = cur ? D_803FC1E4 : D_803FC1E0;
+            seg = cur ? gCommPtTakenPose1 : gCommPtTakenPose0;
         } else {
-            seg = cur ? D_803FC1EC : D_803FC1E8;
+            seg = cur ? gCommPtFreePose1 : gCommPtFreePose0;
         }
         gdl[0].words.w0 = 0xBC001C06;
         gdl[0].words.w1 = K0_PHYS(seg);
         gdl[1].words.w0 = 0x06000000;
         gdl[1].words.w1 = K0_PHYS(dl2);
         dl2[0].words.w0 = 0x04700080;
-        dl2[0].words.w1 = (u32) ((u8 *) D_803FBAB0 + 0x80 * i);
+        dl2[0].words.w1 = (u32) ((u8 *) gCommPtVtx + 0x80 * i);
         dl2[1].words.w0 = 0xBE000000;
         dl2[1].words.w1 = 0x140;
         gdl += 2;
@@ -212,7 +212,7 @@ Gfx *commpt_draw(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
         dl2->words.w0 = 0x01040040;
         dl2->words.w1 = K0_PHYS(mtx);
         dl2++;
-        data = D_803FBBD8;
+        data = gCommPtBoxModel;
         dl2[0].words.w0 = 0x06000000;
         dl2[0].words.w1 = K0_PHYS(data + *(s32 *) (data + 0x24));
         dl2[1].words.w0 = 0x06000000;
@@ -225,9 +225,9 @@ Gfx *commpt_draw(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
         mtx++;
     }
     if (cur != 0) {
-        anim_update_model(D_803FC1E4, D_803FC1E0, (AnimChannel *) D_803FBBE0);
+        anim_update_model(gCommPtTakenPose1, gCommPtTakenPose0, (AnimChannel *) gCommPtTakenAnims);
     } else {
-        anim_update_model(D_803FC1E0, D_803FC1E4, (AnimChannel *) D_803FBBE0);
+        anim_update_model(gCommPtTakenPose0, gCommPtTakenPose1, (AnimChannel *) gCommPtTakenAnims);
     }
     return gdl;
 }
@@ -263,7 +263,7 @@ static s32 port_cvt_w_s(f32 x) {
  * (flag +0x10 == 0) whose position is within 0x4C of the player (both >> 5,
  * squared distance summed in 32 bits, sqrt.s and cvt.w.s rounding; the sum
  * must not overflow, or the asm's cvt.w.s of a NaN would trap), mark it
- * taken, set D_803FBBE0's sound fields 2 and 1 to 0.0 (anim_set_frame), call
+ * taken, set gCommPtTakenAnims's sound fields 2 and 1 to 0.0 (anim_set_frame), call
  * stats_finish_bonus_level with the countdown value (gCommPtCount for entry 0, down to 1:
  * the same quirk as commpt_save_flags), then stats_show_commpt_hint and the
  * commpt_burst burst at the entry. The player position is read once. The
@@ -290,8 +290,8 @@ void commpt_update(void) {
         dz = (e->pos[2] >> 5) - pz;
         if (port_cvt_w_s(sqrtf((f32) (s32) ((u32) (dx * dx) + (u32) (dy * dy) + (u32) (dz * dz)))) < 0x4C) {
             e->unk10 = 1;
-            anim_set_frame(0.0f, (AnimChannel *) D_803FBBE0, 2, 0);
-            anim_set_frame(0.0f, (AnimChannel *) D_803FBBE0, 1, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gCommPtTakenAnims, 2, 0);
+            anim_set_frame(0.0f, (AnimChannel *) gCommPtTakenAnims, 1, 0);
             stats_finish_bonus_level(n);
             stats_show_commpt_hint();
             commpt_burst(e->pos);
@@ -361,7 +361,7 @@ void commpt_burst(s32 *pos) {
         d->unk10[5] = 0;
         d->unk2E = 0;
         d->unk30 = 0;
-        d->unk31 = 0x15;
+        d->unk31 = EFFECT_KIND_COMMPT_BURST;
         d->unk34 = 0;
         d->unk35 = 0;
         obj_queue_effect((u32 *) d);

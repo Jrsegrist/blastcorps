@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 /* end of views */
 
 /* A zone: an x/z shape (six values for ground_in_triangle) spanning ymin..ymax */
@@ -91,8 +91,8 @@ s32 trail_in_zone(x, y, z)
 
 extern u8 gTrailTail;
 extern u8 gTrailHead;
-extern u8 D_8036DC92;
-extern s32 D_8036DC94;
+extern u8 gTrailSegCalls;
+extern s32 gTrailLastFrame;
 
 /* Empties the tyre-track ring (0x8027BE4C).
  * The dead mid-function `addiu sp` pair is an unused local (-O1 gives
@@ -102,8 +102,8 @@ void trail_init(void) {
 
     gTrailTail = 0;
     gTrailHead = 0;
-    D_8036DC92 = 0;
-    D_8036DC94 = -1;
+    gTrailSegCalls = 0;
+    gTrailLastFrame = -1;
 }
 
 /* Adds a tyre-track segment (wheel offsets, yaw) (0x8027BE7C).
@@ -135,7 +135,7 @@ void trail_add(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s
     c2z = (s32) ((f32) z + p2z) >> 5;
     y >>= 5;
     guMtxXFMF(mf, halfw, 0.0f, 0.0f, &hx, &py, &hz);
-    if (D_8036DC94 + 1 != ((s32) gFramesInMode) || D_8036DC94 == -1) {
+    if (gTrailLastFrame + 1 != ((s32) gFramesInMode) || gTrailLastFrame == -1) {
         gTrails[gTrailHead].c = 1;
         gTrailHead++;
         if (gTrailHead == 80) {
@@ -163,9 +163,9 @@ void trail_add(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s
     gTrails[gTrailHead].v[11] = c2z - (s16) hz;
     gTrails[gTrailHead].a = a;
     gTrails[gTrailHead].b = b;
-    D_8036DC92++;
-    if (D_8036DC92 >= period) {
-        D_8036DC92 = 0;
+    gTrailSegCalls++;
+    if (gTrailSegCalls >= period) {
+        gTrailSegCalls = 0;
         gTrails[gTrailHead].c = 0;
         gTrailHead++;
         if (gTrailHead == 80) {
@@ -178,7 +178,7 @@ void trail_add(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s
             }
         }
     }
-    D_8036DC94 = ((s32) gFramesInMode);
+    gTrailLastFrame = ((s32) gFramesInMode);
 }
 
 /* The tracks' strips and cull boxes (0x8027C4C8).
@@ -229,7 +229,7 @@ void trail_draw(Gfx **gfxp, TrailBuf *buf) {
             done = 1;
         }
         if (start != end) {
-            gSPDisplayList(gdl++, dlIdx * sizeof(Gfx) + 0x3C30 + (u32) D_02000000);
+            gSPDisplayList(gdl++, dlIdx * sizeof(Gfx) + 0x3C30 + (u32) seg2Base);
             minZ = minY = minX = 0x7FFF;
             maxZ = maxY = maxX = -0x8000;
             k = vbase;
@@ -350,7 +350,7 @@ void trail_draw(Gfx **gfxp, TrailBuf *buf) {
             }
             if (n >= 41) {
                 trail_box_corners(minX, minY, minZ, maxX, maxY, maxZ, buf->vtx, k);
-                gSPVertex(dl++, k * sizeof(Vtx) + 0x2000 + (u32) D_02000000, 8, 0);
+                gSPVertex(dl++, k * sizeof(Vtx) + 0x2000 + (u32) seg2Base, 8, 0);
                 gSPCullDisplayList(dl++, 0, 7);
                 dlIdx += 2;
                 k += 8;
@@ -362,7 +362,7 @@ void trail_draw(Gfx **gfxp, TrailBuf *buf) {
                     } else {
                         nv = n;
                     }
-                    gSPVertex(dl++, vbase * sizeof(Vtx) + 0x2000 + (u32) D_02000000, nv, 0);
+                    gSPVertex(dl++, vbase * sizeof(Vtx) + 0x2000 + (u32) seg2Base, nv, 0);
                     t = 0;
                     vbase += nv - 2;
                     dlIdx++;

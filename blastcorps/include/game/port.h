@@ -60,7 +60,7 @@
 #define PORT_WRAP_MUL(a, b) ((a) * (b))
 #define PORT_WRAP_ADD(a, b) ((a) + (b))
 #endif
-/*   PORT_GVI(fn, v)   v, a read of the game's retrace counter D_803156C4 in
+/*   PORT_GVI(fn, v)   v, a read of the game's retrace counter gSchedFrameCount in
  *                     function fn after code the native port runs in no time;
  *                     when following an emulator, the value the emulator
  *                     read there (port/tools/cmp_spec.py GVI_FUNCS). */
@@ -198,8 +198,8 @@ typedef struct PortTicker {
     int iconX, iconPos, iconSprite;               /* the rank icon: gScrollIconX ... */
     int medalX[5], medalPos[5], medalSprite;      /* the medals 1..maxRank: gScrollMedalX ... */
     int maxRank;
-    unsigned short skip[3];       /* characters drawn as nothing (D_802E8C94/90/8C[0]) */
-    unsigned short noAdvance;     /* the one that doesn't advance (D_802E8C8C[0]) */
+    unsigned short skip[3];       /* characters drawn as nothing (gTextSpace/gFontAltBlankChar/gFontNoAdvanceChar[0]) */
+    unsigned short noAdvance;     /* the one that doesn't advance (gFontNoAdvanceChar[0]) */
     unsigned short terminator;    /* gTextTerminator[0] */
     float advance;                /* gFontAdvance[0] */
     int glyphs;                   /* gScrollUsesGlyphs (the wide font: not extended) */

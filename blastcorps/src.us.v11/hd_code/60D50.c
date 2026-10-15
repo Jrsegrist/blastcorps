@@ -27,8 +27,8 @@ typedef struct {
  * `level` is the loaded level header (gLevelData). Its words at 0x40/0x44 are
  * the start/end offsets of a HeightZone list. Finds the highest zone that
  * contains the player (inclusive bounds, starting from -1). A result of
- * HEIGHT_ZONE_NONE sets D_80364411; otherwise gCamHeight = height * 32 +
- * gCamHeightBase and D_80364411 is cleared. The asm loops with `!=`, so the end
+ * HEIGHT_ZONE_NONE sets gCamNoHeightZone; otherwise gCamHeight = height * 32 +
+ * gCamHeightBase and gCamNoHeightZone is cleared. The asm loops with `!=`, so the end
  * offset must be start + n * 10. */
 void cam_apply_height_zone(u8 *level) {
     HeightZone *zone = (HeightZone *) (level + *(s32 *) (level + 0x40));
@@ -48,10 +48,10 @@ void cam_apply_height_zone(u8 *level) {
     }
 
     if (best == HEIGHT_ZONE_NONE) {
-        D_80364411 = 1;
+        gCamNoHeightZone = 1;
     } else {
         gCamHeight = (best << 5) + ((u16) gCamHeightBase);
-        D_80364411 = 0;
+        gCamNoHeightZone = 0;
     }
 }
 #else

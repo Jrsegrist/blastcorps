@@ -11,7 +11,7 @@
 #define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
 #define gGlobeLevels ((FeLevelEntry *) gGlobeLevels)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F49F4 ((IconInfo *) D_802F49F4)
+#define gYoshiSprites ((IconInfo *) gYoshiSprites)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
@@ -43,9 +43,9 @@
 
 typedef struct {
     u8 pad0[4];
-    char * N64P unk4; /* level name */
+    char * N64P name; /* level name */
     u8 pad8[0x10];
-    s8 unk18[0x18]; /* -1 terminated */
+    s8 commRoutes[0x18]; /* -1 terminated */
 } FeLevelEntry;     /* 0x30 bytes, one per level */
 
 /* (gLevelInfo[]: LevelInfo, game/types.h) */
@@ -81,11 +81,11 @@ typedef struct {
     u8 pad2E[2];
 } IconInfo;
 
-extern char D_8036B980[];
-extern u16 D_80303B3C[];
-extern u16 D_80303B48[];
-extern u16 D_80303B58[];
-extern u16 D_80303B68[];
+extern char gStatsLevelName[];
+extern u16 gNewBestJText[];
+extern u16 gBestToDateJText[];
+extern u16 gBestStaysJText[];
+extern u16 gGuestBestJText[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* heap pointer */
 #endif
@@ -98,7 +98,7 @@ extern f32 gBootSpinSpeed; /* spin speed */
 
 /* ROM bounds of two compressed blobs (the first ends where the second starts) */
 extern u8 D_0048F5A0_end[];
-extern u8 D_0048F970[];
+extern u8 romBootIcon[];
 extern u8 D_0048F970_end[];
 
 int sprintf(char *, const char *, ...);
@@ -129,11 +129,11 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     p = &players[playerNumber];
     l = &gLevelInfo[levelno];
     PRINT_SCORE("new", nss);
-    PRINT_SCORE("old", D_8036EA60);
-    PRINT_SCORE("res", D_8036EA80);
-    PRINT_SCORE("rs2", D_8036EA90);
+    PRINT_SCORE("old", gScoreOld);
+    PRINT_SCORE("res", gScoreRes);
+    PRINT_SCORE("rs2", gScoreRs2);
     debug_printf("units %d\n", p->units);
-    if (gLevelInfo[levelno].kind == 1) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
         t = stats_print_status();
         if (arg2) {
             if (arg1) {
@@ -146,7 +146,7 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
                 } else {
                     nss.coin = 5;
                 }
-                if (D_803643D5) {
+                if (gLevelFirstClear) {
                     debug_printf("Units up 3\n");
                     p->units += 3;
                 }
@@ -159,16 +159,16 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     } else {
         ret = fe_stats_grade_timed_level(levelno, arg1, arg2);
     }
-    sprintf(D_8036B980, "%s", (char *) gGlobeLevels[levelno].unk4); /* (char *): a N64P through varargs */
+    sprintf(gStatsLevelName, "%s", (char *) gGlobeLevels[levelno].name); /* (char *): a N64P through varargs */
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
-        if (gLevelInfo[levelno].kind == 1) {
-            p->money = ((s32) D_803649F0);
+        if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
+            p->money = ((s32) gLevelMoney);
         }
         if (p->units < 360) {
-            debug_printf("UNITS UP %d\n", nss.coin % 5 - D_8036EA60.coin % 5);
-            p->units += nss.coin % 5 - D_8036EA60.coin % 5;
+            debug_printf("UNITS UP %d\n", nss.coin % 5 - gScoreOld.coin % 5);
+            p->units += nss.coin % 5 - gScoreOld.coin % 5;
         }
         if (p->units == 354) {
             p->units += 6;
@@ -177,12 +177,12 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
             *arg0 = 1;
             p->title++;
         }
-        if (!(gLevelInfo[levelno].kind & 0x81)) {
+        if (!(gLevelInfo[levelno].kind & LEVEL_KIND_ANY_MISSION)) {
             p->bestVehicle[levelno] = nss.bdn;
         }
-        gBestTimes[playerNumber][D_802E8C44[nss.bdn]] = nss.tc;
-        if (D_803643D5 && gLevelInfo[levelno].kind == 1) {
-            gBestTimes[playerNumber][D_802E8C44[0]] = nss.tc;
+        gBestTimes[playerNumber][gVehicleTimeSlot[nss.bdn]] = nss.tc;
+        if (gLevelFirstClear && gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
+            gBestTimes[playerNumber][gVehicleTimeSlot[0]] = nss.tc;
         }
         p->medal[levelno] = ret;
         fe_player_ticker_reset(playerNumber);
@@ -193,8 +193,8 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
 /* results screen banner and its glyph list, by outcome */
 char * N64P gBestBanners[] = { N64_DPTR("YOUR NEW BEST!"), N64_DPTR("BEST TO DATE"), N64_DPTR("YOUR BEST STAYS"),
                               N64_DPTR("GUEST BEST IS") };
-u16 * N64P gBestBannerGlyphs[] = { N64_DPTR(D_80303B3C), N64_DPTR(D_80303B48), N64_DPTR(D_80303B58),
-                             N64_DPTR(D_80303B68) };
+u16 * N64P gBestBannerGlyphs[] = { N64_DPTR(gNewBestJText), N64_DPTR(gBestToDateJText), N64_DPTR(gBestStaysJText),
+                             N64_DPTR(gGuestBestJText) };
 
 /* Grade a timed level `arg0` and record the best time; returns the grade (0x801EEDB4).
  * K&R in the matching build (its callers pass unmasked ints). */
@@ -223,21 +223,21 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
         ghost_keep_if_best(stats_tenths_to_frames(nss.tc));
     }
     if (arg2 && arg1) {
-        if (gLevelInfo[arg0].kind == 0x80) {
+        if (gLevelInfo[arg0].kind == LEVEL_KIND_MISSION_TIMED) {
             nss.bdn = 0;
-        } else if (nss.tc <= D_8036EA60.tc) {
-            nss.bdn = D_803643D4;
+        } else if (nss.tc <= gScoreOld.tc) {
+            nss.bdn = gDiggerVehicle;
         } else if (nss.tc != 0xFFFF &&
-                   ((old = gBestTimes[playerNumber][D_802E8C44[D_803643D4]]) == 0 || nss.tc < old)) {
-            gBestTimes[playerNumber][D_802E8C44[D_803643D4]] = nss.tc;
+                   ((old = gBestTimes[playerNumber][gVehicleTimeSlot[gDiggerVehicle]]) == 0 || nss.tc < old)) {
+            gBestTimes[playerNumber][gVehicleTimeSlot[gDiggerVehicle]] = nss.tc;
         }
     }
-    if (nss.tc <= D_8036EA60.tc && arg1) {
+    if (nss.tc <= gScoreOld.tc && arg1) {
         nss.coin = fe_stats_grade_time(nss.tc, arg0, players[playerNumber].gameState);
     } else {
-        nss.tc = D_8036EA60.tc;
+        nss.tc = gScoreOld.tc;
     }
-    if (nss.tc < D_8036EA60.tc && !D_803643D5) {
+    if (nss.tc < gScoreOld.tc && !gLevelFirstClear) {
         x = 0x484;
         if (arg2) {
             x = 0x584;
@@ -246,19 +246,19 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
         x = 0x480;
     }
     hud_format_time(buf, nss.tc, 0);
-    sprintf(&D_8036B9A8[0x80], "****%s*", buf);
+    sprintf(&gStatusLines[0x80], "****%s*", buf);
     if (arg1) {
         m = &gYoshiFeItems[25];
         gYoshiFeItems[25].unk0 = x;
         debug_printf("getting icon %d\n", nss.bdn);
         m->unk14 = nss.bdn + 0x22;
-        e = &D_802F49F4[m->unk14];
+        e = &gYoshiSprites[m->unk14];
         m->unk1A = spr_load(e->unk6, 0, e->unk4, e->unk2C, e->unk2D | 4, 1.0f);
         if (playerNumber != playerNumberAtStart) {
             idx = 3;
-        } else if (gNextGameMode == MODE_LEVEL_STATUS || D_803643D5) {
+        } else if (gNextGameMode == MODE_LEVEL_STATUS || gLevelFirstClear) {
             idx = 1;
-        } else if (nss.tc < D_8036EA60.tc) {
+        } else if (nss.tc < gScoreOld.tc) {
             idx = 0;
         } else {
             idx = 2;
@@ -277,10 +277,10 @@ s8 fe_stats_count_unlocks(void) {
     s32 count;
 
     e = &gGlobeLevels[levelno];
-    if (e->unk18[0] == -1) {
+    if (e->commRoutes[0] == -1) {
         return -1;
     }
-    for (i = 0, count = 0; e->unk18[i] != -1 && i < 2; i++) {
+    for (i = 0, count = 0; e->commRoutes[i] != -1 && i < 2; i++) {
         if (players[playerNumber].commPts[levelno] & (1 << i)) {
             count++;
         }
@@ -323,18 +323,18 @@ void fe_boot_screen_init(s32 arg0) {
     s32 size1;
     s32 size2;
 
-    size1 = D_0048F5A0_end - D_0048F5A0;
-    size2 = D_0048F970_end - D_0048F970;
+    size1 = D_0048F5A0_end - romBootBanner;
+    size2 = D_0048F970_end - romBootIcon;
     fe_scene_load(arg0);
     if (arg0 == 2) {
         gBootSceneAngle = 90;
     } else {
         gBootSceneAngle = 0;
     }
-    hd_rom_load((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
+    hd_rom_load((u32) romBootBanner, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
     gBootBannerTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size1;
-    hd_rom_load((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
+    hd_rom_load((u32) romBootIcon, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
     gBootIconTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size2;
     gBootScene = arg0;
@@ -365,8 +365,8 @@ void fe_boot_screen_frame(void) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000038);
-    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
+    gSPDisplayList(gdl++, seg1RspInitDl);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     gDPSetDepthImage(gdl++, gDepthBufferPhys);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
@@ -398,13 +398,13 @@ void fe_boot_screen_frame(void) {
         }
     }
     if (gFramesInMode < 2) {
-        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
+        guPerspective(&dyn->persp, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
         if (gBootScene == 1) {
-            guTranslate(&dyn->unk1280, 0.0f, -130.0f, 0.0f);
-            guRotate(&dyn->unk12C0, 35.0f, 0.1f, 0.0f, 0.0f);
+            guTranslate(&dyn->sceneTranslate, 0.0f, -130.0f, 0.0f);
+            guRotate(&dyn->sceneRotate, 35.0f, 0.1f, 0.0f, 0.0f);
         } else {
-            guTranslate(&dyn->unk1280, 0.0f, 0.0f, 0.0f);
-            guRotate(&dyn->unk12C0, -10.0f, 0.1f, 0.0f, 0.0f);
+            guTranslate(&dyn->sceneTranslate, 0.0f, 0.0f, 0.0f);
+            guRotate(&dyn->sceneRotate, -10.0f, 0.1f, 0.0f, 0.0f);
         }
     }
     if (gFramesInMode >= 20) {
@@ -421,10 +421,10 @@ void fe_boot_screen_frame(void) {
         } else if (gFramesInMode == 75 && gBootScene == 1) {
             snd_play(gSfxBank, SFX_BOOT1_LAND, NULL);
         }
-        guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, gBootCamDist, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+        guLookAtReflect(&dyn->view, &dyn->lookAt, 1.0f, 0.0f, gBootCamDist, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         gBootSceneAngle += gBootSpinSpeed;
         guRotate(&gFeSceneRot[gBufferIndex], gBootSceneAngle % 360, 0.0f, 1.0f, 0.0f);
-        guScale(&dyn->unk1300, 1.5f, 1.5f, 1.5f);
+        guScale(&dyn->sceneScale, 1.5f, 1.5f, 1.5f);
         gDPSetRenderMode(gdl++, G_RM_AA_ZB_OPA_INTER, G_RM_NOOP2);
         gdl = fe_scene_draw(dyn, gdl);
     }

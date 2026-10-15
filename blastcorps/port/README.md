@@ -245,7 +245,7 @@ streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
   3. `data/image_static.txt`: fixed-address accesses of the native code, for
      bytes 1-2 leave untyped (made once by `tools/mixscan.py --widths` over
      the retired i686 build's gcc assembly);
-  4. `data/image_overrides.txt`: hand decisions (D_802F46C0 DL commands as
+  4. `data/image_overrides.txt`: hand decisions (gObjFadeCmdSubs DL commands as
      words, the gUseEeprom flag/word alias kept big-endian, struct copies).
   Bytes from C objects need nothing: their native initialisers are copied
   over the image. `make -C port typemap` prints the coverage.
@@ -375,7 +375,7 @@ big-endian pixels), and hashes the ucode from a word-swapped copy (the
 database holds emulator-layout hashes). Gfx commands and Mtx are host u32
 words in both layouts.
 
-**L3D.** The front end's ucode (D_80207090, slot 0) is Fast3D's line build;
+**L3D.** The front end's ucode (gL3dText, slot 0) is Fast3D's line build;
 RT64 knew it by hash ("L3D Blast Corps") but had no handler. Patch 0004
 adds `GBIUCode::L3D`: F3D plus G_LINE3D (0xB5, `gSPLineW3D`), drawn by
 `RSP::drawLine` as a screen-space quad 1.5 + wd/2 pixels wide (the vertices
@@ -384,12 +384,12 @@ the inverse MVP). The globe's route lines use it.
 
 How the platform drives it (HostLive in `plat_host.h`; NULL in
 bc_headless):
-- boot: the ucode text and data RT64 hashes (D_802E53F0, D_8030E390,
-  D_80210690) are put back at their addresses as ROM bytes (hd_code's text
+- boot: the ucode text and data RT64 hashes (gF3dText, gF3dData,
+  gL3dData) are put back at their addresses as ROM bytes (hd_code's text
   isn't loaded natively; nothing native reads them).
 - `osSpTaskStartGo`: a gfx task goes to RT64 (`loadUCodeGBI` +
   `processDisplayLists`, after `port_gfx_fix_task`). cull_rsp_test's
-  visibility test (ucode D_802E77B0, whose RDP output the CPU reads) stays
+  visibility test (ucode gCullUcodeText, whose RDP output the CPU reads) stays
   with the platform: os_hw.c `cull_visible` evaluates its list (projection
   and modelview, 8 box corners, 12 triangles): visible iff a triangle is not
   entirely outside one of x = +-w, y = +-w, z = -w in clip space and
@@ -635,7 +635,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
     screen's centre, its texture coordinates with them, so the sky goes on
     to the edges instead of showing the far ground or older pictures above
     the horizon), the full-screen fade quad of a failed mission and of the
-    attract demo's end (17E10.c, D_802FA8B0), the dark panels of the
+    attract demo's end (17E10.c, gFadeVtx), the dark panels of the
     full-width message windows (26570.c gYoshiWindowDl, widened from 80 %
     of the width up), and the front end's background picture (196F0.c
     fe_bg_draw's 64x16 rectangles, drawn with RT64's extended
@@ -1078,7 +1078,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
 The game's audio thread (22EE0.c, Rare's audiomgr) builds a command list
 each audio frame with libaudio (the old-SDK synthesizer, compiled natively
 from the ul_* objects) and starts an M_AUDTASK with the ROM's audio
-microcode (D_802E68F0, the "Blast Corps / Diddy Kong Racing" variant of
+microcode (gAspMainText, the "Blast Corps / Diddy Kong Racing" variant of
 aspMain).  `src/audio/aspmain.c` executes that command list as the RSP
 would: a model of DMEM (the microcode's map: segment table 0x320,
 parameters 0x360, command buffer 0x380, ADPCM table 0x4C0, sample buffers
@@ -1232,7 +1232,7 @@ What the emulator log gives the exe:
   by cmp_spec.py; patched in at start-up, see "MSVC specifics") is a switch
   point: the native thread spins (interrupts and higher-priority threads
   run) until the emulator's time for it, and until the game's retrace
-  counter D_803156C4 reads what it read there. Not for the scheduler and
+  counter gSchedFrameCount reads what it read there. Not for the scheduler and
   audio threads (interrupt driven; their call order follows the RSP).
 - `--frame-done` / `--frame-sp`: when each frame task's RDP and RSP parts
   finished; `--boot-count`: the power-on time when hd_code starts.

@@ -35,7 +35,7 @@ typedef struct {
     /* 0x1A */ u8 unk1A[2];
 } YoshiArg;
 
-/* players[] seen from +0xF0 (D_80364BE0 = players + 0xF0): PlayerInfo.controlModes
+/* players[] seen from +0xF0 (gPlayerControlModes = players + 0xF0): PlayerInfo.controlModes
  * starts each 0x100-byte record (game/types.h) */
 typedef struct {
     /* 0x00 */ u32 controlModes; /* PlayerInfo +0xF0: bit per vehicle type, the other controller mode */
@@ -46,7 +46,7 @@ extern OSContPad gContPad; /* this frame's pad */
 extern OSMesg gSiMesgBuf;
 extern OSContStatus gContStatus;
 extern u8 gContReadPending; /* a read is in flight */
-extern PlayerCtlView D_80364BE0[];
+extern PlayerCtlView gPlayerControlModes[];
 
 /* stick x/y: this frame and last frame */
 /* one flag per button, set while held */
@@ -61,7 +61,7 @@ extern u8 gPrevHeldCUp;
 extern s8 gPrevPadStickY;
 /* the alternative pad source */
 extern s32 D_80370BC0;
-extern s32 D_80370C40;
+extern s32 gRecControlMethod;
 
 void cont_process_stick(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y);
 void cont_buttons_to_stick(u16 btn, s8 *x, s8 *y);
@@ -108,7 +108,7 @@ void cont_update(void) {
     s32 unused;
     s32 mode;
 
-    if (((u32) D_80358064) != 0) {
+    if (((u32) gPlayFrames) != 0) {
         if (pakBusy == 0 && gContReadPending != 0) {
             osRecvMesg(&gSiMesgQueue, NULL, 1);
             osContGetReadData(pad);
@@ -151,9 +151,9 @@ void cont_update(void) {
                     do {
                         rec_next();
                         if (gRecButtons & 0x40) {
-                            D_80370C40 = 0;
+                            gRecControlMethod = 0;
                         } else if (gRecButtons & 0x80) {
-                            D_80370C40 = 1;
+                            gRecControlMethod = 1;
                         }
                     } while (gRecButtons & 0xC0);
                 }
@@ -179,13 +179,13 @@ void cont_update(void) {
                 pad->stick_y = 0;
                 break;
         }
-        D_80370C34 = 0;
+        gSteerAirborne = 0;
         if (gGameMode & (MODE_ATTRACT | MODE_LEVEL | MODE_REPLAY | MODE_MAP_VIEW | MODE_REPLAY_CARRIER_END | MODE_LEVEL_START | MODE_GLOBE_SEQ | MODE_YOSHI_PAGES)) {
-            D_803ED40A = 0;
-            D_803F7C34 = 0;
+            gSteerHeadingSnap = 0;
+            gContSteerError = 0;
             if (gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) {
-                mode = D_80370C40;
-            } else if (D_80364BE0[playerNumber].controlModes & (1 << gCurVehicle)) {
+                mode = gRecControlMethod;
+            } else if (gPlayerControlModes[playerNumber].controlModes & (1 << gCurVehicle)) {
                 mode = 1;
             } else {
                 mode = 0;
@@ -200,28 +200,28 @@ void cont_update(void) {
                 switch (mode) {
                     case 0:
                         switch (gCurVehicle) {
-                            case 9:
+                            case VEH_JBOMB:
                                 if (gJbombAirborne) {
-                                    D_80370C34 = 1;
+                                    gSteerAirborne = 1;
                                 }
-                            case 0:
-                            case 2:
-                            case 16:
+                            case VEH_DRIVER:
+                            case VEH_THUNDERFIST:
+                            case VEH_CYCLONE:
                                 cont_stick_to_steer(&pad->stick_x, &pad->stick_y, gCurVehicle);
                                 cont_dead_zone(&pad->stick_x, &pad->stick_y);
                                 break;
                             default:
-                                D_80370C75 = 0;
+                                gSteerTurnAround = 0;
                                 cont_process_stick(0, 0, &pad->button, &pad->stick_x, &pad->stick_y);
                                 break;
                         }
                         break;
                     case 1:
-                        if (gCurVehicle == 9) {
-                            D_80370C75 = 0;
+                        if (gCurVehicle == VEH_JBOMB) {
+                            gSteerTurnAround = 0;
                             cont_process_stick(1, 1, &pad->button, &pad->stick_x, &pad->stick_y);
                         } else {
-                            D_80370C75 = 0;
+                            gSteerTurnAround = 0;
                             cont_process_stick(1, 0, &pad->button, &pad->stick_x, &pad->stick_y);
                         }
                         break;
@@ -364,11 +364,11 @@ void cont_buttons_to_stick(u16 btn, s8 *x, s8 *y) {
 /* Snap the stick to -80/0/80 for the digital control methods */
 void cont_snap_stick(s8 *x, s8 *y) {
     switch (gCurVehicle) {
-        case 1:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
+        case VEH_SIDESWIPE:
+        case VEH_SKYFALL:
+        case VEH_RAMDOZER:
+        case VEH_BACKLASH:
+        case VEH_CRANE:
             if (*x <= 50 && *x >= -50) {
                 *x = 0;
             } else {
@@ -454,10 +454,10 @@ void cont_show_method_option(void) {
     gYoshiGameItems[421].jtext = NULL;
     gYoshiGameItems[422].text = tbl[i];
     gYoshiGameItems[422].unk6 = 0x13;
-    if ((D_80364BE0[playerNumber].controlModes ^ 0x10205) & (1 << gCurVehicle)) {
-        gYoshiWindows[88].unk18 = 0x1A8;
+    if ((gPlayerControlModes[playerNumber].controlModes ^ 0x10205) & (1 << gCurVehicle)) {
+        gYoshiWindows[YW_CONTROL_METHOD].unk18 = 0x1A8;
     } else {
-        gYoshiWindows[88].unk18 = 0x1A7;
+        gYoshiWindows[YW_CONTROL_METHOD].unk18 = 0x1A7;
     }
-    yoshi_demand(0x8058);
+    yoshi_demand(YOSHI_DEMAND_OPEN | YW_CONTROL_METHOD);
 }

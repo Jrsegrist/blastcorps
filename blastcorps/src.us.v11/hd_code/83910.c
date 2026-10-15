@@ -60,7 +60,7 @@ extern u64 * N64P gBarge12MtxB;
 extern u8 gBarge0BBounced;
 extern u8 gBarge11Bounced;
 extern u8 gBarge12Bounced;
-extern u8 D_80306410[];
+extern u8 gBargeNonBlockingParts[];
 
 void barge_spawn_0b(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 void barge_spawn_11(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
@@ -189,11 +189,11 @@ static void veh83910_frame(const VehDesc83910 *d) {
     }
     d->model();
     /* b0 / h2 are the model update's leftover t0 (x) and t2 (the type) */
-    veh_collision_setup(pos[2], (s32) D_80306410, 0, 0, pos[0], pos[1], pos[0], VEH_S16(veh, VS_SPEED), d->type, 0,
+    veh_collision_setup(pos[2], (s32) gBargeNonBlockingParts, 0, 0, pos[0], pos[1], pos[0], VEH_S16(veh, VS_SPEED), d->type, 0,
                   d->type, veh);
     veh_collide_spheres(d->type, veh);
     veh_collide_world(d->type);
-    D_803F77D0 = d->chan;
+    gCollVehicleAnim = d->chan;
     obj_collide_vehicle(d->type, veh);
     if (gCollHit != 0) {
         if (*d->flag == 0) {
@@ -216,9 +216,9 @@ static void veh83910_frame(const VehDesc83910 *d) {
     gPlayerX = pos[0];
     gPlayerY = pos[1];
     gPlayerZ = pos[2];
-    D_8036443C = VEH_S16(veh, VS_SPEED);
-    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
-    D_80364440 = VEH_U16(veh, VS_HEADING);
+    gPlayerSpeed = VEH_S16(veh, VS_SPEED);
+    gPlayerMoveHeading = VEH_U16(veh, VS_MOVE_HEADING);
+    gPlayerHeading = VEH_U16(veh, VS_HEADING);
     veh_set_record(pos[2], d->type, pos[0], pos[1], veh);
 }
 
@@ -324,9 +324,9 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
  * leaves them, and lvl_spawn_vehicles hands fp and f12-f26 on to the next
  * object's spawn (not modelled; see the fidelity notes). */
 void barge_spawn(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
-    if (type == 0x0B) {
+    if (type == VEH_BARGE_0B) {
         barge_spawn_0b(x, y, z, angle, data, fp);
-    } else if (type == 0x11) {
+    } else if (type == VEH_BARGE_11) {
         barge_spawn_11(x, y, z, angle, data, fp);
     } else {
         barge_spawn_12(x, y, z, angle, data, fp);
@@ -565,17 +565,17 @@ void barge_build_model_12(void) {
         (out) = _r;                                                     \
     } while (0)
 
-extern f32 D_8030D980;
+extern f32 gBargeSteerDivisor;
 
 /* A barge's steering rate (no callers) (0x802C9AF8).
- * Speed (s16 at +0x76 of the vehicle block) / D_8030D980, rounded to
+ * Speed (s16 at +0x76 of the vehicle block) / gBargeSteerDivisor, rounded to
  * nearest. The asm takes the block in $gp and returns the value in s3 (see
  * tools_port/conventions.txt); nothing calls it directly, so which of this
  * file's three blocks it gets is unknown, hence the parameter. */
 s32 barge_steer_rate(u8 *state) {
     s32 r;
 
-    CVT_W_S(r, *(s16 *) (state + 0x76) / D_8030D980);
+    CVT_W_S(r, *(s16 *) (state + 0x76) / gBargeSteerDivisor);
     return r;
 }
 #else

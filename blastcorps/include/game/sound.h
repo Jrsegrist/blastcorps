@@ -123,6 +123,12 @@
 #define SND_GROUP_DONE_PANEL    3
 #define SND_GROUP_DOING_WELL    4
 
+/* Effect kinds: byte 0x31 of an effect record (obj_queue_effect); per kind, the effect
+ * definitions gObjEffectDefLists[kind] and the sound gEffectSounds[kind] (snd_play_effect). Kinds
+ * come from ROM records/tables; only one is set by code. */
+#define EFFECT_KIND_COUNT        28    /* snd_play_effect: "effect id %d out of range!" */
+#define EFFECT_KIND_COMMPT_BURST 0x15  /* commpt_burst's 24 records; fx_spawn tag 1 */
+
 /* ---- music tunes: music_start_tune / music_push_tune (0x42 sequences) ---- */
 #define MUS_INTRO_FLYOVER     0x03 /* MODE_INTRO_FLY / MODE_INTRO_LANDING */
 #define MUS_REPLAY            0x0A

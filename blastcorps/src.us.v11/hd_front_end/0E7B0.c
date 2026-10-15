@@ -78,7 +78,7 @@ extern char gPakFileLines[][40]; /* file menu lines */
 extern s32 gPakFreeBytes;        /* free bytes */
 extern char gPakFreeText[];
 extern char gPakNeededText[];
-extern u8 D_80301080[];
+extern u8 gDeleteFileJText[];
 extern s32 gPakFileNo[];      /* file_no per player */
 extern u8 gPakThreadStack[];       /* thread stack (0x1000) */
 extern OSMesg gPakRequestMesgs[];
@@ -359,7 +359,7 @@ void fe_pak_thread(void) { /* the original takes no parameter (no $a0 home) */
         } while (!done);
         if (gPakErrorShown) {
             yoshiState = 1;
-            currentYoshiWindow = -1;
+            currentYoshiWindow = NO_YOSHI_WINDOW;
         }
         if (reply) {
             osSendMesg(&pakToGameMessageQ, (OSMesg) ret, OS_MESG_BLOCK);
@@ -455,7 +455,7 @@ s32 fe_pak_rw_player(u8 player, u8 rw) {
         fe_pak_add_crc(p, 0x100);
     }
     if (gUseEeprom != 0 || gGameMode == MODE_ERASE_SAVE) {
-        if (gEepromPresent == 0 || D_802FA264 != 0) {
+        if (gEepromPresent == 0 || gDebugRamEeprom != 0) {
             for (i = 0; i < 0x100; i++) {
                 if (rw == 1) {
                     gSaveImage[i] = p[i];
@@ -527,7 +527,7 @@ s32 fe_pak_rw_times(u8 player, u8 slot, u8 rw) {
             ret = osPfsReadWriteFile(&gPfs, gPakFileNo[player], rw, start, 0x20, p);
         }
         for (i = 0; i < 14; i++) {
-            debug_printf("%d TIME %d = %d\n", rw, i, gBestTimes[player][D_802E8C44[i]]);
+            debug_printf("%d TIME %d = %d\n", rw, i, gBestTimes[player][gVehicleTimeSlot[i]]);
         }
     }
     if (ret == 0 && rw == 0) {
@@ -551,7 +551,7 @@ s32 fe_pak_rw_eeprom_times(u8 pn, u8 level, u8 rw) {
     if (gUseEeprom != 0) {
         PFS_ASSERT(pn==playerNumberAtStart, 604);
         if (rw == 1) {
-            gEepTimes[idx] = gBestTimes[pn][D_802E8C44[players[pn].bestVehicle[level]]];
+            gEepTimes[idx] = gBestTimes[pn][gVehicleTimeSlot[players[pn].bestVehicle[level]]];
             gEepTimes[idx + 1] = gEepTimes[idx] ^ 0x55AA;
             debug_printf("%d %d EEWRITE %x %x\n", level, gEepTimes[idx], (u32) (idx * 2 + 0x100) >> 3, p);
             PORT_SAVE_BEGIN(p, PORT_SAVE_EETIMES, 8);
@@ -564,7 +564,7 @@ s32 fe_pak_rw_eeprom_times(u8 pn, u8 level, u8 rw) {
             for (i = 0; i < 2; i++, level++) {
                 if (((players[pn].medal[level] > 0 && players[pn].medal[level] < 6) ? 1 : 0)
                     && level != 0x31 && level != 0x2F && level != 0x26) {
-                    gBestTimes[pn][D_802E8C44[players[pn].bestVehicle[level]]] = gEepTimes[level * 2];
+                    gBestTimes[pn][gVehicleTimeSlot[players[pn].bestVehicle[level]]] = gEepTimes[level * 2];
                     debug_printf("%d EETIMES: %d %d\n", level, gEepTimes[level * 2], gEepTimes[level * 2 + 1] ^ 0x55AA);
                     if (gEepTimes[level * 2] != (gEepTimes[level * 2 + 1] ^ 0x55AA)) {
                         ret = 0x6E382;
@@ -627,7 +627,7 @@ s32 fe_pak_rw_status(u8 player, u8 nlevels, u8 rw) {
     ret = 0;
     count = 0;
     for (i = 0; i < nlevels; i++) {
-        if (gLevelInfo[i].kind == 1 && i != 0x31 && i != 0x2F && i != 0x26) {
+        if (gLevelInfo[i].kind == LEVEL_KIND_MISSION && i != 0x31 && i != 0x2F && i != 0x26) {
             count++;
         }
     }
@@ -720,7 +720,7 @@ s32 fe_pak_list_files(void) {
     sprintf(gPakNeededText, "%d NEEDED PER PLAYER", 14);
     gYoshiFeItems[36].text = gPakNeededText;
     gYoshiFeItems[10].text = "DELETE THIS FILE?";
-    gYoshiFeItems[10].unk10 = D_80301080;
+    gYoshiFeItems[10].unk10 = gDeleteFileJText;
     return gPakFileCount != 0;
 }
 

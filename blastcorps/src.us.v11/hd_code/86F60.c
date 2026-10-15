@@ -29,9 +29,9 @@ void police_build_model(void);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F8F42;
-extern u8 D_803F8F43;
-extern u8 D_803F8F44;
+extern u8 gPoliceDustTimer;
+extern u8 gPoliceEscaping;
+extern u8 gPoliceThrottleHold;
 extern u8 gPoliceLightPhase;
 
 #define VEH13_S16(off) (*(s16 *) (gPoliceState + (off)))
@@ -47,7 +47,7 @@ extern u8 gPoliceLightPhase;
  * load the model channels (anim_init_model), set channel 0 (anim_set_speed 100,
  * 03D4/040C 0, 0480 0.0, 0290 1), run them into both copies (anim_update_model,
  * anim_rewind, anim_play); the speed bands at +0x78..+0x94; clear
- * D_803F8F42..45; the bounding spheres (veh_register_parts, tag 0xD, scale
+ * gPoliceDustTimer..45; the bounding spheres (veh_register_parts, tag 0xD, scale
  * 0x4268); veh_add_shadow(0xD, 60, 25, 25); one update with +0x9A set
  * (police_update); and finally copy the model matrix (word +4 of the entry
  * at hdr + hdr[6]) from gPoliceMtxB to gPoliceMtxA (mtx_copy_at).
@@ -70,7 +70,7 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gPoliceMtxA = (u64 *) p;
     gPoliceMtxB = (u64 *) (p + 0x100);
     gHeapPtr = p + 0x200;
-    veh_add_record(0xD, 0, (s32) gPoliceMtxA, (s32) gPoliceMtxB, hdr);
+    veh_add_record(VEH_POLICE, 0, (s32) gPoliceMtxA, (s32) gPoliceMtxB, hdr);
     veh_reset_state(gPoliceState);
     VEH13_S16(VS_WHEEL_OFFSETS) = 200;
     VEH13_S16(0x54) = 350;
@@ -119,13 +119,13 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     VEH13_S16(0x90) = 180;
     VEH13_S16(0x92) = 340;
     VEH13_S16(0x94) = 2;
-    D_803F8F42 = 0;
-    D_803F8F43 = 0;
-    D_803F8F44 = 0;
+    gPoliceDustTimer = 0;
+    gPoliceEscaping = 0;
+    gPoliceThrottleHold = 0;
     gPoliceLightPhase = 0;
     h = gPoliceModel;
     veh_register_parts(0xD, h + *(s32 *) (h + 4), h + *(s32 *) (h + 8), 0x4268);
-    veh_add_shadow(0xD, 60, 25, 25);
+    veh_add_shadow(VEH_POLICE, 60, 25, 25);
     gPoliceState[0x9A] = 1;
     police_update();
     gPoliceState[0x9A] = 0;
@@ -140,12 +140,12 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 gPoliceState[]; /* this vehicle's state block */
-extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
-extern u8 D_802C2348[];
+extern u8 gTexAnimPoliceLightsA[]; /* channel keys (7D9D0 text blob) */
+extern u8 gTexAnimPoliceLightsB[];
 
 /* Getting into the police car (0x802CBA94).
  * Enter vehicle type 13: clears the byte at +0x99, gCamDistance / gCamHeightBase = 3000,
- * 1000, resets the two channels keyed D_802C2324 and D_802C2348 (unk14,
+ * 1000, resets the two channels keyed gTexAnimPoliceLightsA and gTexAnimPoliceLightsB (unk14,
  * unk11, unk12 = 0, then anim_tex_play with -1), then veh_start_engine_sound(arg0,
  * 0xCE) (arg0 passes straight through; hd.c calls this with no arguments
  * and veh_start_engine_sound ignores it). The asm also points $gp at gPoliceState and
@@ -155,14 +155,14 @@ void police_enter(s32 arg0) {
     gPoliceState[0x99] = 0;
     gCamDistance = 3000;
     gCamHeightBase = 1000;
-    anim_tex_set_speed((s32) D_802C2324, 0);
-    anim_tex_set_reverse((s32) D_802C2324, 0);
-    anim_tex_set_loop_mode((s32) D_802C2324, 0);
-    anim_tex_play((s32) D_802C2324, -1);
-    anim_tex_set_speed((s32) D_802C2348, 0);
-    anim_tex_set_reverse((s32) D_802C2348, 0);
-    anim_tex_set_loop_mode((s32) D_802C2348, 0);
-    anim_tex_play((s32) D_802C2348, -1);
+    anim_tex_set_speed((s32) gTexAnimPoliceLightsA, 0);
+    anim_tex_set_reverse((s32) gTexAnimPoliceLightsA, 0);
+    anim_tex_set_loop_mode((s32) gTexAnimPoliceLightsA, 0);
+    anim_tex_play((s32) gTexAnimPoliceLightsA, -1);
+    anim_tex_set_speed((s32) gTexAnimPoliceLightsB, 0);
+    anim_tex_set_reverse((s32) gTexAnimPoliceLightsB, 0);
+    anim_tex_set_loop_mode((s32) gTexAnimPoliceLightsB, 0);
+    anim_tex_play((s32) gTexAnimPoliceLightsB, -1);
     veh_start_engine_sound(arg0, 0xCE);
 }
 #else
@@ -345,9 +345,9 @@ s32 police_ride_follow(s32 id, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803F8F40; /* steering target */
-extern f32 D_8030D9B0;
-extern u8 D_80306430[];
+extern s16 gPoliceEscapeHeading; /* steering target */
+extern f32 gPoliceEscapeTurnRate;
+extern u8 gPoliceNonBlockingParts[];
 void police_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3);
 s32 police_steer_rate(void);
 
@@ -357,18 +357,18 @@ s32 police_steer_rate(void);
  * 0xD (veh_update_horn); unless +0x9A is set, the effects (police_update_effects with
  * the zone scan registers); veh_start_turbo when gTurboPending; timers
  * (police_set_physics); turn rate from the speed (police_steer_rate -> veh_steer);
- * speed bands (veh_throttle, or count down D_803F8F44); acceleration and
+ * speed bands (veh_throttle, or count down gPoliceThrottleHold); acceleration and
  * heading (veh_turn_heading, veh_slope -> veh_apply_slope with 700.0, the
- * reverse target veh_set_target_heading when D_803F8F43); the move (veh_move_along_heading)
+ * reverse target veh_set_target_heading when gPoliceEscaping); the move (veh_move_along_heading)
  * and ground contact (veh_ground_contact, gBounceSound = 1); channels
  * (anim_update_model, current copy first); model (police_build_model); collision
  * (veh_collision_setup, veh_collide_spheres, veh_collide_world). Then: if gCollBlocked is
  * clear, gCollHit = 0 and the object hits (obj_collide_vehicle); a hit
- * (gCollHit set) clears D_803F8F43, restores the saved record
- * (veh_rollback), sets D_803F8F44 = 5, bounces the speed (-(clamped to at
+ * (gCollHit set) clears gPoliceEscaping, restores the saved record
+ * (veh_rollback), sets gPoliceThrottleHold = 5, bounces the speed (-(clamped to at
  * least 50 away from 0) >> 1) and re-places the model; no hit just clears
- * D_803F8F43. If gCollBlocked is set: veh_prepare_escape, D_803F8F43 = 1, then the
- * ring steering (veh_reverse_if_behind, veh_turn_into_free_arc -> D_803F8F40 / +0x4E / +0x74,
+ * gPoliceEscaping. If gCollBlocked is set: veh_prepare_escape, gPoliceEscaping = 1, then the
+ * ring steering (veh_reverse_if_behind, veh_turn_into_free_arc -> gPoliceEscapeHeading / +0x4E / +0x74,
  * veh_step_heading, veh_hit_slowdown(0)) and the object hits. Finally the
  * position, speed and headings are published to gPlayerX.. and
  * veh_set_record(z, 0xD, x, y, block).
@@ -412,11 +412,11 @@ void police_update(void) {
     }
     police_set_physics();
     veh_steer(police_steer_rate(), (u16 *) (gPoliceState + 0x4C));
-    if (D_803F8F44 == 0) {
+    if (gPoliceThrottleHold == 0) {
         veh_throttle(gPoliceState, (s16 *) (gPoliceState + 0x76), 3, gPoliceState + 0x96, (s16 *) (gPoliceState + 0x78),
                       0x14);
     } else {
-        D_803F8F44--;
+        gPoliceThrottleHold--;
     }
     veh_turn_heading(gPoliceState, (u16 *) (gPoliceState + 0x74), 0x2EE0, (s16 *) (gPoliceState + 0x76),
                   (u16 *) (gPoliceState + 0x4C), (u16 *) (gPoliceState + 0x4E), (s8 *) (gPoliceState + 0x99), 1);
@@ -424,8 +424,8 @@ void police_update(void) {
                           (f32 *) gPoliceState);
     veh_apply_slope(gPoliceState, (s16 *) (gPoliceState + 0x76), 0xD, (s8 *) (gPoliceState + 0x96),
                   (s32 *) (gPoliceState + 4), 1, 700.0f);
-    if ((s8) D_803F8F43 != 0) {
-        veh_set_target_heading(gPoliceState, &D_803F8F40);
+    if ((s8) gPoliceEscaping != 0) {
+        veh_set_target_heading(gPoliceState, &gPoliceEscapeHeading);
     }
     x = veh_move_along_heading(scale, *(u16 *) (gPoliceState + 0x4E), (s16 *) (gPoliceState + 0x76), (s32 *) &gPolicePos[0],
                       (s32 *) &gPolicePos[2], &o);
@@ -447,19 +447,19 @@ void police_update(void) {
         anim_update_model((u8 *) gPoliceMtxB, (u8 *) gPoliceMtxA, (AnimChannel *) gPoliceAnim);
     }
     police_build_model();
-    veh_collision_setup(gPolicePos[2], (s32) D_80306430, 1, 1, gPolicePos[0], gPolicePos[1], 7, VEH13_S16(VS_SPEED), 0x96, 0,
+    veh_collision_setup(gPolicePos[2], (s32) gPoliceNonBlockingParts, 1, 1, gPolicePos[0], gPolicePos[1], 7, VEH13_S16(VS_SPEED), 0x96, 0,
                   0xD, gPoliceState);
     veh_collide_spheres(0xD, gPoliceState);
     veh_collide_world(0xD);
     if (gCollBlocked == 0) {
         gCollHit = 0;
-        D_803F77D0 = gPoliceAnim;
+        gCollVehicleAnim = gPoliceAnim;
         obj_collide_vehicle(0xD, gPoliceState);
         if (gCollHit == 0) {
-            D_803F8F43 = 0;
+            gPoliceEscaping = 0;
             goto publish;
         }
-        D_803F8F43 = 0;
+        gPoliceEscaping = 0;
         if (gBufferIndex != 0) {
             veh_rollback(gPoliceState, gPoliceAnim, (s32 *) &gPolicePos[0], (s32 *) &gPolicePos[1],
                           (s32 *) &gPolicePos[2], gPoliceMtxB, gPoliceMtxA, 0x100, &end);
@@ -467,7 +467,7 @@ void police_update(void) {
             veh_rollback(gPoliceState, gPoliceAnim, (s32 *) &gPolicePos[0], (s32 *) &gPolicePos[1],
                           (s32 *) &gPolicePos[2], gPoliceMtxA, gPoliceMtxB, 0x100, &end);
         }
-        D_803F8F44 = 5;
+        gPoliceThrottleHold = 5;
         v = VEH13_S16(VS_SPEED);
         if (v >= 0) {
             if (v < 50) {
@@ -481,7 +481,7 @@ void police_update(void) {
         goto publish;
     }
     veh_prepare_escape(gPoliceState);
-    D_803F8F43 = 1;
+    gPoliceEscaping = 1;
     d = *(u16 *) (gPoliceState + 0x4E) - 0x800;
     if (d < 0) {
         d += 0xFFF;
@@ -494,21 +494,21 @@ void police_update(void) {
         d = 0xFFF - d;
     }
     veh_reverse_if_behind(gPoliceState);
-    turn = veh_turn_into_free_arc(gPoliceState, *(u16 *) (gPoliceState + 0x4E), *(u16 *) (gPoliceState + 0x4C), &cur, D_8030D9B0);
-    D_803F8F40 = cur;
+    turn = veh_turn_into_free_arc(gPoliceState, *(u16 *) (gPoliceState + 0x4E), *(u16 *) (gPoliceState + 0x4C), &cur, gPoliceEscapeTurnRate);
+    gPoliceEscapeHeading = cur;
     VEH13_S16(VS_MOVE_HEADING) = cur;
     VEH13_S16(VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(gPoliceState, turn, d, &target);
     veh_hit_slowdown(gPoliceState, 0);
-    D_803F77D0 = gPoliceAnim;
+    gCollVehicleAnim = gPoliceAnim;
     obj_collide_vehicle(0xD, gPoliceState);
 publish:
     gPlayerX = gPolicePos[0];
     gPlayerY = gPolicePos[1];
     gPlayerZ = gPolicePos[2];
-    D_8036443C = VEH13_S16(VS_SPEED);
-    D_8036443E = *(u16 *) (gPoliceState + 0x4E);
-    D_80364440 = *(u16 *) (gPoliceState + 0x4C);
+    gPlayerSpeed = VEH13_S16(VS_SPEED);
+    gPlayerMoveHeading = *(u16 *) (gPoliceState + 0x4E);
+    gPlayerHeading = *(u16 *) (gPoliceState + 0x4C);
     veh_set_record(gPolicePos[2], 0xD, gPolicePos[0], gPolicePos[1], gPoliceState);
 }
 #else
@@ -518,19 +518,19 @@ publish:
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 gPoliceLightPhase;   /* animation phase 0, 2..13 */
-extern u8 D_803F8F42;   /* countdown */
-extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
-extern u8 D_802C2348[];
+extern u8 gPoliceDustTimer;   /* countdown */
+extern u8 gTexAnimPoliceLightsA[]; /* channel keys (7D9D0 text blob) */
+extern u8 gTexAnimPoliceLightsB[];
 void police_add_tyre_trail(void);
 
 /* The siren lights (L/R), tyre tracks, dust, engine (0x802CC400).
  * When gHeldL or gHeldR is set, the phase gPoliceLightPhase steps by one,
- * wrapping 14 to 2, else it is reset to 0; both channels keyed D_802C2324 /
- * D_802C2348 get unk13 = phase / 2 and unk4 = 0.0f (anim_tex_set_frame). Then
- * the tyre trail (police_add_tyre_trail) and the countdown D_803F8F42: when nonzero
+ * wrapping 14 to 2, else it is reset to 0; both channels keyed gTexAnimPoliceLightsA /
+ * gTexAnimPoliceLightsB get unk13 = phase / 2 and unk4 = 0.0f (anim_tex_set_frame). Then
+ * the tyre trail (police_add_tyre_trail) and the countdown gPoliceDustTimer: when nonzero
  * it just counts down; at zero, if the byte at +0x99 is set, it restarts at
  * 1 and, when fewer than 15 gEffects records are active (fx_count_active),
- * two fx_spawn records are set up (def D_802C2954, data 0x29810, tag 1,
+ * two fx_spawn records are set up (def gFxExhaustSmoke, data 0x29810, tag 1,
  * type 1 at (0xD, 1, 1) and (0xD, 2, 1)). Then always
  * veh_set_engine_level(|speed| >> 5) (speed = s16 at +0x76).
  * Register convention: the asm passes t6, t7, s0-s3 through to
@@ -553,20 +553,20 @@ void police_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3) {
         s4 = 0;
         gPoliceLightPhase = 0;
     }
-    anim_tex_set_frame(0.0f, (s32) D_802C2324, s4);
-    anim_tex_set_frame(0.0f, (s32) D_802C2348, s4);
+    anim_tex_set_frame(0.0f, (s32) gTexAnimPoliceLightsA, s4);
+    anim_tex_set_frame(0.0f, (s32) gTexAnimPoliceLightsB, s4);
     police_add_tyre_trail();
-    if (D_803F8F42 != 0) {
-        D_803F8F42--;
+    if (gPoliceDustTimer != 0) {
+        gPoliceDustTimer--;
     } else if (gPoliceState[0x99] != 0) {
-        D_803F8F42 = 1;
+        gPoliceDustTimer = 1;
         if (fx_count_active() < 15) {
             io.a3 = 1;
             io.t6 = t6;
             io.s1 = s1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 0xD, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 0xD, 1, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 0xD, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 0xD, 2, 1, t7, s0, s2, s3, s4, 1);
         }
     }
     v = *(s16 *) (gPoliceState + 0x76);
@@ -609,7 +609,7 @@ extern u8 * N64P gPoliceModel;    /* model header: word offsets to the part list
 /* Its model matrix, parts and points (0x802CC70C).
  * Place vehicle 13's model: m = the word at +4 of the header entry at
  * hdr + hdr[6], plus the current save copy (gPoliceMtxA when gBufferIndex is
- * set, else gPoliceMtxB); y rotation D_803ED392 = the heading (u16 at +0x4C);
+ * set, else gPoliceMtxB); y rotation gModelRotY = the heading (u16 at +0x4C);
  * mtx_build_model(position gPolicePos..30, scale 0x4268, m). Then the
  * vehicle's parts (veh_place_parts, tag 0xD, list hdr + hdr[1] .. hdr +
  * hdr[2]) and points (veh_points_transform, id 0xD, hdr + hdr[0] .. hdr + hdr[1])
@@ -670,11 +670,11 @@ void police_build_model(void) {
         (out) = _r;                                                     \
     } while (0)
 
-extern f32 D_8030D9B4;
+extern f32 gPoliceSteerDivisor;
 
 /* Its steering rate (0x802CC844).
  * Speed (s16 at +0x76 of gPoliceState, the asm's $gp) / 11.0 when any of the
- * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D9B4, rounded to nearest.
+ * bytes at +0x96/+0x97/+0x98 is 1, else / gPoliceSteerDivisor, rounded to nearest.
  * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
  * police_update keeps a0-a3 live (a mixed N64 build would need a thunk).
  * Same shape as sideswipe_steer_rate (6B4A0). */
@@ -685,7 +685,7 @@ s32 police_steer_rate(void) {
     if (gPoliceState[0x96] == 1 || gPoliceState[0x97] == 1 || gPoliceState[0x98] == 1) {
         div = 11.0f;
     } else {
-        div = D_8030D9B4;
+        div = gPoliceSteerDivisor;
     }
     CVT_W_S(r, *(s16 *) (gPoliceState + 0x76) / div);
     return r;

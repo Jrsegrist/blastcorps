@@ -482,7 +482,7 @@ typedef struct {
     u64 t;
     const char *name;
     u32 q;      /* the queue (or thread) argument */
-    s32 gvi;    /* the game's retrace counter D_803156C4 there (-1: not logged) */
+    s32 gvi;    /* the game's retrace counter gSchedFrameCount there (-1: not logged) */
     char kind;  /* s/r/j/t: osSendMesg, osRecvMesg, osJamMesg, osStartThread */
 } SyncEv;
 static struct {

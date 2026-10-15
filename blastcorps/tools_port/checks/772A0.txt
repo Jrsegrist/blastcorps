@@ -45,23 +45,23 @@ train_update_effects: -n 200 --seed 2 --arg gp=sym:gTrainState --arg t6=int --ar
     --mem gTrainState+0x76:2=int:0:0xFFFF --mem gSfxBank=int --sig snd_play=a0,a1,a2 \
     --follow fx_spawn,veh_find_point,veh_set_engine_level,veh_update_horn \
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:7:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
-    --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig snd_modify=a0,a1,a2 \
-    --sig snd_stop=a0 --mem gEngineSoundLevel:2=rand --mem D_80364AB0:1=bytes:0,1 --mem gEngineSound:8=words:0,0x80123450 \
+    --mem gFxTileSlots:16=bytes:0,1 --mem gFxSpawnTag:1=rand --sig tex_queue_palette=a0,a1 --sig snd_modify=a0,a1,a2 \
+    --sig snd_stop=a0 --mem gEngineSoundLevel:2=rand --mem gEngineLevelForce:1=bytes:0,1 --mem gEngineSound:8=words:0,0x80123450 \
     --mem gHornHeld:2=rand --mem gHeldL:2=bytes:0,1
 
 # --- vehicle type 7: spawn / per-frame / model update ---
-# Model update ($gp = gTrainState): as 83910's barge_build_model_0b (scale 0x3A98, tag 7) plus D_803EFECB = veh_tris_all_solid_impl(7).
+# Model update ($gp = gTrainState): as 83910's barge_build_model_0b (scale 0x3A98, tag 7) plus gTrainClosed = veh_tris_all_solid_impl(7).
 # mtx_chain_transform's pass-through registers start at 0 in C (fidelity note): those pointer slots aren't compared.
 train_build_model: -n 300 --arg gp=sym:gTrainState --heap 0x400=words:0x20,0x40,0x60,0x100,0x1F0,-0x10 \
     --mem gTrainModel=rel:heap0+0x20 --mem gTrainMtxA=rel:heap0+0x200 --mem gTrainMtxB=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1,0x80 --mem gTrainX:12=rand --mem gTrainState+0x4C:2=rand --mem gModelRot:6=rand \
-    --mem D_803EFECB:1=rand --stub-ret veh_tris_all_solid_impl=choice:0,1,0x100,-1 \
+    --mem gTrainClosed:1=rand --stub-ret veh_tris_all_solid_impl=choice:0,1,0x100,-1 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10
 train_build_model: -n 100 --seed 1 --follow mtx_build_model,veh_deck_transform,veh_tris_all_solid_impl --arg gp=sym:gTrainState \
     --heap 0x400=words:0x20,0x40,0x60,0x100,0x1F0 --mem gTrainModel=rel:heap0+0x20 --mem gTrainMtxA=rel:heap0+0x200 \
     --mem gTrainMtxB=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem gTrainX:12=int:-100000:100000 \
-    --mem gTrainState+0x4C:2=int:0:0xFFF --mem gModelRot:6=rand --mem D_803EBB58:0x80=rand --mem D_803EFECB:1=rand \
+    --mem gTrainState+0x4C:2=int:0:0xFFF --mem gModelRot:6=rand --mem gMtxWork:0x80=rand --mem gTrainClosed:1=rand \
     --mem gCollTrisEnd=rel:gCollTris+0x60*int:0:4 --mem gCollTris:0x180=rand --mem gCollTris+0x4F*0x60:4/1=choice:7,7,3 \
     --mem gCollTris+0x51*0x60:4/1=choice:0,1 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
@@ -76,9 +76,9 @@ train_update: -n 400 --follow train_build_model --heap 0x400=words:0x20,0x40,0x6
     --mem gTrainState:0xA8=rand --mem gTrainState+0x9A:1=choice:0,0,1,0x80 --mem gTrainX=int:-100000:100000 \
     --mem gTrainY=int --mem gTrainZ=int:-2000:2000 --mem gTrainLineX0=int:-100000:100000 --mem gTrainLineZ0=int:-1000:-1 \
     --mem gTrainLineX1=int:-100000:100000 --mem gTrainLineZ1=int:1:1000 --mem gTrainPart3Clear=choice:0,5,6,7,-1,999999 \
-    --mem gTrainPart2Clear=choice:0,5,6,7,-1,999999 --mem gTrainOnLine:1=choice:0,1,0x80 --mem D_803EFECB:1=rand \
-    --mem gCollBlocked:1=choice:0,1 --stub-ret veh_contacts_has=choice:0,1 --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
-    --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand --sig train_zone_alpha= --sig train_set_physics= \
+    --mem gTrainPart2Clear=choice:0,5,6,7,-1,999999 --mem gTrainOnLine:1=choice:0,1,0x80 --mem gTrainClosed:1=rand \
+    --mem gCollBlocked:1=choice:0,1 --stub-ret veh_contacts_has=choice:0,1 --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand \
+    --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig train_zone_alpha= --sig train_set_physics= \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -89,7 +89,7 @@ train_update: -n 200 --seed 1 --follow train_build_model --heap 0x400=words:0x20
     --mem gTrainY=int --mem gTrainZ=choice:1,3,-1,0,2 --mem gTrainLineX0=int:-50:50 --mem gTrainLineZ0=0 \
     --mem gTrainLineX1=int:-50:50 --mem gTrainLineZ1=choice:2,4,-2 --mem gTrainPart3Clear=choice:5,6 --mem gTrainPart2Clear=choice:5,6 \
     --mem gTrainOnLine:1=1 --mem gCollBlocked:1=1 --stub-ret veh_contacts_has=choice:0,1 --mem gPlayerX:12=rand \
-    --mem D_8036443C:6=rand --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand --sig train_zone_alpha= \
+    --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig train_zone_alpha= \
     --sig train_set_physics= --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -104,7 +104,7 @@ train_update: -n 200 --seed 2 \
     --mem gTrainLineZ0=int:-1000:-1 --mem gTrainLineX1=int:-100000:100000 --mem gTrainLineZ1=int:1:1000 \
     --mem gTrainPart3Clear=choice:0,5,6,7 --mem gTrainPart2Clear=choice:0,5,6,7 --mem gTrainOnLine:1=choice:0,1 \
     --mem gCollBlocked:1=choice:0,1 --mem gContacts:0x40=words:2,3,9 --mem gContactsEnd=rel:gContacts+4*int:0:16 \
-    --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand \
+    --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand \
     --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 --sig train_zone_alpha= \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
@@ -127,7 +127,7 @@ train_spawn: -n 100 --seed 2 --follow train_update,train_build_model --heap 0x40
     --mem gHeapPtr=rel:heap1 --arg t7=int --arg s3=int --arg s0=int:-2000:2000 --arg s1=int --arg s2=rel:heap0+0x20 --arg fp=int \
     --mem gTrainState:0xA8=rand --mem gTrainX:24=rand --mem gTrainPart3Clear:12=rand --mem gTrainOnLine:1=choice:0,1 \
     --mem gTrainLineZ0=int:-1000:-1 --mem gTrainLineZ1=int:1:1000 --mem gTrainLineX0=int:-100000:100000 \
-    --mem gTrainLineX1=int:-100000:100000 --mem gBufferIndex:1=choice:0,1 --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
+    --mem gTrainLineX1=int:-100000:100000 --mem gBufferIndex:1=choice:0,1 --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand \
     --mem gBounceSound:1=rand --mem gModelRot:6=rand --sig train_zone_alpha= --sig train_set_physics= \
     --sig veh_init_ground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \

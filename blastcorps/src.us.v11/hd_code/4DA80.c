@@ -205,7 +205,7 @@ void shell_draw_all(Gfx **gdl, Dyn *dyn) {
             guTranslateF(mf2, gShells[i].x / 32.0f, gShells[i].y / 32.0f, gShells[i].z / 32.0f);
             guMtxCatF(mf1, mf2, mf1);
             guMtxF2L(mf1, &dyn->mtx[i]);
-            gSPMatrix(gfx++, &D_02000000[i + 52], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPMatrix(gfx++, &seg2Base[i + 52], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             gDPPipeSync(gfx++);
             gDPSetPrimColor(gfx++, 0, 0, gShells[i].alpha, 0, 0, 255);
             gSPDisplayList(gfx++, osVirtualToPhysical(gShellTypes[gShells[i].type].dl));

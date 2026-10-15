@@ -29,8 +29,8 @@
 
 extern u8 * N64P gBgPicture;        /* the inflated picture */
 extern u8 gBgPictureMode;         /* its number */
-extern u8 D_006BF2F0[];
-extern u8 D_006D3D30[];
+extern u8 romFeBgPicture2[];
+extern u8 romFeBgPicture3[];
 
 
 /* Inflates the current background picture again (0x802006F0). */
@@ -57,20 +57,20 @@ void fe_bg_load(u8 mode) {
         case 1:
         case 2:
         case 3:
-            start = D_006AD3F0;
-            end = D_006BF2F0;
+            start = romFeBgPicture1;
+            end = romFeBgPicture2;
             break;
         case 4:
         case 7:
         case 8:
-            start = D_006BF2F0;
-            end = D_006D3D30;
+            start = romFeBgPicture2;
+            end = romFeBgPicture3;
             break;
         case 5:
         case 6:
         case 9:
-            start = D_006D3D30;
-            end = D_006E8980;
+            start = romFeBgPicture3;
+            end = romUsaStarScene;
             break;
         default:
             return;

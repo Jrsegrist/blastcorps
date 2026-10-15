@@ -28,6 +28,10 @@ How the screens are reached (frames are game frames, the same in bc_headless):
                 the erase menu and its confirmation (not confirmed)
   pak_manager   START held at power-on: the Controller Pak manager's file list,
                 A: the delete confirmation
+  erase_save    START held at power-on with no Controller Pak in controller 1
+                (cont_boot_check_start: START and no pak): "ERASE SAVED GAME!"
+                (MODE_ERASE_SAVE).  No A press; the EEPROM is not kept
+                (--no-config: no saves folder)
   new_game      levels_input (EEPROM): name entry, the globe's opening sequence
                 and the globe
   vehicle_select levels_input, globe poke of level 11 (as compare.py), no A
@@ -61,6 +65,7 @@ M_ERASE_CONFIRM, M_RESULTS, M_PAK_CHECK, M_VEHICLE = 0x80000, 0x8000000, 0x10000
 M_PROMOTION, M_PAK_FILES, M_PAK_DELETE, M_LEVEL_STATUS = 0x40000000, 0x100000000, 0x8000000000, 0x80
 M_GLOBE_SEQ, M_ACADEMY, M_PICTURE = 0x100000000000, 0x800000000000, 0x1000000000000
 M_REGRADE, M_REGRADE_END, M_NO_CONTROLLER = 0x4000000000000, 0x8000000000000, 0x800000000000000
+M_ERASE_SAVE = 0x40000000000000
 
 # name, pak (None / "new" / "player"), input, extra options, frames, [(screen, frame, mode, level)]
 RUNS = [
@@ -78,6 +83,8 @@ RUNS = [
      [("erase_menu", 1100, M_ERASE_MENU, None), ("erase_confirm", 1280, M_ERASE_CONFIRM, None)]),
     ("pak_manager", "player", "pak_manager.txt", [], 300,
      [("pak_files", 150, M_PAK_FILES, None), ("pak_delete_confirm", 280, M_PAK_DELETE, None)]),
+    ("erase_save", None, "erase_save.txt", [], 400,
+     [("erase_save", 150, M_ERASE_SAVE, None), ("erase_save_2", 380, M_ERASE_SAVE, None)]),
     ("new_game", None, LEVELS_INPUT, ["--poke", POKE_LEVEL % 0], 1000,
      [("name_entry", 750, M_NAME_ENTRY, None), ("globe_sequence", 940, M_GLOBE_SEQ, None),
       ("globe", 995, M_WORLD, None)]),

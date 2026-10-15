@@ -317,7 +317,7 @@ void hud_mission_intro(void) {
                         if (levelno == 0x34) {
                             sprintf(gIntroObjectiveText, "DESTROY TARGETS IN");
                         } else {
-                            sprintf(gIntroObjectiveText, "DESTROY %s IN", gObjectiveName);
+                            sprintf(gIntroObjectiveText, "DESTROY %s IN", (char *) gObjectiveName); /* (char *): N64P via varargs */
                         }
                         break;
                     case 0x80:

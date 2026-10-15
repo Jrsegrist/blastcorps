@@ -65,9 +65,12 @@
  * With video.aspect = original nothing is wrapped or changed.
  *
  * No GPL code: written against RT64's (MIT) API. */
+#include <windows.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 
@@ -152,7 +155,7 @@ bool widen(RT64::State *state, uint32_t first, uint32_t n, double f, bool texS, 
 }
 
 /* ---- the game's widescreen tags (port.h PORT_WTAG) ------------------------- */
-enum { W_NONE = 0, W_LEFT, W_RIGHT, W_SPAN, W_TEXT_SIDES, W_TICKER, W_STARS, W_TEXT };
+enum { W_NONE = 0, W_LEFT, W_RIGHT, W_SPAN, W_TEXT_SIDES, W_TICKER, W_STARS, W_TEXT, W_TICKER_TEXT };
 enum Side { S_CENTRE = 0, S_LEFT, S_RIGHT };
 
 struct WTag {
@@ -186,7 +189,13 @@ Side sideOf(int x0, int x1) {
     return S_CENTRE;
 }
 
+void tickerTag(unsigned addr, int which);
+
 void wtagHook(unsigned addr, int kind, int x0, int x1) {
+    if (kind == W_TICKER_TEXT) {
+        tickerTag(addr & 0xFFFFFF, x0);
+        return;
+    }
     if (kind == W_TEXT) {
         /* a queued string: x0 vertices from addr (the game's Vtx: s16 ob[3] first, 16 bytes); x1 = fit */
         if (x0 <= 0 || x0 > 4096) return;
@@ -242,8 +251,176 @@ void applySide(RT64::State *state, Side s) {
     rdp.setScissor(rdp.scissorModeStack[top], r.ulx, r.uly, r.lrx, r.lry, sc);
 }
 
+/* ---- the player select's ticker beyond 4:3 (port.h PORT_TICKER) ------------
+ * The game keeps the 27 characters that fit the 4:3 picture (01C40.c
+ * gScrollLine) and draws them, and the rank / medal icons between them, only
+ * there.  Here the ones on either side are drawn too: left, the characters
+ * that left the line (PORT_TICKER_SHIFT, remembered here) and the icons the
+ * game stopped drawing; right, the text the line shows next and where its
+ * icons will be (port_ticker_gfx: the game's scroll, simulated from this
+ * frame's state).  The commands are built when the game has drawn its line
+ * (PORT_TICKER_FRAME) and run with RT64's own functions inside the front end's
+ * text flush (PORT_WTAG_TICKER_TEXT): the icons and the shadows before its
+ * first character, the characters after its last, as the game orders its
+ * own.  Their vertices and the glyphs' textures (decoded from the ROM) are in
+ * host memory RT64 reads through its extended RDRAM addresses (an address
+ * with bit 31 set is an offset from RDRAM's base, 0x80000000 here: the host
+ * pointer itself), so nothing is written to RDRAM. */
+uint8_t *g_area;                     /* host memory at an address RT64 can read (extended) */
+constexpr size_t kAreaSize = 0x40000;
+constexpr size_t kGlyphArea = 0x20000;   /* 256 glyphs of 0x200 bytes */
+constexpr int kVtxPerPass = 512;
+std::unordered_map<unsigned, uint32_t> g_glyphs;   /* glyph id -> its texture's address (0: none) */
+size_t g_glyphUsed;
+std::vector<uint16_t> g_hist;        /* characters that left the line, the last first */
+struct TickerBuild {
+    std::vector<RT64::DisplayList> pass[4];   /* shadows, characters, icons left, icons right */
+    double ext = 0;
+    int shift = 0;
+};
+TickerBuild g_builds[4];
+unsigned g_buildCount;
+int g_pending = -1;                  /* built this frame, not yet tagged */
+int g_tagged = -1;
+std::unordered_map<uint32_t, std::pair<int, int>> g_tickerTags;   /* address -> (build, 0 start / 1 end) */
+int g_armed = -1;                    /* in the text flush of this build */
+bool g_iconsShadowsDone;
+const GbiOriginal *g_orig;           /* RT64's functions (the command hook's) */
+unsigned g_tickerFrames, g_tickerChars, g_tickerIcons, g_glyphDecoded, g_glyphMismatch;
+
+bool areaInit() {
+    if (g_area != nullptr) return true;
+    /* above RDRAM's 8 MB, below 4 GB: RT64 addresses it as base + (pointer - base) */
+    for (uintptr_t a = 0x90000000u; a < 0xF0000000u && g_area == nullptr; a += 0x01000000u)
+        g_area = static_cast<uint8_t *>(VirtualAlloc(reinterpret_cast<void *>(a), kAreaSize, MEM_RESERVE | MEM_COMMIT,
+                                                     PAGE_READWRITE));
+    if (g_area == nullptr) {
+        host_log("live: widescreen: no memory below 4 GB for the ticker: drawn 4:3 wide\n");
+        return false;
+    }
+    return true;
+}
+
+/* glyph id's I4 texture in the host area, decoded from the ROM once */
+unsigned glyphAddr(unsigned id) {
+    auto it = g_glyphs.find(id);
+    if (it != g_glyphs.end()) return it->second;
+    uint32_t a = 0;
+    if (g_glyphUsed + 0x200 <= kGlyphArea) {
+        uint8_t *dst = g_area + g_glyphUsed;
+        if (port_glyph_decode(id, dst, 0x200) == 0x200) {
+            a = uint32_t(reinterpret_cast<uintptr_t>(dst));
+            g_glyphUsed += 0x200;
+            g_glyphDecoded++;
+            /* the game's own copy, when its glyph cache holds it (168B0.c gGlyphIds /
+             * gGlyphTextures): the same bytes? (a check of the decoding) */
+            const uint16_t *ids = reinterpret_cast<const uint16_t *>(uintptr_t(0x803653B0u));
+            for (int i = 0; i < 80; i++)
+                if (ids[i] == id && memcmp(reinterpret_cast<const void *>(uintptr_t(0x8039CAF0u + i * 0x200u)), dst,
+                                           0x200) != 0)
+                    g_glyphMismatch++;
+        }
+    }
+    g_glyphs[id] = a;
+    return a;
+}
+
+void tickerHook(int what, int a, const void *t) {
+    if (what == 0) {   /* PORT_TICKER_RESET */
+        g_hist.clear();
+        return;
+    }
+    if (what == 1) {   /* PORT_TICKER_SHIFT */
+        g_hist.insert(g_hist.begin(), uint16_t(a));
+        if (g_hist.size() > 64) g_hist.pop_back();
+        return;
+    }
+    if (g_k <= 1.0 || !areaInit()) return;
+    const int b = int(g_buildCount++ & 3);
+    TickerBuild &tb = g_builds[b];
+    tb.ext = 160.0 * (g_k - 1.0);
+    tb.shift = int(std::ceil(tb.ext)) + 48;
+    for (int p = 0; p < 4; p++) {
+        tb.pass[p].resize(1024);
+        uint8_t *v = g_area + kGlyphArea + size_t(b * 4 + p) * kVtxPerPass * 16;
+        int nv = 0;
+        const int n = port_ticker_gfx(t, p, tb.ext, tb.shift, g_hist.data(), int(g_hist.size()), tb.pass[p].data(),
+                                      int(tb.pass[p].size()), v, kVtxPerPass, glyphAddr, &nv);
+        tb.pass[p].resize(size_t(std::max(0, n)));
+        if (p < 2) g_tickerChars += unsigned(nv / 4);
+    }
+    g_tickerFrames++;
+    g_pending = b;
+}
+
+void tickerTag(unsigned addr, int which) {
+    if (which == 0) {
+        g_tagged = g_pending;
+        g_pending = -1;
+    }
+    if (g_tagged < 0) return;
+    if (g_tickerTags.size() > 64) g_tickerTags.clear();
+    g_tickerTags[addr] = {g_tagged, which};
+    if (which != 0) g_tagged = -1;
+}
+
+/* a list of commands of our own, with RT64's functions (a command may read the
+ * ones after it: texture rectangles) */
+void runList(RT64::State *state, const std::vector<RT64::DisplayList> &l) {
+    if (l.empty() || g_orig == nullptr) return;
+    const bool ext = state->extended.extendRDRAM;
+    state->extended.extendRDRAM = true;
+    std::vector<RT64::DisplayList> cmds = l;
+    RT64::DisplayList *p = cmds.data(), *end = p + cmds.size();
+    while (p < end) {
+        RT64::DisplayList *q = p;
+        g_orig[uint8_t(q->w0 >> 24)](state, &q);
+        p = q + 1;
+    }
+    state->extended.extendRDRAM = ext;
+}
+
+/* the icons, then the shadows */
+void tickerBefore(RT64::State *state, const TickerBuild &tb) {
+    /* (the icons are textured quads here: the game's texture rectangles can't
+     * reach beyond its 4:3 scissor; port_ticker_gfx turns them into quads) */
+    for (int p = 2; p < 4; p++)
+        if (!tb.pass[p].empty()) {
+            runList(state, tb.pass[p]);
+            g_tickerIcons++;
+        }
+    runList(state, tb.pass[0]);
+}
+
+void tickerAddress(RT64::State *state, uint32_t addr) {
+    auto it = g_tickerTags.find(addr);
+    if (it != g_tickerTags.end()) {
+        const TickerBuild &tb = g_builds[it->second.first];
+        if (it->second.second == 0) {   /* the text flush starts */
+            g_armed = it->second.first;
+            g_iconsShadowsDone = false;
+            return;
+        }
+        /* it has ended: the characters, over everything the flush drew */
+        if (g_armed == it->second.first && !g_iconsShadowsDone) tickerBefore(state, tb);
+        if (g_armed == it->second.first) runList(state, tb.pass[1]);
+        g_armed = -1;
+        return;
+    }
+    if (g_armed >= 0 && !g_iconsShadowsDone) {
+        /* the flush's first character: its G_SETTIMG (the text's matrices and
+         * render state are set by now) */
+        const uint32_t w0 = *reinterpret_cast<const uint32_t *>(state->RDRAM + addr);
+        if ((w0 >> 24) == 0xFD) {
+            tickerBefore(state, g_builds[g_armed]);
+            g_iconsShadowsDone = true;
+        }
+    }
+}
+
 /* before every command: a tag at its address? */
 void address(RT64::State *state, uint32_t addr) {
+    if (!g_tickerTags.empty()) tickerAddress(state, addr);
     if (g_wtags.empty()) return;
     auto it = g_wtags.find(addr);
     if (it == g_wtags.end()) return;
@@ -284,6 +461,7 @@ void afterVertex(RT64::State *state, uint32_t w1, uint32_t first) {
 bool g_bgImage;   /* the last G_SETTIMG was the front end's background picture */
 
 bool command(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *originals) {
+    g_orig = originals;
     if (g_k <= 1.0) return false;
     const uint32_t w0 = (*dl)->w0, w1 = (*dl)->w1;
     const uint8_t op = uint8_t(w0 >> 24);
@@ -328,8 +506,12 @@ void wideSetFactor(double k) {
     if ((k > 1.0) != was) {
         interpSetWideHooks(k > 1.0 ? command : nullptr, k > 1.0 ? afterVertex : nullptr, k > 1.0 ? address : nullptr);
         host_wtag_hook = k > 1.0 ? wtagHook : nullptr;
+        host_ticker_hook = k > 1.0 ? tickerHook : nullptr;
         g_wtags.clear();
         g_text.clear();
+        g_tickerTags.clear();
+        g_hist.clear();
+        g_pending = g_tagged = g_armed = -1;
     }
     g_bgImage = false;
     if (k > 1.0)
@@ -366,6 +548,10 @@ void wideAfterTask(bool frameDl) {
         g_wtags.clear();
         g_text.clear();
     }
+    if (frameDl) {
+        g_tickerTags.clear();
+        g_armed = -1;
+    }
     g_matched = false;
 }
 
@@ -374,6 +560,10 @@ void wideSummary() {
         host_log("live: widescreen: widened %u sky quads, %u fades, %u window panels, %u ticker band vertices, "
                  "%u star quads; %u background rectangles stretched\n",
                  g_sky, g_fade, g_window, g_tickerVerts, g_starQuads, g_bgRects);
+    if (g_tickerFrames != 0)
+        host_log("live: widescreen ticker: %u frames, %u characters and %u icon groups beyond 4:3; %u glyphs "
+                 "decoded (%u differ from the game's copies)\n",
+                 g_tickerFrames, g_tickerChars, g_tickerIcons, g_glyphDecoded, g_glyphMismatch);
     if (g_sideCmds != 0)
         host_log("live: widescreen HUD at the edges: %u side changes, %u text strings placed\n", g_sideCmds,
                  g_textStrings);

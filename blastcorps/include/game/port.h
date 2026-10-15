@@ -159,7 +159,19 @@ void *port_save_semblock(const void *sem);
  *                      picture);
  *     PORT_WTAG_STARS  the globe's starfield (spread across the picture).
  *   PORT_WTAG(vtx, PORT_WTAG_TEXT, n, fit)  a queued string's n vertices from
- *                     vtx (14B30.c; fit != 0: a centred string). */
+ *                     vtx (14B30.c; fit != 0: a centred string).
+ *   PORT_WTAG(gdl, PORT_WTAG_TICKER_TEXT, 0 / 1, 0)  the front end's text flush
+ *                     starts / has ended at gdl (17990.c): the ticker's
+ *                     characters beyond the 4:3 picture are drawn there
+ *                     (PORT_TICKER).
+ *   PORT_TICKER(what, a, t)  the player select's ticker (01C40.c), told to bc.exe's
+ *                     widescreen (live_wide.cpp; nothing written, nothing read back):
+ *                     PORT_TICKER_RESET the line was blanked; PORT_TICKER_SHIFT
+ *                     character a left the line's left end; PORT_TICKER_FRAME t (a
+ *                     PortTicker) is this frame's line, drawn by the game for the 4:3
+ *                     picture: the host draws the characters (and the medal icons) on
+ *                     either side of it, those that left the line and those it shows
+ *                     next. */
 #define PORT_WTAG_NONE 0
 #define PORT_WTAG_LEFT 1
 #define PORT_WTAG_RIGHT 2
@@ -168,7 +180,32 @@ void *port_save_semblock(const void *sem);
 #define PORT_WTAG_TICKER 5
 #define PORT_WTAG_STARS 6
 #define PORT_WTAG_TEXT 7
+#define PORT_WTAG_TICKER_TEXT 8
+#define PORT_TICKER_RESET 0
+#define PORT_TICKER_SHIFT 1
+#define PORT_TICKER_FRAME 2
 #if defined(NON_MATCHING) && defined(PORT_HOST)
+/* the ticker's state for PORT_TICKER_FRAME (01C40.c fe_player_draw_panel) */
+typedef struct PortTicker {
+    const unsigned short *line;   /* gScrollLine: the characters on show, from x = -pixel */
+    const unsigned char *text;    /* gScrollText: the narrow text, len characters */
+    int len;                      /* sslen */
+    int pos;                      /* gScrollPos: the text index last fed into the line */
+    int pixel, charWidth;         /* gScrollPixel, gScrollCharWidth */
+    float speed, speedGoal;       /* gScrollSpeed, gScrollSpeedGoal */
+    int hold;                     /* gScrollHoldTime */
+    int alpha;                    /* gPanelAlpha */
+    int iconX, iconPos, iconSprite;               /* the rank icon: gScrollIconX ... */
+    int medalX[5], medalPos[5], medalSprite;      /* the medals 1..maxRank: gScrollMedalX ... */
+    int maxRank;
+    unsigned short skip[3];       /* characters drawn as nothing (D_802E8C94/90/8C[0]) */
+    unsigned short noAdvance;     /* the one that doesn't advance (D_802E8C8C[0]) */
+    unsigned short terminator;    /* gTextTerminator[0] */
+    float advance;                /* gFontAdvance[0] */
+    int glyphs;                   /* gScrollUsesGlyphs (the wide font: not extended) */
+} PortTicker;
+void port_ticker(int what, int a, const PortTicker *t);
+#define PORT_TICKER(what, a, t) port_ticker((what), (int) (a), (t))
 void port_itag(const void *gdl, int kind, int index);
 #define PORT_ITAG(gdl, kind, index) port_itag((const void *) (gdl), (kind), (int) (index))
 #define PORT_ISPAWN(kind, index) port_itag(0, PORT_ITAG_SPAWN, ((kind) << 16) | (int) (index))
@@ -183,6 +220,7 @@ void port_wtag(const void *gdl, int kind, int x0, int x1);
 #define PORT_ICUT_IF(c)
 #define PORT_DRAW_CELLS(list) ((short *) (list))
 #define PORT_WTAG(gdl, kind, x0, x1)
+#define PORT_TICKER(what, a, t)
 #endif
 
 #endif

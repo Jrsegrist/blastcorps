@@ -304,7 +304,13 @@ void fe_back_loop(void) {
         fe_best_next_player();
         gdl = fe_best_draw_icon((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
+#ifdef PORT_HOST
+    PORT_WTAG(gdl, PORT_WTAG_TICKER_TEXT, 0, 0); /* bc.exe's widescreen: the ticker beyond 4:3 */
+#endif
     text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
+#ifdef PORT_HOST
+    PORT_WTAG(gdl, PORT_WTAG_TICKER_TEXT, 1, 0);
+#endif
     gdl = fade_draw((s32) &gDynamicBufs[gBufferIndex], gdl);
     if (!(gGameMode & (MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END))) {
         gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);

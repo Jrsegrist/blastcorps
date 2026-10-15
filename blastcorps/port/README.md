@@ -648,8 +648,21 @@ it without a fault.  The x64-asan preset is the tool for this now.
     the results screen) and the globe's starfield (11530.c; each star's quad
     moved out from the view's axis by k, its size kept, so the stars fill the
     wider picture as densely as the 4:3 one).  The ticker's text and icons
-    still scroll across the 4:3 width (the game draws only the characters
-    that fit 320 pixels).
+    scroll across the whole width too: the game keeps only the characters
+    that fit 320 pixels, so the host draws the rest (`PORT_TICKER`, 01C40.c;
+    live_wide.cpp, plat_core.c port_ticker_gfx): left of the picture the
+    characters that left the line and the icons the game stopped drawing,
+    right of it the text the line shows next and where its icons will be
+    (the game's scroll simulated from the frame's state), with the game's
+    own font glyphs (decoded from the ROM by its decoders) and commands run
+    by RT64 inside the front end's text flush; the vertices and textures
+    are host memory RT64 reads through its extended RDRAM addresses, so
+    RDRAM is never written.  If the text changes mid-scroll (Z/R on the
+    load-game menu) the characters right of the picture show the new text
+    at once.
+    The front end's screens can be reached and pictured with
+    `tools/fe_screens.py` (recorded input in `data/fe_input/`, pokes for the
+    promotion / academy screens; it checks the game mode at each picture).
     Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
     the 4:3 edges.
   - `hud_position` (`--hud-position`): `centered` (the default: the HUD in

@@ -32,6 +32,8 @@ LAYOUT OSDevMgr             # (the same record)
 # the platform layer's own bookkeeping (host memory: options, the live
 # renderer's hooks, host threads, event and clock tables)
 FIELD HostOpts.*            # host options
+FIELD PortTicker.*          # PORT_TICKER's snapshot: a local of 01C40.c handed to the host, never in RDRAM
+LAYOUT struct PortTicker    # (the same record)
 FNPTR HostOpts.*            # (pokes: an array of u32[4], not a function pointer)
 FNPTR HostLive.*            # bc.exe's renderer hooks
 FIELD anon@os_thread.c:*    # host thread table, events, virtual-time events, --sync tables

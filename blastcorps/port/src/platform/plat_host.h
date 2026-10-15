@@ -180,6 +180,16 @@ extern void (*host_itag_hook)(unsigned addr, int kind, int index);
  * It must not change anything the game sees. */
 extern void (*host_wtag_hook)(unsigned addr, int kind, int x0, int x1);
 
+/* The player select's ticker (port.h PORT_TICKER; plat_core.c): bc.exe's
+ * widescreen sets this (live_wide.cpp); `t` is a PortTicker (game/port.h).
+ * It must not change anything the game sees.  port_ticker_gfx builds the
+ * commands for the characters and icons beyond the 4:3 picture in host
+ * memory, port_glyph_decode a font glyph from the ROM (plat_core.c). */
+extern void (*host_ticker_hook)(int what, int a, const void *t);
+int port_ticker_gfx(const void *t, int pass, double ext, int shift, const unsigned short *hist, int nhist,
+                    void *gfx, int max, void *vtx, int maxVtx, unsigned (*glyph)(unsigned id), int *nvtx);
+int port_glyph_decode(unsigned id, unsigned char *dst, int max);
+
 /* bc.exe's orbit camera (live_orbit.cpp; NULL otherwise).  host_camera_hook:
  * once a frame, at the end of the game's camera function (00000.c
  * cam_update, PORT_ICUT_IF), `snap` = its snap flag; it may only read.

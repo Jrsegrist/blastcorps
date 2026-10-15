@@ -159,7 +159,7 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     } else {
         ret = fe_stats_grade_timed_level(levelno, arg1, arg2);
     }
-    sprintf(D_8036B980, "%s", gGlobeLevels[levelno].unk4);
+    sprintf(D_8036B980, "%s", (char *) gGlobeLevels[levelno].unk4); /* (char *): a N64P through varargs */
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);

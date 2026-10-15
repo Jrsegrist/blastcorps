@@ -192,13 +192,21 @@ headless64: $(H64)/bc_headless.exe
 # the pointer-width audit (tools/ptrcheck64.py: host-width pointers in N64
 # records and pinned globals, casts to host-width pointer pointers, signed
 # int -> pointer casts) and the record layouts i686 vs x86_64
-# (tools/layout64.py); data/ptrcheck64_allow.txt lists what is host-only
+# (tools/layout64.py); data/ptrcheck64_allow.txt lists what is host-only.
+# ptrcheck64 also reports N64 pointers passed through varargs or to a function
+# without a prototype (VARG / KNR); tools/test_ptrcheck64.py first proves on
+# small snippets that it catches them.
 P64_ALLOW := data/ptrcheck64_allow.txt
 P64_GAME := $(HL_HD:%=$(GAME_SRC)/%.c) $(HL_FE:%=$(FE_SRC)/%.c)
 P64_PLAT := $(HL_PLAT:%=src/platform/%.c)
 P64_UL := $(HL_UL:%=$(H64)/ulsrc/%.c) $(HL_ULFE:%=$(H64)/ulsrc/%.c)
-ptrcheck64: $(H64)/addrs.txt $(H64)/ulinc.stamp $(GEN)/le/PRinternal/controller.h
+# the little-endian edits of ultralib (printf's _Printf/_Ldtob, sinf/cosf)
+P64_LE := $(GEN)/le/xprintf.c $(GEN)/le/xldtob.c $(GEN)/le/sinf.c $(GEN)/le/cosf.c
+ptrcheck64: $(H64)/addrs.txt $(H64)/ulinc.stamp $(GEN)/le/PRinternal/controller.h $(P64_LE)
 	@rc=0; \
+	$(PYTHON) tools/test_ptrcheck64.py $(CC64) -fms-extensions -std=gnu89 || rc=1; \
+	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_le.txt -- \
+		$(CC64) $(HL64_UL_CFLAGS) -I$(UL_DIR)/src/gu -w -- $(P64_LE) || rc=1; \
 	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_game.txt -- \
 		$(CC64) $(HL64_CFLAGS) -w -- $(P64_GAME) || rc=1; \
 	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_plat.txt -- \

@@ -68,3 +68,8 @@ SEXT ul_env.c:291           # (void *) e->ctrlList->data.i
 CAST 17210.c:59             # &p (host local u8 *), aligned in place
 # veh_find_point(id, n, u8 **recOut) fills the caller's own local pointer
 CAST 853D0.c:6??            # &rec (host local)
+# an N64P through varargs read by a 4-byte conversion: rsp_wait_task's
+# debug_printf("Task %d received message %d\n", id, msg), msg an OSMesg
+# (void * N64P) printed with %d: va_arg(ap, int) reads exactly the 4 bytes
+# passed (and only with bc_headless --print)
+VARG 405F0.c:113            # %d of an OSMesg (an int conversion, not a pointer one)

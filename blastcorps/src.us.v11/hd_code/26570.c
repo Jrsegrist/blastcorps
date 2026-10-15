@@ -132,7 +132,17 @@ typedef struct YoshiWindow {
 
 u16 yoshi_next_item(u16 arg0, u16 arg1, u16 start, u16 mask);
 void yoshi_select_items(struct YoshiWindow *arg0);
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+/* port: the matched callers below pass only the node, &gRdus[i] (an N64P,
+ * 4 bytes), to this unprototyped declaration, which the definition reads as a
+ * native RduRecord * (8) and a dead arg1 (overwritten before use): the true
+ * prototype, and the calls pass a native pointer and 0 (#undef before the
+ * definition) */
+s32 rdu_is_visible(RduRecord *node, s32 arg1);
+#define rdu_is_visible(node) rdu_is_visible((RduRecord *) (node), 0)
+#else
 s32 rdu_is_visible();
+#endif
 void yoshi_load_window_sprites(struct YoshiWindow *arg0);
 Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count);
 void yoshi_start_typing(YoshiWindow *arg0);
@@ -1337,6 +1347,9 @@ void rdu_draw(Gfx **gfx, s32 arg1) {
     gRduLastHeading = gCamHeading;
 }
 
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+#undef rdu_is_visible
+#endif
 /* 1 if the RDU's grid cell is in gVisibleCells (0x80270A54). */
 s32 rdu_is_visible(RduRecord *node, s32 arg1) {
     s32 i;

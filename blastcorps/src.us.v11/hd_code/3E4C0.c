@@ -84,9 +84,9 @@ void hud_draw_target_arrow(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s3
         guTranslateF(mf2, -150.0f, -230.0f, -800.0f);
         guMtxCatF(mf, mf2, mf);
         guMtxF2L(mf, &mtx[0x56]);
-        gSPMatrix(gfx++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gfx++, &seg2Base[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
         gImmp1(gfx++, G_RDPHALF_1, gPerspNorm);
-        gSPMatrix(gfx++, &D_02000000[0x56], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gfx++, &seg2Base[0x56], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
         gSPSetGeometryMode(gfx++, 0x61204);
         gDPPipeSync(gfx++);
@@ -194,8 +194,8 @@ void hud_draw_radar(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) 
     D_802FD830[idx][7].v.ob[1] = py - 2;
 
     PORT_ITAG(gfx, PORT_ITAG_RADAR, 0);
-    gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
     gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
     gDPPipeSync(gfx++);
@@ -268,7 +268,7 @@ void hud_draw_radar(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) 
         guTranslate(&rot, 58.0f, 195.0f, 0.0f);
         guMtxCatL(&mtx[23], &rot, &mtx[23]);
         gRadarSweepAngle += 4.0;
-        gSPMatrix(gfx++, &D_02000000[23], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gfx++, &seg2Base[23], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPVertex(gfx++, osVirtualToPhysical(D_802FD7F0), 4, 0);
         gSP1Triangle(gfx++, 0, 1, 2, 0);
         gSP1Triangle(gfx++, 1, 2, 3, 0);

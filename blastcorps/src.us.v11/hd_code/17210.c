@@ -38,8 +38,8 @@ void rec_start_playback(s32 arg0, s32 *arg1) {
     u16 unk24;
     u8 *p;
 
-    rom = D_006A9F10;
-    size = D_006AD3F0 - rom;
+    rom = romDemoRecordings;
+    size = romFeBgPicture1 - rom;
     p = gHeapPtr;
     hd_rom_load((u32) rom, (u32) p, (u32 *) &size, 9, 0, 1);
     gHeapPtr = (u8 *) gHeapPtr + size;

@@ -9,7 +9,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(Vtx * N64P *) &gHeapPtr)
 #endif
@@ -434,7 +434,7 @@ void tnt_draw(Gfx **gdl, Dyn48D00 *dyn) {
                          D_8039B070_entries[i].unk8 / 32.0f);
             guMtxCatF(rot, trans, rot);
             guMtxF2L(rot, &dyn->mtx[i]);
-            gSPMatrix(gfx++, i * sizeof(Mtx) + 0x600 + (u32) D_02000000, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPMatrix(gfx++, i * sizeof(Mtx) + 0x600 + (u32) seg2Base, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             gSPVertex(gfx++, osVirtualToPhysical(D_8039B070_entries[i].unk3C), 8, 0);
             gDPPipeSync(gfx++);
             BOX_TEX_PAIR(gfx, D_8039B070_entries[i].unk2C[0], D_8039B070_entries[i].unk2C[1])

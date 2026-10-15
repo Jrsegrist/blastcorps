@@ -249,9 +249,9 @@ void hud_init_objective(u8 arg0) {
         D_80367C0C = D_802E9F9C;
     }
     if (gLevelKind != 1) {
-        size = D_006A8DA0 - D_006A32B0;
+        size = romControllerPicture - romTrafficLights;
         if (gLevelKind != 0x80 && gNextGameMode == MODE_LEVEL_START) {
-            hd_rom_load((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
+            hd_rom_load((u32) romTrafficLights, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 gTurboStartImages[i] = (i << 15) + (u8 *) gHeapPtr;
             }

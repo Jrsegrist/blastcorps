@@ -98,7 +98,7 @@ extern f32 gBootSpinSpeed; /* spin speed */
 
 /* ROM bounds of two compressed blobs (the first ends where the second starts) */
 extern u8 D_0048F5A0_end[];
-extern u8 D_0048F970[];
+extern u8 romBootIcon[];
 extern u8 D_0048F970_end[];
 
 int sprintf(char *, const char *, ...);
@@ -323,18 +323,18 @@ void fe_boot_screen_init(s32 arg0) {
     s32 size1;
     s32 size2;
 
-    size1 = D_0048F5A0_end - D_0048F5A0;
-    size2 = D_0048F970_end - D_0048F970;
+    size1 = D_0048F5A0_end - romBootBanner;
+    size2 = D_0048F970_end - romBootIcon;
     fe_scene_load(arg0);
     if (arg0 == 2) {
         gBootSceneAngle = 90;
     } else {
         gBootSceneAngle = 0;
     }
-    hd_rom_load((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
+    hd_rom_load((u32) romBootBanner, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
     gBootBannerTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size1;
-    hd_rom_load((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
+    hd_rom_load((u32) romBootIcon, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
     gBootIconTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size2;
     gBootScene = arg0;
@@ -365,8 +365,8 @@ void fe_boot_screen_frame(void) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000038);
-    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
+    gSPDisplayList(gdl++, seg1RspInitDl);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     gDPSetDepthImage(gdl++, gDepthBufferPhys);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);

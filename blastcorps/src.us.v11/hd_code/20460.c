@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 /* end of views */
 
 /* The people: a pool of 20 little people who run out of a destroyed object
@@ -526,7 +526,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
                 buf->vtx[n + j].v.ob[1] = fy[j] + gPeople[i].y;
                 buf->vtx[n + j].v.ob[2] = fz[j] + gPeople[i].z;
             }
-            gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
+            gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) seg2Base, 4, 0);
             n += 4;
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
@@ -613,7 +613,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
                 buf->vtx[n + j].v.ob[1] = fy[j] + gPeople[i].y;
                 buf->vtx[n + j].v.ob[2] = fz[j] + gPeople[i].z;
             }
-            gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
+            gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) seg2Base, 4, 0);
             n += 4;
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
@@ -634,8 +634,8 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
                     buf->vtx[n + j].v.ob[2] = fz[j];
                 }
                 guTranslate(&buf->mtx[8], D_803EF310 / 32.0f, D_803EF314 / 32.0f, D_803EF318 / 32.0f);
-                gSPMatrix(gdl++, 8 * sizeof(Mtx) + (u32) D_02000000, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-                gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
+                gSPMatrix(gdl++, 8 * sizeof(Mtx) + (u32) seg2Base, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+                gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) seg2Base, 4, 0);
                 n += 4;
                 gSP1Triangle(gdl++, 0, 1, 2, 0);
                 gSP1Triangle(gdl++, 0, 2, 3, 0);

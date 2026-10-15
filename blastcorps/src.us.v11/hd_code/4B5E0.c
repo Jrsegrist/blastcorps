@@ -9,7 +9,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 #define gBoxTargets ((Entry4B5E0b *) gBoxTargets)
 #ifdef NON_MATCHING
 #define D_803FB8B0 (*(s32 *) &D_803FB8B0)
@@ -472,7 +472,7 @@ void block_draw(Gfx **gdl, Dyn4B5E0 *dyn) {
     for (i = 0; i < gBlockCount; i++) {
         guTranslate(&dyn->mtx[i], gBlocks[i].unk0 / 32.0f, gBlocks[i].unk4 / 32.0f,
                     gBlocks[i].unk8 / 32.0f);
-        gSPMatrix(gfx++, i * sizeof(Mtx) + 0xB00 + (u32) D_02000000, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+        gSPMatrix(gfx++, i * sizeof(Mtx) + 0xB00 + (u32) seg2Base, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
         gDPLoadTextureBlock(gfx++, gBlocks[i].unk30 - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b,
                             D_802FDC08[gBlocks[i].unk10].width, D_802FDC08[gBlocks[i].unk10].height, 0,
                             G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK,

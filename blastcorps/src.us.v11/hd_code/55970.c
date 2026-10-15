@@ -15,17 +15,17 @@
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-extern u8 D_0048FA70[];
-extern u8 D_0048FE90[];
+extern u8 romCopyright[];
+extern u8 romVehicleModels[];
 extern void * N64P D_803A6B10;
 extern s16 D_803A6B14;
 
 /* The 256x16 attract-demo banner from ROM (0x8029A130).
  * Load the 256x16 IA8 overlay texture from ROM into the heap */
 void hud_load_demo_banner(void) {
-    s32 size = D_0048FE90 - D_0048FA70;
+    s32 size = romVehicleModels - romCopyright;
 
-    hd_rom_load((u32) D_0048FA70, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
+    hd_rom_load((u32) romCopyright, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
     D_803A6B10 = gHeapPtr;
     gHeapPtr = (u8 *) gHeapPtr + size;
     D_803A6B14 = 0;

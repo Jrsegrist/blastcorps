@@ -103,8 +103,8 @@ extern VehRecord *gVehiclesEnd;
 #endif
 
 
-extern u8 D_00787F40[]; /* static code segment bounds (ROM) */
-extern u8 D_00788000[];
+extern u8 romStaticSegment[]; /* the static segment (segment 1: display lists) in ROM */
+extern u8 romStaticSegmentEnd[];
 extern u8 gPendingTune;
 extern u8 D_803FF600[];
 #ifndef NON_MATCHING
@@ -232,66 +232,66 @@ typedef struct {
     u8 pad14[8];
 } MenuEntry;
 
-extern u8 D_004A5660[]; /* lagp */
-extern u8 D_004ACC10[]; /* chimp */
-extern u8 D_004B8960[]; /* valley */
-extern u8 D_004BFD60[]; /* fact */
-extern u8 D_004C3AC0[]; /* dip */
-extern u8 D_004D5F90[]; /* beetle */
-extern u8 D_004E2F70[]; /* bonus1 */
-extern u8 D_004E4E80[]; /* bonus2 */
-extern u8 D_004E7C00[]; /* bonus3 */
-extern u8 D_004E8F70[]; /* level9 */
-extern u8 D_004F5C10[]; /* level10 */
-extern u8 D_00500520[]; /* level11 */
-extern u8 D_00507E80[]; /* level12 */
-extern u8 D_00511340[]; /* level13 */
-extern u8 D_00523080[]; /* level14 */
-extern u8 D_0052CD00[]; /* level15 */
-extern u8 D_00532700[]; /* level16 */
-extern u8 D_0053E9B0[]; /* level17 */
-extern u8 D_0054A820[]; /* level18 */
-extern u8 D_00552DE0[]; /* level19 */
-extern u8 D_00555000[]; /* level20 */
-extern u8 D_00560E90[]; /* level21 */
-extern u8 D_005652D0[]; /* level22 */
-extern u8 D_0056F3F0[]; /* level23 */
-extern u8 D_005721E0[]; /* level24 */
-extern u8 D_005736E0[]; /* level25 */
-extern u8 D_0057A2C0[]; /* level26 */
-extern u8 D_00580B60[]; /* level27 */
-extern u8 D_00588CE0[]; /* level28 */
-extern u8 D_0058BE80[]; /* level29 */
-extern u8 D_00597B80[]; /* level30 */
-extern u8 D_0059B7D0[]; /* level31 */
-extern u8 D_005A5840[]; /* level32 */
-extern u8 D_005B0B10[]; /* level33 */
-extern u8 D_005B5A30[]; /* level34 */
-extern u8 D_005B8BB0[]; /* level35 */
-extern u8 D_005C4C80[]; /* level36 */
-extern u8 D_005CA9C0[]; /* level37 */
-extern u8 D_005CCF50[]; /* level38 */
-extern u8 D_005D1060[]; /* level39 */
-extern u8 D_005DC830[]; /* level40 */
-extern u8 D_005E6EE0[]; /* level41 */
-extern u8 D_005EC800[]; /* level42 */
-extern u8 D_005F3A80[]; /* level43 */
-extern u8 D_006014B0[]; /* level44 */
-extern u8 D_0060A710[]; /* level45 */
-extern u8 D_00613AA0[]; /* level46 */
-extern u8 D_0061DD70[]; /* level47 */
-extern u8 D_00621AF0[]; /* level48 */
-extern u8 D_006269E0[]; /* level49 */
-extern u8 D_00630C30[]; /* level50 */
-extern u8 D_00635700[]; /* level51 */
-extern u8 D_0063CA10[]; /* level52 */
-extern u8 D_00641F30[]; /* level53 */
-extern u8 D_00644810[]; /* level54 */
-extern u8 D_00646080[]; /* level55 */
-extern u8 D_00647550[]; /* level56 */
-extern u8 D_00654FC0[]; /* level57 */
-extern u8 D_00660950[]; /* level58 */
-extern u8 D_00665F80[]; /* level59 */
+extern u8 romLagpRaw[]; /* lagp */
+extern u8 romChimpRaw[]; /* chimp */
+extern u8 romValleyRaw[]; /* valley */
+extern u8 romFactRaw[]; /* fact */
+extern u8 romDipRaw[]; /* dip */
+extern u8 romBeetleRaw[]; /* beetle */
+extern u8 romBonus1Raw[]; /* bonus1 */
+extern u8 romBonus2Raw[]; /* bonus2 */
+extern u8 romBonus3Raw[]; /* bonus3 */
+extern u8 romLevel9Raw[]; /* level9 */
+extern u8 romLevel10Raw[]; /* level10 */
+extern u8 romLevel11Raw[]; /* level11 */
+extern u8 romLevel12Raw[]; /* level12 */
+extern u8 romLevel13Raw[]; /* level13 */
+extern u8 romLevel14Raw[]; /* level14 */
+extern u8 romLevel15Raw[]; /* level15 */
+extern u8 romLevel16Raw[]; /* level16 */
+extern u8 romLevel17Raw[]; /* level17 */
+extern u8 romLevel18Raw[]; /* level18 */
+extern u8 romLevel19Raw[]; /* level19 */
+extern u8 romLevel20Raw[]; /* level20 */
+extern u8 romLevel21Raw[]; /* level21 */
+extern u8 romLevel22Raw[]; /* level22 */
+extern u8 romLevel23Raw[]; /* level23 */
+extern u8 romLevel24Raw[]; /* level24 */
+extern u8 romLevel25Raw[]; /* level25 */
+extern u8 romLevel26Raw[]; /* level26 */
+extern u8 romLevel27Raw[]; /* level27 */
+extern u8 romLevel28Raw[]; /* level28 */
+extern u8 romLevel29Raw[]; /* level29 */
+extern u8 romLevel30Raw[]; /* level30 */
+extern u8 romLevel31Raw[]; /* level31 */
+extern u8 romLevel32Raw[]; /* level32 */
+extern u8 romLevel33Raw[]; /* level33 */
+extern u8 romLevel34Raw[]; /* level34 */
+extern u8 romLevel35Raw[]; /* level35 */
+extern u8 romLevel36Raw[]; /* level36 */
+extern u8 romLevel37Raw[]; /* level37 */
+extern u8 romLevel38Raw[]; /* level38 */
+extern u8 romLevel39Raw[]; /* level39 */
+extern u8 romLevel40Raw[]; /* level40 */
+extern u8 romLevel41Raw[]; /* level41 */
+extern u8 romLevel42Raw[]; /* level42 */
+extern u8 romLevel43Raw[]; /* level43 */
+extern u8 romLevel44Raw[]; /* level44 */
+extern u8 romLevel45Raw[]; /* level45 */
+extern u8 romLevel46Raw[]; /* level46 */
+extern u8 romLevel47Raw[]; /* level47 */
+extern u8 romLevel48Raw[]; /* level48 */
+extern u8 romLevel49Raw[]; /* level49 */
+extern u8 romLevel50Raw[]; /* level50 */
+extern u8 romLevel51Raw[]; /* level51 */
+extern u8 romLevel52Raw[]; /* level52 */
+extern u8 romLevel53Raw[]; /* level53 */
+extern u8 romLevel54Raw[]; /* level54 */
+extern u8 romLevel55Raw[]; /* level55 */
+extern u8 romLevel56Raw[]; /* level56 */
+extern u8 romLevel57Raw[]; /* level57 */
+extern u8 romLevel58Raw[]; /* level58 */
+extern u8 romLevel59Raw[]; /* level59 */
 
 extern s32 D_8036506C;
 
@@ -306,7 +306,7 @@ void veh_draw_shadows(Gfx **, DynamicBuf *, u8);
 void veh_draw_chopper_shadow(Gfx **, DynamicBuf *);
 void veh_update_fail_spin(void);
 void cam_update(Mtx *, LookAt *, Mtx *);
-#define SEG2(off) ((u8 *) D_02000000 + (off))
+#define SEG2(off) ((u8 *) seg2Base + (off))
 
 #define MS_ASSERT(EX, line) \
     if (!(EX)) \
@@ -2372,7 +2372,7 @@ void cull_start(Mtx *proj, Mtx *view) {
     }
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, seg1RspInitDl);
     gSPMatrix(gdl++, PHYS(proj), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, PHYS(view), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -2541,8 +2541,8 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000038);
-    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
+    gSPDisplayList(gdl++, seg1RspInitDl);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     gSPClearGeometryMode(gdl++, G_ZBUFFER);
@@ -2575,11 +2575,11 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gDPPipeSync(gdl++);
     gDPFillRectangle(gdl++, 0, (height <= 0) ? 0 : height - 1, 319, 239);
     gDPPipeSync(gdl++);
-    gSPLookAtX(gdl++, &D_02000000[0xF0]);
-    gSPLookAtY(gdl++, (u8 *) &D_02000000[0xF0] + 0x10);
-    gSPMatrix(gdl++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_02000000[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPLookAtX(gdl++, &seg2Base[0xF0]);
+    gSPLookAtY(gdl++, (u8 *) &seg2Base[0xF0] + 0x10);
+    gSPMatrix(gdl++, &seg2Base[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &seg2Base[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     switch (gGameMode) {
         case MODE_REPLAY:
@@ -2942,10 +2942,10 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             D_8036506C++;
             PORT_ITAG(gdl, PORT_ITAG_SHADOW, i);
             if (gCarrierHit && !(gLevelKind & 0x81) && gVehicleShadows[i].type == gCurVehicle) {
-                gSPMatrix(gdl++, &D_02000000[0x55], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+                gSPMatrix(gdl++, &seg2Base[0x55], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             }
-            gSPMatrix(gdl++, &D_02000000[i + 11], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-            gSPVertex(gdl++, (Vtx *) D_02000000 + D_8036506C + 0x158, 4, 0);
+            gSPMatrix(gdl++, &seg2Base[i + 11], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPVertex(gdl++, (Vtx *) seg2Base + D_8036506C + 0x158, 4, 0);
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
             gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
@@ -3039,9 +3039,9 @@ void veh_draw_chopper_shadow(Gfx **gfx, DynamicBuf *dyn) {
     guTranslate(&dyn->unk240, x, y, z);
     guRotate(&dyn->unk280, (f32) D_803EF326 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
     PORT_ITAG(gdl, PORT_ITAG_SHADOWFE, 0);
-    gSPMatrix(gdl++, &D_02000000[9], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(gdl++, &D_02000000[10], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPVertex(gdl++, &D_02000000[0x63], 4, 0);
+    gSPMatrix(gdl++, &seg2Base[9], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(gdl++, &seg2Base[10], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPVertex(gdl++, &seg2Base[0x63], 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
@@ -3079,7 +3079,7 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
             gDPSetEnvColor(gdl++, 0, 0, 0, gVehicles[i].alpha);
             gSPClearGeometryMode(gdl++, -1);
             if (gCarrierHit && !(gLevelKind & 0x81) && gVehicles[i].type == gCurVehicle) {
-                gSPMatrix(gdl++, &D_02000000[0x54], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                gSPMatrix(gdl++, &seg2Base[0x54], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             }
             if (alt) {
                 switch (lod) {
@@ -3107,7 +3107,7 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
                 }
             }
             PORT_ITAG(gdl, PORT_ITAG_NONE, 0);
-            gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+            gSPMatrix(gdl++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         }
         i++;
     }
@@ -4430,7 +4430,7 @@ void hd_mode_setup(void) {
     u32 size;
     s32 old;
 
-    size = D_00788000 - D_00787F40;
+    size = romStaticSegmentEnd - romStaticSegment;
     osViBlack(1);
     gPendingTune = music_tune_for_mode(gNextGameMode);
     osWritebackDCacheAll();
@@ -4446,8 +4446,8 @@ void hd_mode_setup(void) {
     cont_clear();
     cont_steer_reset();
     gStaticSegment = D_803FF600;
-    hd_rom_load((u32) D_00787F40, (u32) D_803FF600, &size, 10, 0, 2);
-    end = (u32) (D_00788000 - D_00787F40) + (u32) D_803FF600;
+    hd_rom_load((u32) romStaticSegment, (u32) D_803FF600, &size, 10, 0, 2);
+    end = (u32) (romStaticSegmentEnd - romStaticSegment) + (u32) D_803FF600;
     debug_printf("Static end = 0x%x, space=0x%x (%d) bytes\n", end, 0x80400000 - end, 0x80400000 - end);
     gFrameDlLen = 0;
     hd_clear_framebuffer(gDynamicBufs[gBufferIndex].dl, &gFrameDlLen);
@@ -4498,244 +4498,244 @@ void lvl_load_file(s32 level, s32 dest, s32 *size) {
 
     switch (level) {
         case 1:
-            start = D_004A5660;
-            *size = D_004ACC10 - D_004A5660;
+            start = romLagpRaw;
+            *size = romChimpRaw - romLagpRaw;
             break;
         case 0:
-            start = D_004ACC10;
-            *size = D_004B8960 - D_004ACC10;
+            start = romChimpRaw;
+            *size = romValleyRaw - romChimpRaw;
             break;
         case 2:
-            start = D_004B8960;
-            *size = D_004BFD60 - D_004B8960;
+            start = romValleyRaw;
+            *size = romFactRaw - romValleyRaw;
             break;
         case 3:
-            start = D_004BFD60;
-            *size = D_004C3AC0 - D_004BFD60;
+            start = romFactRaw;
+            *size = romDipRaw - romFactRaw;
             break;
         case 4:
-            start = D_004C3AC0;
-            *size = D_004D5F90 - D_004C3AC0;
+            start = romDipRaw;
+            *size = romBeetleRaw - romDipRaw;
             break;
         case 5:
-            start = D_004D5F90;
-            *size = D_004E2F70 - D_004D5F90;
+            start = romBeetleRaw;
+            *size = romBonus1Raw - romBeetleRaw;
             break;
         case 6:
-            start = D_004E2F70;
-            *size = D_004E4E80 - D_004E2F70;
+            start = romBonus1Raw;
+            *size = romBonus2Raw - romBonus1Raw;
             break;
         case 7:
-            start = D_004E4E80;
-            *size = D_004E7C00 - D_004E4E80;
+            start = romBonus2Raw;
+            *size = romBonus3Raw - romBonus2Raw;
             break;
         case 8:
-            start = D_004E7C00;
-            *size = D_004E8F70 - D_004E7C00;
+            start = romBonus3Raw;
+            *size = romLevel9Raw - romBonus3Raw;
             break;
         case 9:
-            start = D_004E8F70;
-            *size = D_004F5C10 - D_004E8F70;
+            start = romLevel9Raw;
+            *size = romLevel10Raw - romLevel9Raw;
             break;
         case 10:
-            start = D_004F5C10;
-            *size = D_00500520 - D_004F5C10;
+            start = romLevel10Raw;
+            *size = romLevel11Raw - romLevel10Raw;
             break;
         case 11:
-            start = D_00500520;
-            *size = D_00507E80 - D_00500520;
+            start = romLevel11Raw;
+            *size = romLevel12Raw - romLevel11Raw;
             break;
         case 12:
-            start = D_00507E80;
-            *size = D_00511340 - D_00507E80;
+            start = romLevel12Raw;
+            *size = romLevel13Raw - romLevel12Raw;
             break;
         case 13:
-            start = D_00511340;
-            *size = D_00523080 - D_00511340;
+            start = romLevel13Raw;
+            *size = romLevel14Raw - romLevel13Raw;
             break;
         case 14:
-            start = D_00523080;
-            *size = D_0052CD00 - D_00523080;
+            start = romLevel14Raw;
+            *size = romLevel15Raw - romLevel14Raw;
             break;
         case 15:
-            start = D_0052CD00;
-            *size = D_00532700 - D_0052CD00;
+            start = romLevel15Raw;
+            *size = romLevel16Raw - romLevel15Raw;
             break;
         case 16:
-            start = D_00532700;
-            *size = D_0053E9B0 - D_00532700;
+            start = romLevel16Raw;
+            *size = romLevel17Raw - romLevel16Raw;
             break;
         case 17:
-            start = D_0053E9B0;
-            *size = D_0054A820 - D_0053E9B0;
+            start = romLevel17Raw;
+            *size = romLevel18Raw - romLevel17Raw;
             break;
         case 18:
-            start = D_0054A820;
-            *size = D_00552DE0 - D_0054A820;
+            start = romLevel18Raw;
+            *size = romLevel19Raw - romLevel18Raw;
             break;
         case 19:
-            start = D_00552DE0;
-            *size = D_00555000 - D_00552DE0;
+            start = romLevel19Raw;
+            *size = romLevel20Raw - romLevel19Raw;
             break;
         case 20:
-            start = D_00555000;
-            *size = D_00560E90 - D_00555000;
+            start = romLevel20Raw;
+            *size = romLevel21Raw - romLevel20Raw;
             break;
         case 21:
-            start = D_00560E90;
-            *size = D_005652D0 - D_00560E90;
+            start = romLevel21Raw;
+            *size = romLevel22Raw - romLevel21Raw;
             break;
         case 22:
-            start = D_005652D0;
-            *size = D_0056F3F0 - D_005652D0;
+            start = romLevel22Raw;
+            *size = romLevel23Raw - romLevel22Raw;
             break;
         case 23:
-            start = D_0056F3F0;
-            *size = D_005721E0 - D_0056F3F0;
+            start = romLevel23Raw;
+            *size = romLevel24Raw - romLevel23Raw;
             break;
         case 24:
-            start = D_005721E0;
-            *size = D_005736E0 - D_005721E0;
+            start = romLevel24Raw;
+            *size = romLevel25Raw - romLevel24Raw;
             break;
         case 25:
-            start = D_005736E0;
-            *size = D_0057A2C0 - D_005736E0;
+            start = romLevel25Raw;
+            *size = romLevel26Raw - romLevel25Raw;
             break;
         case 26:
-            start = D_0057A2C0;
-            *size = D_00580B60 - D_0057A2C0;
+            start = romLevel26Raw;
+            *size = romLevel27Raw - romLevel26Raw;
             break;
         case 27:
-            start = D_00580B60;
-            *size = D_00588CE0 - D_00580B60;
+            start = romLevel27Raw;
+            *size = romLevel28Raw - romLevel27Raw;
             break;
         case 28:
-            start = D_00588CE0;
-            *size = D_0058BE80 - D_00588CE0;
+            start = romLevel28Raw;
+            *size = romLevel29Raw - romLevel28Raw;
             break;
         case 29:
-            start = D_0058BE80;
-            *size = D_00597B80 - D_0058BE80;
+            start = romLevel29Raw;
+            *size = romLevel30Raw - romLevel29Raw;
             break;
         case 30:
-            start = D_00597B80;
-            *size = D_0059B7D0 - D_00597B80;
+            start = romLevel30Raw;
+            *size = romLevel31Raw - romLevel30Raw;
             break;
         case 31:
-            start = D_0059B7D0;
-            *size = D_005A5840 - D_0059B7D0;
+            start = romLevel31Raw;
+            *size = romLevel32Raw - romLevel31Raw;
             break;
         case 32:
-            start = D_005A5840;
-            *size = D_005B0B10 - D_005A5840;
+            start = romLevel32Raw;
+            *size = romLevel33Raw - romLevel32Raw;
             break;
         case 33:
-            start = D_005B0B10;
-            *size = D_005B5A30 - D_005B0B10;
+            start = romLevel33Raw;
+            *size = romLevel34Raw - romLevel33Raw;
             break;
         case 34:
-            start = D_005B5A30;
-            *size = D_005B8BB0 - D_005B5A30;
+            start = romLevel34Raw;
+            *size = romLevel35Raw - romLevel34Raw;
             break;
         case 35:
-            start = D_005B8BB0;
-            *size = D_005C4C80 - D_005B8BB0;
+            start = romLevel35Raw;
+            *size = romLevel36Raw - romLevel35Raw;
             break;
         case 36:
-            start = D_005C4C80;
-            *size = D_005CA9C0 - D_005C4C80;
+            start = romLevel36Raw;
+            *size = romLevel37Raw - romLevel36Raw;
             break;
         case 37:
-            start = D_005CA9C0;
-            *size = D_005CCF50 - D_005CA9C0;
+            start = romLevel37Raw;
+            *size = romLevel38Raw - romLevel37Raw;
             break;
         case 38:
-            start = D_005CCF50;
-            *size = D_005D1060 - D_005CCF50;
+            start = romLevel38Raw;
+            *size = romLevel39Raw - romLevel38Raw;
             break;
         case 39:
-            start = D_005D1060;
-            *size = D_005DC830 - D_005D1060;
+            start = romLevel39Raw;
+            *size = romLevel40Raw - romLevel39Raw;
             break;
         case 40:
-            start = D_005DC830;
-            *size = D_005E6EE0 - D_005DC830;
+            start = romLevel40Raw;
+            *size = romLevel41Raw - romLevel40Raw;
             break;
         case 41:
-            start = D_005E6EE0;
-            *size = D_005EC800 - D_005E6EE0;
+            start = romLevel41Raw;
+            *size = romLevel42Raw - romLevel41Raw;
             break;
         case 42:
-            start = D_005EC800;
-            *size = D_005F3A80 - D_005EC800;
+            start = romLevel42Raw;
+            *size = romLevel43Raw - romLevel42Raw;
             break;
         case 43:
-            start = D_005F3A80;
-            *size = D_006014B0 - D_005F3A80;
+            start = romLevel43Raw;
+            *size = romLevel44Raw - romLevel43Raw;
             break;
         case 44:
-            start = D_006014B0;
-            *size = D_0060A710 - D_006014B0;
+            start = romLevel44Raw;
+            *size = romLevel45Raw - romLevel44Raw;
             break;
         case 45:
-            start = D_0060A710;
-            *size = D_00613AA0 - D_0060A710;
+            start = romLevel45Raw;
+            *size = romLevel46Raw - romLevel45Raw;
             break;
         case 46:
-            start = D_00613AA0;
-            *size = D_0061DD70 - D_00613AA0;
+            start = romLevel46Raw;
+            *size = romLevel47Raw - romLevel46Raw;
             break;
         case 47:
-            start = D_0061DD70;
-            *size = D_00621AF0 - D_0061DD70;
+            start = romLevel47Raw;
+            *size = romLevel48Raw - romLevel47Raw;
             break;
         case 48:
-            start = D_00621AF0;
-            *size = D_006269E0 - D_00621AF0;
+            start = romLevel48Raw;
+            *size = romLevel49Raw - romLevel48Raw;
             break;
         case 49:
-            start = D_006269E0;
-            *size = D_00630C30 - D_006269E0;
+            start = romLevel49Raw;
+            *size = romLevel50Raw - romLevel49Raw;
             break;
         case 50:
-            start = D_00630C30;
-            *size = D_00635700 - D_00630C30;
+            start = romLevel50Raw;
+            *size = romLevel51Raw - romLevel50Raw;
             break;
         case 51:
-            start = D_00635700;
-            *size = D_0063CA10 - D_00635700;
+            start = romLevel51Raw;
+            *size = romLevel52Raw - romLevel51Raw;
             break;
         case 52:
-            start = D_0063CA10;
-            *size = D_00641F30 - D_0063CA10;
+            start = romLevel52Raw;
+            *size = romLevel53Raw - romLevel52Raw;
             break;
         case 53:
-            start = D_00641F30;
-            *size = D_00644810 - D_00641F30;
+            start = romLevel53Raw;
+            *size = romLevel54Raw - romLevel53Raw;
             break;
         case 54:
-            start = D_00644810;
-            *size = D_00646080 - D_00644810;
+            start = romLevel54Raw;
+            *size = romLevel55Raw - romLevel54Raw;
             break;
         case 55:
-            start = D_00646080;
-            *size = D_00647550 - D_00646080;
+            start = romLevel55Raw;
+            *size = romLevel56Raw - romLevel55Raw;
             break;
         case 56:
-            start = D_00647550;
-            *size = D_00654FC0 - D_00647550;
+            start = romLevel56Raw;
+            *size = romLevel57Raw - romLevel56Raw;
             break;
         case 57:
-            start = D_00654FC0;
-            *size = D_00660950 - D_00654FC0;
+            start = romLevel57Raw;
+            *size = romLevel58Raw - romLevel57Raw;
             break;
         case 58:
-            start = D_00660950;
-            *size = D_00665F80 - D_00660950;
+            start = romLevel58Raw;
+            *size = romLevel59Raw - romLevel58Raw;
             break;
         case 59:
-            start = D_00665F80;
-            *size = D_0066C900 - D_00665F80;
+            start = romLevel59Raw;
+            *size = romWorldTexturesRaw - romLevel59Raw;
             break;
     }
     hd_rom_load((u32) start, (u32) ((void *) N64_IPTR(dest)), (u32 *) size, 12, 10, 1);

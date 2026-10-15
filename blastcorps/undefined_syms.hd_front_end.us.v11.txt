@@ -7,21 +7,21 @@ __osEepromTimerMsg = 0x803FF2C0;
 D_80304954 = 0x80304954; /* .data initializer: hd_code u16 text */
 gDepthBufferPhys = 0x80358058; /* hd_code: depth buffer address */
 gStaticSegment = 0x8035806C; /* hd_code: segment 1 base */
-D_01000010 = 0x01000010; /* segment 1 display lists */
+seg1RspInitDl = 0x01000010; /* segment 1 display lists */
 /* 0DE70: ROM addresses of the front-end scene blobs */
-D_006E8980 = 0x006E8980;
-D_006EA850 = 0x006EA850;
-D_006EAB90 = 0x006EAB90;
-D_006EC4C0 = 0x006EC4C0;
+romUsaStarScene = 0x006E8980;
+romNinLogoScene = 0x006EA850;
+romReflectLogoScene = 0x006EAB90;
+romPackedObjTable = 0x006EC4C0;
 /* 1A240 */
-D_0068B550 = 0x0068B550;
-D_006A32B0 = 0x006A32B0;
+romAttractPictures = 0x0068B550;
+romTrafficLights = 0x006A32B0;
 D_8020E3E0 = 0x8020E3E0;
 D_8036BB1C = 0x8036BB1C;
 /* 07800: two adjacent ROM blobs */
-D_0048F5A0 = 0x0048F5A0;
+romBootBanner = 0x0048F5A0;
 D_0048F5A0_end = 0x0048F970;
-D_0048F970 = 0x0048F970;
+romBootIcon = 0x0048F970;
 D_0048F970_end = 0x0048FA70;
 /* 06790: hd_code glyph lists */
 D_80303B78 = 0x80303B78;
@@ -33,20 +33,20 @@ D_80303B58 = 0x80303B58;
 D_80303B68 = 0x80303B68;
 D_8036B980 = 0x8036B980;
 nss = 0x8036EA70;
-D_01000038 = 0x01000038;
+seg1RdpInitDl = 0x01000038;
 gScheduler = 0x80315440; /* hd_code scheduler (0E7B0 fe_pak_start_thread) */
 /* EEPROM libultra by address (0E7B0 calls them through these until the Read/Write name swap fix lands) */
 func_80204C10 = 0x80204C10; /* osEepromWrite */
 func_802050F0 = 0x802050F0; /* osEepromRead */
 func_802042D0 = 0x802042D0; /* osEepromLongWrite */
 func_80204410 = 0x80204410; /* osEepromLongRead */
-D_006AD3F0 = 0x006AD3F0; /* compressed front-end pictures in ROM (196F0 fe_bg_load) */
-D_006BF2F0 = 0x006BF2F0;
-D_006D3D30 = 0x006D3D30;
+romFeBgPicture1 = 0x006AD3F0; /* compressed front-end pictures in ROM (196F0 fe_bg_load) */
+romFeBgPicture2 = 0x006BF2F0;
+romFeBgPicture3 = 0x006D3D30;
 gPanelPerspNorm = 0x8021591C; /* 01C40: perspNorm (splat left the lui/addiu raw) */
 D_8020BC88 = 0x8020BC88; /* 09570: display list referenced only by a raw lui/addiu pair */
 gStarfieldPerspNorm = 0x80217288; /* 09570: perspNorm, raw lui/addiu pair */
-D_0066C900 = 0x0066C900; /* 09570 fe_lvlsel_build_globe_dl: worldtextures.raw in ROM (as in undefined_syms.hd_code) */
-D_02000000 = 0x02000000; /* segment 2 base (as in undefined_syms.hd_code) */
+romWorldTexturesRaw = 0x0066C900; /* 09570 fe_lvlsel_build_globe_dl: worldtextures.raw in ROM (as in undefined_syms.hd_code) */
+seg2Base = 0x02000000; /* segment 2 base (as in undefined_syms.hd_code) */
 /* 11530: segment-1 display lists (as in hd_code) and hd_code globals splat left unpaired */
 gFlightAltitude = 0x8021A8EC;

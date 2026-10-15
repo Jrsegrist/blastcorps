@@ -119,8 +119,8 @@ Gfx *title_draw_attract(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
         if ((u32) ((s32) gFramesInMode) > D_80366A04) {
             if (time < gAttractFadeTime + 0x78) {
                 gDPPipeSync(gfx++);
-                gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-                gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                gSPMatrix(gfx++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+                gSPMatrix(gfx++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
                 gDPSetRenderMode(gfx++, 0x00504340, 0);
                 gDPSetCombineMode(gfx++, G_CC_SHADE, G_CC_SHADE);
                 gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
@@ -213,8 +213,8 @@ void title_alloc_attract_bufs(void) {
     gHeapPtr = (u8 *) D_80366BA4 + 0x780;
 }
 
-extern u8 D_00487050[];
-extern u8 D_00489E70[];
+extern u8 romTitleLogo[];
+extern u8 romTitlePicture[];
 extern u32 gLogoImages[];
 
 /* 0: the 280x64 logo strip, 1: the 156x156 picture (0x8025D0B0). */
@@ -228,12 +228,12 @@ void title_load_logo_image(u8 arg0) {
 
     switch (arg0) {
         case 1:
-            rom = D_00489E70;
-            size = D_0048F5A0 - D_00489E70;
+            rom = romTitlePicture;
+            size = romBootBanner - romTitlePicture;
             break;
         case 0:
-            rom = D_00487050;
-            size = D_00489E70 - D_00487050;
+            rom = romTitleLogo;
+            size = romTitlePicture - romTitleLogo;
             break;
     }
     hd_rom_load((u32) rom, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
@@ -445,9 +445,9 @@ Gfx *title_draw_logo(Gfx *arg0, s32 arg1, s32 *arg2) {
 void title_draw_vehicles(Gfx **arg0) {
     Gfx *gfx = *arg0;
 
-    gSPMatrix(gfx++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gfx++, &D_02000000[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     veh_draw_layer(&gfx, 0);
     veh_draw_layer(&gfx, 1);
     veh_draw_layer(&gfx, 2);
@@ -590,8 +590,8 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                         snd_play(gSfxBank, SFX_MISSION_FAILED, NULL);
                         gFailSoundPlayed = 1;
                     }
-                    gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-                    gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                    gSPMatrix(gfx++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+                    gSPMatrix(gfx++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
                     gDPPipeSync(gfx++);
                     gDPSetRenderMode(gfx++, 0x00504340, 0);
                     gDPSetCombineMode(gfx++, G_CC_SHADE, G_CC_SHADE);

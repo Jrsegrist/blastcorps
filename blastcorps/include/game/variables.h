@@ -572,19 +572,19 @@ extern u8 gShuttlePathEvent; /* event this frame */
 extern u8 D_803FCD75; /* sound mode: 0 or 1 */
 
 /* ROM addresses (DMA sources) */
-extern u8 D_0048F5A0[];
-extern u8 D_0066C900[]; /* worldtextures */
-extern u8 D_0068B550[]; /* ... its end */
-extern u8 D_006A32B0[];
-extern u8 D_006A8DA0[];
-extern u8 D_006A9F10[];
-extern u8 D_006AD3F0[]; /* compressed pictures (ROM) */
-extern u8 D_006E8980[];
+extern u8 romBootBanner[];
+extern u8 romWorldTexturesRaw[]; /* worldtextures */
+extern u8 romAttractPictures[]; /* ... its end */
+extern u8 romTrafficLights[];
+extern u8 romControllerPicture[];
+extern u8 romDemoRecordings[];
+extern u8 romFeBgPicture1[]; /* compressed pictures (ROM) */
+extern u8 romUsaStarScene[];
 
 /* segment addresses */
-extern Gfx D_01000010[]; /* segment 1 */
-extern Gfx D_01000038[];
-extern Mtx D_02000000[]; /* 4 dial + 4 needle vertices */
+extern Gfx seg1RspInitDl[]; /* segment 1 */
+extern Gfx seg1RdpInitDl[];
+extern Mtx seg2Base[]; /* segment 2: the frame's DynamicBuf (Mtx / Vtx / LookAt by index) */
 
 /* named */
 extern s16 currentYoshiWindow;

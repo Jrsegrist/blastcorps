@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 /* end of views */
 
 /* This file's .bss starts at 0x8036C790 */
@@ -183,7 +183,7 @@ void hud_draw_target_marker(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
             gMarkedTargetPts = NULL;
         }
         gdl = hud_sprite_setup(gdl, 0);
-        gSPVertex(gdl++, (u32) D_02000000 + 0x1F00, 16, 0);
+        gSPVertex(gdl++, (u32) seg2Base + 0x1F00, 16, 0);
         vtxIdx = 0;
         for (k = 0; k < 4; k++) {
             gSP1Triangle(gdl++, vtxIdx, vtxIdx + 1, vtxIdx + 2, 0);
@@ -200,8 +200,8 @@ Gfx *hud_sprite_setup(Gfx *gfx, u8 arg1) {
     Gfx *gdl = gfx;
 
     if (!arg1) {
-        gSPMatrix(gdl++, (u32) D_02000000 + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-        gSPMatrix(gdl++, (u32) D_02000000 + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, (u32) seg2Base + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, (u32) seg2Base + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     }
     gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
     gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
@@ -488,7 +488,7 @@ void hud_draw_player_locator(Gfx **gfxp, void *view, u8 idx, s32 x, s32 y, s32 z
         guRotateF(rot, 135.0 - (D_8036443E / 4095.0) * 360.0, 0.0f, 0.0f, 1.0f);
         guMtxCatF(rot, mf, mf);
         guMtxF2L(mf, &D_8036C850[idx]);
-        gSPMatrix(gdl++, (u32) D_02000000 + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, (u32) seg2Base + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPMatrix(gdl++, &D_8036C850[idx], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);

@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 /* end of views */
 
 /* A zone: an x/z shape (six values for ground_in_triangle) spanning ymin..ymax */
@@ -229,7 +229,7 @@ void trail_draw(Gfx **gfxp, TrailBuf *buf) {
             done = 1;
         }
         if (start != end) {
-            gSPDisplayList(gdl++, dlIdx * sizeof(Gfx) + 0x3C30 + (u32) D_02000000);
+            gSPDisplayList(gdl++, dlIdx * sizeof(Gfx) + 0x3C30 + (u32) seg2Base);
             minZ = minY = minX = 0x7FFF;
             maxZ = maxY = maxX = -0x8000;
             k = vbase;
@@ -350,7 +350,7 @@ void trail_draw(Gfx **gfxp, TrailBuf *buf) {
             }
             if (n >= 41) {
                 trail_box_corners(minX, minY, minZ, maxX, maxY, maxZ, buf->vtx, k);
-                gSPVertex(dl++, k * sizeof(Vtx) + 0x2000 + (u32) D_02000000, 8, 0);
+                gSPVertex(dl++, k * sizeof(Vtx) + 0x2000 + (u32) seg2Base, 8, 0);
                 gSPCullDisplayList(dl++, 0, 7);
                 dlIdx += 2;
                 k += 8;
@@ -362,7 +362,7 @@ void trail_draw(Gfx **gfxp, TrailBuf *buf) {
                     } else {
                         nv = n;
                     }
-                    gSPVertex(dl++, vbase * sizeof(Vtx) + 0x2000 + (u32) D_02000000, nv, 0);
+                    gSPVertex(dl++, vbase * sizeof(Vtx) + 0x2000 + (u32) seg2Base, nv, 0);
                     t = 0;
                     vbase += nv - 2;
                     dlIdx++;

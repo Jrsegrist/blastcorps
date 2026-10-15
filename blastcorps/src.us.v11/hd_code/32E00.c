@@ -9,7 +9,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 #ifdef NON_MATCHING
 #define gDigTriggers (*(DigTrigger * N64P *) &gDigTriggers)
 #define gDigTriggersEnd (*(DigTrigger * N64P *) &gDigTriggersEnd)
@@ -447,8 +447,8 @@ void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
         } else {
             D_8036CB51 = 0;
         }
-        gSPMatrix(gdl++, (u32) D_02000000 + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-        gSPMatrix(gdl++, (u32) D_02000000 + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, (u32) seg2Base + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, (u32) seg2Base + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
         gDPSetCycleType(gdl++, G_CYC_2CYCLE);
         gDPSetRenderMode(gdl++, G_RM_PASS, G_RM_OPA_SURF2);

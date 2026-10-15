@@ -211,8 +211,8 @@ void fe_back_loop(void) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(&gDynamicBufs[gBufferIndex]));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000038);
-    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
+    gSPDisplayList(gdl++, seg1RspInitDl);
     gSPClipRatio(gdl++, FRUSTRATIO_3);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     if (gGameMode & (MODE_LEVEL_STATUS | MODE_RESULTS | MODE_PRE_PROMOTION)) {

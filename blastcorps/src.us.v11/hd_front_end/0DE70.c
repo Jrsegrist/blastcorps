@@ -36,9 +36,9 @@ extern s32 gHeapPtr; /* heap pointer */
 #endif
 
 /* ROM addresses of the compressed scene blobs */
-extern u8 D_006EA850[];
-extern u8 D_006EAB90[];
-extern u8 D_006EC4C0[];
+extern u8 romNinLogoScene[];
+extern u8 romReflectLogoScene[];
+extern u8 romPackedObjTable[];
 
 extern u32 gFeSceneSize;
 extern u8 * N64P gFeSceneRom;
@@ -64,16 +64,16 @@ void fe_scene_load(u8 arg0) {
     tex_load_table();
     switch (arg0) {
         case 0:
-            gFeSceneRom = D_006E8980;
-            gFeSceneSize = D_006EA850 - D_006E8980;
+            gFeSceneRom = romUsaStarScene;
+            gFeSceneSize = romNinLogoScene - romUsaStarScene;
             break;
         case 1:
-            gFeSceneRom = D_006EA850;
-            gFeSceneSize = D_006EAB90 - D_006EA850;
+            gFeSceneRom = romNinLogoScene;
+            gFeSceneSize = romReflectLogoScene - romNinLogoScene;
             break;
         case 2:
-            gFeSceneRom = D_006EAB90;
-            gFeSceneSize = D_006EC4C0 - D_006EAB90;
+            gFeSceneRom = romReflectLogoScene;
+            gFeSceneSize = romPackedObjTable - romReflectLogoScene;
             break;
     }
     hd_rom_load((u32) gFeSceneRom, (u32) ((void *) N64_IPTR(gHeapPtr)), &gFeSceneSize, 12, 10, 1);

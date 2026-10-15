@@ -1044,8 +1044,8 @@ void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
     if (D_8036E4D2 != 0) {
         /* widescreen HUD sides (port.h): by where the overlay's quad is */
         PORT_WTAG(gdl, PORT_WTAG_SPAN, D_802FC568[0].v.ob[0], D_802FC568[2].v.ob[0]);
-        gSPMatrix(gdl++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-        gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
@@ -1116,7 +1116,7 @@ void fx_draw_carrier_blast(Gfx **gfx, u8 arg1) {
             gSPMatrix(gdl++, osVirtualToPhysical(&D_8036E4D8[arg1][i]), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             gSPSegment(gdl++, 6, osVirtualToPhysical(D_802FFF38));
             gSPDisplayList(gdl++, osVirtualToPhysical(D_80300A68));
-            gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+            gSPMatrix(gdl++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         }
         if (D_8036E4D4 + 10 < D_803156C4 && D_8036E4D3 != 0 && D_8036E4D3 < 2) {
             D_8036E4D4 = D_803156C4;

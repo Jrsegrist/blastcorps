@@ -33,11 +33,11 @@ typedef struct {
 } SynConfig;
 
 
-extern u8 D_00350950[];
-extern u8 D_003539A0[];
-extern u8 D_003A1920[];
-extern u8 D_003A48C0[];
-extern u8 D_0044F5C0[];
+extern u8 romMusicBankCtl[];
+extern u8 romMusicBankTbl[];
+extern u8 romSfxBankCtl[];
+extern u8 romSfxBankTbl[];
+extern u8 romSequenceFile[];
 
 extern u8 gSeqIndex;
 extern s16 gTuneVolumes[];
@@ -270,25 +270,25 @@ void music_init_audio(void) {
     s32 hdrSize;
 
     alHeapInit(&gAudioHeap, gAudioHeapBuf, 0x2A280);
-    size2 = size1 = D_003539A0 - D_00350950;
-    hd_rom_load((u32) D_00350950, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
+    size2 = size1 = romMusicBankTbl - romMusicBankCtl;
+    hd_rom_load((u32) romMusicBankCtl, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     musBank = alHeapDBAlloc(0, 0, &gAudioHeap, 1, size2);
-    hd_rom_load((u32) D_00350950, (u32) musBank, (u32 *) &size1, 0xD, 0, 2);
-    alBnkfNew(musBank, D_003539A0);
+    hd_rom_load((u32) romMusicBankCtl, (u32) musBank, (u32 *) &size1, 0xD, 0, 2);
+    alBnkfNew(musBank, romMusicBankTbl);
     gMusicBank = musBank->bankArray[0];
-    size2 = size1 = D_003A48C0 - D_003A1920;
-    hd_rom_load((u32) D_003A1920, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
+    size2 = size1 = romSfxBankTbl - romSfxBankCtl;
+    hd_rom_load((u32) romSfxBankCtl, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     sfxBank = alHeapDBAlloc(0, 0, &gAudioHeap, 1, size2);
-    hd_rom_load((u32) D_003A1920, (u32) sfxBank, (u32 *) &size1, 0xD, 0, 2);
-    alBnkfNew(sfxBank, D_003A48C0);
+    hd_rom_load((u32) romSfxBankCtl, (u32) sfxBank, (u32 *) &size1, 0xD, 0, 2);
+    alBnkfNew(sfxBank, romSfxBankTbl);
     gSfxBank = sfxBank->bankArray[0];
     gSeqFile = alHeapDBAlloc(0, 0, &gAudioHeap, 1, 4);
     hdrSize = 4;
-    hd_rom_load((u32) D_0044F5C0, (u32) gSeqFile, (u32 *) &hdrSize, 0, 0, 0);
+    hd_rom_load((u32) romSequenceFile, (u32) gSeqFile, (u32 *) &hdrSize, 0, 0, 0);
     seqSize = gSeqFile->seqCount * 8 + 4;
     gSeqFile = alHeapDBAlloc(0, 0, &gAudioHeap, 1, 0x214);
-    hd_rom_load((u32) D_0044F5C0, (u32) gSeqFile, (u32 *) &seqSize, 0, 0, 0);
-    alSeqFileNew(gSeqFile, D_0044F5C0);
+    hd_rom_load((u32) romSequenceFile, (u32) gSeqFile, (u32 *) &seqSize, 0, 0, 0);
+    alSeqFileNew(gSeqFile, romSequenceFile);
     gSeqBuffer = alHeapDBAlloc(0, 0, &gAudioHeap, 1, 0x21AE);
     for (i = 0; i < 0x42; i++) {
         gSeqSizes[i] = gSeqFile->seqArray[i].len;

@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 #define gGlobeLevels ((GlobeLevel *) gGlobeLevels)
 #define gLvlselMarkerFrames ((u16 * N64P *) gLvlselMarkerFrames)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
@@ -167,13 +167,13 @@ void fe_lvlsel_build_globe_vtx(void) {
 
 /*
  * fe_lvlsel_build_globe_dl builds the globe display list: inflates worldtextures.raw
- * (ROM D_0066C900..D_0068B550) to the heap, carves the texture pointers out of
+ * (ROM romWorldTexturesRaw..romAttractPictures) to the heap, carves the texture pointers out of
  * its tail, builds the vertices (fe_lvlsel_build_globe_vtx) and emits, per face and grid cell,
  * five mip levels of a 17x17..2x2 RGBA16 texture plus two triangles.
  * Matched once the mip loop became a for loop with all three counters in its
  * header (`for (lod = 0, tmem = 0, texoff = 0; ...; lod++, tmem += step,
  * texoff += ww + 3)`) and two unused words sat below `size` (frame 0xB0).
- * D_0066C900 is a real symbol (undefined_syms.hd_front_end).
+ * romWorldTexturesRaw is a real symbol (undefined_syms.hd_front_end).
  */
 typedef struct {
     u16 tex[49][0x1A4];
@@ -201,8 +201,8 @@ Gfx *fe_lvlsel_build_globe_dl(void) {
     Gfx *dl;
 
     base = gHeapPtr;
-    size = D_0068B550 - D_0066C900;
-    hd_rom_load((u32) D_0066C900, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
+    size = romAttractPictures - romWorldTexturesRaw;
+    hd_rom_load((u32) romWorldTexturesRaw, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
     gHeapPtr += size;
     gStarTextures = (u16 *) (gHeapPtr - 0x6600);
     for (i = 0; i < 3; i++) {
@@ -516,7 +516,7 @@ Gfx *fe_lvlsel_build_starfield_dl(void) {
     gSPTexture(gfx++, 0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON);
     k = 0;
     for (i = 0; i < 0x200; i += 16) {
-        gSPVertex(gfx++, (Vtx *) (i * 16 + 0x15C0 + (u32) D_02000000), 16, 0);
+        gSPVertex(gfx++, (Vtx *) (i * 16 + 0x15C0 + (u32) seg2Base), 16, 0);
         gDPPipeSync(gfx++);
         for (j = 0; j < 16; j += 4) {
             if (((i + j) >> 2) % 43 == 0) {

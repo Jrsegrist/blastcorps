@@ -114,13 +114,13 @@ void ghost_draw(Gfx **gfxp, Mtx *mtx) {
         mtx_build_model_rot(x, y, z, rx, ry, rz, D_802FF0D0[gGhostVehicle], &mtx[83]);
         gSPSegment(gdl++, 6, osVirtualToPhysical(D_803BDB04));
         gSPSegment(gdl++, 7, osVirtualToPhysical(D_803BDB00));
-        gSPMatrix(gdl++, &D_02000000[83], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, &seg2Base[83], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
         gDPSetEnvColor(gdl++, 0, 0, 0, 255);
         gDPSetPrimColor(gdl++, 0, 0, 255, 255, 255, 100);
         gSPClearGeometryMode(gdl++, -1);
         gSPDisplayList(gdl++, osVirtualToPhysical(D_803BDB08));
-        gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
     }
     *gfxp = gdl;

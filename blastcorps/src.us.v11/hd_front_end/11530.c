@@ -424,8 +424,8 @@ Gfx *fe_globe_build_scene_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000038);
-    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
+    gSPDisplayList(gdl++, seg1RspInitDl);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     gDPSetFillColor(gdl++, 0x10001);
@@ -481,8 +481,8 @@ Gfx *fe_globe_build_routes_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000010);
-    gSPDisplayList(gdl++, D_01000038);
+    gSPDisplayList(gdl++, seg1RspInitDl);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPSetDepthImage(gdl++, gDepthBufferPhys);
     gDPPipeSync(gdl++);
@@ -507,8 +507,8 @@ Gfx *fe_globe_build_plane_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
-    gSPDisplayList(gdl++, D_01000010);
-    gSPDisplayList(gdl++, D_01000038);
+    gSPDisplayList(gdl++, seg1RspInitDl);
+    gSPDisplayList(gdl++, seg1RdpInitDl);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPSetDepthImage(gdl++, gDepthBufferPhys);
     gDPSetRenderMode(gdl++, 0x00504240, 0);

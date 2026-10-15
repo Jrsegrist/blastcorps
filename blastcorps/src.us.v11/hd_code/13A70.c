@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 (*(VtxBuf *) D_02000000)
+#define seg2Base (*(VtxBuf *) seg2Base)
 #define gObjects ((LevelObject *) gObjects)
 #ifdef NON_MATCHING
 /* (the same type as variables.h's, but reading the pointers through their
@@ -251,7 +251,7 @@ void obj_draw_ground_shadows(Gfx **gdlp, VtxBuf *buf) {
                         gSPClearGeometryMode(gdl++, G_ZBUFFER);
                         gDPSetRenderMode(gdl++, RM_XLU_SAVE(1), RM_XLU_SAVE(2));
                     }
-                    gSPVertex(gdl++, &D_02000000.vtx[n - 4], 4, 0);
+                    gSPVertex(gdl++, &seg2Base.vtx[n - 4], 4, 0);
                     gSP1Triangle(gdl++, 0, 1, 3, 0);
                     gSP1Triangle(gdl++, 1, 2, 3, 0);
                     break;

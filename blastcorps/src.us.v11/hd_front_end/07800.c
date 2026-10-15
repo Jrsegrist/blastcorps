@@ -43,9 +43,9 @@
 
 typedef struct {
     u8 pad0[4];
-    char * N64P unk4; /* level name */
+    char * N64P name; /* level name */
     u8 pad8[0x10];
-    s8 unk18[0x18]; /* -1 terminated */
+    s8 commRoutes[0x18]; /* -1 terminated */
 } FeLevelEntry;     /* 0x30 bytes, one per level */
 
 /* (gLevelInfo[]: LevelInfo, game/types.h) */
@@ -159,7 +159,7 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     } else {
         ret = fe_stats_grade_timed_level(levelno, arg1, arg2);
     }
-    sprintf(gStatsLevelName, "%s", (char *) gGlobeLevels[levelno].unk4); /* (char *): a N64P through varargs */
+    sprintf(gStatsLevelName, "%s", (char *) gGlobeLevels[levelno].name); /* (char *): a N64P through varargs */
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
@@ -277,10 +277,10 @@ s8 fe_stats_count_unlocks(void) {
     s32 count;
 
     e = &gGlobeLevels[levelno];
-    if (e->unk18[0] == -1) {
+    if (e->commRoutes[0] == -1) {
         return -1;
     }
-    for (i = 0, count = 0; e->unk18[i] != -1 && i < 2; i++) {
+    for (i = 0, count = 0; e->commRoutes[i] != -1 && i < 2; i++) {
         if (players[playerNumber].commPts[levelno] & (1 << i)) {
             count++;
         }
@@ -398,13 +398,13 @@ void fe_boot_screen_frame(void) {
         }
     }
     if (gFramesInMode < 2) {
-        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
+        guPerspective(&dyn->persp, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
         if (gBootScene == 1) {
-            guTranslate(&dyn->unk1280, 0.0f, -130.0f, 0.0f);
-            guRotate(&dyn->unk12C0, 35.0f, 0.1f, 0.0f, 0.0f);
+            guTranslate(&dyn->sceneTranslate, 0.0f, -130.0f, 0.0f);
+            guRotate(&dyn->sceneRotate, 35.0f, 0.1f, 0.0f, 0.0f);
         } else {
-            guTranslate(&dyn->unk1280, 0.0f, 0.0f, 0.0f);
-            guRotate(&dyn->unk12C0, -10.0f, 0.1f, 0.0f, 0.0f);
+            guTranslate(&dyn->sceneTranslate, 0.0f, 0.0f, 0.0f);
+            guRotate(&dyn->sceneRotate, -10.0f, 0.1f, 0.0f, 0.0f);
         }
     }
     if (gFramesInMode >= 20) {
@@ -421,10 +421,10 @@ void fe_boot_screen_frame(void) {
         } else if (gFramesInMode == 75 && gBootScene == 1) {
             snd_play(gSfxBank, SFX_BOOT1_LAND, NULL);
         }
-        guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, gBootCamDist, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+        guLookAtReflect(&dyn->view, &dyn->lookAt, 1.0f, 0.0f, gBootCamDist, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         gBootSceneAngle += gBootSpinSpeed;
         guRotate(&gFeSceneRot[gBufferIndex], gBootSceneAngle % 360, 0.0f, 1.0f, 0.0f);
-        guScale(&dyn->unk1300, 1.5f, 1.5f, 1.5f);
+        guScale(&dyn->sceneScale, 1.5f, 1.5f, 1.5f);
         gDPSetRenderMode(gdl++, G_RM_AA_ZB_OPA_INTER, G_RM_NOOP2);
         gdl = fe_scene_draw(dyn, gdl);
     }

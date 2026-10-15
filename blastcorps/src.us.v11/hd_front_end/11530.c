@@ -112,7 +112,7 @@ typedef struct {
     /* 0x0000 */ u8 pad0[0x80];
     /* 0x0080 */ Mtx persp;
     /* 0x00C0 */ u8 padC0[0x80];
-    /* 0x0140 */ Mtx unk140;
+    /* 0x0140 */ Mtx view;
     /* 0x0180 */ u8 pad180[0x1280 - 0x180];
     /* 0x1280 */ Mtx translate;
     /* 0x12C0 */ u8 pad12C0[0x15C0 - 0x12C0];
@@ -215,8 +215,8 @@ void fe_globe_init(s32 level) {
 
     gGlobePlayer = &players[playerNumber];
     gGlobeLevelInfo = &gLevelInfo[level];
-    gGlobeCamLon = fe_globe_angle_diff(90.0f, gGlobeLevels[level].unk14, 180.0f);
-    gGlobeCamLat = fe_globe_angle_diff(90.0f, gGlobeLevels[level].unk10, 180.0f);
+    gGlobeCamLon = fe_globe_angle_diff(90.0f, gGlobeLevels[level].lon, 180.0f);
+    gGlobeCamLat = fe_globe_angle_diff(90.0f, gGlobeLevels[level].lat, 180.0f);
     gGlobeMeshDl = fe_lvlsel_build_globe_dl();
     gGlobeLevelIconsDl = fe_lvlsel_build_level_icons_dl();
     gGlobeAcademyIconsDl = fe_lvlsel_build_academy_dl();
@@ -249,9 +249,9 @@ void fe_globe_init(s32 level) {
     gGlobeExtraSpriteBase = spr_load(gGlobeExtraSprites, 0, 4, 1, 1, 1.0f);
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
-        lat = e->unk10;
-        lon = e->unk14;
-        fe_globe_latlon_to_xyz(&lat, &lon, &e->unk24, &e->unk28, &e->unk2C, 250.0f);
+        lat = e->lat;
+        lon = e->lon;
+        fe_globe_latlon_to_xyz(&lat, &lon, &e->x, &e->y, &e->z, 250.0f);
     }
     gGlobeSelectPending = 0;
 }
@@ -392,8 +392,8 @@ void fe_globe_frame(void) {
     fe_globe_latlon_to_xyz(&gGlobeCamLat, &gGlobeCamLon, &gGlobeCamX, &gGlobeCamY, &gGlobeCamZ, 925.0f);
     gGlobeLonStep = gGlobeCamX - ox;
     gGlobeLatStep = gGlobeCamY - oy;
-    gGlobeTargetLon = gGlobeLevels[gGlobeSelLevel].unk14;
-    gGlobeTargetLat = gGlobeLevels[gGlobeSelLevel].unk10;
+    gGlobeTargetLon = gGlobeLevels[gGlobeSelLevel].lon;
+    gGlobeTargetLat = gGlobeLevels[gGlobeSelLevel].lat;
     gGlobeLonStep = fe_globe_angle_diff(gGlobeTargetLon, gGlobeCamLon, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
     gGlobeLatStep = fe_globe_angle_diff(gGlobeTargetLat, gGlobeCamLat, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
     gGlobeCamLon -= gGlobeLonStep;
@@ -489,7 +489,7 @@ Gfx *fe_globe_build_routes_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPSetRenderMode(gdl++, 0x00507048, 0);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->view, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
@@ -517,7 +517,7 @@ Gfx *fe_globe_build_plane_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPSetCombine(gdl++, 0xFF97FF, 0xFF2CFE7F);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->view, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
@@ -584,8 +584,8 @@ Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
         if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
-            for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
-                gdl = fe_globe_draw_route(dyn, gdl, i, e->unk1C[j], &out, &lon, 0, 0, 0, 0, 0, 0, 0);
+            for (j = 0; j < 8 && e->routes[j] != -1; j++) {
+                gdl = fe_globe_draw_route(dyn, gdl, i, e->routes[j], &out, &lon, 0, 0, 0, 0, 0, 0, 0);
             }
         }
     }
@@ -595,9 +595,9 @@ Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
         if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
-            for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
+            for (j = 0; j < 4 && e->commRoutes[j] != -1; j++) {
                 if (players[playerNumber].commPts[i] & (1 << j)) {
-                    gdl = fe_globe_draw_route(dyn, gdl, i, e->unk18[j], &out, &lon, 1, 0, 0xFF, 0, 0xFF, 0xFF, 0);
+                    gdl = fe_globe_draw_route(dyn, gdl, i, e->commRoutes[j], &out, &lon, 1, 0, 0xFF, 0, 0xFF, 0xFF, 0);
                     if (out != -1) {
                         f32 d;
 
@@ -615,8 +615,8 @@ Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     for (i = 0; i < 60; i++) {
         e = &gGlobeLevels[i];
         if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
-            for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
-                gdl = fe_globe_draw_route(dyn, gdl, i, e->unk1C[j], &out, &lon, 1, 0xFF, 0, 0, 0xFF, 0x80, 0x80);
+            for (j = 0; j < 8 && e->routes[j] != -1; j++) {
+                gdl = fe_globe_draw_route(dyn, gdl, i, e->routes[j], &out, &lon, 1, 0xFF, 0, 0, 0xFF, 0x80, 0x80);
                 if (out != -1) {
                     f32 d;
 
@@ -764,12 +764,12 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
     }
     e1 = &gGlobeLevels[from];
     e2 = &gGlobeLevels[to];
-    x0 = e1->unk24;
-    y0 = e1->unk28;
-    z0 = e1->unk2C;
-    x1 = e2->unk24;
-    y1 = e2->unk28;
-    z1 = e2->unk2C;
+    x0 = e1->x;
+    y0 = e1->y;
+    z0 = e1->z;
+    x1 = e2->x;
+    y1 = e2->y;
+    z1 = e2->z;
     dist = sqrtf((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
     steps = MAX2(MIN2(dist / 32.0, 15.0), 3.0);
     n = steps + 1;
@@ -855,12 +855,12 @@ Gfx *fe_globe_draw_plane(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
         case 1:
             e1 = &gGlobeLevels[from];
             e2 = &gGlobeLevels[to];
-            gFlightFromX = e1->unk24;
-            gFlightFromY = e1->unk28;
-            gFlightFromZ = e1->unk2C;
-            gFlightToX = e2->unk24;
-            gFlightToY = e2->unk28;
-            gFlightToZ = e2->unk2C;
+            gFlightFromX = e1->x;
+            gFlightFromY = e1->y;
+            gFlightFromZ = e1->z;
+            gFlightToX = e2->x;
+            gFlightToY = e2->y;
+            gFlightToZ = e2->z;
             gFlightDist = sqrtf((gFlightToX - gFlightFromX) * (gFlightToX - gFlightFromX) +
                                (gFlightToY - gFlightFromY) * (gFlightToY - gFlightFromY) +
                                (gFlightToZ - gFlightFromZ) * (gFlightToZ - gFlightFromZ));
@@ -919,8 +919,8 @@ void fe_globe_quad_at_level(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f3
     f32 z;
 
     info = &gGlobeLevels[level];
-    lat = info->unk10 + dlat;
-    lon = info->unk14 + dlon;
+    lat = info->lat + dlat;
+    lon = info->lon + dlon;
     fe_globe_latlon_to_xyz(&lat, &lon, &x, &y, &z, 248.75f);
     fe_globe_quad_at(v, x, y, z, w, h, scale, flip);
 }
@@ -1187,15 +1187,15 @@ void fe_open_reachable_levels(u8 rank) {
         if ((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) {
             e = &gGlobeLevels[i];
             info = &gLevelInfo[i];
-            for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
-                if (gGlobePlayer->medal[e->unk1C[j]] == 0 && fe_globe_level_locked(e->unk1C[j]) == 0) {
-                    gGlobePlayer->medal[e->unk1C[j]] = rank;
+            for (j = 0; j < 8 && e->routes[j] != -1; j++) {
+                if (gGlobePlayer->medal[e->routes[j]] == 0 && fe_globe_level_locked(e->routes[j]) == 0) {
+                    gGlobePlayer->medal[e->routes[j]] = rank;
                 }
             }
-            for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
+            for (j = 0; j < 4 && e->commRoutes[j] != -1; j++) {
                 if (gGlobePlayer->commPts[i] & (1 << j)) {
-                    if (gGlobePlayer->medal[e->unk18[j]] == 0) {
-                        gGlobePlayer->medal[e->unk18[j]] = rank;
+                    if (gGlobePlayer->medal[e->commRoutes[j]] == 0) {
+                        gGlobePlayer->medal[e->commRoutes[j]] = rank;
                     }
                 }
             }

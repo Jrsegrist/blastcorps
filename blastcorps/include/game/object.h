@@ -15,27 +15,27 @@ typedef struct ObjectModel {
     /* 0x00 */ u16 numToppleKeys; /* number of s16 entries at toppleKeys (obj_part_outranked) */
     /* 0x02 */ u8 pad2[2];
     /* 0x04 */ u8 type;   /* toughness: the damage divisor; 0xFF = not tallied, 1 = flimsy (not counted) */
-    /* 0x05 */ u8 unk5;   /* scale of the debris records (obj_spawn_random_effects, obj_spawn_random_landing_effect) */
-    /* 0x06 */ u8 unk6;   /* passed to people_spawn (obj_spawn_people) */
-    /* 0x07 */ u8 unk7;   /* parts topple (obj_start_topple); clear: they fade (obj_start_part_fade) */
+    /* 0x05 */ u8 debrisScale; /* scale of the debris records (obj_spawn_random_effects, obj_spawn_random_landing_effect) */
+    /* 0x06 */ u8 numPeople; /* passed to people_spawn (obj_spawn_people) */
+    /* 0x07 */ u8 partsTopple; /* parts topple (obj_start_topple); clear: they fade (obj_start_part_fade) */
     /* 0x08 */ s32 value; /* summed */
     /* 0x0C */ u8 padC;
-    /* 0x0D */ u8 unkD;   /* 1-based index of the part obj_check_destroyed ignores */
+    /* 0x0D */ u8 immunePart; /* 1-based index of the part obj_check_destroyed ignores */
     /* 0x0E */ u8 padE[0xE];
-    /* 0x1C */ s32 unk1C; /* byte offset from this record (obj_find_nearest_target) */
-    /* 0x20 */ s32 unk20; /* offset of an s16[4] box x0, z0, x1, z1 (obj_set_sink_quad) */
-    /* 0x24 */ s32 unk24; /* offsets of a table of 0x14-byte records (obj_mark_part_gone; also the
+    /* 0x1C */ s32 markerPts; /* offset of 4 s16 x, y, z points the target marker frames (obj_find_nearest_target) */
+    /* 0x20 */ s32 footprintBox; /* offset of an s16[4] box x0, z0, x1, z1 (obj_set_sink_quad) */
+    /* 0x24 */ s32 floorTris; /* offsets of a table of 0x14-byte records (obj_mark_part_gone; also the
                            * floor triangles ground_scan_object walks) */
-    /* 0x28 */ s32 unk28; /*   and its end */
-    /* 0x2C */ s32 unk2C; /* offset of 8-byte s16 x, y, z points (obj_spawn_random_effects) */
-    /* 0x30 */ s32 unk30; /* offsets of 0x38-byte records (obj_spawn_break_effects) */
-    /* 0x34 */ s32 unk34; /*   their end = start of more (obj_spawn_landing_effects) */
-    /* 0x38 */ s32 unk38; /*   their end = start of the conditional DL records (obj_start_part_fade) */
+    /* 0x28 */ s32 texAnimTbl; /*   and its end = the texture-animation table */
+    /* 0x2C */ s32 partPoints; /* offset of 8-byte s16 x, y, z points (obj_spawn_random_effects) */
+    /* 0x30 */ s32 breakEffects; /* offsets of 0x38-byte records (obj_spawn_break_effects) */
+    /* 0x34 */ s32 landEffects; /*   their end = start of more (obj_spawn_landing_effects) */
+    /* 0x38 */ s32 partDlRecs; /*   their end = start of the conditional DL records (obj_start_part_fade) */
     /* 0x3C */ s32 toppleKeys; /* offset of an s16 per-part key table (obj_part_outranked: only the
                                 * lowest-keyed part topples); end of the DL records */
-    /* 0x40 */ s32 unk40; /* offset of an s16 table indexed 1-based (obj_part_exposed) */
-    /* 0x44 */ s32 unk44; /* offsets of variable-length records (obj_part_exposed) */
-    /* 0x48 */ s32 unk48; /*   and their end */
+    /* 0x40 */ s32 partHeights; /* offset of an s16 table indexed 1-based (obj_part_exposed) */
+    /* 0x44 */ s32 supportRecs; /* offsets of variable-length records (obj_part_exposed) */
+    /* 0x48 */ s32 supportRecsEnd; /*   and their end */
 } ObjectModel;
 
 /* A collision triangle (obj_move_model keeps its plane up to date). */
@@ -49,13 +49,13 @@ typedef struct CollisionTri {
     /* 0x4E */ u8 axis;       /* dominant normal axis: 0 = z, 1 = y, 2 = x */
     /* 0x4F */ u8 pad4F;
     /* 0x50 */ u8 id;
-    /* 0x51 */ u8 unk51;      /* collidable (coll_probe_object_tris) */
-    /* 0x52 */ u16 unk52;     /* the part, 1-based */
+    /* 0x51 */ u8 isSolid;      /* collidable (coll_probe_object_tris) */
+    /* 0x52 */ u16 partNo;     /* the part, 1-based */
     /* 0x54 */ u8 pad54;
-    /* 0x55 */ u8 unk55;
-    /* 0x56 */ u8 unk56;
-    /* 0x57 */ u8 unk57;      /* the part this triangle hangs on */
-    /* 0x58 */ u8 unk58;      /* a wall (obj_tri_clip_free_arc) */
+    /* 0x55 */ u8 wallTwoSided; /* ==1: clips the free arc on both sides */
+    /* 0x56 */ u8 wallSide;     /* which side clips (obj_tri_clip_free_arc) */
+    /* 0x57 */ u8 linkedPart;   /* becomes solid when this part falls; off when its own part lands */
+    /* 0x58 */ u8 isWall;       /* a wall (obj_tri_clip_free_arc) */
     /* 0x59 */ u8 pad59[7];
 } CollisionTri; /* size 0x60 */
 

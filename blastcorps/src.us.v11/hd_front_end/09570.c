@@ -282,13 +282,13 @@ s32 fe_lvlsel_level_open(s32 level) {
     for (i = 0; i < 60; i++) {
         if (LEVEL_DONE(i)) {
             info = &gGlobeLevels[i];
-            for (j = 0; j < 8 && info->unk1C[j] != -1; j++) {
-                if (info->unk1C[j] == level) {
+            for (j = 0; j < 8 && info->routes[j] != -1; j++) {
+                if (info->routes[j] == level) {
                     return 1;
                 }
             }
-            for (j = 0; j < 4 && info->unk18[j] != -1; j++) {
-                if (info->unk18[j] == level && (players[playerNumber].commPts[i] & (1 << j))) {
+            for (j = 0; j < 4 && info->commRoutes[j] != -1; j++) {
+                if (info->commRoutes[j] == level && (players[playerNumber].commPts[i] & (1 << j))) {
                     return 1;
                 }
             }
@@ -430,7 +430,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
                 info = &gGlobeLevels[lvl];
                 if (fe_lvlsel_level_open(lvl)) {
                     if (avail) {
-                        for (j = 0, found = 0; j < 4 && info->unk18[j] != -1 && !found; j++) {
+                        for (j = 0, found = 0; j < 4 && info->commRoutes[j] != -1 && !found; j++) {
                             if (!(players[playerNumber].commPts[lvl] & (1 << j))) {
                                 found = 1;
                             }

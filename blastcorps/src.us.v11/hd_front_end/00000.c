@@ -288,17 +288,17 @@ void fe_digger_frame(void) {
     }
     text_flush_screen(&gdl, (Mtx *) dyn);
     if (gFramesInMode < 2) {
-        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+        guPerspective(&dyn->persp, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
     }
     gDiggerCamX = gDiggerCamX + (gDiggerCamXGoal - gDiggerCamX) * 0.1 * 60.0 / 60.0;
     gDiggerCamZ = gDiggerCamZ + (gDiggerCamZGoal - gDiggerCamZ) * 0.1 * 60.0 / 60.0;
-    guLookAtReflect(&dyn->unk140, &dyn->unk3C00, gDiggerCamX, 1.0f, gDiggerCamZ, gDiggerCamX, 0.0f, 0.0f, 0.0f, 1.0f,
+    guLookAtReflect(&dyn->view, &dyn->lookAt, gDiggerCamX, 1.0f, gDiggerCamZ, gDiggerCamX, 0.0f, 0.0f, 0.0f, 1.0f,
                     0.0f);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
-    gSPLookAtX(gdl++, &dyn->unk3C00);
-    gSPLookAtY(gdl++, &dyn->unk3C00.l[1]);
-    gSPMatrix(gdl++, &dyn->unk1240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPLookAtX(gdl++, &dyn->lookAt);
+    gSPLookAtY(gdl++, &dyn->lookAt.l[1]);
+    gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->view, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gDPSetEnvColor(gdl++, 0, 0, 0, 0xFF);
     for (i = 0; i < gDiggerCount; i++) {
         u8 flag;
@@ -344,7 +344,7 @@ void fe_digger_frame(void) {
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
         vtx = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 2, vtx, gDiggerArrowPulse + 0x10C, 0x23, gDiggerArrowPulse / 4 + 12, 0x10, 0, 0, 0, 0xA0);
         gdl = hud_sprite_setup(gdl, 0);
-        gSPVertex(gdl++, &dyn->unk1E00[0], 8, 0);
+        gSPVertex(gdl++, &dyn->arrowVtx[0], 8, 0);
         gSP1Triangle(gdl++, 4, 5, 6, 0);
         gSP1Triangle(gdl++, 4, 6, 7, 0);
         gSP1Triangle(gdl++, 0, 1, 2, 0);
@@ -357,7 +357,7 @@ void fe_digger_frame(void) {
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
         vtx = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 3, vtx, 0x30 - gDiggerArrowPulse, 0x23, gDiggerArrowPulse / 4 + 12, 0x10, 0, 0, 0, 0xA0);
         gdl = hud_sprite_setup(gdl, 0);
-        gSPVertex(gdl++, &dyn->unk1E00[vtx - 8], 8, 0);
+        gSPVertex(gdl++, &dyn->arrowVtx[vtx - 8], 8, 0);
         gSP1Triangle(gdl++, 4, 5, 6, 0);
         gSP1Triangle(gdl++, 4, 6, 7, 0);
         gSP1Triangle(gdl++, 0, 1, 2, 0);

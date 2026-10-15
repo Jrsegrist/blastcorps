@@ -141,7 +141,7 @@ s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, LevelObject *e, s32 hit) 
     z >>= 2;
     r >>= 2;
     for (; t != end; t++) {
-        if (t->unk51 == 0) {
+        if (t->isSolid == 0) {
             continue;
         }
         if (!sphere_hits_tri_89250(x, y, z, r, t)) {
@@ -184,7 +184,7 @@ void coll_damage_object_part(LevelObject *e, CollisionTri *tri, s32 amount) {
     if (e->kind == 0x38) {
         return;
     }
-    part = tri->unk52;
+    part = tri->partNo;
     level = pcts[part - 1] + (u32) amount / e->info->type;
     if (level >= 100) {
         level = 100;
@@ -202,11 +202,11 @@ void coll_damage_object_part(LevelObject *e, CollisionTri *tri, s32 amount) {
         obj_spawn_people(e);
         end = e->trisEnd;
         for (t = e->tris; t != end; t++) {
-            if (t->unk52 == part) {
-                t->unk51 = 0;
+            if (t->partNo == part) {
+                t->isSolid = 0;
             }
-            if (t->unk57 == part && pcts[t->unk52 - 1] != 100) {
-                t->unk51 = 1;
+            if (t->linkedPart == part && pcts[t->partNo - 1] != 100) {
+                t->isSolid = 1;
             }
         }
         obj_drop_unsupported_parts(e);

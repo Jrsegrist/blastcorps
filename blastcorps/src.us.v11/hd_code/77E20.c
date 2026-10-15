@@ -368,8 +368,8 @@ void obj_update_delayed_damage(void) {
             }
             end = e->trisEnd;
             for (t = e->tris; t != end; t++) {
-                if (t->unk52 == part) {
-                    t->unk51 = 0;
+                if (t->partNo == part) {
+                    t->isSolid = 0;
                 }
             }
         }
@@ -605,7 +605,7 @@ s32 obj_find_nearest_target(void) {
     } else if (kind == 1) {
         ObjectModel *info = ((LevelObject *) best)->info;
 
-        ptr = (u8 *) info + info->unk1C;
+        ptr = (u8 *) info + info->markerPts;
     } else if (kind == 3) {
         ptr = (u8 *) best + 0x16;
     } else {
@@ -1068,8 +1068,8 @@ void obj_disable_landed_part_tris(LevelObjectHead *model, s32 id) {
 
     id++;
     for (; r != end; r++) {
-        if (r->unk52 == id && r->unk57 != 0) {
-            r->unk51 = 0;
+        if (r->partNo == id && r->linkedPart != 0) {
+            r->isSolid = 0;
         }
     }
 }
@@ -1490,7 +1490,7 @@ s32 obj_falling_part_mtx(LevelObject *e, s32 off, s32 dy) {
     if (az < 0) {
         az += 0xFFF;
     }
-    pivot = (u16 *) ((u8 *) e->info + e->info->unk2C + off * 4);
+    pivot = (u16 *) ((u8 *) e->info + e->info->partPoints + off * 4);
     px = pivot[0] << 16;
     py = pivot[1] << 16;
     pz = pivot[2] << 16;
@@ -1735,7 +1735,7 @@ void obj_collide_sphere(s32 x, s32 y, s32 z, s32 r, LevelObject *e, s32 id) {
     z >>= 2;
     r >>= 2;
     for (; t != end; t++) {
-        if (t->unk51 == 0) {
+        if (t->isSolid == 0) {
             continue;
         }
         if (sphere_hits_tri_77E20(x, y, z, r, t)) {
@@ -1816,7 +1816,7 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
     if (gFailTrigger != 0) {
         return;
     }
-    part = tri->unk52;
+    part = tri->partNo;
     veh_contacts_add(count);
     if (obj_hits_has((s32) e, part) != 0) {
         goto done;
@@ -1868,11 +1868,11 @@ add:
         gShakeSize = 400;
         end = e->trisEnd;
         for (t = e->tris; t != end; t++) {
-            if (t->unk52 == part) {
-                t->unk51 = 0;
+            if (t->partNo == part) {
+                t->isSolid = 0;
             }
-            if (t->unk57 == part && pcts[t->unk52 - 1] != 100) {
-                t->unk51 = 1;
+            if (t->linkedPart == part && pcts[t->partNo - 1] != 100) {
+                t->isSolid = 1;
             }
         }
     }
@@ -1996,8 +1996,8 @@ void obj_detect_rocking_hits(void) {
  * live across the call. */
 void obj_mark_part_gone(LevelObject *e, s32 id) {
     ObjectModel *info = e->info;
-    u8 *p = (u8 *) info + info->unk24;
-    u8 *end = (u8 *) info + info->unk28;
+    u8 *p = (u8 *) info + info->floorTris;
+    u8 *end = (u8 *) info + info->texAnimTbl;
 
     for (; p != end; p += 0x14) {
         if (p[0x12] == id) {
@@ -2017,16 +2017,16 @@ void obj_mark_part_gone(LevelObject *e, s32 id) {
  * For a collision triangle t with unk58 set: s = t's plane function at the
  * point gCollX/Y/Z >> 2 (normal . p + d, 64-bit, wrapping where the
  * asm's dadd traps). If s has the same sign as d (s > 0 with d > 0, or s < 0
- * with d <= 0), veh_clip_free_arc(h - 0x400, h + 0x400) when t->unk55 is 1 or
- * t->unk56 is set; otherwise veh_clip_free_arc(h + 0x400, h - 0x400) when
- * t->unk55 is 1 or t->unk56 is clear (h = t->unk4C). The asm takes t in s0
+ * with d <= 0), veh_clip_free_arc(h - 0x400, h + 0x400) when t->wallTwoSided is 1 or
+ * t->wallSide is set; otherwise veh_clip_free_arc(h + 0x400, h - 0x400) when
+ * t->wallTwoSided is 1 or t->wallSide is clear (h = t->unk4C). The asm takes t in s0
  * and saves v0-a3 and t0; asm callers keep a1, t9, f12, f14 (obj_hit_tri)
  * or a1, t3-t6, t9 (coll_probe_object_tris) live across the call. */
 void obj_tri_clip_free_arc(CollisionTri *t) {
     s64 s;
     s32 h;
 
-    if (t->unk58 == 0) {
+    if (t->isWall == 0) {
         return;
     }
     s = t->normal[0] * (gCollX >> 2) + t->normal[1] * (gCollY >> 2) + t->normal[2] * (gCollZ >> 2) +
@@ -2034,11 +2034,11 @@ void obj_tri_clip_free_arc(CollisionTri *t) {
     h = t->heading;
     if ((t->d > 0) ? (s > 0) : (s < 0)) {
         /* same side as d */
-        if (t->unk55 == 1 || t->unk56 != 0) {
+        if (t->wallTwoSided == 1 || t->wallSide != 0) {
             veh_clip_free_arc(h - 0x400, h + 0x400);
         }
     } else {
-        if (t->unk55 == 1 || t->unk56 == 0) {
+        if (t->wallTwoSided == 1 || t->wallSide == 0) {
             veh_clip_free_arc(h + 0x400, h - 0x400);
         }
     }
@@ -2070,7 +2070,7 @@ void obj_spawn_people(LevelObject *e) {
     }
     if (count == 1) {
         people_spawn((u32) e->pos[0] >> 5, (u32) e->pos[1] >> 5, (u32) e->pos[2] >> 5, (u32) e->radius >> 5,
-                      e->cell, e->info->unk6);
+                      e->cell, e->info->numPeople);
     }
 }
 #else
@@ -2103,7 +2103,7 @@ void obj_check_destroyed(LevelObject *e) {
     if (e->destroyed != 0) {
         return;
     }
-    skip = e->info->unkD;
+    skip = e->info->immunePart;
     p = e->partPct;
     q = e->partFalling;
     for (part = 0, n = e->numParts; n != 0; n--, p++, q++) {
@@ -2165,8 +2165,8 @@ void obj_drop_unsupported_parts(LevelObject *e) {
     do {
         info = e->info;
         changed = 0;
-        rec = (u8 *) info + info->unk44;
-        end = (u8 *) info + info->unk48;
+        rec = (u8 *) info + info->supportRecs;
+        end = (u8 *) info + info->supportRecsEnd;
         while (rec != end) {
             part = rec[0] - 1;
             if (ENTRY_U16(e, 0x48, part) != 0 || b[0xEC + part] == 100) {
@@ -2189,11 +2189,11 @@ void obj_drop_unsupported_parts(LevelObject *e) {
                 ENTRY_U16(e, 0xC8, part) = ((u16) gPartJitterZ);
                 part++;
                 for (r = e->tris, rend = e->trisEnd; r != rend; r++) {
-                    if (r->unk52 == part) {
-                        r->unk51 = 0;
+                    if (r->partNo == part) {
+                        r->isSolid = 0;
                     }
-                    if (r->unk57 == part && b[0xEB + r->unk52] != 100) {
-                        r->unk51 = 1;
+                    if (r->linkedPart == part && b[0xEB + r->partNo] != 100) {
+                        r->isSolid = 1;
                     }
                 }
             }
@@ -2227,12 +2227,12 @@ void obj_spawn_break_effects(LevelObject *e, s32 part, s32 level) {
     u8 *r;
     u8 *end;
 
-    if (info->unk5 != 0) {
-        obj_spawn_random_effects(e, part, level, info, (s32 *) (u32) info->unk5);
+    if (info->debrisScale != 0) {
+        obj_spawn_random_effects(e, part, level, info, (s32 *) (u32) info->debrisScale);
         return;
     }
-    r = (u8 *) info + info->unk30;
-    end = (u8 *) info + info->unk34;
+    r = (u8 *) info + info->breakEffects;
+    end = (u8 *) info + info->landEffects;
     for (; r != end; r += 0x38) {
         if (r[0x34] != 0 || r[0x32] != part) {
             continue;
@@ -2309,7 +2309,7 @@ static s32 port_kind_field(Unk80306344 *t, s32 off, s32 size) {
  * passes e->info) and obj in v1; it preserves every register. */
 void obj_spawn_random_effects(LevelObject *e, s32 index, s32 level, ObjectModel *info, s32 *obj) {
     ObjectModel *ei = e->info;
-    s16 *pt = (s16 *) ((u8 *) ei + ei->unk2C + (index - 1) * 8);
+    s16 *pt = (s16 *) ((u8 *) ei + ei->partPoints + (index - 1) * 8);
     s32 x = pt[0] << 16;
     s32 y = pt[1] << 16;
     s32 z = pt[2] << 16;
@@ -2344,7 +2344,7 @@ void obj_spawn_random_effects(LevelObject *e, s32 index, s32 level, ObjectModel 
         d->pos[1] = y;
         d->pos[2] = z;
         roll = obj_rand_range(KT_LO(t), KT_HI(t));
-        v = PORT_WRAP_MUL(info->unk5, roll);
+        v = PORT_WRAP_MUL(info->debrisScale, roll);
         if (gCarrierExplodeDone != 0) {
             v <<= 1;
         }
@@ -2433,12 +2433,12 @@ void obj_spawn_landing_effects(LevelObject *e, s32 index) {
     u8 *r;
     u8 *end;
 
-    if (info->unk5 != 0) {
+    if (info->debrisScale != 0) {
         obj_spawn_random_landing_effect(e, part);
         return;
     }
-    r = (u8 *) info + info->unk34;
-    end = (u8 *) info + info->unk38;
+    r = (u8 *) info + info->landEffects;
+    end = (u8 *) info + info->partDlRecs;
     for (; r != end; r += 0x38) {
         if (r[0x32] == part) {
             obj_queue_effect((u32 *) r);
@@ -2461,7 +2461,7 @@ void obj_spawn_landing_effects(LevelObject *e, s32 index) {
  * register. */
 void obj_spawn_random_landing_effect(LevelObject *e, s32 index) {
     ObjectModel *info = e->info;
-    s16 *pt = (s16 *) ((u8 *) info + info->unk2C + (index - 1) * 8);
+    s16 *pt = (s16 *) ((u8 *) info + info->partPoints + (index - 1) * 8);
     s32 x = pt[0];
     s32 z = pt[2];
     s32 y = e->pos[1];
@@ -2486,7 +2486,7 @@ void obj_spawn_random_landing_effect(LevelObject *e, s32 index) {
     d->unk2C = 0;
     d->unk2E = 0;
     d->unk30 = 0;
-    d->unkC = info->unk5 * roll;
+    d->unkC = info->debrisScale * roll;
     d->unk28 = 0xFC180000;
     d->unk34 = 0;
     d->unk35 = 0;
@@ -2567,7 +2567,7 @@ s32 obj_calc_damage(s32 id, s32 value, s32 bit, LevelObject *e, s32 flag, s32 ke
     }
     gDigHit = 1;
     gDigHitVehicle = bit;
-    if (e->info->unkD == id) {
+    if (e->info->immunePart == id) {
         gObjHitImmunePart = 1;
         gDigHit = 0;
         return 0;
@@ -2705,8 +2705,8 @@ s32 obj_full_damage_rule(s32 bit, s32 flag, s32 *out) {
  * gCollY traps on overflow; the C wraps. */
 s32 obj_part_exposed(s32 id, LevelObject *e) {
     ObjectModel *info = e->info;
-    u8 *rec = (u8 *) info + info->unk44;
-    u8 *end = (u8 *) info + info->unk48;
+    u8 *rec = (u8 *) info + info->supportRecs;
+    u8 *end = (u8 *) info + info->supportRecsEnd;
     s32 n;
     s32 k;
     u8 *p;
@@ -2723,7 +2723,7 @@ s32 obj_part_exposed(s32 id, LevelObject *e) {
         }
         rec += n * 2 + 3;
     }
-    if (gCollY + 0x578 < *(s16 *) ((u8 *) info + info->unk40 + id * 2 - 2) << 5) {
+    if (gCollY + 0x578 < *(s16 *) ((u8 *) info + info->partHeights + id * 2 - 2) << 5) {
         return 0;
     }
     return 1;
@@ -2907,7 +2907,7 @@ u64 obj_fade_substitute_cmd(u64 cmd);
  * then return at once). Returns 1 otherwise. */
 static s32 dl_cond_copy_802C09B8(u32 **gfxp, LevelObject *e, s32 id, s32 *budget, s32 substitute) {
     ObjectModel *info = e->info;
-    u8 *rec = (u8 *) info + info->unk38;
+    u8 *rec = (u8 *) info + info->partDlRecs;
     u8 *end = (u8 *) info + info->toppleKeys;
     u64 *gfx = (u64 *) *gfxp;
     u64 *src;
@@ -2985,7 +2985,7 @@ void obj_start_part_fade(s32 id, LevelObject *e) {
     s32 budget = 0x94;
     s32 i;
 
-    if (info->unk7 != 0) {
+    if (info->partsTopple != 0) {
         return;
     }
     for (i = 4;; i--, slot += 0x4B8) {
@@ -3181,7 +3181,7 @@ void obj_start_sinking_part(s32 id, LevelObject *e) {
     }
     info = e->info;
     p->unkA24 = 0;
-    p->unkA20 = (*(s16 *) ((u8 *) info + info->unk40 + (id - 1) * 2) << 5) - e->pos[1];
+    p->unkA20 = (*(s16 *) ((u8 *) info + info->partHeights + (id - 1) * 2) << 5) - e->pos[1];
     p->unkA28 = 0;
     p->unkA2A = 1;
     gfx[0] = 0xBD000000;
@@ -3204,7 +3204,7 @@ void obj_start_sinking_part(s32 id, LevelObject *e) {
  * and t9 live. */
 void obj_set_sink_quad(u8 *base, LevelObject *e) {
     ObjectModel *info = e->info;
-    s16 *box = (s16 *) ((u8 *) info + info->unk20);
+    s16 *box = (s16 *) ((u8 *) info + info->footprintBox);
     s32 y = e->pos[1] >> 5;
     s32 x0 = box[0] - 100;
     s32 z0 = box[1] - 100;
@@ -3375,7 +3375,7 @@ void obj_start_topple(LevelObject *e, s32 index) {
     b += 2;
     budgetA = 0x43;
     budgetB = 0x43;
-    rec = base + info->unk38;
+    rec = base + info->partDlRecs;
     recEnd = base + info->toppleKeys;
     while (rec != recEnd) {
         u32 n = *(u32 *) rec;
@@ -3433,7 +3433,7 @@ void obj_start_topple(LevelObject *e, s32 index) {
     *(u16 *) (slot + 0x46E) = 1;
     slot[0x471] = 0;
     *(s16 *) (slot + 0x466) = e->pos[1] >> 5;
-    pt = (s16 *) (base + info->unk2C + (index - 1) * 8);
+    pt = (s16 *) (base + info->partPoints + (index - 1) * 8);
     *(s16 *) (slot + 0x464) = pt[0];
     *(s16 *) (slot + 0x468) = pt[2];
     x = pt[0] << 5;

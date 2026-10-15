@@ -93,13 +93,13 @@ Gfx *fe_scene_draw(FeDyn *dyn, Gfx *arg1) {
     gSPSegment(gdl++, 6, gFeSceneSeg6);
     gSPSegment(gdl++, 7, &gFeSceneRot[gBufferIndex]);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
-    gSPLookAtX(gdl++, &dyn->unk3C00);
-    gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
-    gSPMatrix(gdl++, &dyn->unk1240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk12C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk1280, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk1300, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPLookAtX(gdl++, &dyn->lookAt);
+    gSPLookAtY(gdl++, (u8 *) &dyn->lookAt + 0x10);
+    gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->view, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->sceneRotate, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->sceneTranslate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->sceneScale, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPDisplayList(gdl++, gFeSceneDl);
     return gdl;
 }
@@ -111,10 +111,10 @@ Gfx *fe_comm_point_draw(FeDyn *dyn, Gfx *arg1) {
     void *seg;
 
     gImmp1(gdl++, G_RDPHALF_1, gCommPointPerspNorm);
-    gSPLookAtX(gdl++, &dyn->unk3C00);
-    gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
-    gSPMatrix(gdl++, &dyn->unk240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPLookAtX(gdl++, &dyn->lookAt);
+    gSPLookAtY(gdl++, (u8 *) &dyn->lookAt + 0x10);
+    gSPMatrix(gdl++, &dyn->commPointPersp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->view, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gDPSetEnvColor(gdl++, 0, 0, 0, gYoshiAlpha);
     {
         s32 base;
@@ -156,7 +156,7 @@ void fe_comm_point_load(void) {
     guRotate(&gCommPointTilt, 20.0f, 1.0f, 0.0f, 0.0f);
     for (i = 0; i < 2; i++) {
         dyn = &gDynamicBufs[i];
-        guPerspective(&dyn->unk240, &gCommPointPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
-        guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 0.0f, 1.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+        guPerspective(&dyn->commPointPersp, &gCommPointPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+        guLookAtReflect(&dyn->view, &dyn->lookAt, 0.0f, 1.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     }
 }

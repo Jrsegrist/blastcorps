@@ -28,7 +28,7 @@ typedef struct {
     /* 0x30 */ s32 kind;    /* 0x38 (the end object) = excluded */
     /* 0x34 */ u8 pad34[0xB5];
     /* 0xE9 */ u8 numParts; /* number of per-part bytes at +0xEC */
-    /* 0xEA */ u8 padEA;    /* LevelObject.destroyed */
+    /* 0xEA */ u8 destroyed; /* LevelObject.destroyed */
     /* 0xEB */ u8 pathBuilding;
     /* 0xEC */ u8 partPct[0x10]; /* 100 = part destroyed */
 } Rec7FB50; /* size 0xFC */
@@ -208,7 +208,7 @@ void apply_status(void *in) {
             }
             *part++ = v;
         }
-        r->padEA = allIntact;
+        r->destroyed = allIntact;
         if (anyDestroyed) {
             sum += r->info[6];
         }

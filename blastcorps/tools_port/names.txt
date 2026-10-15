@@ -3593,3 +3593,82 @@ D_8039CAB6 = gAcademyMarkerIndex       # gAcademyMarkers index: the gAcademyBits
 D_8039CAB8 = gAcademyMarkerTouched     # set within 0x50; cleared at >= 0x8D distance
 D_8039CAC4 = gAcademyMarkerMtx         # Mtx[2] on the heap (segment 7 of the marker)
 D_803ED40A = gSteerHeadingSnap         # within one frame's turn: veh_steer takes D_803ED408
+
+# --- naming phase 4: shared-struct fields (datanames; renamed at their uses by clang AST) ---
+field DynamicBuf.unk240 = chopperShadowTrans    # guTranslate to the chopper shadow pos; seg2 Mtx 9 (00000.c:veh_draw_chopper_shadow)
+field DynamicBuf.unk280 = chopperShadowRot      # guRotate by D_803EF326; seg2 Mtx 10 (00000.c:veh_draw_chopper_shadow)
+field DynamicBuf.unk2C0 = mtxPool               # [i] = gVehicleShadows[i] (seg2 Mtx i+11, veh_draw_shadows); [0x2D..] obj_draw_all, [0x3C..] commpt_draw
+field DynamicBuf.unk1500 = failSpinVehMtx       # guMtxF2L of the spinning vehicle; seg2 Mtx 0x54 (00000.c:veh_update_fail_spin, veh_draw_layer)
+field DynamicBuf.unk1540 = failSpinShadowMtx    # same for its shadow; seg2 Mtx 0x55 (00000.c:veh_update_fail_spin, veh_draw_shadows)
+field DynamicBuf.unk15C0 = shadowVtx            # 4 Vtx per drawn shadow, D_8036506C cursor (00000.c:veh_draw_shadows)
+field DynamicBuf.unk18C0 = chopperShadowVtx     # the chopper shadow quad; seg2 Vtx 0x18C (00000.c:veh_draw_chopper_shadow)
+field DynamicBuf.unkA3A0 = subDls               # area after dl: lvl_build_visible_dls(+0x140), obj_draw_all(+0x1E0..), commpt_draw (00000.c)
+# keep DynamicBuf.pad0: 0x00-0x7F never referenced by name (scratch views start at other offsets)
+# keep DynamicBuf.unk200: Mtx at seg2 slot 8, no C reference (by name or seg2 offset); no evidence
+# keep DynamicBuf.pad1580: real padding between failSpinShadowMtx and shadowVtx
+# keep DynamicBuf.pad1900: scratch area other subsystems lay out (SpriteVtxBuf 0x1E00, VtxBuf 0x3900 ...)
+# keep DynamicBuf.pad3C20: between lookAt and dl, unused by name
+field FeDyn.unk140 = view                       # guLookAtReflect target, G_MTX_PROJECTION|MUL (06790/07800/0DE70/00000.c); = DynamicBuf.view
+field FeDyn.unk240 = commPointPersp             # guPerspective with gCommPointPerspNorm (0DE70.c:fe_comm_point_load, fe_comm_point_draw)
+field FeDyn.unk1240 = persp                     # guPerspective, loaded as projection (00000.c, 06790.c, 07800.c, 0DE70.c:fe_scene_draw)
+field FeDyn.unk1280 = sceneTranslate            # guTranslate / guMtxIdent; modelview MUL (07800.c, 06790.c, 0DE70.c:fe_scene_draw)
+field FeDyn.unk12C0 = sceneRotate               # guRotate about x / guMtxIdent; modelview LOAD (07800.c, 06790.c, 0DE70.c:fe_scene_draw)
+field FeDyn.unk1300 = sceneScale                # guScale (06790.c gPromoScale, 07800.c 1.5); modelview MUL (0DE70.c:fe_scene_draw)
+field FeDyn.unk1E00 = arrowVtx                  # gSPVertex of the arrow quads (hd_front_end/00000.c)
+field FeDyn.unk3C00 = lookAt                    # guLookAtReflect's LookAt, gSPLookAtX/Y (00000.c, 0DE70.c); = DynamicBuf.lookAt
+# keep FeDyn.pad0, pad180, pad280, pad1340, pad3C20: padding between used fields
+# keep FeDyn.unkA3A0: never used through FeDyn (DynamicBuf's subDls; rename only if the coordinator wants symmetry)
+field Dynamic.unk140 = view                     # gSPMatrix projection MUL (11530.c:fe_globe_build_scene_dl lines 492, 520); same offset as FeDyn.view
+field GlobeLevel.unk10 = lat                    # latitude in degrees, passed as &lat to fe_globe_latlon_to_xyz; gGlobeCamLat/TargetLat (11530.c)
+field GlobeLevel.unk14 = lon                    # longitude: gGlobeCamLon, gGlobeTargetLon (11530.c:fe_globe_init, fe_globe_frame)
+field GlobeLevel.unk18 = commRoutes             # levels opened by comm point j (commPts bit j) (11530.c:fe_open_reachable_levels, 09570.c)
+field GlobeLevel.unk1C = routes                 # levels opened when this one is done (11530.c:fe_open_reachable_levels, fe_globe_draw_routes)
+field GlobeLevel.unk24 = x                      # globe position (r 250) from lat/lon (11530.c:fe_globe_init); flight start/end
+field GlobeLevel.unk28 = y                      # (11530.c:fe_globe_draw_plane, the flight setup)
+field GlobeLevel.unk2C = z                      # (11530.c:fe_globe_draw_plane, the flight setup)
+# keep GlobeLevel.unk0: never read (table values 0x64, 0x28 Sideswipe, 0x0A Thunderfist, 0 J-Bomb/CMO intro)
+# keep GlobeLevel.unk1: never read (table 1, 0 for J-Bomb, CMO intro, Thunderfist)
+# keep GlobeLevel.unkC: never read, 0 in every entry
+field FeLevelEntry.unk4 = name                  # level name, sprintf'd (07800.c line 162); = GlobeLevel.name
+field FeLevelEntry.unk18 = commRoutes           # [i] with commPts bit i, i < 2 (07800.c:fe_stats_count_unlocks); = GlobeLevel.commRoutes
+# keep AnimChannel.pad16: struct tail padding, never used
+# keep VehState.pad51: never used (no VS_ offset, no VEH_ access)
+# keep VehState.unkA4: only cleared (62740.c:veh_reset_state, VEH_U8(veh, 0xA4) = 0), never read
+# keep VehShadow.pad1024: tail padding, no access to 0x1024..0x103F
+# keep PlayerInfo.pad9: never used
+# keep PlayerInfo.padD: alignment padding before vehiclesUnlocked
+# keep PlayerInfo.padE0: never used (hintShows ends at 0xDF: window ids 0x46-0x57)
+# keep PlayerInfo.padEF: never used
+# keep PlayerInfo.padF4: never used (save.c writes the record whole)
+# keep PlayerCtlView.unk4: rest of the 0x100-byte stride after controlModes, never read (45BB0.c)
+# keep LevelInfo.pad16: never used
+# keep LevelInfo.unk20: never read by name or offset (u8[4]); no evidence
+# keep LevelInfo.pad39: alignment before camLiftMax
+field ObjectModel.unk5 = debrisScale            # nonzero: generic debris, size = unk5 * roll (77E20.c:obj_spawn_break_effects, obj_spawn_random_effects)
+field ObjectModel.unk6 = numPeople              # people_spawn count (77E20.c:obj_spawn_people); summed into gPeopleRestored (7FB50.c)
+field ObjectModel.unk7 = partsTopple            # set: obj_start_topple runs, obj_start_part_fade returns (77E20.c)
+field ObjectModel.unkD = immunePart             # 1-based part that takes no damage, ignored for destroyed (77E20.c:obj_calc_damage, obj_check_destroyed)
+field ObjectModel.unk1C = markerPts             # offset of 4 s16 x,y,z points the target marker frames (77E20.c:obj_find_nearest_target, 30C70.c)
+field ObjectModel.unk20 = footprintBox          # offset of s16 x0,z0,x1,z1 box (62740.c:ground_over_object, 77E20.c:obj_set_sink_quad)
+field ObjectModel.unk24 = floorTris             # 0x14-byte floor triangles (62740.c:ground_scan_object, 77E20.c:obj_mark_part_gone)
+field ObjectModel.unk28 = texAnimTbl            # texture-animation table start = floorTris end (77E20.c:obj_draw_all, port_obj_draw_only)
+field ObjectModel.unk2C = partPoints            # 8-byte s16 x,y,z per part: pivot / debris point (77E20.c:obj_falling_part_mtx, obj_start_topple)
+field ObjectModel.unk30 = breakEffects          # 0x38-byte effect records (77E20.c:obj_spawn_break_effects)
+field ObjectModel.unk34 = landEffects           # breakEffects end = landing effect records (77E20.c:obj_spawn_landing_effects)
+field ObjectModel.unk38 = partDlRecs            # conditional part DL records, end = toppleKeys (77E20.c:obj_draw_all, dl_cond_copy_802C09B8)
+field ObjectModel.unk40 = partHeights           # s16 per part (<< 5): exposed test / sinking height (77E20.c:obj_part_exposed, obj_start_sinking_part)
+field ObjectModel.unk44 = supportRecs           # {part, threshold, n, n x {support, weight}} (77E20.c:obj_drop_unsupported_parts, obj_part_exposed)
+field ObjectModel.unk48 = supportRecsEnd        # end of supportRecs (same functions)
+# keep ObjectModel.pad2: really the model's u16 radius (LevelObject.radius = it << 5, lvl_add_object) - see notes
+# keep ObjectModel.padC: never used
+# keep ObjectModel.padE: holds the u16 pose count (+0xE) and DL offsets (+0x10, +0x18) read raw in obj_draw_all - see notes
+field Rec7FB50.padEA = destroyed                # written: r->padEA = allIntact (7FB50.c, restore loop ~line 211); = LevelObject.destroyed
+field CollisionTri.unk51 = isSolid              # 0 = skipped by the probes (89250.c:coll_probe_object_tris, 77E20.c:obj_collide_sphere)
+field CollisionTri.unk52 = partNo               # 1-based part the tri belongs to (77E20.c:obj_drop_unsupported_parts, obj_disable_landed_part_tris)
+field CollisionTri.unk55 = wallTwoSided         # ==1: clips the arc on both sides (77E20.c:obj_tri_clip_free_arc)
+field CollisionTri.unk56 = wallSide             # set: clips on d's side, clear: the other side (77E20.c:obj_tri_clip_free_arc)
+field CollisionTri.unk57 = linkedPart           # becomes solid when this part falls; off when own part lands (77E20.c, 89250.c)
+field CollisionTri.unk58 = isWall               # 0 = no arc clip (77E20.c:obj_tri_clip_free_arc)
+# keep CollisionTri.pad4F: written from b4F by lvl_build_coll_tri (5CB60.c), never read by CollisionTri users
+# keep CollisionTri.pad54: only zeroed (5CB60.c:lvl_build_coll_tri)
+# keep CollisionTri.pad59: [0] = tri[0x15] for level grid tris (5CB60.c:port_build_grid), else 0; 0x5A-0x5F never written

@@ -23,19 +23,19 @@ typedef struct DynamicBuf {
     Mtx cullView; /* 0x180: the visibility test's view (guLookAt, the eye pulled in) */
     Mtx identity; /* 0x1C0: the modelview */
     Mtx unk200;
-    Mtx unk240;
-    Mtx unk280;
-    Mtx unk2C0[0x49]; /* one per vehicle */
-    Mtx unk1500;
-    Mtx unk1540;
+    Mtx chopperShadowTrans; /* seg2 Mtx 9 */
+    Mtx chopperShadowRot;   /* seg2 Mtx 10 */
+    Mtx mtxPool[0x49]; /* [i]: vehicle shadow i (seg2 Mtx 11 + i); later slots: obj_draw_all, commpt_draw, other views */
+    Mtx failSpinVehMtx;    /* the failing vehicle's spin (seg2 Mtx 0x54) */
+    Mtx failSpinShadowMtx; /* its shadow (seg2 Mtx 0x55) */
     u8 pad1580[0x15C0 - 0x1580];
-    Vtx unk15C0[0x30]; /* vehicle shadow quads */
-    Vtx unk18C0[4]; /* shadow quad */
+    Vtx shadowVtx[0x30]; /* vehicle shadow quads, 4 per shadow */
+    Vtx chopperShadowVtx[4]; /* the chopper's shadow quad */
     u8 pad1900[0x3C00 - 0x1900];
     LookAt lookAt; /* 0x3C00: the camera's (reflection mapping) */
     u8 pad3C20[0x48B0 - 0x3C20];
     Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
-    u8 unkA3A0[0x21498 - 0xA3A0];
+    u8 subDls[0x21498 - 0xA3A0]; /* sub-display lists (lvl_build_visible_dls, obj_draw_all, commpt_draw) */
 } DynamicBuf;
 
 /* The front end's view of the same per-frame buffer (DynamicBuf). The
@@ -43,17 +43,17 @@ typedef struct DynamicBuf {
  * Dynamic) use layouts of their own. */
 typedef struct FeDyn {
     u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
+    Mtx view; /* lookat view (as DynamicBuf.view) */
     u8 pad180[0x240 - 0x180];
-    Mtx unk240; /* perspective (0DE70.c) */
+    Mtx commPointPersp; /* perspective (0DE70.c) */
     u8 pad280[0x1240 - 0x280];
-    Mtx unk1240; /* perspective */
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300; /* scene scale */
+    Mtx persp; /* perspective */
+    Mtx sceneTranslate;
+    Mtx sceneRotate;
+    Mtx sceneScale;
     u8 pad1340[0x1E00 - 0x1340];
-    Vtx unk1E00[0x1E0]; /* arrow quads */
-    LookAt unk3C00;
+    Vtx arrowVtx[0x1E0]; /* arrow quads */
+    LookAt lookAt;
     u8 pad3C20[0x48B0 - 0x3C20];
     Gfx dl[0xB5E]; /* top-level display list */
     u8 unkA3A0[0x21498 - 0xA3A0];
@@ -200,13 +200,13 @@ typedef struct GlobeLevel {
     /* 0x04 */ char * N64P name;
     /* 0x08 */ u16 * N64P jname; /* hd_code glyph string (0x0FFE-terminated) */
     /* 0x0C */ s32 unkC;
-    /* 0x10 */ f32 unk10;
-    /* 0x14 */ f32 unk14;
-    /* 0x18 */ s8 unk18[4]; /* level ids, -1-terminated */
-    /* 0x1C */ s8 unk1C[8]; /* level ids, -1-terminated */
-    /* 0x24 */ f32 unk24;
-    /* 0x28 */ f32 unk28;
-    /* 0x2C */ f32 unk2C;
+    /* 0x10 */ f32 lat; /* latitude, degrees */
+    /* 0x14 */ f32 lon; /* longitude, degrees */
+    /* 0x18 */ s8 commRoutes[4]; /* levels opened by comm point j, -1-terminated */
+    /* 0x1C */ s8 routes[8]; /* levels opened when this one is done, -1-terminated */
+    /* 0x24 */ f32 x; /* globe position (radius 250) from lat/lon */
+    /* 0x28 */ f32 y;
+    /* 0x2C */ f32 z;
 } GlobeLevel; /* size 0x30 */
 
 /* One save slot's progress: players[4] (0x80364AF0), Rare's "playerInfo"

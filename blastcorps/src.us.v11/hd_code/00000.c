@@ -1370,15 +1370,15 @@ void hd_game_frame(void) {
     } else if (gCamWindowView) {
         cull_restart(10);
     }
-    obj_draw_all((u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x1E0]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x578]),
-                  (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x910]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x112B0]),
-                  (s32) &gDynamicBufs[gBufferIndex], (s32) (&gDynamicBufs[gBufferIndex].unk2C0[0x2D]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x17070]),
-                  (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x170D8]));
+    obj_draw_all((u32 *) (&gDynamicBufs[gBufferIndex].subDls[0x1E0]), (u32 *) (&gDynamicBufs[gBufferIndex].subDls[0x578]),
+                  (u32 *) (&gDynamicBufs[gBufferIndex].subDls[0x910]), (u32 *) (&gDynamicBufs[gBufferIndex].subDls[0x112B0]),
+                  (s32) &gDynamicBufs[gBufferIndex], (s32) (&gDynamicBufs[gBufferIndex].mtxPool[0x2D]), (u32 *) (&gDynamicBufs[gBufferIndex].subDls[0x17070]),
+                  (u32 *) (&gDynamicBufs[gBufferIndex].subDls[0x170D8]));
     if (gGameMode == MODE_LEVEL) {
         cull_override_visible_cells(levelno, gPlayerX, gPlayerZ);
     }
     lvl_build_visible_dls((u32 *) N64_IPTR(gLevelDl0[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl1[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl2[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl3[gBufferIndex]),
-                  (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x140]));
+                  (u32 *) (&gDynamicBufs[gBufferIndex].subDls[0x140]));
     water_update(gBufferIndex);
     if (!gPaused || (gHaveCarrier && gCarrierHit) || gBonusLevelExit) {
         obj_run_effect_queue();
@@ -2638,7 +2638,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
     gSPDisplayList(gdl++, SEG2(0x0A580));
     gDPPipeSync(gdl++);
-    gdl = commpt_draw(gdl, gBufferIndex, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
+    gdl = commpt_draw(gdl, gBufferIndex, (Gfx *) dyn->subDls, &dyn->mtxPool[0x3C]);
     veh_draw_shadows(&gdl, dyn, 1);
     if (gHaveChopper) {
         veh_draw_chopper_shadow(&gdl, dyn);
@@ -2885,7 +2885,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             guMtxCatF(mf, tmp, mf);
             guTranslateF(tmp, x, y, z);
             guMtxCatF(mf, tmp, mf);
-            guMtxF2L(mf, &dyn->unk2C0[i]);
+            guMtxF2L(mf, &dyn->mtxPool[i]);
             if (spin) {
                 gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gHudArrowTex), G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0,
                                     G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
@@ -2896,49 +2896,49 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
                                     G_TX_NOLOD);
                 th = 64, tw = 64;
             }
-            dyn->unk15C0[gShadowVtxCount].v.ob[0] = -w;
-            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.ob[2] = d;
-            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
-            dyn->unk15C0[gShadowVtxCount].v.tc[0] = (th - 1) << 5;
-            dyn->unk15C0[gShadowVtxCount].v.tc[1] = (tw - 1) << 5;
-            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[0] = -w;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[1] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[2] = d;
+            dyn->shadowVtx[gShadowVtxCount].v.flag = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[0] = (th - 1) << 5;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[1] = (tw - 1) << 5;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[0] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[1] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[2] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[3] = 0x8C;
             gShadowVtxCount++;
-            dyn->unk15C0[gShadowVtxCount].v.ob[0] = w;
-            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.ob[2] = d;
-            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
-            dyn->unk15C0[gShadowVtxCount].v.tc[0] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.tc[1] = (tw - 1) << 5;
-            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[0] = w;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[1] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[2] = d;
+            dyn->shadowVtx[gShadowVtxCount].v.flag = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[0] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[1] = (tw - 1) << 5;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[0] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[1] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[2] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[3] = 0x8C;
             gShadowVtxCount++;
-            dyn->unk15C0[gShadowVtxCount].v.ob[0] = w;
-            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.ob[2] = -d;
-            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
-            dyn->unk15C0[gShadowVtxCount].v.tc[0] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.tc[1] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[0] = w;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[1] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[2] = -d;
+            dyn->shadowVtx[gShadowVtxCount].v.flag = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[0] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[1] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[0] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[1] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[2] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[3] = 0x8C;
             gShadowVtxCount++;
-            dyn->unk15C0[gShadowVtxCount].v.ob[0] = -w;
-            dyn->unk15C0[gShadowVtxCount].v.ob[1] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.ob[2] = -d;
-            dyn->unk15C0[gShadowVtxCount].v.flag = 0;
-            dyn->unk15C0[gShadowVtxCount].v.tc[0] = (th - 1) << 5;
-            dyn->unk15C0[gShadowVtxCount].v.tc[1] = 0;
-            dyn->unk15C0[gShadowVtxCount].v.cn[0] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[1] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[2] = 10;
-            dyn->unk15C0[gShadowVtxCount].v.cn[3] = 0x8C;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[0] = -w;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[1] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.ob[2] = -d;
+            dyn->shadowVtx[gShadowVtxCount].v.flag = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[0] = (th - 1) << 5;
+            dyn->shadowVtx[gShadowVtxCount].v.tc[1] = 0;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[0] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[1] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[2] = 10;
+            dyn->shadowVtx[gShadowVtxCount].v.cn[3] = 0x8C;
             gShadowVtxCount++;
             PORT_ITAG(gdl, PORT_ITAG_SHADOW, i);
             if (gCarrierHit && !(gLevelKind & 0x81) && gVehicleShadows[i].type == gCurVehicle) {
@@ -2996,48 +2996,48 @@ void veh_draw_chopper_shadow(Gfx **gfx, DynamicBuf *dyn) {
     z = gVehicleShadows[i].z >> 5;
     w = gVehicleShadows[i].halfWidth;
     d = gVehicleShadows[i].halfDepth;
-    dyn->unk18C0[0].v.ob[0] = -w;
-    dyn->unk18C0[0].v.ob[1] = 0;
-    dyn->unk18C0[0].v.ob[2] = d;
-    dyn->unk18C0[0].v.flag = 0;
-    dyn->unk18C0[0].v.tc[0] = 0x7E0;
-    dyn->unk18C0[0].v.tc[1] = 0x7E0;
-    dyn->unk18C0[0].v.cn[0] = 10;
-    dyn->unk18C0[0].v.cn[1] = 10;
-    dyn->unk18C0[0].v.cn[2] = 10;
-    dyn->unk18C0[0].v.cn[3] = 0x8C;
-    dyn->unk18C0[1].v.ob[0] = w;
-    dyn->unk18C0[1].v.ob[1] = 0;
-    dyn->unk18C0[1].v.ob[2] = d;
-    dyn->unk18C0[1].v.flag = 0;
-    dyn->unk18C0[1].v.tc[0] = 0;
-    dyn->unk18C0[1].v.tc[1] = 0x7E0;
-    dyn->unk18C0[1].v.cn[0] = 10;
-    dyn->unk18C0[1].v.cn[1] = 10;
-    dyn->unk18C0[1].v.cn[2] = 10;
-    dyn->unk18C0[1].v.cn[3] = 0x8C;
-    dyn->unk18C0[2].v.ob[0] = w;
-    dyn->unk18C0[2].v.ob[1] = 0;
-    dyn->unk18C0[2].v.ob[2] = -d;
-    dyn->unk18C0[2].v.flag = 0;
-    dyn->unk18C0[2].v.tc[0] = 0;
-    dyn->unk18C0[2].v.tc[1] = 0;
-    dyn->unk18C0[2].v.cn[0] = 10;
-    dyn->unk18C0[2].v.cn[1] = 10;
-    dyn->unk18C0[2].v.cn[2] = 10;
-    dyn->unk18C0[2].v.cn[3] = 0x8C;
-    dyn->unk18C0[3].v.ob[0] = -w;
-    dyn->unk18C0[3].v.ob[1] = 0;
-    dyn->unk18C0[3].v.ob[2] = -d;
-    dyn->unk18C0[3].v.flag = 0;
-    dyn->unk18C0[3].v.tc[0] = 0x7E0;
-    dyn->unk18C0[3].v.tc[1] = 0;
-    dyn->unk18C0[3].v.cn[0] = 10;
-    dyn->unk18C0[3].v.cn[1] = 10;
-    dyn->unk18C0[3].v.cn[2] = 10;
-    dyn->unk18C0[3].v.cn[3] = 0x8C;
-    guTranslate(&dyn->unk240, x, y, z);
-    guRotate(&dyn->unk280, (f32) gChopperShadowHeading * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+    dyn->chopperShadowVtx[0].v.ob[0] = -w;
+    dyn->chopperShadowVtx[0].v.ob[1] = 0;
+    dyn->chopperShadowVtx[0].v.ob[2] = d;
+    dyn->chopperShadowVtx[0].v.flag = 0;
+    dyn->chopperShadowVtx[0].v.tc[0] = 0x7E0;
+    dyn->chopperShadowVtx[0].v.tc[1] = 0x7E0;
+    dyn->chopperShadowVtx[0].v.cn[0] = 10;
+    dyn->chopperShadowVtx[0].v.cn[1] = 10;
+    dyn->chopperShadowVtx[0].v.cn[2] = 10;
+    dyn->chopperShadowVtx[0].v.cn[3] = 0x8C;
+    dyn->chopperShadowVtx[1].v.ob[0] = w;
+    dyn->chopperShadowVtx[1].v.ob[1] = 0;
+    dyn->chopperShadowVtx[1].v.ob[2] = d;
+    dyn->chopperShadowVtx[1].v.flag = 0;
+    dyn->chopperShadowVtx[1].v.tc[0] = 0;
+    dyn->chopperShadowVtx[1].v.tc[1] = 0x7E0;
+    dyn->chopperShadowVtx[1].v.cn[0] = 10;
+    dyn->chopperShadowVtx[1].v.cn[1] = 10;
+    dyn->chopperShadowVtx[1].v.cn[2] = 10;
+    dyn->chopperShadowVtx[1].v.cn[3] = 0x8C;
+    dyn->chopperShadowVtx[2].v.ob[0] = w;
+    dyn->chopperShadowVtx[2].v.ob[1] = 0;
+    dyn->chopperShadowVtx[2].v.ob[2] = -d;
+    dyn->chopperShadowVtx[2].v.flag = 0;
+    dyn->chopperShadowVtx[2].v.tc[0] = 0;
+    dyn->chopperShadowVtx[2].v.tc[1] = 0;
+    dyn->chopperShadowVtx[2].v.cn[0] = 10;
+    dyn->chopperShadowVtx[2].v.cn[1] = 10;
+    dyn->chopperShadowVtx[2].v.cn[2] = 10;
+    dyn->chopperShadowVtx[2].v.cn[3] = 0x8C;
+    dyn->chopperShadowVtx[3].v.ob[0] = -w;
+    dyn->chopperShadowVtx[3].v.ob[1] = 0;
+    dyn->chopperShadowVtx[3].v.ob[2] = -d;
+    dyn->chopperShadowVtx[3].v.flag = 0;
+    dyn->chopperShadowVtx[3].v.tc[0] = 0x7E0;
+    dyn->chopperShadowVtx[3].v.tc[1] = 0;
+    dyn->chopperShadowVtx[3].v.cn[0] = 10;
+    dyn->chopperShadowVtx[3].v.cn[1] = 10;
+    dyn->chopperShadowVtx[3].v.cn[2] = 10;
+    dyn->chopperShadowVtx[3].v.cn[3] = 0x8C;
+    guTranslate(&dyn->chopperShadowTrans, x, y, z);
+    guRotate(&dyn->chopperShadowRot, (f32) gChopperShadowHeading * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
     PORT_ITAG(gdl, PORT_ITAG_SHADOWFE, 0);
     gSPMatrix(gdl++, &seg2Base[9], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(gdl++, &seg2Base[10], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
@@ -3133,7 +3133,7 @@ void veh_update_fail_spin(void) {
         guMtxCatF(mf, tmp, mf);
         guTranslateF(tmp, (f32) gPlayerX / 32.0, (f32) gPlayerY / 32.0, (f32) gPlayerZ / 32.0);
         guMtxCatF(mf, tmp, mf);
-        guMtxF2L(mf, &gDynamicBufs[gBufferIndex].unk1500);
+        guMtxF2L(mf, &gDynamicBufs[gBufferIndex].failSpinVehMtx);
         i = 0;
         while (gVehicleShadows[i].type != gCurVehicle) {
             i++;
@@ -3148,7 +3148,7 @@ void veh_update_fail_spin(void) {
         guMtxCatF(mf, tmp, mf);
         guTranslateF(tmp, x, y, z);
         guMtxCatF(mf, tmp, mf);
-        guMtxF2L(mf, &gDynamicBufs[gBufferIndex].unk1540);
+        guMtxF2L(mf, &gDynamicBufs[gBufferIndex].failSpinShadowMtx);
         if (gFailSpinDone == 0) {
             gFailSpinScale = gFailSpinScale - 0.04;
             if (gFailSpinScale < 0.0) {

@@ -14,7 +14,7 @@ import os
 import sys
 import zipfile
 
-DIST = {"bc.exe", "SDL2.dll", "dxcompiler.dll", "dxil.dll", "README.txt", "THIRD_PARTY_LICENSES.txt"}
+DIST = {"bc.exe", "bc_packtool.exe", "SDL2.dll", "dxcompiler.dll", "dxil.dll", "README.txt", "THIRD_PARTY_LICENSES.txt"}
 PDB = {"bc.pdb", "bc.map", "bc.syms"}
 # the first word of a ROM: .z64 (big-endian), .v64 (byte pairs swapped), .n64 (little-endian words)
 ROM_MAGIC = (b"\x80\x37\x12\x40", b"\x37\x80\x40\x12", b"\x40\x12\x37\x80")

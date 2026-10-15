@@ -20,6 +20,14 @@ flags) and reports what still has a host-width (8-byte) pointer:
                         pointers sized with it is twice as big)
   PADD   file:line      pointer arithmetic with a pointer cast to a signed int
                         (`m += (s32) buf`: N64_A32)
+  VARG   file:line      an N64 pointer (`T * N64P`, __ptr32) passed in a variadic
+                        position (`sprintf(buf, "%s", rec->name)`): it goes as 4
+                        bytes and the callee's va_arg(ap, char *) reads 8 (MSVC:
+                        the upper half is stack garbage).  Cast it to a native
+                        pointer: `(char *) rec->name`
+  KNR    file:line      the same passed to a function without a prototype
+                        (`int f();`, or an implicit declaration): no conversion
+                        to the parameter's type, the same 4-byte argument
 
 usage: ptrcheck64.py ADDRS ALLOW OUT -- CLANG_CMD... -- FILE.c...
   ALLOW  finding keys known to be host-only, fnmatch patterns ('FIELD
@@ -76,6 +84,65 @@ def ptr_to_host_ptr(t):
     return t.count("*") >= 2 and t.count("__ptr32") < t.count("*") - 1
 
 
+def outer_n64(t):
+    """is type string t (canonical) an N64 pointer (`T * N64P`): is its
+    outermost pointer __ptr32?  clang prints the address space on the
+    pointee, `__uptr __ptr32 char *` (N64P to char), `char *__uptr __ptr32 *`
+    (N64P to a host char *); the attribute sugar of an inner pointer comes out
+    the other way round, `char * __ptr32  __uptr *` (a host pointer to an N64P
+    one), so only `__uptr __ptr32` between the last two `*` counts.  A
+    function pointer is not one (N64 function pointers are N64FN, a u32)."""
+    if t is None or is_fnptr(t) or "*" not in t:
+        return False
+    k = t.rfind("*")
+    seg = t[t.rfind("*", 0, k) + 1:k]
+    return re.search(r"__[us]ptr __ptr32\b", seg) is not None
+
+
+def fn_params(t):
+    """the parameters of a callee's type (`int (*)(char *, const char *, ...)`):
+    (number of fixed parameters, variadic?, no prototype?), or None when t is
+    not a function (pointer) type"""
+    if t is None or not t.rstrip().endswith(")"):
+        return None
+    # the last top-level parenthesised group is the parameter list
+    s = t.rstrip()
+    depth, k = 0, len(s) - 1
+    while k >= 0:
+        if s[k] == ")":
+            depth += 1
+        elif s[k] == "(":
+            depth -= 1
+            if depth == 0:
+                break
+        k -= 1
+    if k < 0:
+        return None
+    inner = s[k + 1:-1].strip()
+    if inner == "":
+        return (0, False, True)
+    if inner == "void":
+        return (0, False, False)
+    parts, depth, cur = [], 0, ""
+    for ch in inner:
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append(cur.strip())
+            cur = ""
+        else:
+            cur += ch
+    parts.append(cur.strip())
+    if parts and parts[-1] == "...":
+        return (len(parts) - 1, True, False)
+    return (len(parts), False, False)
+
+
+CALLEE_NAME = re.compile(r"\b(?:Function|Var|ParmVar|Field) 0x[0-9a-f]+ '(\w+)'|->(\w+) 0x|\.(\w+) 0x")
+
+
 def main():
     a = sys.argv[1:]
     addrs_path, allow_path, out_path = a[0], a[1], a[2]
@@ -111,6 +178,7 @@ def main():
         curfile, curline = None, 0
         sext = None  # (depth, key) of an int -> pointer cast whose operand is next
         estack = []  # every node's (depth, kind, type): the ancestors of the current one
+        calls = []   # open CallExprs: [depth, where, children seen, params, callee name]
         for line in r.stdout.splitlines():
             m = DECL.match(line)
             g0 = ANY.match(line)
@@ -156,6 +224,34 @@ def main():
                     curline = int(ln2)
                 if first is None:
                     first = (curfile, curline)
+            # N64 pointers as variadic / unprototyped arguments: the children of
+            # a CallExpr are the callee, then the arguments as passed (after
+            # the implicit conversions: a variadic pointer argument keeps its
+            # own type)
+            if g0:
+                while calls and calls[-1][0] >= d0:
+                    calls.pop()
+                if calls and calls[-1][0] == d0 - 2:
+                    c = calls[-1]
+                    idx = c[2]
+                    c[2] += 1
+                    if idx == 0:
+                        c[3] = fn_params(t0)
+                    elif c[3] is not None:
+                        nfix, var, noproto = c[3]
+                        if (noproto or (var and idx - 1 >= nfix)) and outer_n64(t0):
+                            k = "KNR" if noproto else "VARG"
+                            here = "%s:%d" % ((c[1][0] or "?").split("/")[-1], c[1][1])
+                            found.setdefault("%s %s" % (k, here),
+                                             ("%s arg %d of %s()" % (t0, idx, c[4] or "?"),
+                                              "%s:%d" % c[1]))
+                elif calls and calls[-1][2] == 1 and calls[-1][4] is None:
+                    # inside the callee: its name
+                    nm = CALLEE_NAME.search(line)
+                    if nm:
+                        calls[-1][4] = nm.group(1) or nm.group(2) or nm.group(3)
+                if kind0 == "CallExpr":
+                    calls.append([d0, first or (curfile, curline), 0, None, None])
             # sizeof(T *) of a host-width pointer: 8 natively, 4 on the N64
             # (a table of N64 pointers sized with it comes out twice as big)
             sz = re.search(r"UnaryExprOrTypeTraitExpr 0x[0-9a-f]+ <[^>]*> '[^']*' sizeof '([^']*)'(?::'([^']*)')?", line)

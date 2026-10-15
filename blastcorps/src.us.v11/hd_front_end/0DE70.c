@@ -36,9 +36,9 @@ extern s32 gHeapPtr; /* heap pointer */
 #endif
 
 /* ROM addresses of the compressed scene blobs */
-extern u8 D_006EA850[];
-extern u8 D_006EAB90[];
-extern u8 D_006EC4C0[];
+extern u8 romNinLogoScene[];
+extern u8 romReflectLogoScene[];
+extern u8 romPackedObjTable[];
 
 extern u32 gFeSceneSize;
 extern u8 * N64P gFeSceneRom;
@@ -50,7 +50,7 @@ extern Gfx * N64P gCommPointDls[2][2];
 extern Mtx gCommPointTranslate;
 extern Mtx gCommPointScale;
 extern Mtx gCommPointTilt;
-extern u8 D_80218430[];
+extern u8 gCommPointAnim[];
 extern u32 gCommPointAngle;
 extern u16 gCommPointPerspNorm;
 
@@ -64,16 +64,16 @@ void fe_scene_load(u8 arg0) {
     tex_load_table();
     switch (arg0) {
         case 0:
-            gFeSceneRom = D_006E8980;
-            gFeSceneSize = D_006EA850 - D_006E8980;
+            gFeSceneRom = romUsaStarScene;
+            gFeSceneSize = romNinLogoScene - romUsaStarScene;
             break;
         case 1:
-            gFeSceneRom = D_006EA850;
-            gFeSceneSize = D_006EAB90 - D_006EA850;
+            gFeSceneRom = romNinLogoScene;
+            gFeSceneSize = romReflectLogoScene - romNinLogoScene;
             break;
         case 2:
-            gFeSceneRom = D_006EAB90;
-            gFeSceneSize = D_006EC4C0 - D_006EAB90;
+            gFeSceneRom = romReflectLogoScene;
+            gFeSceneSize = romPackedObjTable - romReflectLogoScene;
             break;
     }
     hd_rom_load((u32) gFeSceneRom, (u32) ((void *) N64_IPTR(gHeapPtr)), &gFeSceneSize, 12, 10, 1);
@@ -93,13 +93,13 @@ Gfx *fe_scene_draw(FeDyn *dyn, Gfx *arg1) {
     gSPSegment(gdl++, 6, gFeSceneSeg6);
     gSPSegment(gdl++, 7, &gFeSceneRot[gBufferIndex]);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
-    gSPLookAtX(gdl++, &dyn->unk3C00);
-    gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
-    gSPMatrix(gdl++, &dyn->unk1240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk12C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk1280, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk1300, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPLookAtX(gdl++, &dyn->lookAt);
+    gSPLookAtY(gdl++, (u8 *) &dyn->lookAt + 0x10);
+    gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->view, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->sceneRotate, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->sceneTranslate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->sceneScale, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPDisplayList(gdl++, gFeSceneDl);
     return gdl;
 }
@@ -111,10 +111,10 @@ Gfx *fe_comm_point_draw(FeDyn *dyn, Gfx *arg1) {
     void *seg;
 
     gImmp1(gdl++, G_RDPHALF_1, gCommPointPerspNorm);
-    gSPLookAtX(gdl++, &dyn->unk3C00);
-    gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
-    gSPMatrix(gdl++, &dyn->unk240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPLookAtX(gdl++, &dyn->lookAt);
+    gSPLookAtY(gdl++, (u8 *) &dyn->lookAt + 0x10);
+    gSPMatrix(gdl++, &dyn->commPointPersp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->view, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gDPSetEnvColor(gdl++, 0, 0, 0, gYoshiAlpha);
     {
         s32 base;
@@ -122,7 +122,7 @@ Gfx *fe_comm_point_draw(FeDyn *dyn, Gfx *arg1) {
 
         base = ((FeHdr *) (((FeHdr *) gCommPointModel)->unk18 + gCommPointModel))->unk4;
         m = (Mtx *) ((u32) gCommPointBufs[gBufferIndex] + base);
-        fe_anim_update_model(D_80218430, gCommPointBufs[gBufferIndex], gCommPointBufs[gBufferIndex ^ 1]);
+        fe_anim_update_model(gCommPointAnim, gCommPointBufs[gBufferIndex], gCommPointBufs[gBufferIndex ^ 1]);
         gCommPointAngle += 3;
         guRotate(m, gCommPointAngle % 360, 0.0f, 1.0f, 0.0f);
         osWritebackDCache(m, sizeof(Mtx));
@@ -150,13 +150,13 @@ void fe_comm_point_load(void) {
     fe_load_model(0x96, &gCommPointModel, (u8 * N64P *) gCommPointBufs, (u8 * N64P *) gCommPointDls[0]);
     guTranslate(&gCommPointTranslate, 150.0f, -45.0f, 0.0f);
     guScale(&gCommPointScale, 1.5f, 1.5f, 1.5f);
-    fe_anim_init_model(gCommPointModel, (u32 * N64P *) gCommPointBufs, D_80218430);
-    fe_anim_start_channel(D_80218430, 1, 0, 0, 0.0f, 2, 0);
-    fe_anim_start_channel(D_80218430, 2, 0, 0, 0.0f, 1, 1);
+    fe_anim_init_model(gCommPointModel, (u32 * N64P *) gCommPointBufs, gCommPointAnim);
+    fe_anim_start_channel(gCommPointAnim, 1, 0, 0, 0.0f, 2, 0);
+    fe_anim_start_channel(gCommPointAnim, 2, 0, 0, 0.0f, 1, 1);
     guRotate(&gCommPointTilt, 20.0f, 1.0f, 0.0f, 0.0f);
     for (i = 0; i < 2; i++) {
         dyn = &gDynamicBufs[i];
-        guPerspective(&dyn->unk240, &gCommPointPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
-        guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 0.0f, 1.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+        guPerspective(&dyn->commPointPersp, &gCommPointPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+        guLookAtReflect(&dyn->view, &dyn->lookAt, 0.0f, 1.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     }
 }

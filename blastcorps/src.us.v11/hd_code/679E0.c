@@ -12,7 +12,7 @@
 #ifdef NON_MATCHING
 
 
-extern u8 D_802C2A5C[];  /* definition in the 7D9D0 text blob */
+extern u8 gFxDefNodeHit[];  /* definition in the 7D9D0 text blob */
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -91,7 +91,7 @@ void veh_maze_object_hits(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehic
     u8 *p;
     u8 *end;
 
-    if (((s32) gLevelKind) != 0x40) {
+    if (((s32) gLevelKind) != LEVEL_KIND_PILL_MAZE) {
         return;
     }
     veh_collision_setup(z, a1, 1, 0, x, y, b0, 0, 0x40, 0, id, vehicle);
@@ -203,7 +203,7 @@ s32 ground_in_triangle(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* The sparkle effect at an RDU the player just lit (0x802AC544).
- * Spawns the D_802C2A5C effect (fx_spawn, type 0, data 0x28488) at the
+ * Spawns the gFxDefNodeHit effect (fx_spawn, type 0, data 0x28488) at the
  * whole-unit position (x, y, z) << 16; every other field 0. Saves every
  * s-register and fp; the asm leaves the caller's v0 (C callers: void). */
 void fx_spawn_node_hit(s32 x, s32 y, s32 z) {
@@ -212,7 +212,7 @@ void fx_spawn_node_hit(s32 x, s32 y, s32 z) {
     io.a3 = 0;
     io.t6 = 0;
     io.s1 = 0;
-    fx_spawn(&io, D_802C2A5C, 0x28488, 0, x << 16, y << 16, z << 16, 0, 0, 0, 0, 0, 0);
+    fx_spawn(&io, gFxDefNodeHit, 0x28488, 0, x << 16, y << 16, z << 16, 0, 0, 0, 0, 0, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/fx_spawn_node_hit.s")
@@ -486,12 +486,12 @@ void mtx_scale(s32 x, s32 y, s32 z, s32 *m) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803ED420[16]; /* scratch product */
+extern s32 gMtxMulTemp[16]; /* scratch product */
 
 /* M = m * b (16.16) (0x802ACCCC).
  * m = m * b for 4x4 matrices of s32 16.16 values: each element is the s64
  * sum of four s32 x s32 products (dmult, wrapping), >> 16 arithmetic, low
- * 32 bits kept. The product goes through D_803ED420 and is then copied to m.
+ * 32 bits kept. The product goes through gMtxMulTemp and is then copied to m.
  * The asm takes b in a0 and m in s2 (conventions.txt); it leaves a1 = 4,
  * a2 = 4, a3 = 0 (the survey shows asm callers reading a1-a3 afterwards; a
  * C caller can't). Asm callers keep a0, t2, t4-t8, f8, f12, f14 live
@@ -508,11 +508,11 @@ void mtx_mul(s32 *b, s32 *m) {
             for (k = 0; k < 4; k++) {
                 sum += (s64) m[i * 4 + k] * b[k * 4 + j];
             }
-            D_803ED420[i * 4 + j] = (s32) (sum >> 16);
+            gMtxMulTemp[i * 4 + j] = (s32) (sum >> 16);
         }
     }
     for (i = 0; i < 16; i++) {
-        m[i] = D_803ED420[i];
+        m[i] = gMtxMulTemp[i];
     }
 }
 #else

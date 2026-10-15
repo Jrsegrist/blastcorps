@@ -10,17 +10,17 @@
 
 f32 sqrtf(f32);
 
-extern s8 D_80370C74;
-extern s16 D_80370C76;
+extern s8 gSteerReverse;
+extern s16 gSteerTurnTarget;
 
 u16 cont_steer_toward(s16 arg0, s16 arg1, s8 *arg2, u8 arg3);
 f32 math_asin_ratio_deg(f32 arg0, f32 arg1);
 
-/* Resets the analog steering state: the turn-around latch (D_80370C75) and the heading snap (D_803ED40A)
+/* Resets the analog steering state: the turn-around latch (gSteerTurnAround) and the heading snap (gSteerHeadingSnap)
  * (0x8028B720). */
 void cont_steer_reset(void) {
-    D_80370C75 = 0;
-    D_803ED40A = 0;
+    gSteerTurnAround = 0;
+    gSteerHeadingSnap = 0;
 }
 
 /* Analog control method: the stick points where to go, relative to the camera; returns a left/right steer of
@@ -35,30 +35,30 @@ void cont_stick_to_steer(s8 *arg0, s8 *arg1, u8 arg2) {
     u16 sp2E;
     s16 sp2C;
 
-    sp30 = -D_80370C70 * 16 + 0x7FF0;
+    sp30 = -gSteerHeading * 16 + 0x7FF0;
     sp37 = *arg0;
     sp36 = *arg1;
     sp34 = math_angle_2d_deg(0, 0, sp37, -sp36) * 65536.0 / 360.0 + 32768.0 +
            (s16) ((360.0 - (gCamHeading + 180.0)) / 360.0 * 65536.0);
     sp32 = sqrtf(sp37 * sp37 + sp36 * sp36);
     *arg1 = sp32;
-    D_80370C74 = 0;
+    gSteerReverse = 0;
     sp2E = 0;
-    if (D_80370C75 == 1) {
-        sp2C = D_80370C76 - sp30;
-        if (ABS(sp2C) <= ABS(D_80370C72 * 16)) {
-            D_80370C75 = 0;
+    if (gSteerTurnAround == 1) {
+        sp2C = gSteerTurnTarget - sp30;
+        if (ABS(sp2C) <= ABS(gSteerRate * 16)) {
+            gSteerTurnAround = 0;
         }
         sp2E = 0x200;
     } else {
         if (*arg1 >= 0xB) {
-            sp2E = cont_steer_toward(sp30, sp34, &D_80370C74, arg2);
+            sp2E = cont_steer_toward(sp30, sp34, &gSteerReverse, arg2);
         }
-        if (D_80370C74 != 0 && D_8036443C < 0x28) {
-            D_80370C76 = sp34;
-            D_80370C75 = 1;
-        } else if (D_803ED40A != 0) {
-            D_803ED408 = 0x7FF - sp34 / 16;
+        if (gSteerReverse != 0 && gPlayerSpeed < 0x28) {
+            gSteerTurnTarget = sp34;
+            gSteerTurnAround = 1;
+        } else if (gSteerHeadingSnap != 0) {
+            gSteerSnapAngle = 0x7FF - sp34 / 16;
             *arg0 = 0;
             return;
         }
@@ -88,15 +88,15 @@ u16 cont_steer_toward(s16 arg0, s16 arg1, s8 *arg2, u8 arg3) {
         arg0 += 0x8000;
     }
     spE = arg1 - arg0;
-    D_803F7C34 = spE;
-    if (ABS(spE) <= ABS(D_80370C72 * 16)) {
-        D_803ED40A = 1;
+    gContSteerError = spE;
+    if (ABS(spE) <= ABS(gSteerRate * 16)) {
+        gSteerHeadingSnap = 1;
     }
-    if (spC < ABS(spE) && D_8036443C < 0x28) {
+    if (spC < ABS(spE) && gPlayerSpeed < 0x28) {
         *arg2 ^= -1;
         return 0;
     }
-    if (SIGN(D_80370C72) * spE > 0) {
+    if (SIGN(gSteerRate) * spE > 0) {
         return 0x100;
     }
     return 0x200;
@@ -170,7 +170,7 @@ void cont_stick_dir_to_buttons(u16 *arg0, s8 arg1, s8 arg2, u8 arg3) {
     sp2E = math_angle_2d_deg(0, 0, arg1, -arg2) * 65536.0 / 360.0 + 32768.0;
     sp2C = sqrtf(arg1 * arg1 + arg2 * arg2);
     sp28 = 0;
-    sp2A = -D_80370C70 * 16 + 0x7FF0;
+    sp2A = -gSteerHeading * 16 + 0x7FF0;
     sp2A -= 0x2000;
     if (sp2C >= 0x10) {
         sp28 = 1;
@@ -181,17 +181,17 @@ void cont_stick_dir_to_buttons(u16 *arg0, s8 arg1, s8 arg2, u8 arg3) {
     if (sp2C >= 0x2E) {
         sp28 |= 2;
     }
-    if (sp2C >= 0x4C && (D_80370C74 == 0 || arg3 != 3)) {
+    if (sp2C >= 0x4C && (gSteerReverse == 0 || arg3 != 3)) {
         sp28 |= 4;
     }
     if (sp28 == 0) {
-        D_80370C74 = 0;
+        gSteerReverse = 0;
     }
     if (!(*arg0 & 0x300) && (sp28 & 1)) {
-        *arg0 |= cont_steer_toward(sp2A, sp2E, &D_80370C74, arg3);
+        *arg0 |= cont_steer_toward(sp2A, sp2E, &gSteerReverse, arg3);
     }
     if (!(*arg0 & 0xC000) && (sp28 & 2)) {
-        if (D_80370C74 != 0) {
+        if (gSteerReverse != 0) {
             *arg0 |= 0x8000;
         } else {
             *arg0 |= 0x4000;

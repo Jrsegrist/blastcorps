@@ -89,16 +89,16 @@ void fe_anim_start_channel(void *base, s32 idx, s32 v040C, s32 v0480, f32 f, s32
 /* Resets the vehicle's texture animations (speed 0, forward, wrap, play) for Backlash (kind 5) and Ramdozer
  * (kind 4), as backlash_enter / ramdozer_enter do (0x80202380).
  * reset the texture animations of vehicle kind 5 or 4.  (After the kind-4
- * block the asm has a third, unreachable one that would set up D_802C2324 and
- * D_802C2348 with 100.) */
+ * block the asm has a third, unreachable one that would set up gTexAnimPoliceLightsA and
+ * gTexAnimPoliceLightsB with 100.) */
 void fe_veh_reset_tex_anims(s32 kind) {
-    if (kind == 5) {
-        RESET_CHANNEL(D_802C2208);
-        RESET_CHANNEL(D_802C226C);
-    } else if (kind == 4) {
-        RESET_CHANNEL(D_802C2190);
-        RESET_CHANNEL(D_802C21A4);
-        RESET_CHANNEL(D_802C21B8);
+    if (kind == VEH_BACKLASH) {
+        RESET_CHANNEL(gBacklashYawTexAnimA);
+        RESET_CHANNEL(gBacklashYawTexAnimB);
+    } else if (kind == VEH_RAMDOZER) {
+        RESET_CHANNEL(gRamdozerTrackTexAnimA);
+        RESET_CHANNEL(gRamdozerTrackTexAnimB);
+        RESET_CHANNEL(gRamdozerHeadingTexAnim);
     }
 }
 
@@ -106,23 +106,23 @@ void fe_veh_reset_tex_anims(s32 kind) {
  * turn (as their _update_anims do) (0x802025D0).
  * texture-animation frames from `val` for vehicle kind 5 or 4 */
 void fe_veh_set_heading_tex_anims(s32 kind, s32 val) {
-    if (kind == 5) {
+    if (kind == VEH_BACKLASH) {
         if (val >= 0x800) {
             val -= 0x800;
         }
         val = (u32) val / 0x55;
-        anim_tex_set_frame(0.0f, (s32) D_802C2208, val);
-        anim_tex_set_frame(0.0f, (s32) D_802C226C, val);
-    } else if (kind == 4) {
+        anim_tex_set_frame(0.0f, (s32) gBacklashYawTexAnimA, val);
+        anim_tex_set_frame(0.0f, (s32) gBacklashYawTexAnimB, val);
+    } else if (kind == VEH_RAMDOZER) {
         if (val >= 0x355 && val < 0x8AB) {
             val -= 0x355;
         } else {
             val = 0;
         }
         val = (u32) val / 0x4C;
-        anim_tex_set_frame(0.0f, (s32) D_802C21B8, val);
-        anim_tex_set_speed((s32) D_802C2190, 0x32);
-        anim_tex_set_speed((s32) D_802C21A4, 0x32);
+        anim_tex_set_frame(0.0f, (s32) gRamdozerHeadingTexAnim, val);
+        anim_tex_set_speed((s32) gRamdozerTrackTexAnimA, 0x32);
+        anim_tex_set_speed((s32) gRamdozerTrackTexAnimB, 0x32);
     }
 }
 #else

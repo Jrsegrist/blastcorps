@@ -74,7 +74,7 @@ extern u32 frameSize; /* frameSize */
 extern u32 maxFrameSize; /* maxFrameSize */
 extern s32 gAudCmdLen; /* cmdLen */
 extern u8 gAudioSchedClient[];
-extern u8 D_8030EB90[];
+extern u8 gAspMainData[];
 extern s32 gAudioPreempt;
 /* .bss (0x80368050, placed by hd_code_bss.us.v11.ld); the first two words
  * are unreferenced placeholders */
@@ -108,7 +108,7 @@ void amCreateAudioMgr(ALSynConfig *c, OSPri pri) {
     f32 fsize;
 
     c->dmaproc = (ALDMANew) __amDmaNew;
-    if (D_80000300 != 1) {
+    if (osTvType != 1) {
         osViClock = 0x02E6025C;
     }
     c->outputRate = osAiSetFrequency(22050);
@@ -257,11 +257,11 @@ void __amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
     t->list.t.data_ptr = (u64 *) __am.ACMDList[curAcmdList];
     t->list.t.data_size = (cmdp - __am.ACMDList[curAcmdList]) * sizeof(Acmd);
     t->list.t.type = M_AUDTASK;
-    t->list.t.ucode_boot = (u64 *) D_802E6820;
-    t->list.t.ucode_boot_size = D_802E68F0 - D_802E6820;
+    t->list.t.ucode_boot = (u64 *) gRspBootText;
+    t->list.t.ucode_boot_size = gAspMainText - gRspBootText;
     t->list.t.flags = 0;
-    t->list.t.ucode = (u64 *) D_802E68F0;
-    t->list.t.ucode_data = (u64 *) D_8030EB90;
+    t->list.t.ucode = (u64 *) gAspMainText;
+    t->list.t.ucode_data = (u64 *) gAspMainData;
     t->list.t.ucode_data_size = 0x800;
     t->list.t.yield_data_ptr = NULL;
     t->list.t.yield_data_size = 0;

@@ -20,17 +20,17 @@ extern u64 * N64P gCycloneMtxA;
 extern u64 * N64P gCycloneMtxB;
 extern u8 gStarskiAnim[];  /* vehicle 15 animation channel table */
 extern u8 gCycloneAnim[];  /* vehicle 16 animation channel table */
-extern u8 D_803FC5C2;
-extern s8 D_803FC5C3;
-extern u8 D_803FC5C4;
-extern s16 D_803FC5C0;
-extern s16 D_803FC994;
-extern s8 D_803FC998;
+extern u8 gStarskiDustTimer;
+extern s8 gStarskiEscaping;
+extern u8 gStarskiThrottleHold;
+extern s16 gStarskiEscapeHeading;
+extern s16 gCycloneEscapeHeading;
+extern s8 gCycloneEscaping;
 extern u8 D_803FC999;
-extern u8 D_803FC99A;
-extern f32 D_8030D9D0;
-extern u8 D_80306460[];
-extern u8 D_80306470[];
+extern u8 gCycloneNearArcEnd;
+extern f32 gStarskiEscapeTurnRate;
+extern u8 gStarskiNonBlockingParts[];
+extern u8 gCycloneNonBlockingParts[];
 
 
 s32 starski_zone_alpha(ZoneScanRegs *r);
@@ -106,7 +106,7 @@ void starski_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     gStarskiMtxA = (u64 *) buf;
     gStarskiMtxB = (u64 *) (buf + 0x100);
     gHeapPtr = buf + 0x200;
-    veh_add_record(0xF, 0, (s32) gStarskiMtxA, (s32) gStarskiMtxB, model);
+    veh_add_record(VEH_STARSKI, 0, (s32) gStarskiMtxA, (s32) gStarskiMtxB, model);
     veh_reset_state(v);
     *(s16 *) (v + 0x52) = 0xAF;
     *(s16 *) (v + 0x54) = 0xFA;
@@ -155,12 +155,12 @@ void starski_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     *(s16 *) (v + 0x90) = 0x136;
     *(s16 *) (v + 0x92) = 0x140;
     *(s16 *) (v + 0x94) = 2;
-    D_803FC5C2 = 0;
-    D_803FC5C3 = 0;
-    D_803FC5C4 = 0;
+    gStarskiDustTimer = 0;
+    gStarskiEscaping = 0;
+    gStarskiThrottleHold = 0;
     model = gStarskiModel;
     veh_register_parts(0xF, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x32C8);
-    veh_add_shadow(0xF, 0x3C, 0x19, 0x19);
+    veh_add_shadow(VEH_STARSKI, 0x3C, 0x19, 0x19);
     v[0x9A] = 1;
     starski_update(t6, t7, z, (s32) (v + 4), (s32) &gStarskiPos[1], (s32) s3v, (s32) (v + 0x4C), f->cross, f->cz,
                   f->side, f->sideZ, f->dz);
@@ -374,14 +374,14 @@ s32 starski_ride_follow(s32 id, InterpRegs *r) {
  * (veh_snapshot), sound 0x76, effects (starski_update_effects unless +0x9A), the
  * gTurboPending hook (veh_start_turbo), timers (starski_set_physics), steering
  * (veh_steer with the rate from starski_steer_rate), throttle (veh_throttle,
- * skipped while the D_803FC5C4 countdown runs), heading, slope and speed
- * (veh_turn_heading / 83B8 / 843C, veh_set_target_heading while D_803FC5C3), the move
+ * skipped while the gStarskiThrottleHold countdown runs), heading, slope and speed
+ * (veh_turn_heading / 83B8 / 843C, veh_set_target_heading while gStarskiEscaping), the move
  * (veh_move_along_heading), ground contact (veh_ground_contact, gBounceSound = 1), animation
  * (anim_update_model on the current matrix buffer), model matrices
  * (starski_build_model), the vehicle-state reset and collision passes
  * (veh_collision_setup, veh_collide_spheres, veh_collide_world). Then: on a ring hit
  * (gCollBlocked) steer along the ring (veh_prepare_escape, veh_reverse_if_behind,
- * veh_turn_into_free_arc with scale D_8030D9D0, veh_step_heading, veh_hit_slowdown) and
+ * veh_turn_into_free_arc with scale gStarskiEscapeTurnRate, veh_step_heading, veh_hit_slowdown) and
  * collide (obj_collide_vehicle); else collide and, if that hit something
  * (gCollHit), restore the saved state (veh_rollback), start a 5-frame
  * countdown, bounce back at half of at least 50 the other way and redo the
@@ -437,17 +437,17 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
     }
     starski_set_physics();
     veh_steer(starski_steer_rate(), (u16 *) (v + 0x4C));
-    if (D_803FC5C4 == 0) {
+    if (gStarskiThrottleHold == 0) {
         veh_throttle(v, (s16 *) (v + 0x76), 3, v + 0x96, (s16 *) (v + 0x78), 0x10);
     } else {
-        D_803FC5C4--;
+        gStarskiThrottleHold--;
     }
     veh_turn_heading(v, (u16 *) (v + 0x74), 0x1F40, (s16 *) (v + 0x76), (u16 *) (v + 0x4C), (u16 *) (v + 0x4E),
                   (s8 *) (v + 0x99), 1);
     f12 = veh_slope((s16 *) (v + 0x76), v + 0x96, (s32 *) (v + 4), (f32 *) v);
     veh_apply_slope(v, (s16 *) (v + 0x76), 0xF, (s8 *) (v + 0x96), (s32 *) (v + 4), 1, 500.0f);
-    if (D_803FC5C3 != 0) {
-        veh_set_target_heading(v, &D_803FC5C0);
+    if (gStarskiEscaping != 0) {
+        veh_set_target_heading(v, &gStarskiEscapeHeading);
     }
     x = veh_move_along_heading(f12, *(u16 *) (v + 0x4E), (s16 *) (v + 0x76), (s32 *) &gStarskiPos[0],
                       (s32 *) &gStarskiPos[2], &o);
@@ -468,16 +468,16 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
         anim_update_model((u8 *) gStarskiMtxB, (u8 *) gStarskiMtxA, (AnimChannel *) gStarskiAnim);
     }
     starski_build_model((s32) (v + 0x34), (s32) (v + 0x96), (s32) &gStarskiPos[2], &mo);
-    veh_collision_setup(gStarskiPos[2], (s32) D_80306460, 1, 1, gStarskiPos[0], gStarskiPos[1], 7, *(s16 *) (v + 0x76),
+    veh_collision_setup(gStarskiPos[2], (s32) gStarskiNonBlockingParts, 1, 1, gStarskiPos[0], gStarskiPos[1], 7, *(s16 *) (v + 0x76),
                   0x96, 0, 0xF, v);
     veh_collide_spheres(0xF, v);
     veh_collide_world(0xF);
     if (gCollBlocked == 0) {
         gCollHit = 0;
-        D_803F77D0 = gStarskiAnim;
+        gCollVehicleAnim = gStarskiAnim;
         obj_collide_vehicle(0xF, v);
         if (gCollHit != 0) {
-            D_803FC5C3 = 0;
+            gStarskiEscaping = 0;
             if (gBufferIndex != 0) {
                 src = gStarskiMtxB;
                 dst2 = gStarskiMtxA;
@@ -487,7 +487,7 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
             }
             veh_rollback(v, gStarskiAnim, (s32 *) &gStarskiPos[0], (s32 *) &gStarskiPos[1], (s32 *) &gStarskiPos[2],
                           src, dst2, 0x100, &end);
-            D_803FC5C4 = 5;
+            gStarskiThrottleHold = 5;
             d = *(s16 *) (v + 0x76);
             if (d >= 0) {
                 if (d < 0x32) {
@@ -500,29 +500,29 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
             *(s16 *) (v + 0x76) = d >> 1;
             starski_build_model((s32) end, (s32) (v + 0x96), mo.s1, &mo);
         } else {
-            D_803FC5C3 = 0;
+            gStarskiEscaping = 0;
         }
     } else {
         veh_prepare_escape(v);
-        D_803FC5C3 = 1;
+        gStarskiEscaping = 1;
         turn = veh_free_arc_mid();
         PORT_RING_DIST(d, *(u16 *) (v + 0x4E), turn);
         veh_reverse_if_behind(v);
-        turn = veh_turn_into_free_arc(v, *(u16 *) (v + 0x4E), *(u16 *) (v + 0x4C), &cur, D_8030D9D0);
-        D_803FC5C0 = cur;
+        turn = veh_turn_into_free_arc(v, *(u16 *) (v + 0x4E), *(u16 *) (v + 0x4C), &cur, gStarskiEscapeTurnRate);
+        gStarskiEscapeHeading = cur;
         *(s16 *) (v + 0x4E) = cur;
         *(s16 *) (v + 0x74) = cur;
         veh_step_heading(v, turn, d, &tgt);
         veh_hit_slowdown(v, 0);
-        D_803F77D0 = gStarskiAnim;
+        gCollVehicleAnim = gStarskiAnim;
         obj_collide_vehicle(0xF, v);
     }
     gPlayerX = gStarskiPos[0];
     gPlayerY = gStarskiPos[1];
     gPlayerZ = gStarskiPos[2];
-    D_8036443C = *(s16 *) (v + 0x76);
-    D_8036443E = *(u16 *) (v + 0x4E);
-    D_80364440 = *(u16 *) (v + 0x4C);
+    gPlayerSpeed = *(s16 *) (v + 0x76);
+    gPlayerMoveHeading = *(u16 *) (v + 0x4E);
+    gPlayerHeading = *(u16 *) (v + 0x4C);
     veh_set_record(gStarskiPos[2], 0xF, gStarskiPos[0], gStarskiPos[1], v);
 }
 #else
@@ -531,15 +531,15 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803FC5C2;   /* effect cooldown */
+extern u8 gStarskiDustTimer;   /* effect cooldown */
 void starski_add_tyre_trail(void);
 
 /* Tyre tracks, dust, engine level (0x802D02F8).
  * Per-frame effects for vehicle type 15 ($gp = gStarskiState, read as the
  * global): the tyre trail (starski_add_tyre_trail); then, if the cooldown
- * D_803FC5C2 is nonzero it just counts down, else when byte +0x99 is set the
+ * gStarskiDustTimer is nonzero it just counts down, else when byte +0x99 is set the
  * cooldown becomes 1 and, with fewer than 15 active fx_spawn records,
- * four are set up (def D_802C2954, type 1 at (15, 1..4, 1), data 0x29810
+ * four are set up (def gFxExhaustSmoke, type 1 at (15, 1..4, 1), data 0x29810
  * for the first two and 0x1D4C0 for the last two). Finally
  * veh_set_engine_level(|speed| >> 5) with speed the s16 at +0x76.
  * Register convention (conventions.txt): t6, t7, s0-s4 pass through to
@@ -550,21 +550,21 @@ void starski_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 
     s32 v;
 
     starski_add_tyre_trail();
-    if (D_803FC5C2 != 0) {
-        D_803FC5C2--;
+    if (gStarskiDustTimer != 0) {
+        gStarskiDustTimer--;
     } else if (gStarskiState[0x99] != 0) {
-        D_803FC5C2 = 1;
+        gStarskiDustTimer = 1;
         if (fx_count_active() < 15) {
             io.t6 = t6;
             io.s1 = s1;
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 15, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 15, 1, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 15, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 15, 2, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 15, 3, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x1D4C0, 1, 15, 3, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 15, 4, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x1D4C0, 1, 15, 4, 1, t7, s0, s2, s3, s4, 1);
         }
     }
     v = *(s16 *) (gStarskiState + 0x76);
@@ -670,11 +670,11 @@ s32 starski_build_model(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
         (out) = _r;                                                     \
     } while (0)
 
-extern f32 D_8030D9D4;
+extern f32 gStarskiSteerDivisor;
 
 /* Its steering rate (0x802D0710).
  * Speed (s16 at +0x76 of gStarskiState, the asm's $gp) / 11.0 when any of the
- * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D9D4, rounded to nearest.
+ * bytes at +0x96/+0x97/+0x98 is 1, else / gStarskiSteerDivisor, rounded to nearest.
  * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
  * starski_update keeps a0-a3 live (a mixed N64 build would need a thunk).
  * Same shape as sideswipe_steer_rate (6B4A0). */
@@ -685,7 +685,7 @@ s32 starski_steer_rate(void) {
     if (gStarskiState[0x96] == 1 || gStarskiState[0x97] == 1 || gStarskiState[0x98] == 1) {
         div = 11.0f;
     } else {
-        div = D_8030D9D4;
+        div = gStarskiSteerDivisor;
     }
     CVT_W_S(r, *(s16 *) (gStarskiState + 0x76) / div);
     return r;
@@ -737,7 +737,7 @@ void cyclone_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     gCycloneMtxA = (u64 *) buf;
     gCycloneMtxB = (u64 *) (buf + 0x1400);
     gHeapPtr = buf + 0x2800;
-    veh_add_record(0x10, 1, (s32) gCycloneMtxA, (s32) gCycloneMtxB, model);
+    veh_add_record(VEH_CYCLONE, 1, (s32) gCycloneMtxA, (s32) gCycloneMtxB, model);
     veh_reset_state(v);
     *(s16 *) (v + 0x52) = 0;
     *(s16 *) (v + 0x54) = 0;
@@ -789,12 +789,12 @@ void cyclone_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     *(s16 *) (v + 0x90) = 0;
     *(s16 *) (v + 0x92) = 0xA0;
     *(s16 *) (v + 0x94) = 4;
-    D_803FC998 = 0;
-    D_803FC99A = 0;
+    gCycloneEscaping = 0;
+    gCycloneNearArcEnd = 0;
     D_803FC999 = 0;
     model = gCycloneModel;
     veh_register_parts(0x10, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x2134);
-    veh_add_shadow(0x10, 0x64, 0x2D, 0x2D);
+    veh_add_shadow(VEH_CYCLONE, 0x64, 0x2D, 0x2D);
     anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
     anim_play((AnimChannel *) gCycloneAnim, 1, 1);
     v[0x9A] = 1;
@@ -860,14 +860,14 @@ void cyclone_leave(void) {
 #ifdef NON_MATCHING
 extern u8 gCycloneState[]; /* this vehicle's state block */
 extern void * N64P gCycloneEngineSound; /* engine sound handle */
-extern u8 D_802C22D0[]; /* key of this vehicle's anim_tex_find entry */
+extern u8 gTexAnimCyclone[]; /* key of this vehicle's anim_tex_find entry */
 extern u8 gCycloneAnim[]; /* this vehicle's animation channel table */
 
 /* Getting into the Cyclone Suit (0x802D0C68).
  * Vehicle-type 16 setup (called from 00000.c / 17210.c), the shape of
  * thunderfist_enter: clears byte 0x99 of the state block, gCamDistance / gCamHeightBase = 2000,
  * -1000, starts the engine sound 0x50 (handle in gCycloneEngineSound), sets the
- * D_802C22D0 entry's fields (100, 0, 0, -1) and the animation channels 7, 8,
+ * gTexAnimCyclone entry's fields (100, 0, 0, -1) and the animation channels 7, 8,
  * 9 (and 1, 5, 6, 3) of gCycloneAnim.
  * The asm also points $gp at gCycloneState and leaves it there (conventions.txt:
  * clobbers gp) and returns with v1 = 0 (the last setter's v1); C callers
@@ -877,10 +877,10 @@ void cyclone_enter(void) {
     gCamDistance = 0x7D0;
     gCamHeightBase = -0x3E8;
     snd_play(gSfxBank, SFX_ENGINE_MECH, &gCycloneEngineSound);
-    anim_tex_set_speed((s32) D_802C22D0, 0x64);
-    anim_tex_set_reverse((s32) D_802C22D0, 0);
-    anim_tex_set_loop_mode((s32) D_802C22D0, 0);
-    anim_tex_play((s32) D_802C22D0, -1);
+    anim_tex_set_speed((s32) gTexAnimCyclone, 0x64);
+    anim_tex_set_reverse((s32) gTexAnimCyclone, 0);
+    anim_tex_set_loop_mode((s32) gTexAnimCyclone, 0);
+    anim_tex_play((s32) gTexAnimCyclone, -1);
     anim_set_speed((AnimChannel *) gCycloneAnim, 7, 2);
     anim_set_loop_mode((AnimChannel *) gCycloneAnim, 7, 1);
     anim_set_interp(0.5f, (AnimChannel *) gCycloneAnim, 7, 1);
@@ -953,14 +953,14 @@ s32 cyclone_zone_alpha(ZoneScanRegs *r) {
  * timers (cyclone_set_physics), steering with the rate from cyclone_steer_rate,
  * throttle (veh_throttle, delta 12), braking when state +0xA1 is 0
  * (veh_coast), heading (rate 0x59D8, no sound), slope and speed (kind
- * 0x10, no clamp, 120.0), veh_set_target_heading while D_803FC998, the move, ground
+ * 0x10, no clamp, 120.0), veh_set_target_heading while gCycloneEscaping, the move, ground
  * contact (gBounceSound = 0, divisors 0x78), animation (anim_update_model on
  * gCycloneAnim), model matrices (cyclone_build_model), the vehicle-state reset, the
  * collision passes and obj_collide_vehicle (always). On a ring hit (gCollBlocked):
- * D_803FC998 = 1, D_803FC99A = 1 if the ring distance is under 0x190 (which
+ * gCycloneEscaping = 1, gCycloneNearArcEnd = 1 if the ring distance is under 0x190 (which
  * also makes the v1 handed to veh_step_heading 1), and the ring steering with
- * scale 0.25 (the new heading also to D_803FC994); else D_803FC998 and
- * D_803FC99A are cleared. Finally gPlayerX.. and the gVehicles record.
+ * scale 0.25 (the new heading also to gCycloneEscapeHeading); else gCycloneEscaping and
+ * gCycloneNearArcEnd are cleared. Finally gPlayerX.. and the gVehicles record.
  * Register convention: as starski_update (zone registers t6, t7, s0-s4 into
  * cyclone_zone_alpha, whose results are dead here; f14-f26 into veh_ground_contact).
  * veh_collision_setup gets b0 = cyclone_build_model's t0 (0x10) and h2 = its t2 (the
@@ -1007,8 +1007,8 @@ void cyclone_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
                   (s8 *) (v + 0x99), 0);
     f12 = veh_slope((s16 *) (v + 0x76), v + 0x96, (s32 *) (v + 4), (f32 *) v);
     veh_apply_slope(v, (s16 *) (v + 0x76), 0x10, (s8 *) (v + 0x96), (s32 *) (v + 4), 0, 120.0f);
-    if (D_803FC998 != 0) {
-        veh_set_target_heading(v, &D_803FC994);
+    if (gCycloneEscaping != 0) {
+        veh_set_target_heading(v, &gCycloneEscapeHeading);
     }
     x = veh_move_along_heading(f12, *(u16 *) (v + 0x4E), (s16 *) (v + 0x76), (s32 *) &gCyclonePos[0],
                       (s32 *) &gCyclonePos[2], &o);
@@ -1029,39 +1029,39 @@ void cyclone_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
         anim_update_model((u8 *) gCycloneMtxB, (u8 *) gCycloneMtxA, (AnimChannel *) gCycloneAnim);
     }
     tag = cyclone_build_model((s32) (v + 0x34), (s32) (v + 0x96), (s32) &gCyclonePos[2], &mo);
-    veh_collision_setup(gCyclonePos[2], (s32) D_80306470, 0, 0, gCyclonePos[0], gCyclonePos[1], tag, *(s16 *) (v + 0x76),
+    veh_collision_setup(gCyclonePos[2], (s32) gCycloneNonBlockingParts, 0, 0, gCyclonePos[0], gCyclonePos[1], tag, *(s16 *) (v + 0x76),
                   mo.t2, 0, 0x10, v);
     veh_collide_spheres(0x10, v);
     veh_collide_world(0x10);
-    D_803F77D0 = gCycloneAnim;
+    gCollVehicleAnim = gCycloneAnim;
     obj_collide_vehicle(0x10, v);
     if (gCollBlocked != 0) {
         veh_prepare_escape(v);
-        D_803FC998 = 1;
-        D_803FC99A = 0;
+        gCycloneEscaping = 1;
+        gCycloneNearArcEnd = 0;
         turn = veh_free_arc_mid();
         PORT_RING_DIST(d, *(u16 *) (v + 0x4E), turn);
         if (d < 0x190) {
             d = 1;
-            D_803FC99A = 1;
+            gCycloneNearArcEnd = 1;
         }
         veh_reverse_if_behind(v);
         turn = veh_turn_into_free_arc(v, *(u16 *) (v + 0x4E), *(u16 *) (v + 0x4C), &cur, 0.25f);
-        D_803FC994 = cur;
+        gCycloneEscapeHeading = cur;
         *(s16 *) (v + 0x4E) = cur;
         *(s16 *) (v + 0x74) = cur;
         veh_step_heading(v, turn, d, &tgt);
         veh_hit_slowdown(v, 0);
     } else {
-        D_803FC998 = 0;
-        D_803FC99A = 0;
+        gCycloneEscaping = 0;
+        gCycloneNearArcEnd = 0;
     }
     gPlayerX = gCyclonePos[0];
     gPlayerY = gCyclonePos[1];
     gPlayerZ = gCyclonePos[2];
-    D_8036443C = *(s16 *) (v + 0x76);
-    D_8036443E = *(u16 *) (v + 0x4E);
-    D_80364440 = *(u16 *) (v + 0x4C);
+    gPlayerSpeed = *(s16 *) (v + 0x76);
+    gPlayerMoveHeading = *(u16 *) (v + 0x4E);
+    gPlayerHeading = *(u16 *) (v + 0x4C);
     veh_set_record(gCyclonePos[2], 0x10, gCyclonePos[0], gCyclonePos[1], v);
 }
 #else
@@ -1070,9 +1070,9 @@ void cyclone_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803FC996;  /* last channel unk13 seen (sound trigger) */
-extern u8 D_803FC99A;
-extern f32 D_8030D9E0;
+extern s16 gCycloneStepFrame;  /* last channel unk13 seen (sound trigger) */
+extern u8 gCycloneNearArcEnd;
+extern f32 gCycloneBlurSpacing;
 
 #define VEH16_U8(o) (gCycloneState[o])
 #define VEH16_SPEED (*(s16 *) (gCycloneState + 0x76))
@@ -1153,8 +1153,8 @@ static void port_802D1360_state0(void) {
      * it changes to 6 (0x4E) or 2 (0x4F) */
     CHAN_GET(1, e);
     if (e[0] == 1 || (CHAN_GET(5, e), e[0] == 1) || (CHAN_GET(6, e), e[0] == 1)) {
-        prev = D_803FC996;
-        D_803FC996 = e[6];
+        prev = gCycloneStepFrame;
+        gCycloneStepFrame = e[6];
         if (e[6] != prev) {
             if (e[6] == 6) {
                 snd_play(gSfxBank, SFX_MECH_STEP_A, NULL);
@@ -1259,14 +1259,14 @@ static void port_802D1360_state0(void) {
         anim_blend_channels(r, 2, (AnimChannel *) gCycloneAnim);
         anim_stop(r, (AnimChannel *) gCycloneAnim);
         port_802D1360_chan1F(0x50);
-        mb_start(6, D_8030D9E0, 0x64);
+        mb_start(6, gCycloneBlurSpacing, 0x64);
         return;
     }
     port_802D1360_gear();
 }
 
 /* States 1 and 2: the special move. Hitting something (+0x9C) halves the
- * speed and goes to state 3; +0x9D or D_803FC99A ends it (state 0);
+ * speed and goes to state 3; +0x9D or gCycloneNearArcEnd ends it (state 0);
  * otherwise speed = 280 and, in state 1, channel 2 is started (state 2) once
  * channel 0x1F has finished; in state 2 the move ends when channel 2 has. */
 static void port_802D1360_state12(s32 state) {
@@ -1289,7 +1289,7 @@ static void port_802D1360_state12(s32 state) {
         gVehAttacking = 1;
         return;
     }
-    if (VEH16_U8(VS_HIT_OBJECT) == 0 && D_803FC99A == 0) {
+    if (VEH16_U8(VS_HIT_OBJECT) == 0 && gCycloneNearArcEnd == 0) {
         VEH16_SPEED = 0x118;
         if (state == 1) {
             if (CHAN_GET(0x1F, e), e[0] == 1) {

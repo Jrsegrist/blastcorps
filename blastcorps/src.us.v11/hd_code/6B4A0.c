@@ -27,13 +27,13 @@ extern u32 gSideswipePos[]; /* vehicle 1 PortVehPos */
 extern u8 gSideswipeAnim[];  /* vehicle 1 animation channels */
 #define VPOS1 ((PortVehPos *) gSideswipePos)
 
-extern u8 D_80305CE0[];
-extern f32 D_8030D8A0;
+extern u8 gSideswipeNonBlockingParts[];
+extern f32 gSideswipeDeflectTurnRate;
 
 
 /* Place the vehicle model's parts (as 6E200.c's port_veh_parts): the current
  * matrix buffer (gBufferIndex ? bufA : bufB) plus the word at model +
- * model[0x18] + 4 is the model matrix m; D_803ED392 = heading (u16 +0x4C),
+ * model[0x18] + 4 is the model matrix m; gModelRotY = heading (u16 +0x4C),
  * mtx_build_model(x, y, z, scale, m); then veh_place_parts(x, y, z, id, model +
  * model[4], model + model[8], buffer) and veh_points_transform(id, model +
  * model[0], model + model[4], buffer). Returns the buffer (the asm's s4).
@@ -48,7 +48,7 @@ static u8 *port_veh_parts(u8 *veh, PortVehPos *p, s32 id, s32 scale, MtxChainReg
     u8 *base;
 
     mtx = (s32 *) ((gBufferIndex != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
-    D_803ED392 = VEH_U16(veh, VS_HEADING);
+    gModelRotY = VEH_U16(veh, VS_HEADING);
     mtx_build_model(p->x, p->y, p->z, scale, mtx);
     r->a3 = 0;
     r->s2 = (s32) mtx;
@@ -237,9 +237,9 @@ static void port_veh_publish(u8 *veh, PortVehPos *p, s32 id) {
     gPlayerX = p->x;
     gPlayerY = p->y;
     gPlayerZ = p->z;
-    D_8036443C = VEH_S16(veh, VS_SPEED);
-    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
-    D_80364440 = VEH_U16(veh, VS_HEADING);
+    gPlayerSpeed = VEH_S16(veh, VS_SPEED);
+    gPlayerMoveHeading = VEH_U16(veh, VS_MOVE_HEADING);
+    gPlayerHeading = VEH_U16(veh, VS_HEADING);
     veh_set_record(p->z, id, p->x, p->y, veh);
 }
 
@@ -293,13 +293,13 @@ void sideswipe_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 gSideswipeState[]; /* this vehicle's state block */
 extern u8 gSideswipeAnim[]; /* animation channel table (AnimChannel, 56040.c) */
-extern u8 D_802C2390[]; /* key of this vehicle's anim_tex_find entry */
+extern u8 gSideswipeTexAnim[]; /* key of this vehicle's anim_tex_find entry */
 
 /* Getting into Sideswipe (0x802AFFD4).
  * Enter vehicle type 1 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
  * 5, 3, 2 of gSideswipeAnim and restarts all but 5 with -1 (anim_play), sets
- * the D_802C2390 entry's fields (100, 0, 1) and restarts it, gCamDistance / gCamHeightBase =
+ * the gSideswipeTexAnim entry's fields (100, 0, 1) and restarts it, gCamDistance / gCamHeightBase =
  * 3400, 300, then veh_start_engine_sound(a0, 0x36) with a0 = gSideswipeAnim left over from
  * the setters (veh_start_engine_sound ignores it). The asm points $gp at gSideswipeState and
  * leaves it there (conventions.txt: clobbers gp) and returns with v1 = -1
@@ -325,10 +325,10 @@ void sideswipe_enter(void) {
     anim_set_reverse((AnimChannel *) gSideswipeAnim, 2, 0);
     anim_set_loop_mode((AnimChannel *) gSideswipeAnim, 2, 1);
     anim_play((AnimChannel *) gSideswipeAnim, 2, -1);
-    anim_tex_set_speed((s32) D_802C2390, 100);
-    anim_tex_set_reverse((s32) D_802C2390, 0);
-    anim_tex_set_loop_mode((s32) D_802C2390, 1);
-    anim_tex_play((s32) D_802C2390, -1);
+    anim_tex_set_speed((s32) gSideswipeTexAnim, 100);
+    anim_tex_set_reverse((s32) gSideswipeTexAnim, 0);
+    anim_tex_set_loop_mode((s32) gSideswipeTexAnim, 1);
+    anim_tex_play((s32) gSideswipeTexAnim, -1);
     gCamDistance = 0xD48;
     gCamHeightBase = 0x12C;
     veh_start_engine_sound((s32) gSideswipeAnim, 0x36);
@@ -439,11 +439,11 @@ extern s16 gSideswipeDeflectHeading;
  *    veh_start_turbo, unlike vehicles 3 and 4);
  * 3. port_veh_move (rate 0x4650, kind 1 / 720.0, drift gSideswipeDeflecting via
  *    gSideswipeDeflectHeading, divisors 0x2D0 / 0x2D0, parts sideswipe_build_model, veh_collision_setup
- *    with D_80305CE0, 0, 7, 100);
- * 4. collision pass obj_collide_vehicle (D_803F77D0 = the channel table), the
+ *    with gSideswipeNonBlockingParts, 0, 7, 100);
+ * 4. collision pass obj_collide_vehicle (gCollVehicleAnim = the channel table), the
  *    horn channel check sideswipe_check_ram_hit; with a collision report
  *    (gCollBlocked): veh_prepare_escape, gSideswipeDeflecting = 1 and port_veh_turn
- *    (D_8030D8A0, gSideswipeDeflectHeading); else gSideswipeDeflecting = 0. (A bounce of the speed
+ *    (gSideswipeDeflectTurnRate, gSideswipeDeflectHeading); else gSideswipeDeflecting = 0. (A bounce of the speed
  *    follows an unconditional branch in the asm: dead code.)
  * 5. port_veh_publish.
  * Register convention: t6, t7, s0-s4 in (only through veh_zone_alpha; from
@@ -470,8 +470,8 @@ void sideswipe_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     veh_steer_throttle(sideswipe_steer_rate(), (u16 *) (veh + 0x4C), veh, (s16 *) (veh + 0x76), 3, veh + 0x96,
                   (s16 *) (veh + 0x78), 0x14);
     port_veh_move(veh, p, 1, gSideswipeAnim, 0x4650, 1, 720.0f, gSideswipeDeflecting, &gSideswipeDeflectHeading, 0x2D0, 0x2D0,
-                  sideswipe_build_model, D_80305CE0, 0, 7, 100);
-    D_803F77D0 = gSideswipeAnim;
+                  sideswipe_build_model, gSideswipeNonBlockingParts, 0, 7, 100);
+    gCollVehicleAnim = gSideswipeAnim;
     obj_collide_vehicle(1, veh);
     sideswipe_check_ram_hit();
     if (gCollBlocked == 0) {
@@ -479,7 +479,7 @@ void sideswipe_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     } else {
         veh_prepare_escape(veh);
         gSideswipeDeflecting = 1;
-        port_veh_turn(veh, D_8030D8A0, &gSideswipeDeflectHeading);
+        port_veh_turn(veh, gSideswipeDeflectTurnRate, &gSideswipeDeflectHeading);
     }
     port_veh_publish(veh, p, 1);
 }
@@ -489,7 +489,7 @@ void sideswipe_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_8030D8A4;
+extern f32 gSideswipeYawThirdWidth;
 extern u8 gSideswipeRamCooldown;    /* horn cooldown (frames) */
 extern u8 gSideswipeSteerAnim;    /* level 0..100 */
 
@@ -517,7 +517,7 @@ void sideswipe_update_anims(void) {
     if (a >= 0x1000) {
         a -= 0xFFF;
     }
-    pos = (f32) (s32) ((u32) a % 0x555) / D_8030D8A4;
+    pos = (f32) (s32) ((u32) a % 0x555) / gSideswipeYawThirdWidth;
     third = (u32) a / 0x555;
     if (third == 0) {
         anim_set_frame(pos, (AnimChannel *) gSideswipeAnim, 2, 0);
@@ -644,11 +644,11 @@ u8 *sideswipe_build_model(MtxChainRegs *r) {
     } while (0)
 
 extern u8 gSideswipeState[]; /* this vehicle's state block (the asm's $gp) */
-extern f32 D_8030D8A8;
+extern f32 gSideswipeSteerRateDiv;
 
 /* Sideswipe's steering rate (by speed) (0x802B0C74).
  * Speed (s16 at +0x76) scaled for the engine sound: rounded speed / 6.0 when
- * any of the bytes at +0x96/+0x97/+0x98 is 1, else speed / D_8030D8A8.
+ * any of the bytes at +0x96/+0x97/+0x98 is 1, else speed / gSideswipeSteerRateDiv.
  * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
  * sideswipe_update keeps a0-a3 live across the call (a mixed N64 build would
  * need a thunk). Same shape as skyfall_steer_rate (6E200), backlash_steer_rate (71140),
@@ -661,7 +661,7 @@ s32 sideswipe_steer_rate(void) {
     if (gSideswipeState[0x96] == 1 || gSideswipeState[0x97] == 1 || gSideswipeState[0x98] == 1) {
         div = 6.0f;
     } else {
-        div = D_8030D8A8;
+        div = gSideswipeSteerRateDiv;
     }
     CVT_W_S(r, *(s16 *) (gSideswipeState + 0x76) / div);
     return r;

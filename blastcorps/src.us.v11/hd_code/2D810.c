@@ -11,7 +11,7 @@ u8 gBackdropLoaded;   /* backdrop textures loaded */
 u8 gBackdropVtxBuf;   /* vertex double-buffer index */
 f32 gBackdropScrollS;
 f32 gBackdropHeight;
-f32 D_8036BFD0;
+f32 gBackdropUnderflow;
 
 /* One backdrop texture, 0xC bytes; two per level */
 typedef struct {
@@ -29,7 +29,7 @@ typedef struct {
 
 extern FadeEntry gBackdropTextures[][2];
 extern Vtx gBackdropVtx[2][4];
-extern FmtPair D_802FA8A0;
+extern FmtPair gBackdropTileFormats;
 
 
 /* The two-layer sky backdrop; *height = the visible rows (0x80271FD0).
@@ -37,7 +37,7 @@ extern FmtPair D_802FA8A0;
  * list end; *height gets the backdrop's visible height */
 Gfx *backdrop_draw(Gfx *gfx, u32 arg1, u16 level, s16 arg3, s16 arg4, s32 *height) {
     Gfx *gdl = gfx;
-    FmtPair fmts = D_802FA8A0;
+    FmtPair fmts = gBackdropTileFormats;
     s32 i;
     FadeEntry *entry;
     f32 scroll;
@@ -52,7 +52,7 @@ Gfx *backdrop_draw(Gfx *gfx, u32 arg1, u16 level, s16 arg3, s16 arg4, s32 *heigh
     }
     scroll = 120.0 - (f32) arg4 * 0.22 + gBackdropOffset;
     gBackdropHeight = (0.0 > scroll) ? 0.0 : scroll;
-    D_8036BFD0 = (0.0 > -scroll) ? 0.0 : -scroll;
+    gBackdropUnderflow = (0.0 > -scroll) ? 0.0 : -scroll;
     *height = gBackdropHeight;
     if (*height <= 0) {
         return gdl;
@@ -91,7 +91,7 @@ Gfx *backdrop_draw(Gfx *gfx, u32 arg1, u16 level, s16 arg3, s16 arg4, s32 *heigh
     gBackdropVtx[gBackdropVtxBuf][1].v.tc[0] = (s0 + s1) * 32.0;
     gBackdropVtx[gBackdropVtxBuf][2].v.tc[0] = s0 * 32.0;
     gBackdropVtx[gBackdropVtxBuf][3].v.tc[0] = (s0 + s1) * 32.0;
-    t0 = (gBackdropHeight - gBackdropOffset - D_8036BFD0) / (f32) (1 << entry->unk9);
+    t0 = (gBackdropHeight - gBackdropOffset - gBackdropUnderflow) / (f32) (1 << entry->unk9);
     t1 = (gBackdropHeight - 1.0) / (f32) (1 << entry->unk9);
     gBackdropVtx[gBackdropVtxBuf][0].v.tc[1] = t0 * 32.0;
     gBackdropVtx[gBackdropVtxBuf][1].v.tc[1] = t0 * 32.0;

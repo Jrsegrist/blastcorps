@@ -113,7 +113,7 @@ extern u8 gImpactEffectDone;
 extern u8 gVehContact;
 extern u8 gPushDivisor;
 extern u8 gPushDivisorStepped;
-extern u8 D_803F7811;
+extern u8 gVehCollB2;
 
 /* The vehicle's collision context for this frame (position, lists) (0x8029A800).
  * Per-frame collision setup of the vehicle (every vehicle calls it each frame): the ring span gFreeArcStart/7412 =
@@ -133,12 +133,12 @@ void veh_collision_setup(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s3
     gCollX = x;
     gCollY = y;
     gCollZ = z;
-    D_803F7811 = b2;
+    gVehCollB2 = b2;
     gVehContact = 0;
     gPushDivisorStepped = 0;
     gPushDivisor = veh[0xA0];
     gFreeArcCollapsed = 0;
-    D_803F7801 = b4;
+    gVehDamageMode = b4;
     gImpactEffectOn = b3;
     gImpactEffectScale = b0;
     gImpactEffectDone = 0;
@@ -167,7 +167,7 @@ extern u8 gPushDivisorStepped;
 /* After a block: push-through divisor, nudge, flip the arc in reverse (0x8029A914).
  * Per-frame update of gp+0xA0 (a byte: set to min(gPushDivisor, 200) while
  * gPushDivisorStepped is set, else counted down to 1) and of the s16 timer gp+0x76
- * (set to 10 when zero and D_80358064 is set). While the timer is negative
+ * (set to 10 when zero and gPlayFrames is set). While the timer is negative
  * the ring span gFreeArcStart/gFreeArcEnd is shifted by 0x800 each way (A down,
  * B up), wrapping by 0xFFF.
  * gp is the calling vehicle's record in the asm (each vehicle passes its
@@ -189,7 +189,7 @@ void veh_prepare_escape(u8 *veh) {
             VEH_GP_U8(veh, VS_PUSH_DIVISOR) = v - 1;
         }
     }
-    if (VEH_GP_S16(veh, VS_SPEED) == 0 && D_80358064 != 0) {
+    if (VEH_GP_S16(veh, VS_SPEED) == 0 && gPlayFrames != 0) {
         VEH_GP_S16(veh, VS_SPEED) = 10;
     }
     if (VEH_GP_S16(veh, VS_SPEED) < 0) {
@@ -301,13 +301,13 @@ static s32 port_sphere_hits_tri(s32 x, s32 y, s32 z, s32 r, u8 *tri) {
 /* 1 if a sphere touches a world triangle for this vehicle kind (0x8029AB88).
  * Does the sphere (x, y, z) radius r hit the world for vehicle `kind`? In
  * order (each list walked with `!=`, 0x60-byte triangles):
- * 1. for each D_803059F0 entry whose mask has bit (kind & 31) and whose level
+ * 1. for each gObjSolidKinds entry whose mask has bit (kind & 31) and whose level
  *    is 0xFFFF or levelno (object kind 0x38 only while obj_end_object_hidden()
  *    is 0): every gObjects object of that kind that veh_sphere_hits_object says the
  *    sphere touches, its triangles with byte 0x51 set;
- * 2. D_803F9330 .. D_803FB8B0 with byte 0x51 set, except (kind 0xC8) those
- *    whose u16 at +0x52 equals D_803A742A;
- * 3. every triangle of D_803BD308 .. D_803BD30C;
+ * 2. gDynTris .. gDynTrisEnd with byte 0x51 set, except (kind 0xC8) those
+ *    whose u16 at +0x52 equals gProbeSkipPart;
+ * 3. every triangle of gSwitchTris .. gSwitchTrisEnd;
  * 4. gCollTris .. gCollTrisEnd with byte 0x51 set, except those whose byte
  *    0x4F is nonzero and equal to kind;
  * 5. the grid cells of (x, z) (veh_grid_cells_at): unless kind == 9, the
@@ -326,14 +326,14 @@ s32 veh_sphere_hits_world(s32 x, s32 y, s32 z, s32 r, s32 kind) {
     u8 *end;
     s16 *cell;
 
-    for (e = D_803059F0; e[2] != 0; e += 3) {
+    for (e = gObjSolidKinds; e[2] != 0; e += 3) {
         if ((e[2] & (1 << (kind & 31))) == 0) {
             continue;
         }
         if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
-        if (e[1] == 0x38 && obj_end_object_hidden() != 0) {
+        if (e[1] == OBJ_KIND_END && obj_end_object_hidden() != 0) {
             continue;
         }
         objEnd = gObjectsEnd;
@@ -352,20 +352,20 @@ s32 veh_sphere_hits_world(s32 x, s32 y, s32 z, s32 r, s32 kind) {
             }
         }
     }
-    end = D_803FB8B0;
-    for (tri = D_803F9330; tri != end; tri += 0x60) {
+    end = gDynTrisEnd;
+    for (tri = gDynTris; tri != end; tri += 0x60) {
         if (tri[0x51] == 0) {
             continue;
         }
-        if (kind == 0xC8 && *(u16 *) (tri + 0x52) == D_803A742A) {
+        if (kind == 0xC8 && *(u16 *) (tri + 0x52) == gProbeSkipPart) {
             continue;
         }
         if (port_sphere_hits_tri(x, y, z, r, tri)) {
             return 1;
         }
     }
-    end = D_803BD30C;
-    for (tri = D_803BD308; tri != end; tri += 0x60) {
+    end = gSwitchTrisEnd;
+    for (tri = gSwitchTris; tri != end; tri += 0x60) {
         if (port_sphere_hits_tri(x, y, z, r, tri)) {
             return 1;
         }
@@ -383,7 +383,7 @@ s32 veh_sphere_hits_world(s32 x, s32 y, s32 z, s32 r, s32 kind) {
         }
     }
     veh_grid_cells_at(x, z);
-    if (kind != 9) {
+    if (kind != VEH_JBOMB) {
         for (cell = gCollCells; *cell != -1; cell++) {
             end = gCollCellsB[*cell + 1];
             for (tri = gCollCellsB[*cell]; tri != end; tri += 0x60) {
@@ -418,8 +418,8 @@ s32 veh_hit_switch_triangle(u8 *tri, s32 kind, s32 id);
  * same order with the same filters for the sphere (x, y, z) radius r of
  * vehicle `kind`, but instead of stopping at the first hit it reports every
  * triangle the sphere touches (port_sphere_hits_tri) and carries on:
- *   objects of the D_803059F0 kinds and D_803F9330: veh_hit_triangle(tri, id)
- *   D_803BD308 (switches):                          veh_hit_switch_triangle(tri, kind, id)
+ *   objects of the gObjSolidKinds kinds and gDynTris: veh_hit_triangle(tri, id)
+ *   gSwitchTris (switches):                          veh_hit_switch_triangle(tri, kind, id)
  *   gCollTris:                                     veh_hit_triangle, veh_note_train_contact(tri)
  *   the grid cells' gCollCellsB (unless kind == 9) and gCollCellsA lists:
  *                                                   veh_hit_triangle(tri, id)
@@ -437,14 +437,14 @@ void veh_report_world_hits(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
     u8 *end;
     s16 *cell;
 
-    for (e = D_803059F0; e[2] != 0; e += 3) {
+    for (e = gObjSolidKinds; e[2] != 0; e += 3) {
         if ((e[2] & (1 << (kind & 31))) == 0) {
             continue;
         }
         if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
-        if (e[1] == 0x38 && obj_end_object_hidden() != 0) {
+        if (e[1] == OBJ_KIND_END && obj_end_object_hidden() != 0) {
             continue;
         }
         objEnd = gObjectsEnd;
@@ -463,20 +463,20 @@ void veh_report_world_hits(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
             }
         }
     }
-    end = D_803FB8B0;
-    for (tri = D_803F9330; tri != end; tri += 0x60) {
+    end = gDynTrisEnd;
+    for (tri = gDynTris; tri != end; tri += 0x60) {
         if (tri[0x51] == 0) {
             continue;
         }
-        if (kind == 0xC8 && *(u16 *) (tri + 0x52) == D_803A742A) {
+        if (kind == 0xC8 && *(u16 *) (tri + 0x52) == gProbeSkipPart) {
             continue;
         }
         if (port_sphere_hits_tri(x, y, z, r, tri)) {
             veh_hit_triangle(tri, id);
         }
     }
-    end = D_803BD30C;
-    for (tri = D_803BD308; tri != end; tri += 0x60) {
+    end = gSwitchTrisEnd;
+    for (tri = gSwitchTris; tri != end; tri += 0x60) {
         if (port_sphere_hits_tri(x, y, z, r, tri)) {
             veh_hit_switch_triangle(tri, kind, id);
         }
@@ -495,7 +495,7 @@ void veh_report_world_hits(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
         }
     }
     veh_grid_cells_at(x, z);
-    if (kind != 9) {
+    if (kind != VEH_JBOMB) {
         for (cell = gCollCells; *cell != -1; cell++) {
             end = gCollCellsB[*cell + 1];
             for (tri = gCollCellsB[*cell]; tri != end; tri += 0x60) {
@@ -646,7 +646,7 @@ extern u8 gPushDivisorStepped;
  * If the span is still the "empty" 0/0xFFF pair it is simply set to a/b.
  * Otherwise B moves back to b when b is at or before B, and A moves on to a
  * when a is after A, comparing 12-bit ring differences (<<20, signed).
- * If the span got longer (veh_free_arc_length before vs after) and D_80358064 is
+ * If the span got longer (veh_free_arc_length before vs after) and gPlayFrames is
  * set, gFreeArcCollapsed is set, and if gVehContact is set and gPushDivisorStepped clear,
  * gPushDivisor steps 1 -> 8, otherwise +1, and gPushDivisorStepped is set.
  * Asm callers rely on preserved: veh_hit_triangle keeps f12, f14;
@@ -687,7 +687,7 @@ void veh_clip_free_arc(s32 a, s32 b) {
     }
     gFreeArcStart = ca >> 20;
     gFreeArcEnd = cb >> 20;
-    if (before < veh_free_arc_length() && D_80358064 != 0) {
+    if (before < veh_free_arc_length() && gPlayFrames != 0) {
         gFreeArcCollapsed = 1;
         if (gVehContact != 0 && gPushDivisorStepped == 0) {
             gPushDivisor = (gPushDivisor == 1) ? 8 : gPushDivisor + 1;
@@ -734,12 +734,12 @@ extern u8 gImpactEffectScale;
 extern s32 gCollHitX;
 extern s32 gCollHitY;
 extern s32 gCollHitZ;
-extern u8 D_80370C3C;
+extern u8 gImpactEffectSpawned;
 
 /* The impact effect at the last hit point (0x8029B994).
- * Sets up a gEffects record (fx_spawn) for the definition D_802C2984
+ * Sets up a gEffects record (fx_spawn) for the definition gFxSparks
  * with data gImpactEffectScale * 7000, type 0, position gCollHitX/7400/7404 << 13,
- * b35 = 1 and every other input 0; then D_80370C3C = 1.
+ * b35 = 1 and every other input 0; then gImpactEffectSpawned = 1.
  * The asm saves and restores every register (f12/f14 are left as the callee
  * leaves them); its asm caller veh_hit_triangle relies on nothing else. */
 void veh_spawn_impact_effect(void) {
@@ -748,9 +748,9 @@ void veh_spawn_impact_effect(void) {
     io.a3 = 0;
     io.t6 = 0;
     io.s1 = 0;
-    fx_spawn(&io, D_802C2984, gImpactEffectScale * 0x1B58, 0, gCollHitX << 13, gCollHitY << 13, gCollHitZ << 13,
+    fx_spawn(&io, gFxSparks, gImpactEffectScale * 0x1B58, 0, gCollHitX << 13, gCollHitY << 13, gCollHitZ << 13,
                   0, 0, 0, 0, 0, 1);
-    D_80370C3C = 1;
+    gImpactEffectSpawned = 1;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/veh_spawn_impact_effect.s")
@@ -761,8 +761,8 @@ void veh_spawn_impact_effect(void) {
 void veh_hit_triangle(u8 *tri, s32 id);
 
 /* A switch triangle: solid for listed kinds, else toggles a side (0x8029BB28).
- * Hit on a triangle of the D_803BD308 list (a switch): finds the
- * D_803BD310 group whose pointer list (g[0xF8] words from g + 8) holds tri
+ * Hit on a triangle of the gSwitchTris list (a switch): finds the
+ * gSwitchGroups group whose pointer list (g[0xF8] words from g + 8) holds tri
  * (unbounded scan: it must be listed). If the vehicle kind is one of the
  * g[0] bytes from g + 1, it is an ordinary hit: veh_hit_triangle(tri, id),
  * returns 1. Otherwise (only on level 9 or for kinds below 0x13, and only
@@ -776,7 +776,7 @@ void veh_hit_triangle(u8 *tri, s32 id);
  * a2; veh_report_world_hits keeps a0, a3, t3-t6, t8 live. Its 64-bit dadd traps on
  * overflow where this C wraps. */
 s32 veh_hit_switch_triangle(u8 *tri, s32 kind, s32 id) {
-    u8 *g = D_803BD310;
+    u8 *g = gSwitchGroups;
     u8 * N64P *p;
     u8 *b;
     s32 n;
@@ -800,7 +800,7 @@ found:
             return 1;
         }
     }
-    if (levelno != 9 && kind >= 0x13) {
+    if (levelno != 9 && kind >= VEH_COUNT) {
         return 0;
     }
     if (g[0xF9] == 0) {
@@ -809,8 +809,8 @@ found:
     d = *(s64 *) (tri + 0x18);
     s = *(s64 *) (tri + 0) * (gCollX >> 2) + *(s64 *) (tri + 8) * (gCollY >> 2) +
         *(s64 *) (tri + 0x10) * (gCollZ >> 2) + d;
-    side = ((d > 0) ? (s > 0) : (s < 0)) ? 1 : 2;
-    if (tri[0x54] == 0) {
+    side = ((d > 0) ? (s > 0) : (s < 0)) ? TRI_SIDE_FRONT : TRI_SIDE_BACK;
+    if (tri[0x54] == TRI_SIDE_NONE) {
         tri[0x54] = side;
         return 0;
     }
@@ -821,8 +821,8 @@ found:
     p = (u8 * N64P *) (g + 8);
     for (n = g[0xF8]; n != 0; n--) {
         b = *p++;
-        if (b[0x54] != 0) {
-            b[0x54] = (b[0x54] == 1) ? 2 : 1;
+        if (b[0x54] != TRI_SIDE_NONE) {
+            b[0x54] = (b[0x54] == TRI_SIDE_FRONT) ? TRI_SIDE_BACK : TRI_SIDE_FRONT;
         }
     }
     return 0;
@@ -1015,12 +1015,12 @@ void math_tri_project_2d(u8 *tri, s32 px, s32 py, s32 pz, s32 *out) {
     s32 *v = (s32 *) (tri + 0x28);
     s32 axis = (s8) tri[0x4E];
 
-    if (axis == 0) {
+    if (axis == TRI_AXIS_Z) {
         out[6] = px, out[7] = py;
         out[0] = v[0], out[1] = v[1];
         out[2] = v[3], out[3] = v[4];
         out[4] = v[6], out[5] = v[7];
-    } else if (axis == 1) {
+    } else if (axis == TRI_AXIS_Y) {
         out[6] = px, out[7] = pz;
         out[0] = v[0], out[1] = v[2];
         out[2] = v[3], out[3] = v[5];
@@ -1414,7 +1414,7 @@ void veh_collide_vehicle_parts(s32 tag, s32 other, u8 *veh);
  * tag (unbounded scan); unless its byte 0x11 is 1, does nothing. Otherwise
  * walks gVehBoundSpheres up to the entry with byte 0x11 == 0xFF; each other entry
  * p (kind p[0x10] != tag) is skipped when tag == 6 and veh_rides_on(kind,
- * 6) is set, or when D_803649E8 is set and kind == 0. Else its radius
+ * 6) is set, or when gDriverHidden is set and kind == 0. Else its radius
  * (word 0xC) is scaled by veh_scale_other_radius (key = kind) and if the spheres
  * overlap (math_spheres_overlap) veh_collide_vehicle_parts(tag, kind) handles the contact.
  * Register convention: tag in t8, the vehicle record gp as `veh`, passed on
@@ -1438,10 +1438,10 @@ void veh_collide_vehicles(s32 tag, u8 *veh) {
         if (kind == tag) {
             continue;
         }
-        if (tag == 6 && veh_rides_on(kind, tag) != 0) {
+        if (tag == VEH_CRANE && veh_rides_on(kind, tag) != 0) {
             continue;
         }
-        if (D_803649E8 != 0 && kind == 0) {
+        if (gDriverHidden != 0 && kind == VEH_DRIVER) {
             continue;
         }
         r = veh_scale_other_radius(*(s32 *) (p + 0xC), kind, veh);
@@ -1469,7 +1469,7 @@ void veh_collide_vehicles(s32 tag, u8 *veh) {
 u32 veh_scale_other_radius(u32 v, s32 key, u8 *veh) {
     u32 d;
 
-    if (key != 0xFF) {
+    if (key != VEH_CARRIER) {
         d = VEH_GP_U8(veh, VS_PUSH_DIVISOR);
         if (d != 1) {
             v /= d;
@@ -1508,11 +1508,11 @@ void veh_block_toward_part(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s3
     u32 angle = 0;
 
     veh_contacts_add(n);
-    if (kind == 0xFF) {
+    if (kind == VEH_CARRIER) {
         if (next[-2] != 0) {
             gCarrierContact = 1;
         }
-    } else if (kind != 0 && next[-2] == 0xFF) {
+    } else if (kind != VEH_DRIVER && next[-2] == VEH_CARRIER) {
         gCarrierContact = 1;
     }
     dx = x2 - x1;
@@ -1653,13 +1653,13 @@ u32 veh_scale_part_radius(u32 v, s32 key, u8 *veh) {
 #ifdef NON_MATCHING
 
 /* GNextVehicle = v unless v rides the closed train (0x8029CF54).
- * gNextVehicle = v, unless D_803EFECB is set and the gStandOn list has the
+ * gNextVehicle = v, unless gTrainClosed is set and the gStandOn list has the
  * pair (v, 7) (veh_rides_on).
  * Register convention: asm takes v in s1 (conventions.txt); it saves t4/t8
  * and leaves a2 changed. Its asm caller veh_collide_vehicle_parts keeps a0, a1, t3-t8,
  * f12, f14 live. */
 void veh_request_switch(s32 v) {
-    if (D_803EFECB == 0 || veh_rides_on(v, 7) == 0) {
+    if (gTrainClosed == 0 || veh_rides_on(v, 7) == 0) {
         gNextVehicle = v;
     }
 }
@@ -1701,7 +1701,7 @@ s32 veh_gate_anim_test(s32 n, u8 *pairs, AnimChannel *tbl);
 /* Rebuilds a vehicle's collision triangles, opens its gates (0x8029D040).
  * Collision setup for object `id`: builds its triangle records from the
  * model (veh_build_tris), marks the records of its groups (veh_enable_tris),
- * then for each group g in D_803BC1D0..D_803BD304 (0xDC bytes, the end read
+ * then for each group g in gCollObjGroups..gCollObjGroupsEnd (0xDC bytes, the end read
  * once) with g[0xC4] == id runs the group's condition: g[0xC5] == 0 is the
  * 2-D area test veh_gate_area_test(val, x, z, g[0xC6] triangles at g), else the
  * channel-state test veh_gate_anim_test(g[0xC6] pairs at g, tbl). When it gives 0,
@@ -1726,8 +1726,8 @@ void veh_update_tris(s32 val, AnimChannel *tbl, s32 x, s32 z, s32 id, u8 *model,
 
     veh_build_tris(id, model, mtxBase);
     veh_enable_tris(id);
-    end = D_803BD304;
-    for (g = D_803BC1D0; g != end; g += 0xDC) {
+    end = gCollObjGroupsEnd;
+    for (g = gCollObjGroups; g != end; g += 0xDC) {
         if (g[0xC4] != id) {
             continue;
         }
@@ -1760,7 +1760,7 @@ void veh_update_tris(s32 val, AnimChannel *tbl, s32 x, s32 z, s32 id, u8 *model,
  * Marks (byte 0x51 = 1) every 0x60-byte record in gCollTris..gCollTrisEnd
  * whose byte 0x4F is `id`, and every record with byte 0x4F == 0 whose byte
  * 0x50 appears in the member list (count at +0xC7, bytes from +0xC8) of a
- * group in D_803BC1D0..D_803BD304 with byte 0xC4 == id.
+ * group in gCollObjGroups..gCollObjGroupsEnd with byte 0xC4 == id.
  * Register convention: asm takes id in t2 (conventions.txt) and uses s0-s2,
  * s4, s5 and t4-t7 as scratch without saving them; its asm caller
  * veh_update_tris keeps t0-t2, f12, f14 live and reloads the rest. */
@@ -1782,7 +1782,7 @@ void veh_enable_tris(s32 id) {
             continue;
         }
         sub = rec[0x50];
-        for (grp = D_803BC1D0; grp != D_803BD304; grp += 0xDC) {
+        for (grp = gCollObjGroups; grp != gCollObjGroupsEnd; grp += 0xDC) {
             if (grp[0xC4] != id) {
                 continue;
             }
@@ -1958,11 +1958,11 @@ void veh_build_tris(s32 id, u8 *model, u8 *mtxBase) {
             nz = -nz;
         }
         if (!(nz < nx) && !(nz < ny)) {
-            rec[0x4E] = 0;
+            rec[0x4E] = TRI_AXIS_Z;
         } else if (!(ny < nx) && !(ny < nz)) {
-            rec[0x4E] = 1;
+            rec[0x4E] = TRI_AXIS_Y;
         } else {
-            rec[0x4E] = 2;
+            rec[0x4E] = TRI_AXIS_X;
         }
         veh_tri_facing(rec);
         veh_set_tri_two_sided(id, rec);
@@ -1979,7 +1979,7 @@ void veh_build_tris(s32 id, u8 *model, u8 *mtxBase) {
  * Register convention: asm takes kind in t2 and rec in s0, restoring v0
  * (conventions.txt); asm callers keep a3, t2, t6, t7, f12, f14 live. */
 void veh_set_tri_two_sided(s32 kind, u8 *rec) {
-    rec[0x55] = (kind == 7) ? 0 : 1;
+    rec[0x55] = (kind == VEH_TRAIN) ? 0 : 1;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/veh_set_tri_two_sided.s")
@@ -2394,12 +2394,12 @@ extern u8 gTexAnimPatches[];
 extern AnimChannel gTexAnims[];
 /* List in the 7D9D0 data blob, ended by -1. In the ROM its 12 entries are
  * addresses inside that blob (0x802C2190...), so `id` is really a pointer. */
-extern s32 D_802C23B4[];
+extern s32 gTexAnimDefList[];
 
 /* The texture animation table from its list (0x8029DEA0).
  * Clears byte 6 of each of the 12 0x1010-byte blocks at gTexAnimBlocks, points
  * gTexAnimPatchesEnd at gTexAnimPatches, then builds gTexAnims from the -1-terminated id
- * list D_802C23B4: one 0x18-byte entry per id with every other field (except
+ * list gTexAnimDefList: one 0x18-byte entry per id with every other field (except
  * unk8) zeroed. The terminating -1 is also stored, as the id of the entry
  * after the last.
  * Register note: the asm saves/restores v0, v1 and a0-a3 (clobbers at and
@@ -2415,7 +2415,7 @@ void anim_tex_init(void) {
     }
     gTexAnimPatchesEnd = gTexAnimPatches;
 
-    src = D_802C23B4;
+    src = gTexAnimDefList;
     dst = gTexAnims;
     for (;;) {
         id = *src;
@@ -2442,7 +2442,7 @@ void anim_tex_init(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* A vehicle model's G_SETTIMG commands to patch (0x8029DF78).
- * For each entry e of the -1-terminated pointer list D_802C23B4 with
+ * For each entry e of the -1-terminated pointer list gTexAnimDefList with
  * e[0] == key and e[2] != 0, takes the texture id t = u16 at e + 4 + 2 * e[1]
  * and records every G_SETTIMG (top byte 0xFD) command in the display list
  * dl..dlEnd (8-byte commands, stops only at exactly dlEnd) whose second word
@@ -2453,7 +2453,7 @@ void anim_tex_init(void) {
  * every register it uses (conventions.txt). */
 void anim_tex_find_patches(u8 *dl, u8 *dlEnd, s32 key) {
     s32 *out = gTexAnimPatchesEnd;
-    s32 *lp = D_802C23B4;
+    s32 *lp = gTexAnimDefList;
     u8 *e;
     u8 *p;
     u32 tex;
@@ -3403,19 +3403,19 @@ s32 anim_lerp_rot_z(s32 a, s32 b, f32 t) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_8030D870; /* full turn in 1/16 units */
+extern f32 gMathLerpFullTurn; /* full turn in 1/16 units */
 
 /* Angle interpolation the short way round (0x8029F6B0).
  * Angle interpolation from a to b by t, the shorter way round: with
- * A = a / 16 and D = b / 16 - A wrapped into [-2048, 2048] by +-D_8030D870,
- * r = D * t + A, wrapped into [0, D_8030D870], returned as round(r * 16)
+ * A = a / 16 and D = b / 16 - A wrapped into [-2048, 2048] by +-gMathLerpFullTurn,
+ * r = D * t + A, wrapped into [0, gMathLerpFullTurn], returned as round(r * 16)
  * (cvt.w.s). All single precision.
  * Register convention: a, b in a0, a1, t in f30, result in t4
  * (conventions.txt; the asm also leaves the constants 0.0 / 2048.0 /
  * -2048.0 in f8 / f12 / f14, which its callers don't use). Asm callers
  * keep a0-a3, t1, t5, t7 live. */
 s32 math_lerp_angle(s32 a, s32 b, f32 t) {
-    f32 full = D_8030D870;
+    f32 full = gMathLerpFullTurn;
     f32 fa = (f32) a / 16.0f;
     f32 d = (f32) b / 16.0f;
 

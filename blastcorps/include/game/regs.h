@@ -13,7 +13,7 @@
 
 /* fx_spawn's three in/out registers (60F60.c). */
 typedef struct {
-    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last gFxTileSlots byte scanned */
+    /* 0x0 */ s32 a3; /* in: tag byte for gFxSpawnTag; out: last gFxTileSlots byte scanned */
     /* 0x4 */ s32 t6; /* in: word for rec+0x20; out: (s16) def[0] (when a record was set up) */
     /* 0x8 */ s32 s1; /* in: word for rec+0x14; out: the record's 0x100-byte buffer (when def[0] != -1) */
 } Io802A6274;

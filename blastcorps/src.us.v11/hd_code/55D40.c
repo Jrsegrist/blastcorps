@@ -47,9 +47,9 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
         }
         if (y - gCreditsScroll >= -0x31 && y - gCreditsScroll < 0xF0) {
             text_print_gradient(gfxp, (u8 *) line->str, 0, 0, color, x, y - gCreditsScroll, line->size, line->size, 1,
-                          D_802F47B0[line->color][0], D_802F47B0[line->color][1], D_802F47B0[line->color][2],
-                          D_802F47B0[line->color][3], D_802F47B0[line->color][4], D_802F47B0[line->color][5],
-                          D_802F47B0[line->color][6], D_802F47B0[line->color][7]);
+                          gYoshiColors[line->color][0], gYoshiColors[line->color][1], gYoshiColors[line->color][2],
+                          gYoshiColors[line->color][3], gYoshiColors[line->color][4], gYoshiColors[line->color][5],
+                          gYoshiColors[line->color][6], gYoshiColors[line->color][7]);
         }
         if (line->flags & 0x20) {
             y += 0x26;
@@ -62,7 +62,7 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
         }
     }
     if (((s32) gFramesInMode) == 100) {
-        yoshi_demand(0x8036);
+        yoshi_demand(YOSHI_DEMAND_OPEN | YW_CREDITS_START);
     }
     if ((u32) ((s32) gFramesInMode) >= 0x18C) {
         gCreditsScroll++;
@@ -71,7 +71,7 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
         gCreditsEndTimer++;
     }
     if (gCreditsEndTimer == 0x7D) {
-        yoshi_demand(0x8037);
+        yoshi_demand(YOSHI_DEMAND_OPEN | YW_CREDITS_END);
         music_push_tune(MUS_FINALE);
     }
     if (gCreditsEndTimer >= 0x7E && yoshiState == 1 && areWeFading() == 0) {

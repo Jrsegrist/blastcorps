@@ -52,8 +52,8 @@ extern u64 * N64P gTrainMtxB;
 extern s32 gTrainPart3Clear;   /* frame counters */
 extern s32 gTrainPart2Clear;
 extern u8 gTrainSparkTimer;
-extern u8 D_803EFECA;
-extern u8 D_80305E00[];
+extern u8 gTrainUnusedFlag;
+extern u8 gTrainNonBlockingParts[];
 
 s32 train_zone_alpha(ZoneScanRegs *r);
 void train_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
@@ -70,7 +70,7 @@ void train_set_physics(void);
  * as 83910.c's veh83910_init (save buffers from the heap, model record,
  * block reset, wheel offsets, gear bands, ground, animation channel 0, parts
  * with scale 0x3A98, veh_add_shadow, one frame (train_update) with byte
- * +0x9A set, buffer copy), and in addition gTrainSparkTimer = D_803EFECA = 0 and
+ * +0x9A set, buffer copy), and in addition gTrainSparkTimer = gTrainUnusedFlag = 0 and
  * both frame counters gTrainPart3Clear / gTrainPart2Clear = 999999.
  * The asm saves t0-t5: asm caller lvl_spawn_vehicles keeps t1 and t2 live (a
  * mixed N64 build would need a thunk). It leaves s2-s4, fp and f12-f26 as
@@ -90,7 +90,7 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     gTrainMtxA = (u64 *) heap;
     gTrainMtxB = (u64 *) (heap + 0x800);
     gHeapPtr = heap + 0x1000;
-    veh_add_record(7, 0, (s32) gTrainMtxA, (s32) gTrainMtxB, data);
+    veh_add_record(VEH_TRAIN, 0, (s32) gTrainMtxA, (s32) gTrainMtxB, data);
     veh_reset_state(veh);
     VEH_S16(veh, VS_WHEEL_OFFSETS) = 0x50;
     VEH_S16(veh, 0x54) = 0x50;
@@ -146,12 +146,12 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     VEH_S16(veh, 0x92) = 0xFA;
     VEH_S16(veh, 0x94) = 1;
     gTrainSparkTimer = 0;
-    D_803EFECA = 0;
+    gTrainUnusedFlag = 0;
     gTrainPart3Clear = 999999;
     gTrainPart2Clear = 999999;
     data = gTrainModel;
     veh_register_parts(7, OBJ_PTR(data, 4), OBJ_PTR(data, 8), 0x3A98);
-    veh_add_shadow(7, 0x96, 0x2D, 0x2D);
+    veh_add_shadow(VEH_TRAIN, 0x96, 0x2D, 0x2D);
     VEH_U8(veh, VS_SPAWN_UPDATE) = 1;
     train_update();
     VEH_U8(veh, VS_SPAWN_UPDATE) = 0;
@@ -326,11 +326,11 @@ void train_update(void) {
     gTrainPart2Clear++;
     if (VEH_S8(veh, VS_SPAWN_UPDATE) == 0) {
         /* b0 / h2 are the model update's leftover t0 (x) and t2 (7) */
-        veh_collision_setup(gTrainZ, (s32) D_80305E00, 0, 0, gTrainX, gTrainY, gTrainX,
+        veh_collision_setup(gTrainZ, (s32) gTrainNonBlockingParts, 0, 0, gTrainX, gTrainY, gTrainX,
                       VEH_S16(veh, VS_SPEED), 7, 0, 7, veh);
         veh_collide_spheres(7, veh);
         veh_collide_world(7);
-        D_803F77D0 = gTrainAnim;
+        gCollVehicleAnim = gTrainAnim;
         obj_collide_vehicle(7, veh);
         if (gCollBlocked != 0) {
             c2 = veh_contacts_has(2);
@@ -351,9 +351,9 @@ void train_update(void) {
     gPlayerX = gTrainX;
     gPlayerY = gTrainY;
     gPlayerZ = gTrainZ;
-    D_8036443C = VEH_S16(veh, VS_SPEED);
-    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
-    D_80364440 = VEH_U16(veh, VS_HEADING);
+    gPlayerSpeed = VEH_S16(veh, VS_SPEED);
+    gPlayerMoveHeading = VEH_U16(veh, VS_MOVE_HEADING);
+    gPlayerHeading = VEH_U16(veh, VS_HEADING);
     veh_set_record(gTrainZ, 7, gTrainX, gTrainY, veh);
 }
 #else
@@ -368,7 +368,7 @@ extern u8 gTrainSparkTimer;    /* countdown */
 /* Brake sparks and sound 0x29, engine pitch, the L/R whistle loop (0x802BC2C8).
  * Countdown gTrainSparkTimer: when nonzero it just counts down. At zero, if the
  * flag for the speed's sign (s16 at +0x76: > 0 -> gHeldBOrZ, else
- * gHeldA) is set, two fx_spawn records are set up (def D_802C2984,
+ * gHeldA) is set, two fx_spawn records are set up (def gFxSparks,
  * data 0x9C40, tag 0, type 1 at (7, 2, 1) and (7, 3, 1)), sound 0x29 is
  * played (snd_play) and the countdown restarts at 1. Then always
  * veh_set_engine_level(|speed >> 4|) and veh_update_horn(0x21).
@@ -386,9 +386,9 @@ void train_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         io.a3 = 0;
         io.t6 = t6;
         io.s1 = s1;
-        fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
+        fx_spawn(&io, gFxSparks, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
         io.a3 = 0;
-        fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
+        fx_spawn(&io, gFxSparks, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
         snd_play(gSfxBank, SFX_TRAIN_BRAKE, NULL);
         gTrainSparkTimer = 1;
     }
@@ -407,7 +407,7 @@ void train_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
 #ifdef NON_MATCHING
 /* Matrices, parts, points and its deck triangles (0x802BC3D0).
  * Model update of vehicle type 7: as 83910.c's veh83910_model (scale
- * 0x3A98, tag 7), then D_803EFECB = veh_tris_all_solid_impl(7). The asm reads the
+ * 0x3A98, tag 7), then gTrainClosed = veh_tris_all_solid_impl(7). The asm reads the
  * block through $gp (always gTrainState). It leaves t0 = x and t2 = 7 for
  * train_update's veh_collision_setup call (the C caller passes them itself) and
  * s0-s7, fp, f20-f28 as its callees do (conventions.txt: clobbers).
@@ -446,7 +446,7 @@ void train_build_model(void) {
     veh_deck_transform(7, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = gTrainModel;
     veh_update_tris(VEH_U16(veh, VS_HEADING), (AnimChannel *) gTrainAnim, gTrainX, gTrainZ, 7, OBJ_PTR(data, 0xC), base);
-    D_803EFECB = veh_tris_all_solid_impl(7);
+    gTrainClosed = veh_tris_all_solid_impl(7);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_build_model.s")

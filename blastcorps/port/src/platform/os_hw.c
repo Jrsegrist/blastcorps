@@ -281,7 +281,7 @@ void osSpTaskLoad(OSTask *t) {
     g_sp_task = t;
 }
 
-#define UCODE_CULL 0x802E77B0u  /* D_802E77B0: the RDP-output-to-DRAM F3D (5FD50) */
+#define UCODE_CULL 0x802E77B0u  /* gCullUcodeText: the RDP-output-to-DRAM F3D (5FD50) */
 
 /* cull_rsp_test's visibility test on the CPU.  The task's list (00000.c
  * cull_start) loads a projection and a modelview matrix, 8 box corners
@@ -411,7 +411,7 @@ static void complete(u32 delay, int dp) {
  *    record (BcScTask, flags at +0x08).  Flag 0x40 marks the frame's last
  *    task, the one that ends in a full sync: it gets SP and DP done, the
  *    others (shadow passes, the cull test) SP done only, like the hardware.
- *  - cull_rsp_test's visibility test (ucode D_802E77B0, which writes RDP
+ *  - cull_rsp_test's visibility test (ucode gCullUcodeText, which writes RDP
  *    commands to output_buff for the CPU to read): answered by cull_visible
  *    (a CPU model of that ucode) through the first output word (a lone
  *    sync, 0xE8000000, means not visible), or with --clock by the

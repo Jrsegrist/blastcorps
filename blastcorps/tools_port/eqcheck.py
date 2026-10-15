@@ -2645,7 +2645,7 @@ def explore(opts, ref, m, entry):
                 key = "heap%d (0x%08X)" % (k, blocks[k]) if k >= 0 else "heap"
             else:
                 # (loads from the text range are data tables embedded in it,
-                # e.g. D_802C23B4 in the 7D9D0 blob; instruction fetches are
+                # e.g. gTexAnimDefList in the 7D9D0 blob; instruction fetches are
                 # not recorded)
                 intext = ref.in_text(a)
                 n, off = ref.sym_off(a, skip_labels=intext)

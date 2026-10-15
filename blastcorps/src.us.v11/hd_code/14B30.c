@@ -457,7 +457,7 @@ void text_queue_string(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, 
         } else {
             ch = *p;
         }
-        if (ch != D_802E8C94[font] && ch != D_802E8C90[font] && ch != D_802E8C8C[font] &&
+        if (ch != gTextSpace[font] && ch != gFontAltBlankChar[font] && ch != gFontNoAdvanceChar[font] &&
             (a0 != 0 || a1 != 0 || a2 != 0 || a3 != 0)) {
             VTX(gTextVtxCount).ob[0] = x;
             VTX(gTextVtxCount).ob[1] = y;
@@ -526,7 +526,7 @@ void text_queue_string(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, 
             } else {
                 x -= w - adv * w;
             }
-        } else if (ch != D_802E8C8C[font]) {
+        } else if (ch != gFontNoAdvanceChar[font]) {
             if (forward) {
                 x += w * gFontAdvance[font];
             }

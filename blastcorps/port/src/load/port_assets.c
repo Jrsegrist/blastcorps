@@ -118,7 +118,7 @@ static struct {
 #define ROM_FE          0x7E3AD0u
 
 /* the front end's ROM start also comes from the game's own pointer
- * D_802FDB30 (46C20.c; it differs in the NM test ROM) */
+ * gFeRomStartPtr (46C20.c; it differs in the NM test ROM) */
 static uint32_t fe_rom(void) {
     uint32_t p = rd32(0x802FDB30u);
     return (p >= RDRAM_BASE && p < RDRAM_BASE + RDRAM_SIZE) ? rd32(p) : ROM_FE;

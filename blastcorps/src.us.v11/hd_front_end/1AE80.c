@@ -29,13 +29,13 @@ s32 fe_pak_restore_from_eeprom(void) {
         }
         if (((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) &&
             i != 0x31 && i != 0x2F && i != 0x26 && msg == 0) {
-            if (gLevelInfo[i].kind == 1) {
+            if (gLevelInfo[i].kind == LEVEL_KIND_MISSION) {
                 pakBuffer[0] = 0x1234567887654321;
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 0xD | (playerNumber << 16) | 0x01000000), 1);
                 osRecvMesg(&pakToGameMessageQ, NULL, 1);
             }
             fe_best_clear_times(playerNumber);
-            gBestTimes[playerNumber][D_802E8C44[players[playerNumber].bestVehicle[i]]] = gEepTimes[i * 2];
+            gBestTimes[playerNumber][gVehicleTimeSlot[players[playerNumber].bestVehicle[i]]] = gEepTimes[i * 2];
             osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 9 | (playerNumber << 16) | 0x01000000), 1);
             osRecvMesg(&pakToGameMessageQ, NULL, 1);
         }

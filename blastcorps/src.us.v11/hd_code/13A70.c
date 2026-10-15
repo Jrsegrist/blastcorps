@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 (*(VtxBuf *) D_02000000)
+#define seg2Base (*(VtxBuf *) seg2Base)
 #define gObjects ((LevelObject *) gObjects)
 #ifdef NON_MATCHING
 /* (the same type as variables.h's, but reading the pointers through their
@@ -40,11 +40,11 @@ typedef struct VtxBuf {
 
 extern Gfx gShadowRenderDl[];
 extern Vp gShadowViewport;
-extern Mtx D_803651F0;
-extern Mtx D_80365230;
-extern Mtx D_80365270;
-extern Mtx D_803652B0;
-extern Mtx D_803652F0;
+extern Mtx gShadowProjMtx;
+extern Mtx gShadowPosMtx;
+extern Mtx gShadowTiltMtx;
+extern Mtx gShadowTurnMtx;
+extern Mtx gShadowDistMtx;
 #ifndef NON_MATCHING
 extern LevelObject *gObjectsEnd;
 #endif
@@ -165,20 +165,20 @@ void veh_render_shadow_tex(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, v
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     gDPSetRenderMode(gdl++, GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1), GBL_c2(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1));
     gDPSetCombineMode(gdl++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-    guPerspective(&D_803651F0, &perspNorm, 45.0f, 1.0f, 1.0f, 1000.0f, 1.0f);
-    gSPMatrix(gdl++, PHYS(&D_803651F0), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    guPerspective(&gShadowProjMtx, &perspNorm, 45.0f, 1.0f, 1.0f, 1000.0f, 1.0f);
+    gSPMatrix(gdl++, PHYS(&gShadowProjMtx), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gImmp1(gdl++, G_RDPHALF_1, perspNorm);
-    guTranslate(&D_803652F0, 0.0f, 0.0f, -dist);
-    gSPMatrix(gdl++, PHYS(&D_803652F0), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    guRotate(&D_80365270, -90.0f, 1.0f, 0.0f, 0.0f);
-    gSPMatrix(gdl++, PHYS(&D_80365270), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    guRotate(&D_803652B0, 180.0f, 0.0f, 1.0f, 0.0f);
-    gSPMatrix(gdl++, PHYS(&D_803652B0), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    guTranslate(&D_80365230, -(x / 32.0f), -(y / 32.0f), -(z / 32.0f));
-    gSPMatrix(gdl++, PHYS(&D_80365230), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    guTranslate(&gShadowDistMtx, 0.0f, 0.0f, -dist);
+    gSPMatrix(gdl++, PHYS(&gShadowDistMtx), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    guRotate(&gShadowTiltMtx, -90.0f, 1.0f, 0.0f, 0.0f);
+    gSPMatrix(gdl++, PHYS(&gShadowTiltMtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    guRotate(&gShadowTurnMtx, 180.0f, 0.0f, 1.0f, 0.0f);
+    gSPMatrix(gdl++, PHYS(&gShadowTurnMtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    guTranslate(&gShadowPosMtx, -(x / 32.0f), -(y / 32.0f), -(z / 32.0f));
+    gSPMatrix(gdl++, PHYS(&gShadowPosMtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPDisplayList(gdl++, PHYS(dl));
     gSPEndDisplayList(gdl++);
-    osWritebackDCache(&D_803651F0, 0x140);
+    osWritebackDCache(&gShadowProjMtx, 0x140);
     rsp_send_task((u64 *) gShadowRenderDl, gdl - gShadowRenderDl, 1, 0, 0x61F, 0);
 }
 
@@ -203,9 +203,9 @@ void obj_draw_ground_shadows(Gfx **gdlp, VtxBuf *buf) {
     while (&gObjects[i] != gObjectsEnd) {
         if (gObjects[i].destroyed == 0) {
             switch (gObjects[i].kind) {
-                case 0xBA:
-                case 0xBB:
-                case 0xBC:
+                case OBJ_KIND_SHADOW_A:
+                case OBJ_KIND_SHADOW_B:
+                case OBJ_KIND_SHADOW_C:
                     h = 60 - (gObjects[i].pos[1] - gObjects[i].groundY) / 800;
                     if (h < 0) {
                         h = 0;
@@ -238,7 +238,7 @@ void obj_draw_ground_shadows(Gfx **gdlp, VtxBuf *buf) {
                     buf->vtx[n].v.tc[1] = 0x7E0;
                     n++;
                     if (!loaded) {
-                        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_80365330), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0,
+                        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(gObjShadowTex), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0,
                                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                         loaded = 1;
                     }
@@ -251,7 +251,7 @@ void obj_draw_ground_shadows(Gfx **gdlp, VtxBuf *buf) {
                         gSPClearGeometryMode(gdl++, G_ZBUFFER);
                         gDPSetRenderMode(gdl++, RM_XLU_SAVE(1), RM_XLU_SAVE(2));
                     }
-                    gSPVertex(gdl++, &D_02000000.vtx[n - 4], 4, 0);
+                    gSPVertex(gdl++, &seg2Base.vtx[n - 4], 4, 0);
                     gSP1Triangle(gdl++, 0, 1, 3, 0);
                     gSP1Triangle(gdl++, 1, 2, 3, 0);
                     break;

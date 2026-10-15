@@ -38,21 +38,21 @@
 #define VEH_S32(v, off) (*(s32 *) ((u8 *) (v) + (off)))
 #define VEH_F32(v, off) (*(f32 *) ((u8 *) (v) + (off)))
 
-extern s32 D_80305C58[]; /* {key, value, threshold} triples, value 0 ends */
+extern s32 gBlockedTurnRates[]; /* {key, value, threshold} triples, value 0 ends */
 extern u8 gVehSnapshot[];  /* vehicle save buffer: 0x300 + 0xA6 + 3 words */
-extern s32 D_803EBBD8[]; /* 0x14-byte swap temp */
+extern s32 gGroundTriSwap[]; /* 0x14-byte swap temp */
 extern u8 * N64P gGroundCellTris;
 extern u8 * N64P gGroundCellTrisEnd;
 extern u8 * N64P gGroundHitTri;
 extern s32 gSlotY;
-extern s32 D_803ED39C;
-extern s32 D_803ED3A0;
-extern s32 D_803ED3AC;
-extern s32 D_803ED3B0;
+extern s32 gSlotY1;
+extern s32 gSlotY2;
+extern s32 gSlotGroundY1;
+extern s32 gSlotGroundY2;
 extern u8 gSlotStandOn;
-extern u8 D_803ED3EB;
+extern u8 gSlotStandOn1;
 extern u8 gSlotAirborne;
-extern u8 D_803ED3EF;
+extern u8 gSlotAirborne1;
 extern u8 gSlotSurface;
 extern u8 gNoWheels;
 
@@ -173,7 +173,7 @@ s32 veh_free_arc_mid(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* After a hit, the speed toward +-limit (0x802A6FE4).
- * When D_80358064 is set: record the speed's direction (veh+0x76 > 0 ? 1 : -1)
+ * When gPlayFrames is set: record the speed's direction (veh+0x76 > 0 ? 1 : -1)
  * in veh+0xA5, then move the speed 3 toward zero, but forward speed not below
  * `limit` and reverse speed not above -limit. (The asm computes -limit with a
  * trapping `neg`, so limit = 0x80000000 raises an overflow exception there.)
@@ -182,7 +182,7 @@ s32 veh_free_arc_mid(void) {
 void veh_hit_slowdown(u8 *veh, s32 limit) {
     s32 speed;
 
-    if (D_80358064 != 0) {
+    if (gPlayFrames != 0) {
         speed = VEH_S16(veh, VS_SPEED);
         VEH_S8(veh, VS_LAST_DIR) = (speed > 0) ? 1 : -1;
         if (speed >= 0) {
@@ -439,7 +439,7 @@ void veh_reset_state(u8 *veh) {
     VEH_U8(veh, VS_SLOT_AIRBORNE) = 0;
     VEH_U8(veh, 0x97) = 0;
     VEH_U8(veh, 0x98) = 0;
-    VEH_U8(veh, VS_SURFACE) = 1;
+    VEH_U8(veh, VS_SURFACE) = SURFACE_NORMAL;
     VEH_U8(veh, VS_PUSH_DIVISOR) = 1;
     VEH_S32(veh, VS_SLOT_LAUNCH_VEL) = 0;
     VEH_S32(veh, 0x2C) = 0;
@@ -669,8 +669,8 @@ void veh_throttle(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delt
             *speed = s;
         }
     } else {
-        if (((s8) gVehSlowed) != 0 && levelno != 0x22 && gCurVehicle != 0xB && gCurVehicle != 0x11 &&
-            gCurVehicle != 0x12) {
+        if (((s8) gVehSlowed) != 0 && levelno != 0x22 && gCurVehicle != VEH_BARGE_0B && gCurVehicle != VEH_BARGE_11 &&
+            gCurVehicle != VEH_BARGE_12) {
             s = *speed;
             if (s >= 0) {
                 lim = bands[13] >> 1;
@@ -802,7 +802,7 @@ void veh_throttle_lr(u8 *veh, s16 *speed, s16 *bands, s32 delta) {
 s32 veh_band_accel(u8 *veh, s32 x, s16 *band) {
     s32 n = VEH_U8(veh, VS_SURFACE);
 
-    if (n == 1) {
+    if (n == SURFACE_NORMAL) {
         n = 5;
     } else {
         n = 7 - n;
@@ -841,7 +841,7 @@ s32 veh_near_top_speed(u8 *veh, s32 range) {
 
     if (speed >= 0) {
         i = VEH_U8(veh, VS_SURFACE);
-        if (i == 1) {
+        if (i == SURFACE_NORMAL) {
             i = 4;
         } else {
             i = 6 - i;
@@ -913,10 +913,10 @@ s32 veh_drive_traction(s32 mode, u8 *f) {
 #ifdef NON_MATCHING
 /* Stick-x steering of the heading (0x802A7E70).
  * Steering: turn rate = s3 (minus a third when gWideFovLevel; forced to 100/200
- * when D_80370C75, by D_80370C34), saved to D_80370C72; then turn *angle by
+ * when gSteerTurnAround, by gSteerAirborne), saved to gSteerRate; then turn *angle by
  * |steer| * rate / 80 against the sign of steer (gPadStickX), wrapped to
- * 0..0xFFF. When D_803ED40A is set and D_803649EE isn't, *angle is overridden
- * by D_803ED408. The result also goes to D_80370C70.
+ * 0..0xFFF. When gSteerHeadingSnap is set and gVehJustSwitched isn't, *angle is overridden
+ * by gSteerSnapAngle. The result also goes to gSteerHeading.
  * Register convention: rate in s3 (clobbered), angle in s4 (the asm saves s5;
  * it clobbers t0, t2, t4). Asm callers keep a0-a3, t6 and t7 live. */
 void veh_steer(s32 rate, u16 *angle) {
@@ -927,10 +927,10 @@ void veh_steer(s32 rate, u16 *angle) {
     if (gWideFovLevel != 0) {
         rate -= rate / 3;
     }
-    if (D_80370C75 != 0) {
-        rate = (D_80370C34 != 0) ? 100 : 200;
+    if (gSteerTurnAround != 0) {
+        rate = (gSteerAirborne != 0) ? 100 : 200;
     }
-    D_80370C72 = rate;
+    gSteerRate = rate;
     steer = gPadStickX;
     a = *angle;
     mag = (steer < 0) ? -steer : steer;
@@ -949,11 +949,11 @@ void veh_steer(s32 rate, u16 *angle) {
         }
         *angle = a;
     }
-    if (D_803ED40A != 0 && D_803649EE == 0) {
-        a = D_803ED408;
+    if (gSteerHeadingSnap != 0 && gVehJustSwitched == 0) {
+        a = gSteerSnapAngle;
     }
     *angle = a;
-    D_80370C70 = a;
+    gSteerHeading = a;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/veh_steer.s")
@@ -962,9 +962,9 @@ void veh_steer(s32 rate, u16 *angle) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 s32 veh_blocked_turn_rate(s32 cur);
-extern u8 D_803ED3F8;  /* sound retrigger counter */
-extern s32 D_803ED3FC; /* f32 bits: pitch */
-extern f32 D_8030D890;
+extern u8 gSkidSoundTimer;  /* sound retrigger counter */
+extern s32 gSkidPitch; /* f32 bits: pitch */
+extern f32 gSkidPitchPerSpeed;
 
 /* Travel heading toward the facing; skid flag and sound (0x802A7FD8).
  * Turn the heading *heading toward *target (12-bit angles, wrapping through
@@ -972,7 +972,7 @@ extern f32 D_8030D890;
  * |veh_blocked_turn_rate(rate) * veh+0x50 / *speed| (no division when the speed is
  * 0). Unless *flag is set, a heading within 0x156 of the target just copies
  * the target to *out and stops; otherwise *flag = 1. With `sound` set, every
- * 7th call sets pitch D_803ED3FC = 0.5 + |speed| * D_8030D890 and plays it
+ * 7th call sets pitch gSkidPitch = 0.5 + |speed| * gSkidPitchPerSpeed and plays it
  * (snd_play / snd_modify). Finally *out = heading, and *flag = 0 once
  * the target is reached.
  * Register convention: gp, heading t1, rate t5, speed t6, target s4, out s5,
@@ -1047,18 +1047,18 @@ void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target,
         *flag = 1;
     }
     if (sound != 0) {
-        n = D_803ED3F8 + 1;
+        n = gSkidSoundTimer + 1;
         if (n >= 7) {
             if (speed < 0) {
                 speed = -speed;
             }
-            D_803ED3F8 = 0;
-            pitch = 0.5f + (f32) speed * D_8030D890;
-            D_803ED3FC = *(s32 *) &pitch;
-            snd_modify(snd_play(gSfxBank, SFX_SKID, NULL), 0x10, D_803ED3FC);
+            gSkidSoundTimer = 0;
+            pitch = 0.5f + (f32) speed * gSkidPitchPerSpeed;
+            gSkidPitch = *(s32 *) &pitch;
+            snd_modify(snd_play(gSfxBank, SFX_SKID, NULL), 0x10, gSkidPitch);
             n = 0;
         }
-        D_803ED3F8 = n;
+        gSkidSoundTimer = n;
     }
     *out = h;
     if (h == t) {
@@ -1071,10 +1071,10 @@ void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target,
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* For 10 frames after an arc clip (gBlockedFrame), returns the first D_80305C58 entry for this level whose
+/* For 10 frames after an arc clip (gBlockedFrame), returns the first gBlockedTurnRates entry for this level whose
  * window is still open; otherwise the caller's rate (0x802A8314).
  * Unless gBlockedFrame + 10 < gUnpausedFrames, walk the {key, value, threshold}
- * table D_80305C58 (ended by value 0) for the first entry with key ==
+ * table gBlockedTurnRates (ended by value 0) for the first entry with key ==
  * levelno and threshold + gBlockedFrame >= gUnpausedFrames, and return its value;
  * otherwise return `cur` unchanged.
  * Register convention: the asm returns the value in t5 and leaves t5 alone
@@ -1088,7 +1088,7 @@ s32 veh_blocked_turn_rate(s32 cur) {
     if (base + 10 < limit) {
         return cur;
     }
-    for (e = D_80305C58; e[1] != 0; e += 3) {
+    for (e = gBlockedTurnRates; e[1] != 0; e += 3) {
         if (e[0] != levelno) {
             continue;
         }
@@ -1173,7 +1173,7 @@ void veh_apply_slope(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f3
     }
     s = veh_slope_drop(p);
     s = *speed + port_cvt_w_s((f32) s / div * -4.0f);
-    if (kind == 0 || kind == 2 || kind == 0x10 || kind == 9) {
+    if (kind == VEH_DRIVER || kind == VEH_THUNDERFIST || kind == VEH_CYCLONE || kind == VEH_JBOMB) {
         step = 3;
     } else {
         step = 1;
@@ -1282,10 +1282,10 @@ s32 veh_move_along_heading(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803ED402;
-extern s16 D_803ED404;
-extern s16 D_803ED406;
-extern u8 D_803ED40E;
+extern s16 gVehTiltDivB;
+extern s16 gVehTiltDivA;
+extern s16 gVehContactAngle;
+extern u8 gVehSlot0Flags;
 void veh_respawn_if_out(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos);
 void veh_check_no_wheels(u16 *p);
 void veh_diamond_sands_damping(u8 *veh);
@@ -1309,8 +1309,8 @@ void veh_slot_airborne(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z
 
 /* Per-frame wheel-slot ground contact and tilt (0x802A8768).
  * Per-frame ground contact of vehicle `id` (record veh): out-of-bounds reset
- * (veh_respawn_if_out, may move (x, z) and write *px/*py/*pz); D_803ED402 = divB,
- * D_803ED404 = divA, D_803ED406 = *angle, D_803ED40E = flags[0]; veh+0x9B =
+ * (veh_respawn_if_out, may move (x, z) and write *px/*py/*pz); gVehTiltDivB = divB,
+ * gVehTiltDivA = divA, gVehContactAngle = *angle, gVehSlot0Flags = flags[0]; veh+0x9B =
  * 0; veh_check_no_wheels(tbl), veh_diamond_sands_damping, veh_rider_gravity. Then the three wheel
  * slots: for i = 0..2, if gNoWheels is set and i > 0, veh_copy_slot0(veh) and
  * stop; else (s8) flags[i] == 1 -> veh_slot_airborne (airborne), 0 ->
@@ -1318,10 +1318,10 @@ void veh_slot_airborne(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z
  * first). After: flags[0..2] = gSlotAirborne[0..2]; with h0..h2 =
  * gSlotY[0..2] the height records ys (three of {now, prev, prev2})
  * shift in h0/h1/h2; *px = x, *pz = z, *py = (h1 + h2) >> 1 (logical);
- * D_803ED394 = tilt (h1 - h0, divA, negated when >= 0) and gModelRot = fp =
+ * gModelRotZ = tilt (h1 - h0, divA, negated when >= 0) and gModelRot = fp =
  * tilt (h2 - h0, divB, negated when < 0) (TILT_8768). Then
  * veh_update_shadow(id, *px, (gSlotGroundY[1] + [2]) >> 1, *pz, (h1 + h2) >> 1,
- * veh_ground_tilt's two results, D_803ED406), veh_ground_surface(veh, flags, id)
+ * veh_ground_tilt's two results, gVehContactAngle), veh_ground_surface(veh, flags, id)
  * and, when gRiderPass is 0, id != 0xFF and gHaveRideables is set,
  * veh_update_stand_on(*px, *pz, veh + 0x5E, veh + 0x4C, veh + 4, id, veh, fp, f).
  * The asm's add/sub/neg trap on overflow.
@@ -1349,10 +1349,10 @@ void veh_ground_contact(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z
     veh_respawn_if_out(veh, id, px, py, pz, &pos);
     x = pos.t0;
     z = pos.t1;
-    D_803ED402 = divB;
-    D_803ED404 = divA;
-    D_803ED406 = *angle;
-    D_803ED40E = flags[0];
+    gVehTiltDivB = divB;
+    gVehTiltDivA = divA;
+    gVehContactAngle = *angle;
+    gVehSlot0Flags = flags[0];
     VEH_U8(veh, VS_ON_MOVING_PART) = 0;
     veh_check_no_wheels((u16 *) tbl);
     veh_diamond_sands_damping(veh);
@@ -1394,7 +1394,7 @@ void veh_ground_contact(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z
     gModelRot = fp;
     r1 = veh_ground_tilt(&r2);
     veh_update_shadow(id, *px, (u32) ((&gSlotGroundY)[1] + (&gSlotGroundY)[2]) >> 1, *pz,
-                  (u32) ((&gSlotY)[1] + (&gSlotY)[2]) >> 1, r1, r2, D_803ED406);
+                  (u32) ((&gSlotY)[1] + (&gSlotY)[2]) >> 1, r1, r2, gVehContactAngle);
     veh_ground_surface(veh, flags, id);
     r->s4 = angle;
     if (gRiderPass == 0 && id != 0xFF && gHaveRideables != 0) {
@@ -1410,13 +1410,13 @@ void veh_ground_contact(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803ED402;
-extern s16 D_803ED404;
+extern s16 gVehTiltDivB;
+extern s16 gVehTiltDivA;
 
 /* Two tilt angles from the slot ground heights (0x802A8B10).
- * Two tilt angles from the word triple gSlotGroundY/D_803ED3AC/D_803ED3B0: a = math_atan(
- * (|AC - A8| << 16) / D_803ED404) >> 4 (logical shift), negated when
- * AC >= A8, goes to *a3Out; b likewise from B0 - A8 and D_803ED402, negated
+ * Two tilt angles from the word triple gSlotGroundY/gSlotGroundY1/gSlotGroundY2: a = math_atan(
+ * (|AC - A8| << 16) / gVehTiltDivA) >> 4 (logical shift), negated when
+ * AC >= A8, goes to *a3Out; b likewise from B0 - A8 and gVehTiltDivB, negated
  * when B0 < A8, is returned. The differences use trapping `sub`/`neg` and the
  * divides trap on a zero divisor.
  * Register convention: outputs a1 (return value) and a3 (*a3Out). The asm saves
@@ -1424,22 +1424,22 @@ extern s16 D_803ED404;
  * t8, f12 and f14 live. */
 s32 veh_ground_tilt(s32 *a3Out) {
     s32 base = gSlotGroundY;
-    s32 d = D_803ED3AC - base;
+    s32 d = gSlotGroundY1 - base;
     s32 r;
 
     if (d >= 0) {
-        r = math_atan((s32) ((u32) d << 16) / D_803ED404);
+        r = math_atan((s32) ((u32) d << 16) / gVehTiltDivA);
         *a3Out = -((u32) r >> 4);
     } else {
-        r = math_atan((s32) ((u32) -d << 16) / D_803ED404);
+        r = math_atan((s32) ((u32) -d << 16) / gVehTiltDivA);
         *a3Out = (u32) r >> 4;
     }
-    d = D_803ED3B0 - base;
+    d = gSlotGroundY2 - base;
     if (d >= 0) {
-        r = math_atan((s32) ((u32) d << 16) / D_803ED402);
+        r = math_atan((s32) ((u32) d << 16) / gVehTiltDivB);
         return (u32) r >> 4;
     }
-    r = math_atan((s32) ((u32) -d << 16) / D_803ED402);
+    r = math_atan((s32) ((u32) -d << 16) / gVehTiltDivB);
     return -((u32) r >> 4);
 }
 #else
@@ -1489,7 +1489,7 @@ void veh_respawn_if_out(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC 
     if (!out && gx >= gBoundsMinX && gx <= gBoundsMaxX && gz >= gBoundsMinZ && gz <= gBoundsMaxZ) {
         return;
     }
-    key = (((s32) gLevelKind) == 1 || ((s32) gLevelKind) == 0x80) ? id : 1;
+    key = (((s32) gLevelKind) == LEVEL_KIND_MISSION || ((s32) gLevelKind) == LEVEL_KIND_MISSION_TIMED) ? id : 1;
     rec = gRespawnPoints;
     while (rec[0] != key) {
         rec += 9;
@@ -1537,7 +1537,7 @@ void veh_rider_gravity(void) {
  * gBounceDamping = 8. (The asm clobbers v0.) Asm callers keep a1-a3, t0, t1,
  * t7-t9, f12 and f14 live. */
 void veh_diamond_sands_damping(u8 *veh) {
-    if (VEH_U8(veh, VS_SURFACE_MAX) == 0x67 && levelno == 12) {
+    if (VEH_U8(veh, VS_SURFACE_MAX) == SURFACE_DIAMOND_SANDS && levelno == 12) {
         gBounceDamping = 8;
     }
 }
@@ -1555,12 +1555,12 @@ void veh_diamond_sands_damping(u8 *veh) {
 void veh_copy_slot0(u8 *veh) {
     s32 w;
 
-    (&D_803ED3EF)[0] = gSlotAirborne;
-    (&D_803ED3EF)[1] = gSlotAirborne;
-    D_803ED39C = gSlotY;
-    D_803ED3A0 = gSlotY;
-    D_803ED3AC = gSlotGroundY;
-    D_803ED3B0 = gSlotGroundY;
+    (&gSlotAirborne1)[0] = gSlotAirborne;
+    (&gSlotAirborne1)[1] = gSlotAirborne;
+    gSlotY1 = gSlotY;
+    gSlotY2 = gSlotY;
+    gSlotGroundY1 = gSlotGroundY;
+    gSlotGroundY2 = gSlotGroundY;
     w = VEH_S32(veh, VS_SLOT_LAUNCH_Y);
     VEH_S32(veh, 0x38) = w;
     VEH_S32(veh, 0x3C) = w;
@@ -1572,8 +1572,8 @@ void veh_copy_slot0(u8 *veh) {
     VEH_S32(veh, 0x48) = w;
     (&gSlotSurface)[1] = gSlotSurface;
     (&gSlotSurface)[2] = gSlotSurface;
-    D_803ED3EB = gSlotStandOn;
-    (&D_803ED3EB)[1] = gSlotStandOn;
+    gSlotStandOn1 = gSlotStandOn;
+    (&gSlotStandOn1)[1] = gSlotStandOn;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/veh_copy_slot0.s")
@@ -1601,7 +1601,7 @@ void veh_check_no_wheels(u16 *p) {
 /* Surface grip and the water / fatal surfaces (0x802A9164).
  * From the three bytes at gSlotSurface (each >= 100 counted as 2): veh+0x50 =
  * their average; veh+0x9F = gSurfaceMax = their maximum. Then set gFailTrigger
- * when the max is 0x66, or when it is 100 with D_80358064 set and kind not
+ * when the max is 0x66, or when it is 100 with gPlayFrames set and kind not
  * 9/11/0x11/0x12 - both only if *f != 1.
  * Register convention: gp, f in s0, kind in t8 (the asm clobbers t0-t2).
  * Asm callers keep a0, a2, a3, t7, t8, f12 and f14 live. */
@@ -1639,10 +1639,10 @@ void veh_ground_surface(u8 *veh, u8 *f, s32 kind) {
     }
     VEH_U8(veh, VS_SURFACE_MAX) = max;
     gSurfaceMax = max;
-    if (gSurfaceMax == 0x66 && f[0] != 1) {
+    if (gSurfaceMax == SURFACE_FATAL && f[0] != 1) {
         gFailTrigger = 1;
     }
-    if (kind != 9 && kind != 11 && kind != 0x11 && kind != 0x12 && D_80358064 != 0 && gSurfaceMax == 100 &&
+    if (kind != VEH_JBOMB && kind != VEH_BARGE_0B && kind != VEH_BARGE_11 && kind != VEH_BARGE_12 && gPlayFrames != 0 && gSurfaceMax == SURFACE_WATER &&
         f[0] != 1) {
         gFailTrigger = 1;
     }
@@ -1792,7 +1792,7 @@ s32 veh_slot_launch(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 value) {
  * n + 1), drop = a[index] * n + round(gGravity * (f32) (n * n)) (32-bit
  * products) and expected = c[index] + drop. (dx, dz) = veh_wheel_offset(index,
  * tbl, angle), h = ground_slot_height(index, x + dx, z + dz, ys[3 * index], key,
- * veh, fpIn, f). Landing test: with key 9 and D_803F7C49 set, it lands when
+ * veh, fpIn, f). Landing test: with key 9 and gJbombCeilingAbove set, it lands when
  * h - expected >= 0x6A5 or h < expected; otherwise when h < expected. Landed:
  * gSlotY[index] = max(expected, 0), gSlotAirborne[index] = 1, s3 unchanged.
  * Not landed: gSlotY[index] = h and *s3 = veh_slot_land(index, a, b, c, h,
@@ -1816,7 +1816,7 @@ void veh_slot_airborne(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z
     expected = c[index] + drop;
     dx = veh_wheel_offset(index, tbl, angle, &dz);
     h = ground_slot_height(index, x + dx, z + dz, ys[index * 3], key, veh, fpIn, f);
-    if ((key == 9 && D_803F7C49 != 0 && h - expected >= 0x6A5) || h < expected) {
+    if ((key == 9 && gJbombCeilingAbove != 0 && h - expected >= 0x6A5) || h < expected) {
         if (expected < 0) {
             expected = 0;
         }
@@ -1922,7 +1922,7 @@ s32 *veh_init_ground(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *ang
  * h = ground_slot_height(i, x + dx, z + dz, y, key, veh, fp, f), dst[3i..3i+2] =
  * h, gSlotSurface[i] = fp (overwriting ground_slot_height's flag). Then *mid =
  * (dst[3] + dst[6]) >> 1 (logical), veh+0x50 = (gSlotSurface[0] + [1] + [2]) /
- * 3, gModelRot = D_803ED394 = 0. Returns the last dz (the asm's t6); out
+ * 3, gModelRot = gModelRotZ = 0. Returns the last dz (the asm's t6); out
  * gets dst + 9 and dst (s1, s3). The asm's adds trap on overflow.
  * Register convention: tbl v1, y t2, x t7, z s0, dst s1, mid s2, angle s4, key
  * t8, fp, veh gp; f12-f26 in/out (f); results t6, s1, s3 (out); clobbers
@@ -2001,7 +2001,7 @@ s32 ground_slot_height(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fp
     if (ground_scan_grid(x, z, yy, f, &h3, &fp) == 0) {
         if (h1 == 0x5F5E0FF && h2 == 0x5F5E0FF) {
             res = yy - 0x78;
-            flag = 1;
+            flag = SURFACE_NORMAL;
             goto store;
         }
         d2 = ABS_9B1C(h2 - yy);
@@ -2019,7 +2019,7 @@ s32 ground_slot_height(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fp
     }
     if (d2 < d1) {
         res = h2;
-        flag = 1;
+        flag = SURFACE_NORMAL;
         kind = id;
     } else {
         VEH_U8(veh, VS_ON_MOVING_PART) = 1;
@@ -2044,7 +2044,7 @@ store:
 /* Moves the hit triangle to the front of its grid cell (0x802A9CAC).
  * If the 0x14-byte record list gGroundCellTris..gGroundCellTrisEnd spans at least 0x8C
  * bytes, swap record (index + (kind == 0xFF ? 3 : 0)) with the record
- * gGroundHitTri points at (through the temp D_803EBBD8), unless they're the same.
+ * gGroundHitTri points at (through the temp gGroundTriSwap), unless they're the same.
  * Register convention: index in v0, kind in t8 (the asm saves v1, a0-a3).
  * Asm callers keep t3, f12 and f14 live. */
 void ground_cache_tri(s32 index, s32 kind) {
@@ -2065,14 +2065,14 @@ void ground_cache_tri(s32 index, s32 kind) {
         return;
     }
     for (i = 0; i < 5; i++) {
-        D_803EBBD8[i] = cur[i];
+        gGroundTriSwap[i] = cur[i];
     }
     cur = (s32 *) gGroundHitTri;
     for (i = 0; i < 5; i++) {
         cur[i] = rec[i];
     }
     for (i = 0; i < 5; i++) {
-        rec[i] = D_803EBBD8[i];
+        rec[i] = gGroundTriSwap[i];
     }
 }
 #else
@@ -2269,11 +2269,11 @@ s32 ground_scan_grid(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio) {
 #ifdef NON_MATCHING
 f64 fabs(f64);
 #pragma intrinsic(fabs)
-extern f64 D_80305C50; /* 2000.0 */
+extern f64 gGroundPlaneScale; /* 2000.0 */
 
 /* A triangle's plane height at (x, z) (0x802AA2E4).
  * Height of the plane through the triangle p0 = (x0, y0, z0), p1, p2 above
- * the point (x, z), as round(|h / (ny * 2000)| * D_80305C50) - 1000, where
+ * the point (x, z), as round(|h / (ny * 2000)| * gGroundPlaneScale) - 1000, where
  * n = (nx, ny, nz) is the triangle normal (64-bit integer cross product),
  * d = -(n . p1) and h = nx * x - 1000 * ny + nz * z + d. Returns 0xFF676981
  * when ny == 0 (vertical triangle).
@@ -2306,7 +2306,7 @@ s32 ground_tri_height(s32 x, s32 z, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 
     if (ny == 0) {
         return 0xFF676981;
     }
-    r = D_80305C50 * fabs((f64) h / (f64) (ny * 2000));
+    r = gGroundPlaneScale * fabs((f64) h / (f64) (ny * 2000));
     t = (s64) r; /* truncates; round to nearest even below */
     frac = r - (f64) t;
     if (frac > 0.5 || (frac == 0.5 && (t & 1))) {
@@ -2442,16 +2442,16 @@ s32 ground_tri_box_contains(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2
 #endif
 
 #ifdef NON_MATCHING
-extern u16 D_803EBB58[]; /* accumulated Mtx (see mtx_mul) */
+extern u16 gMtxWork[]; /* accumulated Mtx (see mtx_mul) */
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* C entry: rotations, then mtx_build_model (0x802AA6D0).
- * o32 entry: gModelRot = rx, D_803ED392 = ry, D_803ED394 = rz (halfwords),
+ * o32 entry: gModelRot = rx, gModelRotY = ry, gModelRotZ = rz (halfwords),
  * then mtx_build_model(x, y, z, scale, m). The asm saves s0-s7, gp and fp. */
 void mtx_build_model_rot(s32 x, s32 y, s32 z, s16 rx, s16 ry, s16 rz, s32 scale, Mtx *m) {
-    D_803ED392 = ry;
+    gModelRotY = ry;
     gModelRot = rx;
     D_803ED394_ = rz;
     mtx_build_model(x, y, z, scale, (s32 *) m);
@@ -2467,23 +2467,23 @@ void mtx_build_model_rot(s32 x, s32 y, s32 z, s16 rx, s16 ry, s16 rz, s32 scale,
  * Build the model matrix m (16.16 words, converted in place to the Mtx
  * layout at the end by mtx_to_n64): m = scale matrix (scale on all three
  * axes, mtx_scale), then for each of rotation by gModelRot
- * (mtx_rotate_x), D_803ED394 (mtx_rotate_z), D_803ED392 (mtx_rotate_y)
+ * (mtx_rotate_x), gModelRotZ (mtx_rotate_z), gModelRotY (mtx_rotate_y)
  * (angles read as u16) and the translation (x, y, z) << 11 (mtx_translate)
- * build that matrix in D_803EBB58 and combine it into m with
- * mtx_mul(D_803EBB58, m).
+ * build that matrix in gMtxWork and combine it into m with
+ * mtx_mul(gMtxWork, m).
  * Register convention: x s4, y s5, z s6, scale s7, m t8. The asm leaves a0 =
- * &D_803EBB58 and s2 = m (clobbers s2), and the cosine/sine routines' f12/f14
+ * &gMtxWork and s2 = m (clobbers s2), and the cosine/sine routines' f12/f14
  * temporaries, which the survey lists as read by asm callers (not modelled,
  * see math_cos). */
 void mtx_build_model(s32 x, s32 y, s32 z, s32 scale, s32 *m) {
-    s32 *tmp = (s32 *) D_803EBB58;
+    s32 *tmp = (s32 *) gMtxWork;
 
     mtx_scale(scale, scale, scale, m);
     mtx_rotate_x((u16) gModelRot, tmp);
     mtx_mul(tmp, m);
     mtx_rotate_z((u16) D_803ED394_, tmp);
     mtx_mul(tmp, m);
-    mtx_rotate_y((u16) D_803ED392, tmp);
+    mtx_rotate_y((u16) gModelRotY, tmp);
     mtx_mul(tmp, m);
     mtx_translate(x << 11, y << 11, z << 11, tmp);
     mtx_mul(tmp, m);
@@ -2514,8 +2514,8 @@ void mtx_copy_at(u8 *src, u8 *dst, s32 off) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803EBB58[]; /* accumulated Mtx (s15.16: int halves, then frac halves at +0x20) */
-extern u16 D_803EBB98[]; /* product temp, same layout */
+extern u16 gMtxWork[]; /* accumulated Mtx (s15.16: int halves, then frac halves at +0x20) */
+extern u16 gMtxChainTemp[]; /* product temp, same layout */
 
 /* Element (row, col) of an N64 fixed-point Mtx as s15.16. */
 #define MTX_FIX(m, row, col) \
@@ -2524,7 +2524,7 @@ extern u16 D_803EBB98[]; /* product temp, same layout */
 
 /* Concatenates a matrix chain, transforms a point (0x802AA890).
  * Concatenate `count` Mtx (each at base + offsets[i]) as M = M0 * M1 * ...
- * (64-bit products, >> 16) into D_803EBB58, then transform (x, y, z) by M in
+ * (64-bit products, >> 16) into gMtxWork, then transform (x, y, z) by M in
  * 32-bit integer math: x' = M00 x + M10 y + M20 z + (M30 int part only - the
  * asm drops its fraction), y' and z' likewise with full M31/M32. Returns
  * x' >> 11; y' >> 11 and z' >> 11 go to regs->v1/a0, y'/z' themselves to
@@ -2552,7 +2552,7 @@ s32 mtx_chain_transform(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, 
         return regs->s0 >> 11;
     }
     src = (s32 *) (base + *offsets);
-    dst = (s32 *) D_803EBB58;
+    dst = (s32 *) gMtxWork;
     for (i = 0; i < 16; i++) {
         dst[i] = src[i];
     }
@@ -2565,27 +2565,27 @@ s32 mtx_chain_transform(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, 
             for (j = 0; j < 4; j++) {
                 sum = 0;
                 for (k = 0; k < 4; k++) {
-                    sum += (s64) MTX_FIX(D_803EBB58, i, k) * (s64) MTX_FIX(b, k, j);
+                    sum += (s64) MTX_FIX(gMtxWork, i, k) * (s64) MTX_FIX(b, k, j);
                 }
                 sum >>= 16;
-                D_803EBB98[PORT_HALF(16 + i * 4 + j)] = sum;
-                D_803EBB98[PORT_HALF(i * 4 + j)] = (u32) sum >> 16;
+                gMtxChainTemp[PORT_HALF(16 + i * 4 + j)] = sum;
+                gMtxChainTemp[PORT_HALF(i * 4 + j)] = (u32) sum >> 16;
             }
         }
-        src = (s32 *) D_803EBB98;
-        dst = (s32 *) D_803EBB58;
+        src = (s32 *) gMtxChainTemp;
+        dst = (s32 *) gMtxWork;
         for (i = 0; i < 16; i++) {
             dst[i] = src[i];
         }
         offsets++;
         count--;
     }
-    rx = MTX_FIX(D_803EBB58, 0, 0) * x + MTX_FIX(D_803EBB58, 1, 0) * y + MTX_FIX(D_803EBB58, 2, 0) * z +
-         (D_803EBB58[PORT_HALF(12)] << 16);
-    ry = MTX_FIX(D_803EBB58, 0, 1) * x + MTX_FIX(D_803EBB58, 1, 1) * y + MTX_FIX(D_803EBB58, 2, 1) * z +
-         MTX_FIX(D_803EBB58, 3, 1);
-    rz = MTX_FIX(D_803EBB58, 0, 2) * x + MTX_FIX(D_803EBB58, 1, 2) * y + MTX_FIX(D_803EBB58, 2, 2) * z +
-         MTX_FIX(D_803EBB58, 3, 2);
+    rx = MTX_FIX(gMtxWork, 0, 0) * x + MTX_FIX(gMtxWork, 1, 0) * y + MTX_FIX(gMtxWork, 2, 0) * z +
+         (gMtxWork[PORT_HALF(12)] << 16);
+    ry = MTX_FIX(gMtxWork, 0, 1) * x + MTX_FIX(gMtxWork, 1, 1) * y + MTX_FIX(gMtxWork, 2, 1) * z +
+         MTX_FIX(gMtxWork, 3, 1);
+    rz = MTX_FIX(gMtxWork, 0, 2) * x + MTX_FIX(gMtxWork, 1, 2) * y + MTX_FIX(gMtxWork, 2, 2) * z +
+         MTX_FIX(gMtxWork, 3, 2);
     regs->a3 = (s32) b;
     regs->s1 = ry;
     regs->s2 = rz;
@@ -3063,31 +3063,31 @@ void veh_attach_riders_walk(s32 id, InterpRegs *r) {
         }
         type = e[0];
         switch (type) {
-            case 3:
+            case VEH_SKYFALL:
                 skyfall_ride_attach(e[1], r);
                 break;
-            case 5:
+            case VEH_BACKLASH:
                 backlash_ride_attach(e[1], r);
                 break;
-            case 4:
+            case VEH_RAMDOZER:
                 ramdozer_ride_attach(e[1], r);
                 break;
-            case 8:
+            case VEH_AMDREAM:
                 amdream_ride_attach(e[1], r);
                 break;
-            case 0xD:
+            case VEH_POLICE:
                 police_ride_attach(e[1], r);
                 break;
-            case 0xE:
+            case VEH_ATEAM:
                 ateam_ride_attach(e[1], r);
                 break;
-            case 0xF:
+            case VEH_STARSKI:
                 starski_ride_attach(e[1], r);
                 break;
-            case 9:
+            case VEH_JBOMB:
                 jbomb_ride_attach(e[1], r);
                 break;
-            case 0xA:
+            case VEH_BALLISTA:
                 ballista_ride_attach(e[1], r);
                 break;
             default: /* 0 and unknown types */
@@ -3145,31 +3145,31 @@ void veh_move_riders_walk(s32 id, s32 *s3, InterpRegs *r) {
         }
         type = e[0];
         switch (type) {
-            case 3:
+            case VEH_SKYFALL:
                 *s3 = skyfall_ride_follow(id, r);
                 break;
-            case 5:
+            case VEH_BACKLASH:
                 *s3 = backlash_ride_follow(id, (TriSideOut *) &r->f12);
                 break;
-            case 4:
+            case VEH_RAMDOZER:
                 *s3 = ramdozer_ride_follow(id, r);
                 break;
-            case 8:
+            case VEH_AMDREAM:
                 amdream_ride_follow(id, &r->f24);
                 break;
-            case 0xD:
+            case VEH_POLICE:
                 *s3 = police_ride_follow(id, (TriSideOut *) &r->f12);
                 break;
-            case 0xE:
+            case VEH_ATEAM:
                 *s3 = ateam_ride_follow(id, (TriSideOut *) &r->f12);
                 break;
-            case 0xF:
+            case VEH_STARSKI:
                 *s3 = starski_ride_follow(id, r);
                 break;
-            case 9:
+            case VEH_JBOMB:
                 jbomb_ride_follow(id, s3, r);
                 break;
-            case 0xA:
+            case VEH_BALLISTA:
                 ballista_ride_follow(id, s3, r);
                 break;
             default: /* 0 and unknown types */
@@ -3231,7 +3231,7 @@ s32 veh_has_partial_rider_walk(s32 id) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803ED3E8; /* scratch heading for veh_wheel_offset */
+extern s16 gVehWheelHeading; /* scratch heading for veh_wheel_offset */
 
 #define WRAP_12(v) ((v) >= 0x1000 ? (v) - 0xFFF : (v))
 #define ABS_B9A4(v) ((v) < 0 ? -(v) : (v))
@@ -3242,12 +3242,12 @@ extern s16 D_803ED3E8; /* scratch heading for veh_wheel_offset */
  * through both). d = veh_follow_angle(A, offset of tbl[0] rotated by *angle, B);
  * when d > 0x400 it is retried with the heading turned by 0x400 (d += 0x400)
  * and, if then > 0x800, by 0x800 (d += 0x800), the turned heading going
- * through D_803ED3E8 (wrapped as h >= 0x1000 ? h - 0xFFF : h). Then the two
+ * through gVehWheelHeading (wrapped as h >= 0x1000 ? h - 0xFFF : h). Then the two
  * headings *angle + d (wrapped the same way) and *angle - d (+ 0xFFF when
  * negative) are tried: each rotated offset is added to B and its distance
  * |B + off - A| (|dx| + |dz|) taken; returns the + heading when its distance
  * is strictly smaller, else the - heading, and the - heading's distance in
- * *s3Out. D_803ED3E8 is left = the - heading. The asm's add/sub/neg trap.
+ * *s3Out. gVehWheelHeading is left = the - heading. The asm's add/sub/neg trap.
  * Register convention: tbl v1, x1 t0, angle a2, id a3, z1 t1, x2 s1, z2 s2;
  * results t0 (return value) and s3 (*s3Out); r: f24 in, f24/f26 out (r's
  * other fields are scratch). The asm clobbers s0-s2, s4-s6, fp, f20, f22;
@@ -3279,29 +3279,29 @@ s32 veh_follow_heading(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32
     d = veh_follow_angle(ax, az, dx, dz, bx, bz);
     if (d >= 0x401) {
         h = *angle + 0x400;
-        D_803ED3E8 = WRAP_12(h);
-        dx = veh_wheel_offset(0, tbl, &D_803ED3E8, &dz);
+        gVehWheelHeading = WRAP_12(h);
+        dx = veh_wheel_offset(0, tbl, &gVehWheelHeading, &dz);
         d = veh_follow_angle(ax, az, dx, dz, bx, bz) + 0x400;
         if (d >= 0x801) {
             h = *angle + 0x800;
-            D_803ED3E8 = WRAP_12(h);
-            dx = veh_wheel_offset(0, tbl, &D_803ED3E8, &dz);
+            gVehWheelHeading = WRAP_12(h);
+            dx = veh_wheel_offset(0, tbl, &gVehWheelHeading, &dz);
             d = veh_follow_angle(ax, az, dx, dz, bx, bz) + 0x800;
         }
     }
     a0 = *angle;
     plus = a0 + d;
     plus = WRAP_12(plus);
-    D_803ED3E8 = plus;
-    dx = veh_wheel_offset(0, tbl, &D_803ED3E8, &dz);
+    gVehWheelHeading = plus;
+    dx = veh_wheel_offset(0, tbl, &gVehWheelHeading, &dz);
     minus = a0 - d;
     d1 = dx + bx;
     d2 = dz + bz;
     if (minus < 0) {
         minus += 0xFFF;
     }
-    D_803ED3E8 = minus;
-    dx = veh_wheel_offset(0, tbl, &D_803ED3E8, &dz);
+    gVehWheelHeading = minus;
+    dx = veh_wheel_offset(0, tbl, &gVehWheelHeading, &dz);
     e1 = dx + bx - ax;
     e2 = dz + bz - az;
     d1 -= ax;
@@ -3635,17 +3635,17 @@ s32 ground_scan_object(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f) 
 
 
 /* Scans the level header's guard triangles (+0x24..+0x28: J-Bomb anti-clip, the Ironstone Mine crane area)
- * for the one nearest y at (x, z); returns |y - h| and sets the found flag and D_803EBBFC (0x802AC0BC).
- * ground_scan_part_tris's nearest-height scan over D_803BDAF4 .. D_803BDAF8: each
- * nearer-or-equal hit sets the found flag and D_803EBBFC = h. Returns the
+ * for the one nearest y at (x, z); returns |y - h| and sets the found flag and gGuardTrisBestY (0x802AC0BC).
+ * ground_scan_part_tris's nearest-height scan over gGuardTris .. gGuardTrisEnd: each
+ * nearer-or-equal hit sets the found flag and gGuardTrisBestY = h. Returns the
  * best |y - h| (0x5F5E0FF if none).
  * Register convention: x t0, z t1, y t2; results v1 (return value), a1, a3,
  * t6, t7, fp, s1-s4 through r (a3, t6, s1-s4 in/out) and the FP results
  * through f (in/out). The asm clobbers s5-s7, t8, t9 and f28; `neg` traps on
  * 0x80000000. */
 s32 ground_scan_guard_tris(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r) {
-    u8 *rec = D_803BDAF4;
-    u8 *end = D_803BDAF8;
+    u8 *rec = gGuardTris;
+    u8 *end = gGuardTrisEnd;
     u32 bestD = 0x5F5E0FF;
     s32 v[9];
     s32 h;
@@ -3669,7 +3669,7 @@ s32 ground_scan_guard_tris(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r) {
             continue;
         }
         r->a1 = 1;
-        D_803EBBFC = h;
+        gGuardTrisBestY = h;
         bestD = d;
     }
     r->t7 = (s32) end;

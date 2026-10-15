@@ -114,7 +114,7 @@ Gfx *spr_draw(Gfx *arg0, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scale) {
     a = alpha;
     scale *= gSpriteScale[slot];
     n = gSpriteStrips[slot];
-    if ((mode & 8) && D_803156C4 % 20 < 7) {
+    if ((mode & 8) && gSchedFrameCount % 20 < 7) {
         a >>= 1;
     }
     gDPPipeSync(gdl++);
@@ -298,7 +298,7 @@ Gfx *spr_pipe_sync(Gfx *gfx) {
 void spr_draw_blinking(Gfx **gfx, s32 arg1, u8 arg2, s16 arg3, s16 arg4) {
     Gfx *gdl = *gfx;
 
-    if (D_803156C4 % 40 < 28) {
+    if (gSchedFrameCount % 40 < 28) {
         gdl = spr_begin(gdl);
         gdl = spr_draw(gdl, arg2, arg3, arg4, 0xFF, 1, 1.0f);
         gdl = spr_end(gdl);

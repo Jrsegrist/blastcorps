@@ -82,7 +82,7 @@ segments:
     - [0x75490, c, hd_code/75490]
     - [0x772A0, c, hd_code/772A0]
     - [0x77E20, c, hd_code/77E20]
-    - [0x7D9D0, bin, hd_code/7D9D0_data] # data inside .text (tables used by the hand asm, D_802C2190..gFxDefsByKind)
+    - [0x7D9D0, bin, hd_code/7D9D0_data] # data inside .text (tables used by the hand asm, gRamdozerTrackTexAnimA..gFxDefsByKind)
     - [0x7F8B0, c, hd_code/7F8B0] # hand asm: decompressor + sound-effect wrappers (lzss_decompress..veh_update_horn)
     - [0x800E0, bin, hd_code/800E0_data] # more data inside .text (pointer table at 0x802C48A0, gParticleDefs)
     - [0x80280, c, hd_code/7FB50]

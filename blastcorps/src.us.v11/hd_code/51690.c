@@ -2,22 +2,22 @@
 #include <ultra64.h>
 #include "game/game.h"
 
-extern u8 * N64P D_8039CA90;
-extern u8 * N64P D_8039CA94;
-extern u8 * N64P D_8039CA98;
-extern u8 * N64P D_8039CA9C;
+extern u8 * N64P gPadDisplayImage;
+extern u8 * N64P gPadDisplayButtonTex;
+extern u8 * N64P gPadDisplayTriggerTex;
+extern u8 * N64P gPadDisplayZTex;
 
 /* The on-screen controller picture (0x80295E50).
  * Carves four buffers out of the heap and loads ROM asset 0x6A8DA0 into the first. */
 void hud_load_pad_image(void) {
     s32 size;
 
-    D_8039CA90 = gHeapPtr;
-    D_8039CA94 = D_8039CA90 + 0x3200;
-    D_8039CA98 = D_8039CA94 + 0xF0;
-    D_8039CA9C = D_8039CA98 + 0x180;
-    size = D_006A9F10 - D_006A8DA0;
-    hd_rom_load((u32) D_006A8DA0, (u32) D_8039CA90, (u32 *) &size, 10, 0, 1);
+    gPadDisplayImage = gHeapPtr;
+    gPadDisplayButtonTex = gPadDisplayImage + 0x3200;
+    gPadDisplayTriggerTex = gPadDisplayButtonTex + 0xF0;
+    gPadDisplayZTex = gPadDisplayTriggerTex + 0x180;
+    size = romDemoRecordings - romControllerPicture;
+    hd_rom_load((u32) romControllerPicture, (u32) gPadDisplayImage, (u32 *) &size, 10, 0, 1);
     gHeapPtr = (u8 *) gHeapPtr + size;
     gPadDisplayAlpha = 0;
     gPadDisplayLoaded = 1;
@@ -68,7 +68,7 @@ Gfx *hud_draw_pad(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
     gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, alpha);
     gfx = hud_draw_pad_image(gfx, x, y);
     if (gRecButtons & 0x30) {
-        gDPLoadTextureBlock(gfx++, D_8039CA98, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 6, 0, G_TX_MIRROR,
+        gDPLoadTextureBlock(gfx++, gPadDisplayTriggerTex, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 6, 0, G_TX_MIRROR,
                             G_TX_CLAMP, 5, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         if (gRecButtons & 0x10) {
             gSPScisTextureRectangleOld(gfx++, (x + 0x30) << 2, (y + 8) << 2, (x + 0x4F) << 2,
@@ -80,14 +80,14 @@ Gfx *hud_draw_pad(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
         }
     }
     if (gRecButtons & 0x2000) {
-        gDPLoadTextureBlock(gfx++, D_8039CA9C, G_IM_FMT_RGBA, G_IM_SIZ_16b, 24, 24, 0, G_TX_CLAMP,
+        gDPLoadTextureBlock(gfx++, gPadDisplayZTex, G_IM_FMT_RGBA, G_IM_SIZ_16b, 24, 24, 0, G_TX_CLAMP,
                             G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         gSPScisTextureRectangleOld(gfx++, (x + 9) << 2, (y + 0x33) << 2, (x + 0x20) << 2,
                                    (y + 0x4A) << 2, 0, 0, 0, 1 << 10, 1 << 10);
     }
     gDPPipeSync(gfx++);
     gDPSetCombine(gfx++, 0x119623, 0xFF2FFFFF);
-    gDPLoadTextureBlock(gfx++, D_8039CA94, G_IM_FMT_IA, G_IM_SIZ_16b, 12, 10, 0, G_TX_CLAMP,
+    gDPLoadTextureBlock(gfx++, gPadDisplayButtonTex, G_IM_FMT_IA, G_IM_SIZ_16b, 12, 10, 0, G_TX_CLAMP,
                         G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     for (i = 0; i < 16; i++) {
         u8 draw;
@@ -142,14 +142,14 @@ Gfx *hud_draw_pad(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
 #define LIM79(a) ((a) > 79 ? 79 : (a))
 
 /* The 80x80 picture as 32x32 tiles (0x8029700C).
- * Draws the 80x80 RGBA16 image in D_8039CA90 at (x, y) as 32x32 tiles. */
+ * Draws the 80x80 RGBA16 image in gPadDisplayImage at (x, y) as 32x32 tiles. */
 Gfx *hud_draw_pad_image(Gfx *gfx, s16 x, s16 y) {
     s32 i;
     s32 j;
 
     for (i = 0; i < 80; i += 31) {
         for (j = 0; j < 80; j += 31) {
-            gDPLoadTextureTile(gfx++, D_8039CA90, G_IM_FMT_RGBA, G_IM_SIZ_16b, 80, 0, i, j,
+            gDPLoadTextureTile(gfx++, gPadDisplayImage, G_IM_FMT_RGBA, G_IM_SIZ_16b, 80, 0, i, j,
                                LIM79(i + 31), LIM79(j + 31), 0, G_TX_CLAMP, G_TX_CLAMP, 0, 0,
                                G_TX_NOLOD, G_TX_NOLOD);
             gSPScisTextureRectangleOld(gfx++, (x + i) << 2, (y + j) << 2,

@@ -23,7 +23,7 @@ u8 gSeqDoneLevel;  /* level to go to when finished */
 u8 gSeqAbortLevel;  /* level to go to when aborted */
 u8 gSeqStartLevel;  /* level the sequence starts in */
 u8 gSeqNumber;  /* current sequence number */
-u8 D_803A6B04;
+u8 gSeqSkippable;
 
 
 #define LEVEL_DONE(l) ((players[playerNumber].medal[l] > 0 && players[playerNumber].medal[l] < 6) ? 1 : 0)
@@ -42,7 +42,7 @@ void seq_prepare(s32 seq) {
             gSeqDoneLevel = 0x28;
             gSeqDoneMode = 0x4000;
             gSeqAbortMode = 0x4000;
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         case 3:
             gSeqStartLevel = 0x26;
@@ -50,7 +50,7 @@ void seq_prepare(s32 seq) {
             gSeqDoneLevel = 0x2B;
             gSeqDoneMode = 0x4000;
             gSeqAbortMode = 0x4000;
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         case 0:
             gSeqStartLevel = 0x31;
@@ -58,7 +58,7 @@ void seq_prepare(s32 seq) {
             gSeqDoneLevel = 0x32;
             gSeqDoneMode = 0x4000;
             gSeqAbortMode = 0x4000;
-            D_803A6B04 = 0;
+            gSeqSkippable = 0;
             break;
         case 4:
             gSeqStartLevel = 0x2F;
@@ -66,7 +66,7 @@ void seq_prepare(s32 seq) {
             gSeqDoneLevel = 0;
             gSeqDoneMode = 0x4000;
             gSeqAbortMode = 0x4000;
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         case 5:
             gSeqStartLevel = 0x37;
@@ -79,7 +79,7 @@ void seq_prepare(s32 seq) {
                 gSeqDoneMode = 0x2000;
                 gSeqAbortMode = 0x2000;
             }
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         case 6:
             gSeqStartLevel = 0x1C;
@@ -92,7 +92,7 @@ void seq_prepare(s32 seq) {
                 gSeqDoneMode = 0x2000;
                 gSeqAbortMode = 0x2000;
             }
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         case 7:
             gSeqStartLevel = 0x35;
@@ -105,7 +105,7 @@ void seq_prepare(s32 seq) {
                 gSeqDoneMode = 0x2000;
                 gSeqAbortMode = 0x2000;
             }
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         case 8:
             gSeqStartLevel = 7;
@@ -118,7 +118,7 @@ void seq_prepare(s32 seq) {
                 gSeqDoneMode = 0x2000;
                 gSeqAbortMode = 0x2000;
             }
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         case 9:
             gSeqStartLevel = 0x13;
@@ -131,7 +131,7 @@ void seq_prepare(s32 seq) {
                 gSeqDoneMode = 0x2000;
                 gSeqAbortMode = 0x2000;
             }
-            D_803A6B04 = 1;
+            gSeqSkippable = 1;
             break;
         default:
             debug_printf("unknown sequence number %d\n", gSeqNumber);
@@ -150,48 +150,48 @@ void seq_enter_start_level(void) {
 void seq_start_level(void) {
     switch (levelno) {
         case 47:
-            D_802E8BEC = 0;
-            D_802E8BF0 = 0;
+            gRecDemoNumber = 0;
+            gRecDemoNoLogo = 0;
             rec_start_playback(0, &levelno);
             break;
         case 55:
-            D_802E8BEC = 9;
-            D_802E8BF0 = 0;
+            gRecDemoNumber = 9;
+            gRecDemoNoLogo = 0;
             rec_start_playback(9, &levelno);
-            D_803643D4 = 5;
-            yoshi_demand(0x8041);
+            gDiggerVehicle = 5;
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_BACKLASH);
             hud_load_pad_image();
             break;
         case 28:
-            D_802E8BEC = 10;
-            D_802E8BF0 = 0;
+            gRecDemoNumber = 10;
+            gRecDemoNoLogo = 0;
             rec_start_playback(10, &levelno);
-            D_803643D4 = 1;
-            yoshi_demand(0x8042);
+            gDiggerVehicle = 1;
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_SIDESWIPE);
             hud_load_pad_image();
             break;
         case 53:
-            D_802E8BEC = 11;
-            D_802E8BF0 = 0;
+            gRecDemoNumber = 11;
+            gRecDemoNoLogo = 0;
             rec_start_playback(11, &levelno);
-            D_803643D4 = 2;
-            yoshi_demand(0x8043);
+            gDiggerVehicle = 2;
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_THUNDERFIST);
             hud_load_pad_image();
             break;
         case 7:
-            D_802E8BEC = 12;
-            D_802E8BF0 = 0;
+            gRecDemoNumber = 12;
+            gRecDemoNoLogo = 0;
             rec_start_playback(12, &levelno);
-            D_803643D4 = 3;
-            yoshi_demand(0x8044);
+            gDiggerVehicle = 3;
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_SKYFALL);
             hud_load_pad_image();
             break;
         case 19:
-            D_802E8BEC = 13;
-            D_802E8BF0 = 0;
+            gRecDemoNumber = 13;
+            gRecDemoNoLogo = 0;
             rec_start_playback(13, &levelno);
-            D_803643D4 = 9;
-            yoshi_demand(0x8045);
+            gDiggerVehicle = 9;
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_JBOMB);
             hud_load_pad_image();
             break;
         case 49:

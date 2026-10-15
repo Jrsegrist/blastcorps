@@ -5,14 +5,14 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_gSfxBank
-#define LEGACY_D_803FB8B0
+#define LEGACY_gDynTrisEnd
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 #define gBoxTargets ((Entry4B5E0b *) gBoxTargets)
 #ifdef NON_MATCHING
-#define D_803FB8B0 (*(s32 *) &D_803FB8B0)
+#define gDynTrisEnd (*(s32 *) &gDynTrisEnd)
 #endif
 /* end of views */
 
@@ -23,7 +23,7 @@ typedef struct {
     /* 0x08 */ s32 unk8;
     /* 0x0C */ s16 unk0C;
     /* 0x0E */ s16 unk0E;
-    /* 0x10 */ u8 unk10; /* model index into D_802FDC08 */
+    /* 0x10 */ u8 unk10; /* model index into gBlockModels */
     /* 0x11 */ u8 unk11;
     /* 0x12 */ u8 unk12; /* riding a gBlockSlots lift */
     /* 0x13 */ u8 unk13; /* which gBlockSlots entry */
@@ -48,7 +48,7 @@ typedef struct {
     /* 0x04 */ s32 unk4;
     /* 0x08 */ s32 unk8;
     /* 0x0C */ s32 unk0C;
-    /* 0x10 */ u8 unk10; /* model index into D_802FDC08 */
+    /* 0x10 */ u8 unk10; /* model index into gBlockModels */
     /* 0x11 */ u8 unk11;
     /* 0x14 */ s32 unk14;
     /* 0x18 */ s32 unk18;
@@ -77,7 +77,7 @@ typedef struct {
     /* 0x27 */ u8 unk27;
 } Entry4B5E0b;
 
-/* D_802FDC08: 0x290-byte models: a display list, then texture size and
+/* gBlockModels: 0x290-byte models: a display list, then texture size and
  * a radius. */
 typedef struct {
     /* 0x000 */ Gfx dl[0x50];
@@ -97,22 +97,22 @@ typedef struct Dyn4B5E0 {
 } Dyn4B5E0;
 
 extern Entry4B5E0 gBlocks[];
-extern u8 D_8039C579;
+extern u8 gBlock0Riding;
 extern s32 gBlockCount;
 extern Entry4B5E0c gBlockSlots[];
 extern s32 gBlockSlotCount;
-extern s32 D_8039C944;
-extern s32 D_8039C948;
-extern s32 D_8039C94C;
-extern u8 D_8039C950;
-extern s32 D_8039C954;
-extern s32 D_8039C958;
-extern s32 D_8039C95C;
+extern s32 gBlockPrevPlayerX;
+extern s32 gBlockPrevPlayerY;
+extern s32 gBlockPrevPlayerZ;
+extern u8 gBlockPrevVehicle;
+extern s32 gBlockPrevCarrierX;
+extern s32 gBlockPrevCarrierY;
+extern s32 gBlockPrevCarrierZ;
 #ifndef NON_MATCHING
-extern s32 D_803FB8B0;
+extern s32 gDynTrisEnd;
 #endif
-extern Model4B5E0 D_802FDC08[];
-extern s16 D_802FDBE0[];
+extern Model4B5E0 gBlockModels[];
+extern s16 gBlockPushSpeedMax[];
 #ifndef NON_MATCHING
 extern s32 gSfxBank;
 #endif
@@ -127,15 +127,15 @@ void block_fill_target(s32);
  * Flagged records also get a gBoxTargets box (+-40 units).
  * NON_MATCHING: the hand-written coll_add_dyn_tris reads registers this function
  * never sets for it; the NM build passes what they hold here: v0 = the last
- * call's result (coll_reset_dyn_tris leaves &D_803F9330, tex_get its result;
+ * call's result (coll_reset_dyn_tris leaves &gDynTris, tex_get its result;
  * coll_add_dyn_tris leaves v0 alone), t6 = &gBlockSlots[i], t9 = the old
- * D_803FB8B0, and s1 = the caller's s1 (this function never touches the
+ * gDynTrisEnd, and s1 = the caller's s1 (this function never touches the
  * s-registers), which the NM build takes as an extra parameter from
  * initlevel (5CB60.c). */
 #ifdef NON_MATCHING
 /* The push blocks, their slots, the target boxes (0x8028FDA0). */
 void block_spawn_all(u8 *arg0, u8 *arg1, s32 s1) {
-    s32 v0 = (s32) D_803F9330;
+    s32 v0 = (s32) gDynTris;
 #else
 void block_spawn_all(u8 *arg0, u8 *arg1) {
 #endif
@@ -144,13 +144,13 @@ void block_spawn_all(u8 *arg0, u8 *arg1) {
     gBlockCount = 0;
     gBlockSlotCount = 0;
     gBoxTargetCount = 0;
-    D_8039C944 = 0;
-    D_8039C948 = 0;
-    D_8039C94C = 0;
-    D_8039C954 = 0;
-    D_8039C958 = 0;
-    D_8039C95C = 0;
-    D_8039C950 = 0;
+    gBlockPrevPlayerX = 0;
+    gBlockPrevPlayerY = 0;
+    gBlockPrevPlayerZ = 0;
+    gBlockPrevCarrierX = 0;
+    gBlockPrevCarrierY = 0;
+    gBlockPrevCarrierZ = 0;
+    gBlockPrevVehicle = 0;
     gVehSlowed = 0;
     coll_reset_dyn_tris();
     if (arg0 != arg1) {
@@ -171,7 +171,7 @@ void block_spawn_all(u8 *arg0, u8 *arg1) {
             gBlocks[i].unk14 = 0;
             gBlocks[i].unk18 = 0;
             gBlocks[i].unk29 = 0;
-            gBlocks[i].unk30 = tex_get(D_802FDC08[gBlocks[i].unk10].unk280, 0);
+            gBlocks[i].unk30 = tex_get(gBlockModels[gBlocks[i].unk10].unk280, 0);
 #ifdef NON_MATCHING
             v0 = (s32) gBlocks[i].unk30;
 #endif
@@ -183,16 +183,16 @@ void block_spawn_all(u8 *arg0, u8 *arg1) {
             gBlockSlots[i].unk4 = *(s16 *) (arg0 + 2) << 5;
             gBlockSlots[i].unk8 = *(s16 *) (arg0 + 4) << 5;
             gBlockSlots[i].unk10 = arg0[6];
-            gBlockSlots[i].unk0C = gBlockSlots[i].unk4 - D_802FDC08[gBlockSlots[i].unk10].unk288;
+            gBlockSlots[i].unk0C = gBlockSlots[i].unk4 - gBlockModels[gBlockSlots[i].unk10].unk288;
             gBlockSlots[i].unk11 = 0;
-            gBlockSlots[i].unk14 = D_803FB8B0;
+            gBlockSlots[i].unk14 = gDynTrisEnd;
 #ifdef NON_MATCHING
             coll_add_dyn_tris(arg0 + 10, arg0[7], gBlockSlots[i].unk10, v0, (s32) &gBlockSlots[i],
                           (s32) gBlockSlots[i].unk14, s1);
 #else
             coll_add_dyn_tris(arg0 + 10, arg0[7], gBlockSlots[i].unk10);
 #endif
-            gBlockSlots[i].unk18 = D_803FB8B0;
+            gBlockSlots[i].unk18 = gDynTrisEnd;
             if (*(s16 *) (arg0 + 8) != 0) {
                 gBoxTargets[gBoxTargetCount].unk0 = gBlockSlots[i].unk0;
                 gBoxTargets[gBoxTargetCount].unk4 = gBlockSlots[i].unk4;
@@ -223,7 +223,7 @@ void block_spawn_all(u8 *arg0, u8 *arg1) {
  * Free entries with speed (unk0C) are pushed along by coll_step_xz and
  * may latch onto a matching gBlockSlots lift within range; hitting one
  * (coll_probe_vehicles) resets the speed from the player's movement since last
- * frame (capped by D_802FDBE0[arg0]); then collision, a heading update
+ * frame (capped by gBlockPushSpeedMax[arg0]); then collision, a heading update
  * and a slow-down. Latched entries glide toward their lift, then bounce
  * on it (h = v*t - 4t^2) until the bounce dies out. Also keeps a looping
  * sound (unk34) alive while an entry moves. The two-in-one assignments
@@ -257,8 +257,8 @@ void block_update(u8 arg0) {
             }
             if (gBlocks[i].unk0C != 0 && radar_has_marker(i) == 0) {
                 coll_step_xz(gBlocks[i].unk0, gBlocks[i].unk8, gBlocks[i].unk0C, gBlocks[i].unk0E);
-                gBlocks[i].unk0 = D_803F9320;
-                gBlocks[i].unk8 = D_803F9324;
+                gBlocks[i].unk0 = gCollStepX;
+                gBlocks[i].unk8 = gCollStepZ;
                 gBlocks[i].unk4 = coll_ground_height(gBlocks[i].unk0, gBlocks[i].unk8, gBlocks[i].unk4);
                 gBlocks[i].unk28 = gGroundTriId;
                 found = 0;
@@ -270,7 +270,7 @@ void block_update(u8 arg0) {
                         dy = (gBlocks[i].unk4 - gBlockSlots[j].unk4) >> 5;
                         dz = (gBlocks[i].unk8 - gBlockSlots[j].unk8) >> 5;
                         dist = sqrtf(dx * dx + dy * dy + dz * dz);
-                        if (dist <= D_802FDC08[gBlocks[i].unk10].unk286) {
+                        if (dist <= gBlockModels[gBlocks[i].unk10].unk286) {
                             gBlocks[i].unk24 = util_dist2d(gBlocks[i].unk0, gBlocks[i].unk8,
                                                                 gBlockSlots[j].unk0, gBlockSlots[j].unk8);
                             gBlocks[i].unk1C = gBlocks[i].unk4;
@@ -284,25 +284,25 @@ void block_update(u8 arg0) {
                 }
             }
             coll_begin_probe(gBlocks[i].unk0, gBlocks[i].unk4, gBlocks[i].unk8);
-            hit = coll_probe_vehicles(D_802FDC08[gBlocks[i].unk10].radius);
+            hit = coll_probe_vehicles(gBlockModels[gBlocks[i].unk10].radius);
             if (hit != 0) {
                 if (gProbeHitCarrier == 0 && gProbeHitPlayer != 0) {
                     gVehSlowed = 1;
                 }
-                near = D_8036443C != 0 || arg0 == 9;
-                if ((D_8039C950 == arg0 && near) || gProbeHitCarrier != 0) {
+                near = gPlayerSpeed != 0 || arg0 == 9;
+                if ((gBlockPrevVehicle == arg0 && near) || gProbeHitCarrier != 0) {
                     if (gProbeHitCarrier == 0) {
-                        dx = gPlayerX - D_8039C944,
-                        dy = gPlayerY - D_8039C948,
-                        dz = gPlayerZ - D_8039C94C;
+                        dx = gPlayerX - gBlockPrevPlayerX,
+                        dy = gPlayerY - gBlockPrevPlayerY,
+                        dz = gPlayerZ - gBlockPrevPlayerZ;
                     } else {
-                        dx = gCarrierX - D_8039C954,
-                        dy = gCarrierY - D_8039C958,
-                        dz = gCarrierZ - D_8039C95C;
+                        dx = gCarrierX - gBlockPrevCarrierX,
+                        dy = gCarrierY - gBlockPrevCarrierY,
+                        dz = gCarrierZ - gBlockPrevCarrierZ;
                     }
                     gBlocks[i].unk0C = sqrtf(dx * dx + dy * dy + dz * dz) + 10.0f;
-                    if (gBlocks[i].unk0C > D_802FDBE0[arg0]) {
-                        gBlocks[i].unk0C = D_802FDBE0[arg0];
+                    if (gBlocks[i].unk0C > gBlockPushSpeedMax[arg0]) {
+                        gBlocks[i].unk0C = gBlockPushSpeedMax[arg0];
                     }
                 } else {
                     gBlocks[i].unk0C = 0;
@@ -312,8 +312,8 @@ void block_update(u8 arg0) {
                 old10 = gFreeArcStart, old12 = gFreeArcEnd;
                 moved = 0;
                 coll_probe_tris(gBlocks[i].unk0, gBlocks[i].unk4, gBlocks[i].unk8,
-                              D_802FDC08[gBlocks[i].unk10].radius, 200, gBlocks[i].unk10);
-                coll_probe_objects(D_802FDC08[gBlocks[i].unk10].radius, 0);
+                              gBlockModels[gBlocks[i].unk10].radius, 200, gBlocks[i].unk10);
+                coll_probe_objects(gBlockModels[gBlocks[i].unk10].radius, 0);
                 if (old10 != gFreeArcStart || old12 != gFreeArcEnd) {
                     moved = 1;
                 }
@@ -332,7 +332,7 @@ void block_update(u8 arg0) {
             }
             if ((drop || arg0 == 0) && gBlocks[i].unk12 == 0) {
                 radar_set_marker(i, gBlocks[i].unk0, gBlocks[i].unk4, gBlocks[i].unk8,
-                              D_802FDC08[gBlocks[i].unk10].radius);
+                              gBlockModels[gBlocks[i].unk10].radius);
                 gBlocks[i].unk0C = 0;
             } else {
                 radar_remove_marker(i);
@@ -424,13 +424,13 @@ void block_update(u8 arg0) {
             snd_stop((void *) N64_IPTR((gBlocks[i].unk34)));
         }
     }
-    D_8039C944 = gPlayerX;
-    D_8039C948 = gPlayerY;
-    D_8039C94C = gPlayerZ;
-    D_8039C950 = arg0;
-    D_8039C954 = gCarrierX;
-    D_8039C958 = gCarrierY;
-    D_8039C95C = gCarrierZ;
+    gBlockPrevPlayerX = gPlayerX;
+    gBlockPrevPlayerY = gPlayerY;
+    gBlockPrevPlayerZ = gPlayerZ;
+    gBlockPrevVehicle = arg0;
+    gBlockPrevCarrierX = gCarrierX;
+    gBlockPrevCarrierY = gCarrierY;
+    gBlockPrevCarrierZ = gCarrierZ;
 }
 
 /* Marks the slot's target box done (0x80291724).
@@ -472,12 +472,12 @@ void block_draw(Gfx **gdl, Dyn4B5E0 *dyn) {
     for (i = 0; i < gBlockCount; i++) {
         guTranslate(&dyn->mtx[i], gBlocks[i].unk0 / 32.0f, gBlocks[i].unk4 / 32.0f,
                     gBlocks[i].unk8 / 32.0f);
-        gSPMatrix(gfx++, i * sizeof(Mtx) + 0xB00 + (u32) D_02000000, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+        gSPMatrix(gfx++, i * sizeof(Mtx) + 0xB00 + (u32) seg2Base, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
         gDPLoadTextureBlock(gfx++, gBlocks[i].unk30 - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b,
-                            D_802FDC08[gBlocks[i].unk10].width, D_802FDC08[gBlocks[i].unk10].height, 0,
+                            gBlockModels[gBlocks[i].unk10].width, gBlockModels[gBlocks[i].unk10].height, 0,
                             G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK,
                             G_TX_NOLOD, G_TX_NOLOD);
-        gSPDisplayList(gfx++, osVirtualToPhysical(&D_802FDC08[gBlocks[i].unk10]));
+        gSPDisplayList(gfx++, osVirtualToPhysical(&gBlockModels[gBlocks[i].unk10]));
         gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
     }
     gDPPipeSync(gfx++);
@@ -493,7 +493,7 @@ void block_attach_to_vehicle(u8 arg0) {
     for (i = 0; i < gBlockCount; i++) {
         if (gBlocks[i].unk28 == arg0) {
             gBlocks[i].unk0C = 0;
-            *(&D_8039C579 + i * 0x38) = 1;
+            *(&gBlock0Riding + i * 0x38) = 1;
             veh_deck_to_local_c(arg0, gBlocks[i].unk0, gBlocks[i].unk8, &gBlocks[i].unk2A,
                           &gBlocks[i].unk2C);
         }
@@ -537,7 +537,7 @@ void block_test_sphere(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
         if (gBlocks[i].unk11 == 0 && gBlocks[i].unk29 == 0) {
             dist = util_dist3d(arg0, arg1, arg2, gBlocks[i].unk0 >> 5, gBlocks[i].unk4 >> 5,
                                  gBlocks[i].unk8 >> 5);
-            if (dist <= (D_802FDC08[gBlocks[i].unk10].radius >> 5) + arg3) {
+            if (dist <= (gBlockModels[gBlocks[i].unk10].radius >> 5) + arg3) {
                 gCollHit = 1;
             }
         }

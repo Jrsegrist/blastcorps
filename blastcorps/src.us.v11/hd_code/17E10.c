@@ -9,86 +9,86 @@
 
 /* The attract demo's windows at fixed frames (0x8025C5D0). */
 void hud_attract_messages(void) {
-    switch (((u32) D_802E8BEC)) {
+    switch (((u32) gRecDemoNumber)) {
         case 0:
             if (gGameMode == MODE_ATTRACT) {
                 if (((s32) gFramesInMode) == 0x96) {
-                    yoshi_demand(0x803E);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO0_MSG1);
                 }
                 if (((s32) gFramesInMode) == 0x190) {
-                    yoshi_demand(0x8025);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO0_MSG2);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    yoshi_demand(0x8026);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO0_MSG3);
                 }
             } else {
                 if (((s32) gFramesInMode) == 0x64) {
-                    yoshi_demand(0x8027);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG1);
                 }
                 if (((s32) gFramesInMode) == 0x12C) {
-                    yoshi_demand(0x8028);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG2);
                 }
                 if (((s32) gFramesInMode) == 0x1F4) {
-                    yoshi_demand(0x8029);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG3);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    yoshi_demand(0x802A);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG4);
                 }
             }
             break;
         case 1:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802B);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO1_MSG1);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                yoshi_demand(0x802C);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO1_MSG2);
             }
             break;
         case 2:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802D);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO2_MSG);
             }
             break;
         case 3:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802E);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO3_MSG);
             }
             break;
         case 4:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802F);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO4_MSG);
             }
             break;
         case 5:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8030);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO5_MSG);
             }
             break;
         case 6:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8031);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO6_MSG1);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                yoshi_demand(0x8032);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO6_MSG2);
             }
             break;
         case 7:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8033);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO7_MSG);
             }
             break;
         case 8:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8034);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO8_MSG);
             }
             break;
     }
     if (((s32) gFramesInMode) == 0x82) {
-        D_80366A18 = 1;
+        gAttractStartOk = 1;
     }
 }
 
-extern void * N64P D_80366BA4;
+extern void * N64P gAttractBufs;
 extern s32 D_80366BA8;
 extern u8 D_80366A10;
 extern u8 D_80366A11;
@@ -103,36 +103,36 @@ Gfx *title_draw_attract(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
     Gfx *gfx;
     s32 i;
 
-    time = D_803156C4;
+    time = gSchedFrameCount;
     gfx = arg0;
-    if (D_802E8BF0 != 0 && (gGameMode & MODE_ATTRACT)) {
+    if (gRecDemoNoLogo != 0 && (gGameMode & MODE_ATTRACT)) {
         if (arg2) {
-            buf = D_80366BA4;
+            buf = gAttractBufs;
         } else {
-            buf = (u8 *) D_80366BA4 + 0x3c0;
+            buf = (u8 *) gAttractBufs + 0x3c0;
         }
         D_80366BA8 = 0;
         if (((s32) gFramesInMode) == 0) {
             D_80366A10 = 0;
             D_80366A11 = 0;
         }
-        if ((u32) ((s32) gFramesInMode) > D_80366A04) {
+        if ((u32) ((s32) gFramesInMode) > gRecDemoLength) {
             if (time < gAttractFadeTime + 0x78) {
                 gDPPipeSync(gfx++);
-                gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-                gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                gSPMatrix(gfx++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+                gSPMatrix(gfx++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
                 gDPSetRenderMode(gfx++, 0x00504340, 0);
                 gDPSetCombineMode(gfx++, G_CC_SHADE, G_CC_SHADE);
                 gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
                 gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
-                gSPVertex(gfx++, (u32) D_802FA8B0[arg2] - 0x80000000, 4, 0);
+                gSPVertex(gfx++, (u32) gFadeVtx[arg2] - 0x80000000, 4, 0);
                 gSP1Triangle(gfx++, 0, 1, 2, 0);
                 gSP1Triangle(gfx++, 0, 2, 3, 0);
                 for (i = 0; i < 4; i++) {
-                    D_802FA8B0[arg2][i].v.cn[0] = 0;
-                    D_802FA8B0[arg2][i].v.cn[1] = 0;
-                    D_802FA8B0[arg2][i].v.cn[2] = 0;
-                    D_802FA8B0[arg2][i].v.cn[3] = (time - gAttractFadeTime) * 2.125;
+                    gFadeVtx[arg2][i].v.cn[0] = 0;
+                    gFadeVtx[arg2][i].v.cn[1] = 0;
+                    gFadeVtx[arg2][i].v.cn[2] = 0;
+                    gFadeVtx[arg2][i].v.cn[3] = (time - gAttractFadeTime) * 2.125;
                 }
                 title_draw_vehicles(&gfx);
             } else {
@@ -147,7 +147,7 @@ Gfx *title_draw_attract(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
                 title_draw_vehicles(&gfx);
             }
         } else {
-            if (D_80366A04 == ((s32) gFramesInMode)) {
+            if (gRecDemoLength == ((s32) gFramesInMode)) {
                 gAttractFadeTime = time;
             }
             title_draw_vehicles(&gfx);
@@ -159,62 +159,62 @@ Gfx *title_draw_attract(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
     return gfx;
 }
 
-extern void * N64P D_80366BA0;
-extern void * N64P D_80366BA4;
+extern void * N64P gAttractQuadVtx;
+extern void * N64P gAttractBufs;
 
-/* No callers: takes 0x40 bytes of heap for four Vtx of a 20x79 textured quad (D_80366BA0), then 0x780 bytes
- * (D_80366BA4, the two halves title_draw_attract selects); leftover attract code (0x8025CE74). */
+/* No callers: takes 0x40 bytes of heap for four Vtx of a 20x79 textured quad (gAttractQuadVtx), then 0x780 bytes
+ * (gAttractBufs, the two halves title_draw_attract selects); leftover attract code (0x8025CE74). */
 void title_alloc_attract_bufs(void) {
-    D_80366BA0 = gHeapPtr;
-    gHeapPtr = (u8 *) D_80366BA0 + 0x40;
+    gAttractQuadVtx = gHeapPtr;
+    gHeapPtr = (u8 *) gAttractQuadVtx + 0x40;
 
-    *(u16 *) ((u8 *) D_80366BA0 + 0x0) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x2) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x4) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x6) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x8) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0xa) = 0x9e0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0xc) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0xd) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0xe) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0xf) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x10) = 0x14;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x12) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x14) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x16) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x18) = 0x280;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x1a) = 0x9e0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x1c) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x1d) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x1e) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x1f) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x20) = 0x14;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x22) = 0x4f;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x24) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x26) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x28) = 0x280;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x2a) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x2c) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x2d) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x2e) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x2f) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x30) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x32) = 0x4f;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x34) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x36) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x38) = 0;
-    *(u16 *) ((u8 *) D_80366BA0 + 0x3a) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x3c) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x3d) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x3e) = 0;
-    *(u8 *)  ((u8 *) D_80366BA0 + 0x3f) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x0) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x2) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x4) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x6) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x8) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0xa) = 0x9e0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0xc) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0xd) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0xe) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0xf) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x10) = 0x14;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x12) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x14) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x16) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x18) = 0x280;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x1a) = 0x9e0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x1c) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x1d) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x1e) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x1f) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x20) = 0x14;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x22) = 0x4f;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x24) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x26) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x28) = 0x280;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x2a) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x2c) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x2d) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x2e) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x2f) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x30) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x32) = 0x4f;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x34) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x36) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x38) = 0;
+    *(u16 *) ((u8 *) gAttractQuadVtx + 0x3a) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x3c) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x3d) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x3e) = 0;
+    *(u8 *)  ((u8 *) gAttractQuadVtx + 0x3f) = 0;
 
-    D_80366BA4 = gHeapPtr;
-    gHeapPtr = (u8 *) D_80366BA4 + 0x780;
+    gAttractBufs = gHeapPtr;
+    gHeapPtr = (u8 *) gAttractBufs + 0x780;
 }
 
-extern u8 D_00487050[];
-extern u8 D_00489E70[];
+extern u8 romTitleLogo[];
+extern u8 romTitlePicture[];
 extern u32 gLogoImages[];
 
 /* 0: the 280x64 logo strip, 1: the 156x156 picture (0x8025D0B0). */
@@ -228,12 +228,12 @@ void title_load_logo_image(u8 arg0) {
 
     switch (arg0) {
         case 1:
-            rom = D_00489E70;
-            size = D_0048F5A0 - D_00489E70;
+            rom = romTitlePicture;
+            size = romBootBanner - romTitlePicture;
             break;
         case 0:
-            rom = D_00487050;
-            size = D_00489E70 - D_00487050;
+            rom = romTitleLogo;
+            size = romTitlePicture - romTitleLogo;
             break;
     }
     hd_rom_load((u32) rom, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
@@ -445,9 +445,9 @@ Gfx *title_draw_logo(Gfx *arg0, s32 arg1, s32 *arg2) {
 void title_draw_vehicles(Gfx **arg0) {
     Gfx *gfx = *arg0;
 
-    gSPMatrix(gfx++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gfx++, &D_02000000[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     veh_draw_layer(&gfx, 0);
     veh_draw_layer(&gfx, 1);
     veh_draw_layer(&gfx, 2);
@@ -456,7 +456,7 @@ void title_draw_vehicles(Gfx **arg0) {
 
 extern u8 gLevelDoneSeen;
 extern u16 gLevelDoneWindow;
-extern u8 D_80366BC4;
+extern u8 gLevelDoneTuneOn;
 extern u32 gEndSeqTime;
 extern u32 gLevelDoneDelay[];
 
@@ -467,56 +467,56 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
     gfx = *arg0;
     if (gLevelDone != 0 && areWeFading() == 0) {
         if (gLevelDoneSeen == 0) {
-            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            obj_tally(gLevelInfo[levelno * 68] == LEVEL_KIND_BUILDINGS || gLevelInfo[levelno * 68] == LEVEL_KIND_MISSION_TIMED);
             gEndSeqTime = 0;
             if ((players[playerNumber][levelno + 0x18] > 0 &&
                  players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
                 snd_stop_all_repeating();
                 snd_stop_all_looping();
-                gLevelDoneWindow = 5;
-                D_80366BC4 = 0;
-                if (((s32) gLevelKind) != 1) {
+                gLevelDoneWindow = YW_LEVEL_DONE;
+                gLevelDoneTuneOn = 0;
+                if (((s32) gLevelKind) != LEVEL_KIND_MISSION) {
                     music_play_done_tune();
-                    D_80366BC4 = 1;
+                    gLevelDoneTuneOn = 1;
                 }
             } else {
                 switch (levelno) {
                     case 0x28:
                         snd_stop_all_looping();
                         music_push_danger_tune();
-                        gLevelDoneWindow = 0x1E;
-                        D_80366BC4 = 0;
+                        gLevelDoneWindow = YW_MOON_DONE;
+                        gLevelDoneTuneOn = 0;
                         break;
                     case 0x32:
                         snd_stop_all_looping();
                         music_push_tune(MUS_FINALE);
-                        gLevelDoneWindow = 0x23;
-                        D_80366BC4 = 0;
+                        gLevelDoneWindow = YW_SHUTTLE_DONE;
+                        gLevelDoneTuneOn = 0;
                         break;
                     default:
                         snd_stop_all_looping();
-                        gLevelDoneWindow = 5;
+                        gLevelDoneWindow = YW_LEVEL_DONE;
                         music_play_done_tune();
-                        D_80366BC4 = 1;
+                        gLevelDoneTuneOn = 1;
                         break;
                 }
             }
-            yoshi_demand(gLevelDoneWindow | 0x8000 | 0x2000);
-            gYoshiPendingWindow = -1;
-            if (gLevelDoneWindow == 5) {
+            yoshi_demand(gLevelDoneWindow | YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE);
+            gYoshiPendingWindow = NO_YOSHI_WINDOW;
+            if (gLevelDoneWindow == YW_LEVEL_DONE) {
                 snd_play(gSfxBank, snd_random_id(SND_GROUP_LEVEL_DONE), NULL);
             }
         }
         gLevelDoneSeen = gLevelDone;
         if (gEndSeqTime == 0) {
             if (yoshiState == 8 && currentYoshiWindow == gLevelDoneWindow) {
-                gEndSeqTime = D_803156C4;
+                gEndSeqTime = gSchedFrameCount;
                 hud_panel_stop();
                 hud_panel_start(2, 1, 2, snd_random_id(SND_GROUP_DONE_PANEL));
             }
         } else if (alCSPGetState(gMusicPlayer) == 0 ||
-                   (D_80366BC4 != 0 && D_803156C4 - gDoneTuneStartTime >= 0x1E1) ||
-                   (D_80366BC4 == 0 && D_803156C4 - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
+                   (gLevelDoneTuneOn != 0 && gSchedFrameCount - gDoneTuneStartTime >= 0x1E1) ||
+                   (gLevelDoneTuneOn == 0 && gSchedFrameCount - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & LEVEL_KIND_ANY_MISSION) ? 1 : 0])) {
             fade_to_mode_speed(MODE_RESULTS, 0.75f);
             gEndSeqTime = 0;
             gLevelDoneSeen = 0;
@@ -538,28 +538,28 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
     u32 alpha;
 
     gfx = *arg0;
-    time = D_803156C4;
+    time = gSchedFrameCount;
     if (gCarrierHit != 0) {
-        if (D_803643D8 == 0) {
+        if (gCarrierHitSeen == 0) {
             snd_stop_all();
-            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            obj_tally(gLevelInfo[levelno * 68] == LEVEL_KIND_BUILDINGS || gLevelInfo[levelno * 68] == LEVEL_KIND_MISSION_TIMED);
             switch (levelno) {
                 case 0x31:
                     snd_play(gSfxBank, SFX_FAIL_CRASH, NULL);
                     music_fade_to(0.0f);
                     break;
                 case 0x32:
-                    gYoshiPendingWindow = -1;
-                    yoshi_demand(0xA00E);
+                    gYoshiPendingWindow = NO_YOSHI_WINDOW;
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE | YW_MISSION_FAILED);
                     music_fade_to(0.0f);
                     break;
                 default:
                     snd_play(gSfxBank, SFX_FAIL_CRASH, NULL);
                     gPauseRequest = 1;
-                    if (currentYoshiWindow != -1 || yoshi_get_demand() != 0) {
-                        yoshi_demand(0x4000);
+                    if (currentYoshiWindow != NO_YOSHI_WINDOW || yoshi_get_demand() != 0) {
+                        yoshi_demand(YOSHI_DEMAND_OFF);
                     }
-                    gYoshiPendingWindow = -1;
+                    gYoshiPendingWindow = NO_YOSHI_WINDOW;
                     music_fade_to(0.0f);
                     break;
             }
@@ -590,14 +590,14 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                         snd_play(gSfxBank, SFX_MISSION_FAILED, NULL);
                         gFailSoundPlayed = 1;
                     }
-                    gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-                    gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                    gSPMatrix(gfx++, &seg2Base[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+                    gSPMatrix(gfx++, &seg2Base[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
                     gDPPipeSync(gfx++);
                     gDPSetRenderMode(gfx++, 0x00504340, 0);
                     gDPSetCombineMode(gfx++, G_CC_SHADE, G_CC_SHADE);
                     gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
                     gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
-                    gSPVertex(gfx++, (u32) D_802FA8B0[arg2] - 0x80000000, 4, 0);
+                    gSPVertex(gfx++, (u32) gFadeVtx[arg2] - 0x80000000, 4, 0);
                     gSP1Triangle(gfx++, 0, 1, 2, 0);
                     gSP1Triangle(gfx++, 0, 2, 3, 0);
                     gDPPipeSync(gfx++);
@@ -606,7 +606,7 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                             alpha = (time - gEndSeqTime - 0xB4) * 2.8333333333333335;
                             for (i = 0; i < 4; i++) {
                                 for (j = 0; j < 4; j++) {
-                                    D_802FA8B0[arg2][i].v.cn[j] = alpha;
+                                    gFadeVtx[arg2][i].v.cn[j] = alpha;
                                 }
                             }
                         } else if (time - gEndSeqTime - 0x10E >= 0x2E) {
@@ -621,7 +621,7 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                         } else {
                             for (i = 0; i < 4; i++) {
                                 for (j = 0; j < 4; j++) {
-                                    D_802FA8B0[arg2][i].v.cn[j] = 0xFF;
+                                    gFadeVtx[arg2][i].v.cn[j] = 0xFF;
                                 }
                             }
                         }

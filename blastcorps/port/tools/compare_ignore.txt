@@ -42,7 +42,7 @@ gSndPlayer 60 the sound player (1A630.c): ALPlayer timing, event queue, lists in
 
 # --- graphics buffers
 803BE780 803C2B80 the visibility test's RSP task: its dram stack and RDP output buffer (5FD50.c cull_rsp_test)
-803C2B80 803C2B88 ... and the u64 its output_buff_size points at (D_803C2B80): the ucode stores the output's length (LLE RSP); the game never reads it
+803C2B80 803C2B88 ... and the u64 its output_buff_size points at (gCullOutputEnd): the ucode stores the output's length (LLE RSP); the game never reads it
 gDynamicBufs 42930 per-frame graphics data, two of 0x21498 (display lists, matrices, vertices)
 
 # --- the scheduler (2C560.c): message history and performance timers
@@ -56,7 +56,7 @@ gDynamicBufs 42930 per-frame graphics data, two of 0x21498 (display lists, matri
 80364AC8 80364AD8 the main loop's CPU meters (osGetTime deltas / 7825, 00000.c hd_main_thread)
 80368050 80368070 audio thread timing (22EE0.c .bss: osGetTime stamps)
 803156C8 803156D8 scheduler: rdpStartTime / gfxStartTime (osGetTime, performance display only)
-D_802FA270 4 scheduler: "frame task done, time the next one" flag (gates gfxStartTime only; RSP timing)
+gSchedTimeGfxStart 4 scheduler: "frame task done, time the next one" flag (gates gfxStartTime only; RSP timing)
 8036BEF0 8036BF10 scheduler yield timers (osGetTime deltas, printed only)
 8036BF20 8036BF58 scheduler RDP/gfx/retrace times (osGetTime deltas, performance display only)
 

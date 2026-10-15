@@ -23,19 +23,19 @@ typedef struct DynamicBuf {
     Mtx cullView; /* 0x180: the visibility test's view (guLookAt, the eye pulled in) */
     Mtx identity; /* 0x1C0: the modelview */
     Mtx unk200;
-    Mtx unk240;
-    Mtx unk280;
-    Mtx unk2C0[0x49]; /* one per vehicle */
-    Mtx unk1500;
-    Mtx unk1540;
+    Mtx chopperShadowTrans; /* seg2 Mtx 9 */
+    Mtx chopperShadowRot;   /* seg2 Mtx 10 */
+    Mtx mtxPool[0x49]; /* [i]: vehicle shadow i (seg2 Mtx 11 + i); later slots: obj_draw_all, commpt_draw, other views */
+    Mtx failSpinVehMtx;    /* the failing vehicle's spin (seg2 Mtx 0x54) */
+    Mtx failSpinShadowMtx; /* its shadow (seg2 Mtx 0x55) */
     u8 pad1580[0x15C0 - 0x1580];
-    Vtx unk15C0[0x30]; /* vehicle shadow quads */
-    Vtx unk18C0[4]; /* shadow quad */
+    Vtx shadowVtx[0x30]; /* vehicle shadow quads, 4 per shadow */
+    Vtx chopperShadowVtx[4]; /* the chopper's shadow quad */
     u8 pad1900[0x3C00 - 0x1900];
     LookAt lookAt; /* 0x3C00: the camera's (reflection mapping) */
     u8 pad3C20[0x48B0 - 0x3C20];
     Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
-    u8 unkA3A0[0x21498 - 0xA3A0];
+    u8 subDls[0x21498 - 0xA3A0]; /* sub-display lists (lvl_build_visible_dls, obj_draw_all, commpt_draw) */
 } DynamicBuf;
 
 /* The front end's view of the same per-frame buffer (DynamicBuf). The
@@ -43,17 +43,17 @@ typedef struct DynamicBuf {
  * Dynamic) use layouts of their own. */
 typedef struct FeDyn {
     u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
+    Mtx view; /* lookat view (as DynamicBuf.view) */
     u8 pad180[0x240 - 0x180];
-    Mtx unk240; /* perspective (0DE70.c) */
+    Mtx commPointPersp; /* perspective (0DE70.c) */
     u8 pad280[0x1240 - 0x280];
-    Mtx unk1240; /* perspective */
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300; /* scene scale */
+    Mtx persp; /* perspective */
+    Mtx sceneTranslate;
+    Mtx sceneRotate;
+    Mtx sceneScale;
     u8 pad1340[0x1E00 - 0x1340];
-    Vtx unk1E00[0x1E0]; /* arrow quads */
-    LookAt unk3C00;
+    Vtx arrowVtx[0x1E0]; /* arrow quads */
+    LookAt lookAt;
     u8 pad3C20[0x48B0 - 0x3C20];
     Gfx dl[0xB5E]; /* top-level display list */
     u8 unkA3A0[0x21498 - 0xA3A0];
@@ -151,6 +151,43 @@ typedef struct VehState {
 #define VS_LAST_DIR 0xA5
 #define VEH_STATE_SIZE 0xA6
 
+/* Vehicle types ("diggers"): gCurVehicle, gNextVehicle, VehRecord.type (gVehicles),
+ * VehShadow.type, gCamType, gDigHitVehicle, the level file's 9-byte spawn records,
+ * gStandOn type bytes, the hit-sphere / collision-triangle owner ids.  From the
+ * dispatchers in hd.c (veh_enter / veh_leave / veh_exit_check / veh_update_player),
+ * 5CB60.c lvl_spawn_vehicles / lvl_load_model and each type's veh_add_record. */
+#define VEH_DRIVER       0    /* on foot: driver_spawn / driver_update, veh_add_record(0, ..) (69BB0.c) */
+#define VEH_SIDESWIPE    1    /* sideswipe_* (6B4A0.c) */
+#define VEH_THUNDERFIST  2    /* thunderfist_* (6C5E0.c), veh_add_record(2, ..) */
+#define VEH_SKYFALL      3    /* skyfall_* (6E200.c: "vehicle type 3's state block") */
+#define VEH_RAMDOZER     4    /* ramdozer_* (6E200.c: "vehicle type 4's state block") */
+#define VEH_BACKLASH     5    /* backlash_* (71140.c), veh_add_record(5, ..) */
+#define VEH_CRANE        6    /* crane_* (75490.c), veh_add_record(6, ..) */
+#define VEH_TRAIN        7    /* train_* (772A0.c), veh_add_record(7, ..) */
+#define VEH_AMDREAM      8    /* amdream_* (72B80.c), veh_add_record(8, ..) */
+#define VEH_JBOMB        9    /* jbomb_* (7FB50.c), veh_add_record(9, ..) */
+#define VEH_BALLISTA     10   /* ballista_* (853D0.c), veh_add_record(10, ..) */
+#define VEH_BARGE_0B     11   /* barge_spawn_0b / gBarge0BState (83910.c) */
+#define VEH_POLICE       13   /* police_* (86F60.c), veh_add_record(0xD, ..) */
+#define VEH_ATEAM        14   /* ateam_* (88160.c), veh_add_record(0xE, ..) */
+#define VEH_STARSKI      15   /* starski_* (8AEE0.c), veh_add_record(0xF, ..) */
+#define VEH_CYCLONE      16   /* cyclone_* (8AEE0.c), veh_add_record(0x10, ..) */
+#define VEH_BARGE_11     17   /* barge_spawn_11 / gBarge11State (83910.c) */
+#define VEH_BARGE_12     18   /* barge_spawn_12 / gBarge12State (83910.c) */
+#define VEH_COUNT        19   /* types 0..18 (19-entry front-end tables; 12 has no code) */
+#define VEH_SHUTTLE      0xFD /* veh_add_record(0xFD, ..) (8DDB0.c gShuttleState); gCamType with gHaveShuttle */
+#define VEH_CHOPPER      0xFE /* the BCT chopper: veh_add_record(0xFE, ..) (72B80.c); veh_draw_chopper_shadow */
+#define VEH_CARRIER      0xFF /* the missile carrier: veh_add_record(0xFF, ..) (75490.c gCarrierMtxA) */
+
+/* Surface classes: the ground byte of a ground-grid triangle (+0x12) / level part
+ * triangle (+0x24) under each wheel slot -> gSlotSurface[3], VehState.surface (their
+ * average, classes >= 100 counted as 2) and VehState.surfaceMax / gSurfaceMax (62740.c). */
+#define SURFACE_NORMAL        1    /* default: no triangle / a moving deck (ground_slot_height); full speed bands */
+#define SURFACE_WATER         100  /* fails non-floating types (veh_ground_surface); jbomb_lift_off_water */
+#define SURFACE_SPIN_SHADOW   0x65 /* player's shadow drawn as the 32x32 gHudArrowTex turned by heading (veh_draw_shadows) */
+#define SURFACE_FATAL         0x66 /* gFailTrigger (veh_ground_surface) */
+#define SURFACE_DIAMOND_SANDS 0x67 /* level 12: gBounceDamping = 8 (veh_diamond_sands_damping) */
+
 /* The sound player's configuration (snd_init, 1A630.c; the ancestor of
  * GoldenEye's snd.c). */
 typedef struct SndConfig {
@@ -181,7 +218,7 @@ typedef struct VehShadow {
     /* 0x1024 */ u8 pad1024[0x1C];
 } VehShadow; /* 0x1040 bytes */
 
-/* A level result (D_8036EA60 best, nss this run, D_8036EA80/90). */
+/* A level result (gScoreOld best, nss this run, gScoreRes / gScoreRs2). */
 typedef struct Score {
     s32 ip;
     u32 tc; /* time */
@@ -200,13 +237,13 @@ typedef struct GlobeLevel {
     /* 0x04 */ char * N64P name;
     /* 0x08 */ u16 * N64P jname; /* hd_code glyph string (0x0FFE-terminated) */
     /* 0x0C */ s32 unkC;
-    /* 0x10 */ f32 unk10;
-    /* 0x14 */ f32 unk14;
-    /* 0x18 */ s8 unk18[4]; /* level ids, -1-terminated */
-    /* 0x1C */ s8 unk1C[8]; /* level ids, -1-terminated */
-    /* 0x24 */ f32 unk24;
-    /* 0x28 */ f32 unk28;
-    /* 0x2C */ f32 unk2C;
+    /* 0x10 */ f32 lat; /* latitude, degrees */
+    /* 0x14 */ f32 lon; /* longitude, degrees */
+    /* 0x18 */ s8 commRoutes[4]; /* levels opened by comm point j, -1-terminated */
+    /* 0x1C */ s8 routes[8]; /* levels opened when this one is done, -1-terminated */
+    /* 0x24 */ f32 x; /* globe position (radius 250) from lat/lon */
+    /* 0x28 */ f32 y;
+    /* 0x2C */ f32 z;
 } GlobeLevel; /* size 0x30 */
 
 /* One save slot's progress: players[4] (0x80364AF0), Rare's "playerInfo"
@@ -227,7 +264,7 @@ typedef struct PlayerInfo {
     /* 0x54 */ u8 commPts[60];        /* per level: bit n = communication point n taken (opens routes) */
     /* 0x90 */ u8 academy;            /* bit per academy marker found (6) */
     /* 0x91 */ u8 gameState;          /* academy.c's progress state, 0-13 */
-    /* 0x92 */ u8 bestVehicle[60];    /* per level: the vehicle of the best result (D_802E8C44 -> gBestTimes slot) */
+    /* 0x92 */ u8 bestVehicle[60];    /* per level: the vehicle of the best result (gVehicleTimeSlot -> gBestTimes slot) */
     /* 0xCE */ u8 hintShows[0x12];    /* times each hint window 0x46-0x57 was shown (yoshi_show_hint) */
     /* 0xE0 */ u8 padE0[0xE];
     /* 0xEE */ u8 demosSeen;          /* bits: the vehicle demo sequences 55, 28, 53, 7, 19 seen */

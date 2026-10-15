@@ -22,23 +22,23 @@ extern u8 * N64P gShuttleMtxB;
 extern u8 gShuttleState[]; /* this vehicle's state block */
 extern u8 gShuttleAnim[]; /* channel table */
 extern void * N64P gShuttleSound; /* sound state */
-extern u8 D_803FCD72;
-extern u8 D_803FCD73;
-extern u8 D_803FCD74;
-extern u8 D_803FCD76;
-extern u8 D_803FCD77;
-extern u8 D_803FCD78;
-extern u8 D_803FCD79;
-extern u8 D_803FCD7A;
+extern u8 gShuttlePoint1Sounded;
+extern u8 gShuttlePoint2Sounded;
+extern u8 gShuttlePoint3Sounded;
+extern u8 gShuttleFlameTimer;
+extern u8 gShuttleFlamesOn;
+extern u8 gShuttleSmokeOn;
+extern u8 gShuttleSmokeTimer;
+extern u8 gShuttleShakeOn;
 
 /* Sets up the shuttle (type 0xFD, lvl_spawn_shuttle) (0x802D2570).
  * Set up vehicle 0xFD (the level-object dispatcher lvl_spawn_shuttle): model
  * header hdr -> gShuttleModel; two 0x800-byte save copies from the gHeapPtr
  * bump pointer (gShuttleMtxA/B; trapping adds); veh_add_record(0xFD, 0,
  * copies, hdr); heading/target/speed of gShuttleState and the event flags
- * D_803FCD72..7A (but 75) cleared; model channels gShuttleAnim (anim_init_model,
+ * gShuttlePoint1Sounded..7A (but 75) cleared; model channels gShuttleAnim (anim_init_model,
  * channel 0 = (100, 0, 0, 0.0, 1), run into both copies); channel 2's sound
- * part: mode D_803FCD75 1 -> anim_set_frame(0.0, 2, 0), 0 -> start sound 0x6A
+ * part: mode gShuttlePathKind 1 -> anim_set_frame(0.0, 2, 0), 0 -> start sound 0x6A
  * into gShuttleSound at volume 0 (snd_play, snd_modify(.., 8, 0)) and
  * anim_set_frame(f0, 2, 1); then channels 2 = (0, 0, 1, -1) and 1 = (0, 0,
  * 0360 0.0, 1, -1); veh_add_shadow(0xFD, 120, 45, 45), util_shuttle_path_init, one
@@ -62,18 +62,18 @@ void shuttle_spawn(u8 *hdr) {
     gShuttleMtxA = (u8 *) p;
     gShuttleMtxB = (u8 *) (p + 0x800);
     gHeapPtr = p + 0x1000;
-    veh_add_record(0xFD, 0, (s32) gShuttleMtxA, (s32) gShuttleMtxB, hdr);
+    veh_add_record(VEH_SHUTTLE, 0, (s32) gShuttleMtxA, (s32) gShuttleMtxB, hdr);
     *(s16 *) (gShuttleState + 0x4C) = 0;
     *(s16 *) (gShuttleState + 0x4E) = 0;
     *(s16 *) (gShuttleState + 0x76) = 0;
-    D_803FCD72 = 0;
-    D_803FCD73 = 0;
-    D_803FCD74 = 0;
-    D_803FCD76 = 0;
-    D_803FCD77 = 0;
-    D_803FCD7A = 0;
-    D_803FCD78 = 0;
-    D_803FCD79 = 0;
+    gShuttlePoint1Sounded = 0;
+    gShuttlePoint2Sounded = 0;
+    gShuttlePoint3Sounded = 0;
+    gShuttleFlameTimer = 0;
+    gShuttleFlamesOn = 0;
+    gShuttleShakeOn = 0;
+    gShuttleSmokeOn = 0;
+    gShuttleSmokeTimer = 0;
     anim_init_model((u32 *) gShuttleMtxB, (u32 *) gShuttleMtxA, (AnimChannel *) gShuttleAnim, gShuttleModel);
     anim_set_speed((AnimChannel *) gShuttleAnim, 0, 100);
     anim_set_reverse((AnimChannel *) gShuttleAnim, 0, 0);
@@ -84,7 +84,7 @@ void shuttle_spawn(u8 *hdr) {
     anim_rewind(0, (AnimChannel *) gShuttleAnim);
     anim_play((AnimChannel *) gShuttleAnim, 0, 1);
     anim_update_model(gShuttleMtxB, gShuttleMtxA, (AnimChannel *) gShuttleAnim);
-    if (D_803FCD75 == 0) {
+    if (gShuttlePathKind == 0) {
         snd = snd_play(gSfxBank, SFX_SHUTTLE_LOOP, &gShuttleSound);
         snd_modify(snd, 8, 0);
         anim_set_frame(0.0f, (AnimChannel *) gShuttleAnim, 2, 1);
@@ -100,7 +100,7 @@ void shuttle_spawn(u8 *hdr) {
     anim_set_frame(0.0f, (AnimChannel *) gShuttleAnim, 1, 0);
     anim_set_loop_mode((AnimChannel *) gShuttleAnim, 1, 1);
     anim_play((AnimChannel *) gShuttleAnim, 1, -1);
-    veh_add_shadow(0xFD, 120, 45, 45);
+    veh_add_shadow(VEH_SHUTTLE, 120, 45, 45);
     util_shuttle_path_init();
     gShuttleState[0x9A] = 1;
     shuttle_update();
@@ -196,7 +196,7 @@ extern void * N64P gShuttleSound; /* sound state, NULL = none */
 /* Its engine volume by distance from the camera (0x802D2A74).
  * Distance attenuation: if gShuttleSound is set, sets its volume (parameter 8)
  * to 0x7FFF - max(d - 0x3200, 0) / 4, clamped at 0, where d is the distance
- * from (gCamEyeX, gCamEyeY, gCamEyeZ) >> 11 to gShuttlePos/D_803FCD4C/D_803FCD50.
+ * from (gCamEyeX, gCamEyeY, gCamEyeZ) >> 11 to gShuttlePos/gShuttlePosY/gShuttlePosZ.
  * The asm's dead `sub` (x - gShuttlePos) and its `addi` trap on overflow; C
  * doesn't. Register note: the asm saves and restores every register; asm
  * caller shuttle_update keeps a0, a2, a3, t6, t7, f12 and f14 live across the
@@ -209,7 +209,7 @@ void shuttle_update_volume(void) {
         return;
     }
     DIST3_802ABCDC(dist, gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
-                   gShuttlePos, D_803FCD4C, D_803FCD50);
+                   gShuttlePos, gShuttlePosY, gShuttlePosZ);
     dist -= 0x3200;
     if (dist < 0) {
         dist = 0;
@@ -229,14 +229,14 @@ void shuttle_update_volume(void) {
 
 
 extern u8 gShuttleAnim[];
-extern u8 D_803FCD72;
-extern u8 D_803FCD73;
-extern u8 D_803FCD74;
-extern u8 D_803FCD76;
-extern u8 D_803FCD77;
-extern u8 D_803FCD78;
-extern u8 D_803FCD79;
-extern u8 D_803FCD7A;
+extern u8 gShuttlePoint1Sounded;
+extern u8 gShuttlePoint2Sounded;
+extern u8 gShuttlePoint3Sounded;
+extern u8 gShuttleFlameTimer;
+extern u8 gShuttleFlamesOn;
+extern u8 gShuttleSmokeOn;
+extern u8 gShuttleSmokeTimer;
+extern u8 gShuttleShakeOn;
 
 /* Spawns effect def at gVehPoints record (0xFD, n) (fx_spawn type 1 with
  * z = 1, tag 0, b35 0). For that type fx_spawn ignores its other fields;
@@ -254,15 +254,15 @@ extern u8 D_803FCD7A;
 /* Path events: sounds, shake, flame effects (0x802D2C20).
  * Per-frame event handling for this vehicle (id 0xFD in gVehPoints): event
  * gShuttlePathEvent 2 sets gShuttleAnim entry 1's fields (anim_set_speed/03D4/0290)
- * and plays sound 0x66; 3 plays 0x78; 0xB sets D_803FCD77/7A/78 and plays
- * 0x83; 0xC plays 0x7F into gShuttleSound and clears D_803FCD7A; 0xD clears
- * D_803FCD78. Unless D_8036B964, each of the three one-shot flags
- * D_803FCD72..74 still clear plays sound 6, 6, 8 (and gets set) once
- * D_803FCD60 (read once) reaches word +4 of gVehPoints record (0xFD, 1..3).
- * D_803FCD7A forces gShakeTime = 20 and gShakeSize = 400. D_803FCD78 and
- * D_803FCD77 each run a 5-frame countdown (D_803FCD79 / D_803FCD76) that
- * spawns effects at the vehicle's points 4 (D_802C28E4) or 4, 5, 6
- * (D_802C3804). Only caller shuttle_update (asm); the survey's t6/t7/s0/s1
+ * and plays sound 0x66; 3 plays 0x78; 0xB sets gShuttleFlamesOn/ShakeOn/SmokeOn and plays
+ * 0x83; 0xC plays 0x7F into gShuttleSound and clears gShuttleShakeOn; 0xD clears
+ * gShuttleSmokeOn. Unless gShuttleAborted, each of the three one-shot flags
+ * gShuttlePoint1Sounded..74 still clear plays sound 6, 6, 8 (and gets set) once
+ * gShuttleTriggerY (read once) reaches word +4 of gVehPoints record (0xFD, 1..3).
+ * gShuttleShakeOn forces gShakeTime = 20 and gShakeSize = 400. gShuttleSmokeOn and
+ * gShuttleFlamesOn each run a 5-frame countdown (gShuttleSmokeTimer / gShuttleFlameTimer) that
+ * spawns effects at the vehicle's points 4 (gFxDefKind04) or 4, 5, 6
+ * (gFxDefJetFlame). Only caller shuttle_update (asm); the survey's t6/t7/s0/s1
  * "outputs" are what anim_update_model sets after it, not read from here. */
 void shuttle_update_events(void) {
     u8 *rec;
@@ -279,65 +279,65 @@ void shuttle_update_events(void) {
             snd_play(gSfxBank, SFX_SHUTTLE_EVENT3, NULL);
             break;
         case 0xB:
-            D_803FCD77 = 1;
-            D_803FCD7A = 1;
-            D_803FCD78 = 1;
+            gShuttleFlamesOn = 1;
+            gShuttleShakeOn = 1;
+            gShuttleSmokeOn = 1;
             snd_play(gSfxBank, SFX_SHUTTLE_ROAR, NULL);
             break;
         case 0xC:
             snd_play(gSfxBank, SFX_SHUTTLE_LOOP2, &gShuttleSound);
-            D_803FCD7A = 0;
+            gShuttleShakeOn = 0;
             break;
         case 0xD:
-            D_803FCD78 = 0;
+            gShuttleSmokeOn = 0;
             break;
     }
 
-    if (D_8036B964 == 0) {
-        level = D_803FCD60;
-        if (D_803FCD72 == 0) {
+    if (gShuttleAborted == 0) {
+        level = gShuttleTriggerY;
+        if (gShuttlePoint1Sounded == 0) {
             veh_find_point(0xFD, 1, &rec);
             if (!(level < ((s32 *) rec)[1])) {
                 snd_play(gSfxBank, SFX_SHUTTLE_POINT, NULL);
-                D_803FCD72 = 1;
+                gShuttlePoint1Sounded = 1;
             }
         }
-        if (D_803FCD73 == 0) {
+        if (gShuttlePoint2Sounded == 0) {
             veh_find_point(0xFD, 2, &rec);
             if (!(level < ((s32 *) rec)[1])) {
                 snd_play(gSfxBank, SFX_SHUTTLE_POINT, NULL);
-                D_803FCD73 = 1;
+                gShuttlePoint2Sounded = 1;
             }
         }
-        if (D_803FCD74 == 0) {
+        if (gShuttlePoint3Sounded == 0) {
             veh_find_point(0xFD, 3, &rec);
             if (!(level < ((s32 *) rec)[1])) {
                 snd_play(gSfxBank, SFX_SHUTTLE_POINT3, NULL);
-                D_803FCD74 = 1;
+                gShuttlePoint3Sounded = 1;
             }
         }
     }
 
-    if (D_803FCD7A != 0) {
+    if (gShuttleShakeOn != 0) {
         gShakeTime = 20;
         gShakeSize = 400;
     }
-    if (D_803FCD78 != 0) {
-        if (D_803FCD79 != 0) {
-            D_803FCD79 -= 1;
+    if (gShuttleSmokeOn != 0) {
+        if (gShuttleSmokeTimer != 0) {
+            gShuttleSmokeTimer -= 1;
         } else {
-            D_803FCD79 = 4;
-            SPAWN_AT_FD(D_802C28E4, 0x107AC0, 4);
+            gShuttleSmokeTimer = 4;
+            SPAWN_AT_FD(gFxDefKind04, 0x107AC0, 4);
         }
     }
-    if (D_803FCD77 != 0) {
-        if (D_803FCD76 != 0) {
-            D_803FCD76 -= 1;
+    if (gShuttleFlamesOn != 0) {
+        if (gShuttleFlameTimer != 0) {
+            gShuttleFlameTimer -= 1;
         } else {
-            D_803FCD76 = 4;
-            SPAWN_AT_FD(D_802C3804, 0x53020, 4);
-            SPAWN_AT_FD(D_802C3804, 0x53020, 5);
-            SPAWN_AT_FD(D_802C3804, 0x5CC60, 6);
+            gShuttleFlameTimer = 4;
+            SPAWN_AT_FD(gFxDefJetFlame, 0x53020, 4);
+            SPAWN_AT_FD(gFxDefJetFlame, 0x53020, 5);
+            SPAWN_AT_FD(gFxDefJetFlame, 0x5CC60, 6);
         }
     }
 }
@@ -355,9 +355,9 @@ extern u8 gShuttleState[];   /* this vehicle's state block (the asm caller's $gp
 /* Its model matrix and points (0x802D2FA4).
  * Place this vehicle's model: m = the word at +4 of the header entry at
  * hdr + hdr[6] (hdr = gShuttleModel), plus the current save copy (gShuttleMtxA
- * when gBufferIndex is set, else gShuttleMtxB); rotation gModelRot/D_803ED392/D_803ED394 =
- * D_803FCD6A/6C/6E (6C also to the heading at +0x4C of gShuttleState and to
- * D_803FCD68); mtx_build_model(position gShuttlePos..50, scale 0x11558, m).
+ * when gBufferIndex is set, else gShuttleMtxB); rotation gModelRot/gModelRotY/gModelRotZ =
+ * gShuttleRotX/Y/Z (6C also to the heading at +0x4C of gShuttleState and to
+ * gShuttleHeading); mtx_build_model(position gShuttlePos..50, scale 0x11558, m).
  * Then the points (veh_points_transform, id 0xFD, hdr + hdr[0] .. hdr + hdr[1])
  * relative to the current save copy. The header offsets are added with
  * trapping adds.
@@ -374,12 +374,12 @@ void shuttle_build_model(void) {
     s32 *m;
 
     m = (s32 *) N64_IPTR((*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + (s32) (gBufferIndex ? gShuttleMtxA : gShuttleMtxB)));
-    gModelRot[0] = ((u16) D_803FCD6A);
-    *(u16 *) (gShuttleState + 0x4C) = ((u16) D_803FCD6C);
-    D_803FCD68 = ((u16) D_803FCD6C);
-    gModelRot[1] = ((u16) D_803FCD6C);
-    gModelRot[2] = ((u16) D_803FCD6E);
-    mtx_build_model(gShuttlePos, D_803FCD4C, D_803FCD50, 0x11558, m);
+    gModelRot[0] = ((u16) gShuttleRotX);
+    *(u16 *) (gShuttleState + 0x4C) = ((u16) gShuttleRotY);
+    gShuttleHeading = ((u16) gShuttleRotY);
+    gModelRot[1] = ((u16) gShuttleRotY);
+    gModelRot[2] = ((u16) gShuttleRotZ);
+    mtx_build_model(gShuttlePos, gShuttlePosY, gShuttlePosZ, 0x11558, m);
     base = gBufferIndex ? gShuttleMtxA : gShuttleMtxB;
     hdr = gShuttleModel;
     regs.v1 = 0;
@@ -404,45 +404,45 @@ void shuttle_build_model(void) {
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
  * bin. Code reaches it through the absolute D_ symbols. */
 typedef struct {
-    /* 802D30D0 */ s32 lp802D30D0; /* D_802D30D0: count */
+    /* 802D30D0 */ s32 lp802D30D0; /* gPathPartsLvl00: count */
     /* 802D30D4 */ LevelPart lp802D30D0_parts[8];
-    /* 802D3194 */ s32 lp802D3194; /* D_802D3194: count */
+    /* 802D3194 */ s32 lp802D3194; /* gPathPartsLvl01: count */
     /* 802D3198 */ LevelPart lp802D3194_parts[11];
-    /* 802D32A0 */ s32 lp802D32A0; /* D_802D32A0: count */
+    /* 802D32A0 */ s32 lp802D32A0; /* gPathPartsLvl02: count */
     /* 802D32A4 */ LevelPart lp802D32A0_parts[5];
-    /* 802D331C */ s32 lp802D331C; /* D_802D331C: count */
+    /* 802D331C */ s32 lp802D331C; /* gPathPartsLvl03: count */
     /* 802D3320 */ LevelPart lp802D331C_parts[7];
-    /* 802D33C8 */ s32 lp802D33C8; /* D_802D33C8: count */
+    /* 802D33C8 */ s32 lp802D33C8; /* gPathPartsLvl04: count */
     /* 802D33CC */ LevelPart lp802D33C8_parts[5];
-    /* 802D3444 */ s32 lp802D3444; /* D_802D3444: count */
+    /* 802D3444 */ s32 lp802D3444; /* gPathPartsLvl05: count */
     /* 802D3448 */ LevelPart lp802D3444_parts[10];
-    /* 802D3538 */ s32 lp802D3538; /* D_802D3538: count */
+    /* 802D3538 */ s32 lp802D3538; /* gPathPartsLvl09: count */
     /* 802D353C */ LevelPart lp802D3538_parts[9];
-    /* 802D3614 */ s32 lp802D3614; /* D_802D3614: count */
+    /* 802D3614 */ s32 lp802D3614; /* gPathPartsLvl0A: count */
     /* 802D3618 */ LevelPart lp802D3614_parts[7];
-    /* 802D36C0 */ s32 lp802D36C0; /* D_802D36C0: count */
+    /* 802D36C0 */ s32 lp802D36C0; /* gPathPartsLvl0C: count */
     /* 802D36C4 */ LevelPart lp802D36C0_parts[8];
-    /* 802D3784 */ s32 lp802D3784; /* D_802D3784: count */
+    /* 802D3784 */ s32 lp802D3784; /* gPathPartsLvl0D: count */
     /* 802D3788 */ LevelPart lp802D3784_parts[11];
-    /* 802D3890 */ s32 lp802D3890; /* D_802D3890: count */
+    /* 802D3890 */ s32 lp802D3890; /* gPathPartsLvl0E: count */
     /* 802D3894 */ LevelPart lp802D3890_parts[7];
-    /* 802D393C */ s32 lp802D393C; /* D_802D393C: count */
+    /* 802D393C */ s32 lp802D393C; /* gPathPartsLvl0F: count */
     /* 802D3940 */ LevelPart lp802D393C_parts[8];
-    /* 802D3A00 */ s32 lp802D3A00; /* D_802D3A00: count */
+    /* 802D3A00 */ s32 lp802D3A00; /* gPathPartsLvl10: count */
     /* 802D3A04 */ LevelPart lp802D3A00_parts[3];
-    /* 802D3A4C */ s32 lp802D3A4C; /* D_802D3A4C: count */
+    /* 802D3A4C */ s32 lp802D3A4C; /* gPathPartsLvl11: count */
     /* 802D3A50 */ LevelPart lp802D3A4C_parts[14];
-    /* 802D3BA0 */ s32 lp802D3BA0; /* D_802D3BA0: count */
+    /* 802D3BA0 */ s32 lp802D3BA0; /* gPathPartsLvl12: count */
     /* 802D3BA4 */ LevelPart lp802D3BA0_parts[2];
-    /* 802D3BD4 */ s32 lp802D3BD4; /* D_802D3BD4: count */
+    /* 802D3BD4 */ s32 lp802D3BD4; /* gPathPartsLvl1A: count */
     /* 802D3BD8 */ LevelPart lp802D3BD4_parts[11];
-    /* 802D3CE0 */ s32 lp802D3CE0; /* D_802D3CE0: count */
+    /* 802D3CE0 */ s32 lp802D3CE0; /* gPathPartsLvl1D: count */
     /* 802D3CE4 */ LevelPart lp802D3CE0_parts[10];
-    /* 802D3DD4 */ s32 lp802D3DD4; /* D_802D3DD4: count */
+    /* 802D3DD4 */ s32 lp802D3DD4; /* gPathPartsLvl21: count */
     /* 802D3DD8 */ LevelPart lp802D3DD4_parts[9];
-    /* 802D3EB0 */ s32 lp802D3EB0; /* D_802D3EB0: count */
+    /* 802D3EB0 */ s32 lp802D3EB0; /* gPathPartsLvl39: count */
     /* 802D3EB4 */ LevelPart lp802D3EB0_parts[8];
-    /* 802D3F74 */ s32 lp802D3F74; /* D_802D3F74: count */
+    /* 802D3F74 */ s32 lp802D3F74; /* gPathPartsLvl3A: count */
     /* 802D3F78 */ LevelPart lp802D3F74_parts[7];
 } TextData8E910; /* size 0xF50 */
 /* the members must sit at their ROM offsets (with 4-byte pointers) */

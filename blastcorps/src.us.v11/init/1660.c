@@ -1,18 +1,18 @@
 #include "common.h"
 #include <ultra64.h>
 
-extern s32 D_80222840;
-extern s32 D_802229E0;
-extern u8 *D_802229F0;
-extern s32 D_802229F4;
-extern s32 D_802229FC;
-extern s32 D_80222844;
-extern s32 D_802228D0[];
-extern s32 D_80222A08;
-extern s32 D_80222A0C;
-extern s32 D_80222A18;
-extern s32 D_80222A1C;
-extern s32 D_80222A20;
+extern s32 method;
+extern s32 gInflateHuftArena;
+extern u8 *inbuf;
+extern s32 slide;
+extern s32 header_bytes;
+extern s32 exit_code;
+extern s32 gGzipUnknownMethodMsg[];
+extern s32 bytes_in;
+extern s32 bytes_out;
+extern s32 insize;
+extern s32 inptr;
+extern s32 outcnt;
 
 void gzip_clear_bufs(void);
 s32  gzip_get_method(void);
@@ -23,20 +23,20 @@ extern void init_debug_printf(void *arg0, s32 arg1);
 /* Inflates the gzip member at *arg0 into *arg1 (arg2: the huft arena), skipping one leading pad byte, then
  * advances both pointers; the game's "kiunzip" (0x80220360). */
 void gzip_unzip(s32 *arg0, s32 *arg1, s32 arg2) {
-    D_802229F0 = *arg0;
-    D_802229F4 = *arg1;
-    D_802229E0 = arg2;
+    inbuf = *arg0;
+    slide = *arg1;
+    gInflateHuftArena = arg2;
 
     gzip_clear_bufs();
 
-    if (*(D_802229F0 + D_80222A1C) != 0x1F) {
-        D_80222A1C += 1;
+    if (*(inbuf + inptr) != 0x1F) {
+        inptr += 1;
     }
-    D_80222840 = gzip_get_method();
-    if (D_80222840 >= 0) {
+    method = gzip_get_method();
+    if (method >= 0) {
         inflate();
-        *arg0 += D_80222A1C;
-        *arg1 += D_80222A20;
+        *arg0 += inptr;
+        *arg1 += outcnt;
     }
 }
 
@@ -57,8 +57,8 @@ void gzip_unzip(s32 *arg0, s32 *arg1, s32 arg2) {
  * own compressor guarantees well-formed headers (same pattern confirmed
  * throughout the INFLATE implementation in init/0050.c/init/0E30.c).
  *
- * `*(D_80222A1C + D_802229F0)` vs `D_802229F0[D_80222A1C]` vs
- * `*(D_802229F0 + D_80222A1C)` below are NOT a style inconsistency - each
+ * `*(inptr + inbuf)` vs `inbuf[inptr]` vs
+ * `*(inbuf + inptr)` below are NOT a style inconsistency - each
  * spelling was needed to get IDO to pick the exact operand order the target
  * ROM uses for that specific access's address-add instruction. Addition is
  * commutative so all three compute the same value; don't "clean up" the
@@ -68,46 +68,46 @@ s32 gzip_get_method(void) {
     u8 flags;
     u32 xlen;
 
-    D_80222A1C += 2;
-    D_80222840 = -1;
-    D_802229FC = 0;
-    D_80222840 = *(D_80222A1C + D_802229F0);
-    D_80222A1C += 1;
+    inptr += 2;
+    method = -1;
+    header_bytes = 0;
+    method = *(inptr + inbuf);
+    inptr += 1;
 
-    if (D_80222840 != 8) {
-        init_debug_printf(D_802228D0, D_80222840);
-        D_80222844 = 1;
+    if (method != 8) {
+        init_debug_printf(gGzipUnknownMethodMsg, method);
+        exit_code = 1;
         return -1;
     }
 
-    flags = *(D_80222A1C + D_802229F0);
-    D_80222A1C += 1;
-    D_80222A1C += 6;
+    flags = *(inptr + inbuf);
+    inptr += 1;
+    inptr += 6;
 
     if (flags & GZIP_FHCRC) {
-        D_80222A1C += 2;
+        inptr += 2;
     }
 
     if (flags & GZIP_FEXTRA) {
-        xlen = *(D_80222A1C + D_802229F0);
-        D_80222A1C += 1;
-        xlen |= *(D_802229F0 + D_80222A1C) << 8;
-        D_80222A1C += 1;
-        D_80222A1C += xlen;
+        xlen = *(inptr + inbuf);
+        inptr += 1;
+        xlen |= *(inbuf + inptr) << 8;
+        inptr += 1;
+        inptr += xlen;
     }
 
     if (flags & GZIP_FNAME) {
-        while (D_802229F0[D_80222A1C++] != 0) {
+        while (inbuf[inptr++] != 0) {
         }
     }
 
     if (flags & GZIP_FCOMMENT) {
-        while (D_802229F0[D_80222A1C++] != 0) {
+        while (inbuf[inptr++] != 0) {
         }
     }
 
-    D_802229FC = D_80222A1C + 8;
-    return D_80222840;
+    header_bytes = inptr + 8;
+    return method;
 }
 
 /* Reverses the low `arg1` bits of `arg0` (canonical Huffman codes are
@@ -127,9 +127,9 @@ u32 reverse_bits(u32 arg0, s32 arg1, u32 arg2) {
 
 /* gzip's clear_bufs: zeroes outcnt, inptr and the byte counters before a new member (0x802206D0). */
 void gzip_clear_bufs(void) {
-    D_80222A20 = 0;
-    D_80222A1C = 0;
-    D_80222A18 = 0;
-    D_80222A0C = 0;
-    D_80222A08 = 0;
+    outcnt = 0;
+    inptr = 0;
+    insize = 0;
+    bytes_out = 0;
+    bytes_in = 0;
 }

@@ -2,10 +2,10 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_02000000 ((u8 *) D_02000000)
+#define seg2Base ((u8 *) seg2Base)
 #define gGlobeLevels ((GlobeLevel *) gGlobeLevels)
 #define gLvlselMarkerFrames ((u16 * N64P *) gLvlselMarkerFrames)
-#define D_802E8F38 ((Entry8 *) D_802E8F38)
+#define gAcademyMarkers ((Entry8 *) gAcademyMarkers)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define gDynamicBufs ((u8 *) gDynamicBufs)
 #define players ((PlayerInfo *) players)
@@ -28,8 +28,8 @@ typedef struct {
     Gfx * N64P dl[9];
 } DlTable;
 
-extern Gfx D_8020BC88[];
-extern DlTable D_8020BD08; /* per-category display lists */
+extern Gfx gLvlselAcademyIconDl[];
+extern DlTable gLvlselIconDls; /* per-category display lists */
 extern u16 gStarfieldPerspNorm; /* perspNorm */
 extern u16 * N64P gStarTextures; /* star textures, 16x16 RGBA16 each */
 extern Vtx gLvlselGlobeVtx[]; /* globe vertices, 6 faces x 64 */
@@ -167,13 +167,13 @@ void fe_lvlsel_build_globe_vtx(void) {
 
 /*
  * fe_lvlsel_build_globe_dl builds the globe display list: inflates worldtextures.raw
- * (ROM D_0066C900..D_0068B550) to the heap, carves the texture pointers out of
+ * (ROM romWorldTexturesRaw..romAttractPictures) to the heap, carves the texture pointers out of
  * its tail, builds the vertices (fe_lvlsel_build_globe_vtx) and emits, per face and grid cell,
  * five mip levels of a 17x17..2x2 RGBA16 texture plus two triangles.
  * Matched once the mip loop became a for loop with all three counters in its
  * header (`for (lod = 0, tmem = 0, texoff = 0; ...; lod++, tmem += step,
  * texoff += ww + 3)`) and two unused words sat below `size` (frame 0xB0).
- * D_0066C900 is a real symbol (undefined_syms.hd_front_end).
+ * romWorldTexturesRaw is a real symbol (undefined_syms.hd_front_end).
  */
 typedef struct {
     u16 tex[49][0x1A4];
@@ -201,8 +201,8 @@ Gfx *fe_lvlsel_build_globe_dl(void) {
     Gfx *dl;
 
     base = gHeapPtr;
-    size = D_0068B550 - D_0066C900;
-    hd_rom_load((u32) D_0066C900, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
+    size = romAttractPictures - romWorldTexturesRaw;
+    hd_rom_load((u32) romWorldTexturesRaw, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
     gHeapPtr += size;
     gStarTextures = (u16 *) (gHeapPtr - 0x6600);
     for (i = 0; i < 3; i++) {
@@ -210,7 +210,7 @@ Gfx *fe_lvlsel_build_globe_dl(void) {
     }
     gLvlselGlowTex = gHeapPtr - 0x3000;
     gLvlselGlowTex2 = gHeapPtr - 0x2000;
-    D_80215A84 = gHeapPtr - 0x1000;
+    gLvlselSunTex = gHeapPtr - 0x1000;
     gfx = (Gfx *) gHeapPtr;
     dl = gfx;
     fe_lvlsel_build_globe_vtx();
@@ -282,13 +282,13 @@ s32 fe_lvlsel_level_open(s32 level) {
     for (i = 0; i < 60; i++) {
         if (LEVEL_DONE(i)) {
             info = &gGlobeLevels[i];
-            for (j = 0; j < 8 && info->unk1C[j] != -1; j++) {
-                if (info->unk1C[j] == level) {
+            for (j = 0; j < 8 && info->routes[j] != -1; j++) {
+                if (info->routes[j] == level) {
                     return 1;
                 }
             }
-            for (j = 0; j < 4 && info->unk18[j] != -1; j++) {
-                if (info->unk18[j] == level && (players[playerNumber].commPts[i] & (1 << j))) {
+            for (j = 0; j < 4 && info->commRoutes[j] != -1; j++) {
+                if (info->commRoutes[j] == level && (players[playerNumber].commPts[i] & (1 << j))) {
                     return 1;
                 }
             }
@@ -324,7 +324,7 @@ Gfx *fe_lvlsel_build_academy_dl(void) {
         if (pass != 0) {
             gDPSetCombine(gfx++, 0x26A00A, 0x1F0C93FF);
         } else {
-            gSPDisplayList(gfx++, D_8020BC88);
+            gSPDisplayList(gfx++, gLvlselAcademyIconDl);
             gDPSetCombine(gfx++, 0x26A1FF, 0x1F1492FF);
         }
         for (i = 0; i < 60; i++) {
@@ -332,7 +332,7 @@ Gfx *fe_lvlsel_build_academy_dl(void) {
             s32 found;
 
             for (j = 0, found = 0; j < 6 && !found; j++) {
-                if (D_802E8F38[j].unk0 == i) {
+                if (gAcademyMarkers[j].unk0 == i) {
                     found = 1;
                 }
             }
@@ -370,7 +370,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
     s8 cat;
     u8 avail;
     f32 scale;
-    DlTable dls; /* initialised from D_8020BD08 */
+    DlTable dls; /* initialised from gLvlselIconDls */
     Gfx *cur;
     Gfx *prev;
     u8 r;
@@ -381,7 +381,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
     n = 0;
     flushed = 0;
     vtx = (Vtx *) gHeapPtr;
-    dls = D_8020BD08;
+    dls = gLvlselIconDls;
     prev = NULL;
     gHeapPtr += 0x1E00;
     gfx = (Gfx *) gHeapPtr;
@@ -430,7 +430,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
                 info = &gGlobeLevels[lvl];
                 if (fe_lvlsel_level_open(lvl)) {
                     if (avail) {
-                        for (j = 0, found = 0; j < 4 && info->unk18[j] != -1 && !found; j++) {
+                        for (j = 0, found = 0; j < 4 && info->commRoutes[j] != -1 && !found; j++) {
                             if (!(players[playerNumber].commPts[lvl] & (1 << j))) {
                                 found = 1;
                             }
@@ -439,7 +439,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
                             continue;
                         }
                     }
-                    if (gLevelInfo[lvl].kind & 0x81) {
+                    if (gLevelInfo[lvl].kind & LEVEL_KIND_ANY_MISSION) {
                         scale = 1.75f;
                     } else {
                         scale = 1.0f;
@@ -516,7 +516,7 @@ Gfx *fe_lvlsel_build_starfield_dl(void) {
     gSPTexture(gfx++, 0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON);
     k = 0;
     for (i = 0; i < 0x200; i += 16) {
-        gSPVertex(gfx++, (Vtx *) (i * 16 + 0x15C0 + (u32) D_02000000), 16, 0);
+        gSPVertex(gfx++, (Vtx *) (i * 16 + 0x15C0 + (u32) seg2Base), 16, 0);
         gDPPipeSync(gfx++);
         for (j = 0; j < 16; j += 4) {
             if (((i + j) >> 2) % 43 == 0) {

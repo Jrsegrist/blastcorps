@@ -6,7 +6,7 @@
  * uses game/game.h's. */
 #define LEGACY_gYoshiFeItems
 #define LEGACY_gLevelInfo
-#define LEGACY_D_802F47B0
+#define LEGACY_gYoshiColors
 #define LEGACY_gYoshiWindows
 #define LEGACY_gDynamicBufs
 #define LEGACY_players
@@ -16,7 +16,7 @@
 #ifdef NON_MATCHING
 #define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
 #define gLevelInfo ((LevelTimesView *) gLevelInfo)
-#define D_802F47B0 ((u8 *) D_802F47B0)
+#define gYoshiColors ((u8 *) gYoshiColors)
 #define gYoshiWindows ((MenuPage *) gYoshiWindows)
 #define gDynamicBufs ((PlayerSelDyn *) gDynamicBufs)
 #define players ((PlayerInfo *) players)
@@ -98,9 +98,9 @@ extern PlayerSelDyn gDynamicBufs[];
 #endif
 #endif
 extern char gSlotLabels[][25];
-extern u16 D_803046F8[];
-extern u16 D_80304710[];
-extern u16 D_80304730[];
+extern u16 gEraseGameJText[];
+extern u16 gIgnorePakJText[];
+extern u16 gGoBackJText[];
 extern s16 gScrollHoldTime;
 extern f32 gScrollSpeedGoal;
 extern s32 gScrollIconPos;
@@ -137,7 +137,7 @@ extern s32 gNameArrowStep;
 extern u8 gNameMaxLen;
 extern char * N64P gNameBuf;
 #ifndef NON_MATCHING
-extern u8 D_802F47B0[];
+extern u8 gYoshiColors[];
 #endif
 extern f32 gFlyCharW;
 extern f32 gFlyCharH;
@@ -147,8 +147,8 @@ extern f32 gNameTextX;
 extern f32 gNameTextXGoal;
 extern f32 gNameBoxXAnim;
 extern f32 gNameBoxXGoal;
-extern f32 D_80215464;
-extern f32 D_80215468;
+extern f32 gNameFlyBoxW;
+extern f32 gNameFlyCharSize;
 extern s16 gNamePrevStick;
 extern s32 gNameArrowPulse;
 extern f32 gFlyCharX;
@@ -173,7 +173,7 @@ extern s32 gScrollIconX;
 extern s32 gScrollMedalX[];
 extern u16 gMedalPalettes[];
 extern u16 gMedalSprites[];
-extern u16 D_802082E8[];
+extern u16 gMedalExtraSprites[];
 
 void fe_player_count_medals(u8 arg0);
 void fe_player_copy_times(u8 *src, u8 *dst);
@@ -226,7 +226,7 @@ u8 gRankTitleLine1Words[0x20] = {
 /* sprite ids for spr_load */
 u16 gMedalPalettes[6] = { 0x777, 0x777, 0x776, 0x773, 0, 0 };
 u16 gMedalSprites[2] = { 0x774, 0x775 };
-u16 D_802082E8[2] = { 0x576, 0x575 };
+u16 gMedalExtraSprites[2] = { 0x576, 0x575 };
 u16 gTickerMedalSprites[6] = { 0x91B, 0x91B, 0x91C, 0x91D, 0x572, 0 };
 u16 gTickerIconSprite[2] = { 0x91F, 0 };
 
@@ -261,7 +261,7 @@ void fe_player_ticker_reset(u8 arg0) {
 
     fe_player_ticker_set_text(arg0, 0);
     for (i = 0; i < 0x1B; i++) {
-        gScrollLine[i] = D_802E8C94[gScrollUsesGlyphs];
+        gScrollLine[i] = gTextSpace[gScrollUsesGlyphs];
     }
     gScrollLine[i] = gTextTerminator[gScrollUsesGlyphs];
 #ifdef PORT_HOST
@@ -396,7 +396,7 @@ Gfx gPanelDl[] = {
 };
 
 Lights2 gPanelLights = gdSPDefLights2(0x28, 0x0A, 0x0A, 0xF0, 0xC8, 0x14, 69, -69, 69, 0xF0, 0x6E, 0x14, -69, 69, 69);
-Lights2 D_80208470 = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69, 69, 0x5A, 0x02, 0xDC, -69, 69, 69);
+Lights2 gPanelLightsPurple = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69, 69, 0x5A, 0x02, 0xDC, -69, 69, 69);
 
 u8 gNameEntryGlyph[4] = " "; /* one-character string for the name entry wheel */
 
@@ -415,7 +415,7 @@ void fe_player_count_medals(u8 arg0) {
         if (p->medal[i] > 0 && p->medal[i] < 5) {
             gMedalCounts[p->medal[i]]++;
         }
-        if (((players[arg0].medal[i] > 0 && players[arg0].medal[i] < 6) ? 1 : 0) && (gLevelInfo[i].kind & 0x81) &&
+        if (((players[arg0].medal[i] > 0 && players[arg0].medal[i] < 6) ? 1 : 0) && (gLevelInfo[i].kind & LEVEL_KIND_ANY_MISSION) &&
             i != 0x31 && i != 0x2F && i != 0x26) {
             gMedalCounts[3]++;
         }
@@ -563,10 +563,10 @@ Gfx *fe_player_draw_panel(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
             }
             t.medalSprite = gScrollMedalSpriteBase;
             t.maxRank = MAX_RANK();
-            t.skip[0] = D_802E8C94[0];
-            t.skip[1] = D_802E8C90[0];
-            t.skip[2] = D_802E8C8C[0];
-            t.noAdvance = D_802E8C8C[0];
+            t.skip[0] = gTextSpace[0];
+            t.skip[1] = gFontAltBlankChar[0];
+            t.skip[2] = gFontNoAdvanceChar[0];
+            t.noAdvance = gFontNoAdvanceChar[0];
             t.terminator = gTextTerminator[0];
             t.advance = gFontAdvance[0];
             t.glyphs = gScrollUsesGlyphs;
@@ -664,13 +664,13 @@ void fe_player_build_load_menu(void) {
     }
     if (gLoadMenuFullSlot != 4) {
         gYoshiFeItems[6].unkC = "ERASE GAME";
-        gYoshiFeItems[6].unk10 = D_803046F8;
+        gYoshiFeItems[6].unk10 = gEraseGameJText;
     } else {
         gYoshiFeItems[6].unkC = "IGNORE PAK";
-        gYoshiFeItems[6].unk10 = D_80304710;
+        gYoshiFeItems[6].unk10 = gIgnorePakJText;
     }
     gYoshiFeItems[6].unk19 = 2;
-    gYoshiWindows[10].unk8 &= ~0x400;
+    gYoshiWindows[YW_PLAYER_MENU].unk8 &= ~0x400;
 }
 
 /* The erase-game menu (0x801EA6E8).
@@ -699,10 +699,10 @@ void fe_player_build_erase_menu(void) {
         }
     }
     gYoshiFeItems[6].unkC = "GO BACK";
-    gYoshiFeItems[6].unk10 = D_80304730;
+    gYoshiFeItems[6].unk10 = gGoBackJText;
     gYoshiFeItems[6].unk19 = 2;
-    gYoshiWindows[10].unk8 |= 0x400;
-    gYoshiWindows[10].unk18 = 6;
+    gYoshiWindows[YW_PLAYER_MENU].unk8 |= 0x400;
+    gYoshiWindows[YW_PLAYER_MENU].unk18 = 6;
 }
 
 /* Opens the name entry ("ENTER NAME!") (0x801EA93C).
@@ -768,7 +768,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     s32 selH;
     s32 nv = 0;
     s32 len = font_strlen((u8 *) gNameBuf);
-    u8 *col = &D_802F47B0[0x80];
+    u8 *col = &gYoshiColors[0x80];
     u8 *col2;
     s16 ang;
     s16 ang2;
@@ -849,7 +849,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         }
     }
     if (ch != gNameFlyChar && gNameFlyChar == -1) {
-        if (D_803156C4 % 20 < 15) {
+        if (gSchedFrameCount % 20 < 15) {
             alpha = gYoshiAlpha;
         } else {
             alpha = gYoshiAlpha / 3;
@@ -863,7 +863,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         if (gNameLen != 0) {
             gNextGameMode = MODE_NAME_ENTERED;
             gSlotState[playerNumber] = 1;
-            yoshi_demand(0x4000);
+            yoshi_demand(YOSHI_DEMAND_OFF);
         } else {
             snd_play(gSfxBank, SFX_ERROR, 0);
         }
@@ -883,7 +883,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                                 gNextGameMode = MODE_LOAD_GAME_RETURN;
                             }
                             snd_play(gSfxBank, SFX_BACK, 0);
-                            yoshi_demand(0x4000);
+                            yoshi_demand(YOSHI_DEMAND_OFF);
                         } else {
                             snd_play(gSfxBank, SFX_ERROR, 0);
                         }
@@ -892,8 +892,8 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                         gNameBuf[gNameLen] = 0;
                         snd_play(gSfxBank, SFX_NAME_DELETE, 0);
                         gNameBoxState = 0;
-                        D_80215464 = e->unk6;
-                        i = D_80215468 = gNameEntryWidth;
+                        gNameFlyBoxW = e->unk6;
+                        i = gNameFlyCharSize = gNameEntryWidth;
                         i = i * 3 / 5;
                         gNameTextX = e->unk2;
                         gNameTextXGoal = -((len - 1) * i / 2) - i / 2 + 0xA0;
@@ -905,8 +905,8 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     gNameEntryState = 1;
                     gNameBoxState = 0;
                     gNameFlyChar = ch;
-                    D_80215464 = e->unk6;
-                    i = D_80215468 = gNameEntryWidth;
+                    gNameFlyBoxW = e->unk6;
+                    i = gNameFlyCharSize = gNameEntryWidth;
                     i = i * 3 / 5;
                     gNameTextX = e->unk2;
                     gNameTextXGoal = -((len + 1) * i / 2) - i / 2 + 0xA0;
@@ -918,8 +918,8 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     gFlyCharYGoal = e->unk4 - 0x78;
                     gFlyCharW = 48.0f;
                     gFlyCharH = 40.0f;
-                    gFlyCharWGoal = D_80215468;
-                    gFlyCharHGoal = D_80215468;
+                    gFlyCharWGoal = gNameFlyCharSize;
+                    gFlyCharHGoal = gNameFlyCharSize;
                 } else {
                     snd_play(gSfxBank, SFX_ERROR, 0);
                 }
@@ -960,12 +960,12 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     } else {
         gNameArrowAlpha = 0;
     }
-    col2 = &D_802F47B0[0x98];
+    col2 = &gYoshiColors[0x98];
     nv = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 3, nv, gNameBoxX + gNameBoxW + gNameArrowPulse, e->unk4 + e->unk8 / 2,
-                       e->unk6 / 3 + gNameArrowPulse / 2, e->unk8 / 2 + 3, D_802F47B0[0x98], D_802F47B0[0x99],
-                       D_802F47B0[0x9A], gNameArrowAlpha, D_802F47B0[0x9C], D_802F47B0[0x9D], D_802F47B0[0x9E], gNameArrowAlpha,
-                       D_802F47B0[0x98], D_802F47B0[0x99], D_802F47B0[0x9A], gNameArrowAlpha, D_802F47B0[0x9C],
-                       D_802F47B0[0x9D], D_802F47B0[0x9E], gNameArrowAlpha);
+                       e->unk6 / 3 + gNameArrowPulse / 2, e->unk8 / 2 + 3, gYoshiColors[0x98], gYoshiColors[0x99],
+                       gYoshiColors[0x9A], gNameArrowAlpha, gYoshiColors[0x9C], gYoshiColors[0x9D], gYoshiColors[0x9E], gNameArrowAlpha,
+                       gYoshiColors[0x98], gYoshiColors[0x99], gYoshiColors[0x9A], gNameArrowAlpha, gYoshiColors[0x9C],
+                       gYoshiColors[0x9D], gYoshiColors[0x9E], gNameArrowAlpha);
     nv = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 3, nv, gNameBoxX + gNameBoxW + gNameArrowPulse + 4, e->unk4 + e->unk8 / 2 + 3,
                        e->unk6 / 3 + gNameArrowPulse / 2, e->unk8 / 2 + 3, 0, 0, 0, gNameArrowAlpha / 2);
     gdl = hud_sprite_setup(gdl, 0);
@@ -1018,10 +1018,10 @@ void fe_player_medals_init(u8 arg0) {
     s32 i;
 
     gMedalSpriteBase = spr_load(gMedalSprites, gMedalPalettes, 4, 2, 0, 1.0f);
-    spr_load(D_802082E8, 0, 1, 2, 1, 1.0f);
+    spr_load(gMedalExtraSprites, 0, 1, 2, 1, 1.0f);
     gMedalRank[0] = 3;
     gMedalRank[1] = arg0;
-    if (gLevelInfo[levelno].kind == 1) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
         j = 0;
     } else {
         j = 1;
@@ -1112,7 +1112,7 @@ Gfx *fe_player_draw_medals(Gfx *start, void *gfxp, s32 *count) {
 
     gdl = start;
     gdl = spr_begin(gdl);
-    if (gLevelKind == 1) {
+    if (gLevelKind == LEVEL_KIND_MISSION) {
         gdl = fe_player_draw_medal(gdl, 0x5C, 0x68, 0);
         if (gMedalRank[1] != 0) {
             gdl = fe_player_draw_medal(gdl, 0xA8, 0x68, 1);
@@ -1127,7 +1127,7 @@ Gfx *fe_player_draw_medals(Gfx *start, void *gfxp, s32 *count) {
         gdl = spr_draw(gdl, n + gMedalSpriteBase, 0x2E, 0x6C, (gMedalAlpha[1] * 3) / 4, 0, 0.75f);
     }
     gdl = spr_end(gdl);
-    if (gLevelKind != 1) {
+    if (gLevelKind != LEVEL_KIND_MISSION) {
         hud_format_time((char *) gMedalTimeText, gLevelInfo[levelno].times[5 - n], 0);
         gMedalTimeText[5] = 0;
         text_print_gradient(gfxp, gMedalTimeText, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, gMedalAlpha[1], 0xFF, 0x78, 0,
@@ -1144,7 +1144,7 @@ u64 fe_player_loop_done_mode(u8 level) {
 
     if ((players[playerNumber].medal[level] > 0 && players[playerNumber].medal[level] < 6) ? 1 : 0) {
         mask = 0x80;
-    } else if (gLevelInfo[level].kind & 0x81) {
+    } else if (gLevelInfo[level].kind & LEVEL_KIND_ANY_MISSION) {
         mask = 0x800;
     } else {
         mask = 0x20000000;
@@ -1156,10 +1156,10 @@ u64 fe_player_loop_done_mode(u8 level) {
  * A level was picked on the globe: ask the save thread for its saved records */
 void fe_player_load_level_save(void) {
     fe_open_reachable_levels(8);
-    D_80364A87 = 0;
-    D_803643D5 = 0;
+    gRouteRevealFlags = 0;
+    gLevelFirstClear = 0;
     if ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) {
-        if (gLevelInfo[levelno].kind == 1) {
+        if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
             osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 0xC | (playerNumber << 16)), OS_MESG_BLOCK);
         }
         osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
@@ -1206,11 +1206,11 @@ void fe_player_update_level_kinds(void) {
     s32 i;
 
     for (i = 0; i < 0x3C; i++) {
-        if (gLevelInfo[i].kind & 0x81) {
+        if (gLevelInfo[i].kind & LEVEL_KIND_ANY_MISSION) {
             if (players[playerNumber].gameState >= 11 && gNextGameMode == MODE_WORLD) {
-                gLevelInfo[i].kind = 0x80;
+                gLevelInfo[i].kind = LEVEL_KIND_MISSION_TIMED;
             } else {
-                gLevelInfo[i].kind = 1;
+                gLevelInfo[i].kind = LEVEL_KIND_MISSION;
             }
         }
     }
@@ -1237,7 +1237,7 @@ void fe_player_regrade_missions(void) {
     PLAYER_ASSERT(saveIt[playerNumber], 1384);
     for (level = 0; level < 0x3C; level++) {
         if (((players[playerNumber].medal[level] > 0 && players[playerNumber].medal[level] < 6) ? 1 : 0) &&
-            gLevelInfo[level].kind == 1 && level != 0x31 && level != 0x2F && level != 0x26) {
+            gLevelInfo[level].kind == LEVEL_KIND_MISSION && level != 0x31 && level != 0x2F && level != 0x26) {
             info = &gLevelInfo[level];
             if (saveIt[playerNumber] != level + 1) {
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
@@ -1245,7 +1245,7 @@ void fe_player_regrade_missions(void) {
             } else {
                 fe_player_copy_times(buf, (u8 *) gBestTimes[playerNumber]);
             }
-            time = gBestTimes[playerNumber][D_802E8C44[0]];
+            time = gBestTimes[playerNumber][gVehicleTimeSlot[0]];
             debug_printf("level %d time is %d\n", level, time);
             rank = fe_stats_grade_time(time, level, players[playerNumber].gameState);
             p->medal[level] = rank;
@@ -1310,7 +1310,7 @@ void fe_player_regrade_platinum(void) {
             } else {
                 fe_player_copy_times(buf, (u8 *) gBestTimes[playerNumber]);
             }
-            rank = fe_stats_grade_time(gBestTimes[playerNumber][D_802E8C44[players[playerNumber].bestVehicle[level]]], level,
+            rank = fe_stats_grade_time(gBestTimes[playerNumber][gVehicleTimeSlot[players[playerNumber].bestVehicle[level]]], level,
                                  players[playerNumber].gameState + 1);
             p->medal[level] = rank;
             if (rank == 4) {

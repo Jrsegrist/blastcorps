@@ -17,11 +17,11 @@ barge_bounce: -n 300 --seed 0 --ret void --arg gp=sym:gBarge0BState --mem gBarge
 barge_bounce: -n 300 --seed 1 --ret void --arg gp=sym:gBarge11State \
     --mem gBarge11State+0x76:2=halves:0,1,0x4F,0x50,0x51,0x7FFF,0x8000,0xFFB0,0xFFB1,0xFFAF,0xFFFF,0xFFFE,0x100,0xFF00
 barge_bounce: -n 100 --seed 2 --ret void --arg gp=sym:gBarge12State --mem gBarge12State+0x76:2=int:0:0xFFFF
-# barge_steer_rate: s3 (-> v0) = round_nearest(speed(+0x76 of the block in $gp -> a0) / D_8030D980)
+# barge_steer_rate: s3 (-> v0) = round_nearest(speed(+0x76 of the block in $gp -> a0) / gBargeSteerDivisor)
 barge_steer_rate: -n 300 --seed 0 --arg gp=sym:gBarge0BState --mem gBarge0BState+0x76:2=int:0:0xFFFF
-barge_steer_rate: -n 300 --seed 1 --arg gp=sym:gBarge12State --mem D_8030D980=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
+barge_steer_rate: -n 300 --seed 1 --arg gp=sym:gBarge12State --mem gBargeSteerDivisor=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
     --mem gBarge12State+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
-barge_steer_rate: -n 200 --seed 2 --arg gp=sym:gBarge11State --mem D_8030D980:4=floats:0.25:40 --mem gBarge11State+0x76:2=int:0:0xFFFF
+barge_steer_rate: -n 200 --seed 2 --arg gp=sym:gBarge11State --mem gBargeSteerDivisor:4=floats:0.25:40 --mem gBarge11State+0x76:2=int:0:0xFFFF
 
 # barge_leave: leave vehicle type a0 (0x11 / 0x12 / other): veh_sync_buffers(that pair, 0x800), veh_stop_engine_sounds()
 barge_leave: -n 200 --seed 0 --ret void --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= \
@@ -54,7 +54,7 @@ barge_build_model_12: -n 300 --seed 2 --arg gp=sym:gBarge12State --heap 0x400=wo
 barge_build_model_0b: -n 100 --seed 3 --follow mtx_build_model,veh_deck_transform --arg gp=sym:gBarge0BState \
     --heap 0x400=words:0x20,0x40,0x60,0x100,0x1F0 --mem gBarge0BModel=rel:heap0+0x20 --mem gBarge0BMtxA=rel:heap0+0x200 \
     --mem gBarge0BMtxB=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem gBarge0BPos:12=int:-100000:100000 \
-    --mem gBarge0BState+0x4C:2=int:0:0xFFF --mem gModelRot:6=rand --mem D_803EBB58:0x80=rand \
+    --mem gBarge0BState+0x4C:2=int:0:0xFFF --mem gModelRot:6=rand --mem gMtxWork:0x80=rand \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10
 
@@ -64,8 +64,8 @@ barge_build_model_0b: -n 100 --seed 3 --follow mtx_build_model,veh_deck_transfor
 barge_update_0b: -n 300 --follow barge_build_model_0b --heap 0x400=words:0x20,0x40,0x60,0x100 \
     --mem gBarge0BModel=rel:heap0+0x20 --mem gBarge0BMtxA=rel:heap0+0x200 --mem gBarge0BMtxB=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem gCollHit:1=choice:0,1,0x80 --mem gBarge0BBounced:1=choice:0,1 \
-    --mem gBarge0BState:0xA8=rand --mem gBarge0BPos:12=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
-    --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand --sig barge_set_physics= \
+    --mem gBarge0BState:0xA8=rand --mem gBarge0BPos:12=rand --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand \
+    --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig barge_set_physics= \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -74,7 +74,7 @@ barge_update_0b: -n 200 --seed 1 --follow barge_build_model_0b --heap 0x400=word
     --mem gBarge0BModel=rel:heap0+0x20 --mem gBarge0BMtxA=rel:heap0+0x200 --mem gBarge0BMtxB=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem gCollHit:1=choice:0,1 --mem gBarge0BBounced:1=choice:0,1 --mem gBarge0BState:0xA8=rand \
     --mem gBarge0BState+0x76:2=choice:0,1,-1,0x1F,0x20,-0x20,-0x21,0x7FFF,-0x8000 --mem gBarge0BPos:12=rand \
-    --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand \
+    --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand \
     --sig barge_set_physics= --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -86,16 +86,16 @@ barge_update_0b: -n 200 --seed 2 \
     --mem gBarge0BMtxB=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem gCollHit:1=choice:0,1 \
     --mem gBarge0BBounced:1=choice:0,1 --mem gBarge0BState:0xA8=rand --mem gBarge0BState+4*4:18=int:-20000:20000 \
     --mem gBarge0BState+0x76:2=int:-300:300 --mem gBarge0BState+0x96:3=bytes:0,1,2 --mem gBarge0BState+0x50:1=int:1:5 \
-    --mem gBarge0BPos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand \
-    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
+    --mem gBarge0BPos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand \
+    --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
 barge_update_11: -n 300 --seed 3 --follow barge_build_model_11 --heap 0x400=words:0x20,0x40,0x60,0x100 \
     --mem gBarge11Model=rel:heap0+0x20 --mem gBarge11MtxA=rel:heap0+0x200 --mem gBarge11MtxB=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem gCollHit:1=choice:0,1,0x80 --mem gBarge11Bounced:1=choice:0,1 \
-    --mem gBarge11State:0xA8=rand --mem gBarge11Pos:12=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
-    --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand --sig barge_set_physics= \
+    --mem gBarge11State:0xA8=rand --mem gBarge11Pos:12=rand --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand \
+    --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig barge_set_physics= \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -105,16 +105,16 @@ barge_update_11: -n 100 --seed 4 \
     --mem gBarge11MtxB=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem gCollHit:1=choice:0,1 \
     --mem gBarge11Bounced:1=choice:0,1 --mem gBarge11State:0xA8=rand --mem gBarge11State+4*4:18=int:-20000:20000 \
     --mem gBarge11State+0x76:2=int:-300:300 --mem gBarge11State+0x96:3=bytes:0,1,2 --mem gBarge11State+0x50:1=int:1:5 \
-    --mem gBarge11Pos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand \
-    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
+    --mem gBarge11Pos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand \
+    --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
 barge_update_12: -n 300 --seed 5 --follow barge_build_model_12 --heap 0x400=words:0x20,0x40,0x60,0x100 \
     --mem gBarge12Model=rel:heap0+0x20 --mem gBarge12MtxA=rel:heap0+0x200 --mem gBarge12MtxB=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem gCollHit:1=choice:0,1,0x80 --mem gBarge12Bounced:1=choice:0,1 \
-    --mem gBarge12State:0xA8=rand --mem gBarge12Pos:12=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
-    --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand --sig barge_set_physics= \
+    --mem gBarge12State:0xA8=rand --mem gBarge12Pos:12=rand --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand \
+    --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig barge_set_physics= \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -124,8 +124,8 @@ barge_update_12: -n 100 --seed 6 \
     --mem gBarge12MtxB=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem gCollHit:1=choice:0,1 \
     --mem gBarge12Bounced:1=choice:0,1 --mem gBarge12State:0xA8=rand --mem gBarge12State+4*4:18=int:-20000:20000 \
     --mem gBarge12State+0x76:2=int:-300:300 --mem gBarge12State+0x96:3=bytes:0,1,2 --mem gBarge12State+0x50:1=int:1:5 \
-    --mem gBarge12Pos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand \
-    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
+    --mem gBarge12Pos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand \
+    --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -151,7 +151,7 @@ barge_spawn_0b: -n 100 --seed 2 --follow barge_update,barge_update_0b,barge_buil
     --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem gHeapPtr=rel:heap1 --arg t7=int --arg s3=int --arg s0=int \
     --arg s1=int --arg s2=rel:heap0+0x20 --arg fp=int --mem gBarge0BState:0xA8=rand --mem gBarge0BPos:12=rand \
     --mem gBarge0BBounced:1=rand --mem gCollHit:1=choice:0,1 --mem gBufferIndex:1=choice:0,1 --mem gPlayerX:12=rand \
-    --mem D_8036443C:6=rand --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand --sig barge_set_physics= \
+    --mem gPlayerSpeed:6=rand --mem gBounceSound:1=rand --mem gCollVehicleAnim=rand --mem gModelRot:6=rand --sig barge_set_physics= \
     --sig veh_init_ground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \

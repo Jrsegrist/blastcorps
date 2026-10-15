@@ -113,7 +113,7 @@ s32 radar_has_marker(s32 id) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/radar_has_marker.s")
 #endif
 
-/* coll_reset_dyn_tris: `D_803FB8B0 = &D_803F9330;` wrapped in the same dead
+/* coll_reset_dyn_tris: `gDynTrisEnd = &gDynTris;` wrapped in the same dead
  * `addiu sp,sp,-8`/`sd $ra`/`ld $ra`/`addiu sp,sp,8` frame as
  * train_exit_check/barge_exit_check - confirmed hand-written by the same
  * probe evidence (no calls, no locals, nothing that could need a frame;
@@ -121,21 +121,21 @@ s32 radar_has_marker(s32 id) {
 #ifdef NON_MATCHING
 
 /* Resets the dynamic collision triangles' write cursor (0x802CE9A4).
- * Reset a buffer cursor (read by 4B5E0) to the start of D_803F9330. */
+ * Reset a buffer cursor (read by 4B5E0) to the start of gDynTris. */
 void coll_reset_dyn_tris(void) {
-    D_803FB8B0 = D_803F9330;
+    gDynTrisEnd = gDynTris;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/coll_reset_dyn_tris.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM.
- * It sets up `count` collision triangles at *D_803FB8B0 (lvl_build_coll_tri,
+ * It sets up `count` collision triangles at *gDynTrisEnd (lvl_build_coll_tri,
  * byte 0x51 = 1, h52 = a2, b56 = item byte 0x14, b55 = 0) from 0x16-byte
  * items at a0, but also passes lvl_build_coll_tri the registers v0 (id, byte
  * 0x50), t6 (byte 0x57), t9 (byte 0x4F) and s1 (byte 0x58, chained) that its
  * only caller, the IDO-compiled block_spawn_all (4B5E0.c), never sets for it:
- * there they hold a stale call result, &gBlockSlots[i], the old D_803FB8B0
+ * there they hold a stale call result, &gBlockSlots[i], the old gDynTrisEnd
  * and the caller's caller's s1. */
 #ifdef NON_MATCHING
 
@@ -150,7 +150,7 @@ void coll_reset_dyn_tris(void) {
  * gp = 0. Like the asm, n counts down with `!=`.
  * asm: items a0, n a1, h52 a2, id v0, b57 t6, b4F t9, s1. */
 void coll_add_dyn_tris(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1) {
-    u8 *rec = D_803FB8B0;
+    u8 *rec = gDynTrisEnd;
 
     while (n != 0) {
         n--;
@@ -158,7 +158,7 @@ void coll_add_dyn_tris(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 
         rec = lvl_build_coll_tri(rec, items, id, h52, b57, items[0x14], &s1, b4F, 0);
         items += 0x16;
     }
-    D_803FB8B0 = rec;
+    gDynTrisEnd = rec;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/coll_add_dyn_tris.s")

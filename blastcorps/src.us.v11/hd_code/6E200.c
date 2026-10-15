@@ -29,15 +29,15 @@ extern u8 gRamdozerAnim[];  /* vehicle 4 animation channels */
 #define VPOS3 ((PortVehPos *) gSkyfallPos)
 #define VPOS4 ((PortVehPos *) gRamdozerPos)
 
-extern u8 D_80305D00[];
-extern u8 D_80305D10[];
-extern f32 D_8030D8C0;
-extern f32 D_8030D8D0;
+extern u8 gSkyfallNonBlockingParts[];
+extern u8 gRamdozerNonBlockingParts[];
+extern f32 gSkyfallDeflectTurnRate;
+extern f32 gRamdozerDeflectTurnRate;
 
 
 /* Shared body of skyfall_build_model / ramdozer_build_model: place the vehicle model's
  * parts. The current matrix buffer (gBufferIndex ? bufA : bufB) plus the word
- * at model + model[0x18] + 4 is the model matrix m; D_803ED392 = heading
+ * at model + model[0x18] + 4 is the model matrix m; gModelRotY = heading
  * (u16 +0x4C), mtx_build_model(x, y, z, scale, m); then veh_place_parts(x, y, z,
  * id, model + model[4], model + model[8], buffer) and veh_points_transform(id,
  * model + model[0], model + model[4], buffer). Returns the buffer (the asm's
@@ -53,7 +53,7 @@ static u8 *port_veh_parts(u8 *veh, PortVehPos *p, s32 id, s32 scale, MtxChainReg
     u8 *base;
 
     mtx = (s32 *) ((gBufferIndex != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
-    D_803ED392 = VEH_U16(veh, VS_HEADING);
+    gModelRotY = VEH_U16(veh, VS_HEADING);
     mtx_build_model(p->x, p->y, p->z, scale, mtx);
     r->a3 = 0;
     r->s2 = (s32) mtx;
@@ -348,9 +348,9 @@ static void port_veh_publish(u8 *veh, PortVehPos *p, s32 id) {
     gPlayerX = p->x;
     gPlayerY = p->y;
     gPlayerZ = p->z;
-    D_8036443C = VEH_S16(veh, VS_SPEED);
-    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
-    D_80364440 = VEH_U16(veh, VS_HEADING);
+    gPlayerSpeed = VEH_S16(veh, VS_SPEED);
+    gPlayerMoveHeading = VEH_U16(veh, VS_MOVE_HEADING);
+    gPlayerHeading = VEH_U16(veh, VS_HEADING);
     veh_set_record(p->z, id, p->x, p->y, veh);
 }
 
@@ -417,12 +417,12 @@ void skyfall_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 gSkyfallState[]; /* vehicle type 3's state block */
 extern u8 gSkyfallAnim[]; /* its animation channel table */
-extern u8 D_802C2314[]; /* key of its anim_tex_set_speed.. sound entry */
+extern u8 gSkyfallBoostTexAnim[]; /* key of its anim_tex_set_speed.. sound entry */
 
 /* Getting into Skyfall: engine sound 0x8C (0x802B2D7C).
  * Vehicle-type 3 setup (called from hd.c / 17210.c): clears byte 0x99 of the
  * state block, resets animation channels 1-3 of gSkyfallAnim, resets the
- * D_802C2314 entry (0, 0, 0, -1), gCamDistance / gCamHeightBase = 3400, 1000, then
+ * gSkyfallBoostTexAnim entry (0, 0, 0, -1), gCamDistance / gCamHeightBase = 3400, 1000, then
  * veh_start_engine_sound(&gSkyfallAnim, 0x8C) (the asm's a0 is still the table).
  * The asm points $gp at gSkyfallState and leaves it there (conventions.txt:
  * clobbers gp) and returns with v1 = -1; the C callers use neither. */
@@ -436,10 +436,10 @@ void skyfall_enter(void) {
         anim_set_loop_mode((AnimChannel *) gSkyfallAnim, i, i == 1 ? 0 : 1);
         anim_play((AnimChannel *) gSkyfallAnim, i, -1);
     }
-    anim_tex_set_speed((s32) D_802C2314, 0);
-    anim_tex_set_reverse((s32) D_802C2314, 0);
-    anim_tex_set_loop_mode((s32) D_802C2314, 0);
-    anim_tex_play((s32) D_802C2314, -1);
+    anim_tex_set_speed((s32) gSkyfallBoostTexAnim, 0);
+    anim_tex_set_reverse((s32) gSkyfallBoostTexAnim, 0);
+    anim_tex_set_loop_mode((s32) gSkyfallBoostTexAnim, 0);
+    anim_tex_play((s32) gSkyfallBoostTexAnim, -1);
     gCamDistance = 0xD48;
     gCamHeightBase = 0x3E8;
     veh_start_engine_sound((s32) gSkyfallAnim, 0x8C);
@@ -570,12 +570,12 @@ extern s16 gSkyfallGrip;
  *    speed bands veh_throttle unless the countdown gSkyfallBumpTimer runs;
  * 3. port_veh_move (rate gSkyfallGrip, kind 3 / 724.0, drift gSkyfallDeflecting via
  *    gSkyfallDeflectHeading, divisors 0x2D4 / 0x260, parts skyfall_build_model, veh_collision_setup
- *    with D_80305D00, 1, 6, 100);
+ *    with gSkyfallNonBlockingParts, 1, 6, 100);
  * 4. no collision report (gCollBlocked == 0): gCollHit = 0, collision pass
- *    obj_collide_vehicle (D_803F77D0 = the channel table); if it sets gCollHit,
+ *    obj_collide_vehicle (gCollVehicleAnim = the channel table); if it sets gCollHit,
  *    restore (port_veh_restore), countdown 5, speed bounced to -max(|v|,
  *    80) / 2 (sign kept, sra) and parts again; else gSkyfallDeflecting = 0.
- *    Report: veh_prepare_escape, gSkyfallDeflecting = 1, port_veh_turn (D_8030D8C0,
+ *    Report: veh_prepare_escape, gSkyfallDeflecting = 1, port_veh_turn (gSkyfallDeflectTurnRate,
  *    gSkyfallDeflectHeading), collision pass. (A bounce test of the turn distance
  *    against 200 follows an unconditional branch in the asm: dead code.)
  * 5. port_veh_publish.
@@ -614,10 +614,10 @@ void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         gSkyfallBumpTimer--;
     }
     port_veh_move(veh, p, 3, gSkyfallAnim, (u16) gSkyfallGrip, 3, 724.0f, gSkyfallDeflecting, &gSkyfallDeflectHeading, 0x2D4, 0x260,
-                  skyfall_build_model, D_80305D00, 1, 6, 100);
+                  skyfall_build_model, gSkyfallNonBlockingParts, 1, 6, 100);
     if (gCollBlocked == 0) {
         gCollHit = 0;
-        D_803F77D0 = gSkyfallAnim;
+        gCollVehicleAnim = gSkyfallAnim;
         obj_collide_vehicle(3, veh);
         if (gCollHit != 0) {
             gSkyfallDeflecting = 0;
@@ -642,8 +642,8 @@ void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     } else {
         veh_prepare_escape(veh);
         gSkyfallDeflecting = 1;
-        port_veh_turn(veh, D_8030D8C0, &gSkyfallDeflectHeading);
-        D_803F77D0 = gSkyfallAnim;
+        port_veh_turn(veh, gSkyfallDeflectTurnRate, &gSkyfallDeflectHeading);
+        gCollVehicleAnim = gSkyfallAnim;
         obj_collide_vehicle(3, veh);
     }
     port_veh_publish(veh, p, 3);
@@ -661,28 +661,28 @@ extern u8 gSkyfallBoosting;  /* boost sound playing */
 extern s16 gSkyfallBoostTrail;
 extern f32 gSkyfallThrottleAnim; /* 0..1 level for channel 3 */
 extern void * N64P gSkyfallBoostSound; /* boost sound handle */
-extern f32 D_8030D8C4;
-extern f32 D_8030D8C8;
-extern f32 D_8030D8CC;
-extern u8 D_802C37C0[];
+extern f32 gSkyfallThrottleDownStep;
+extern f32 gSkyfallThrottleUpStep;
+extern f32 gSkyfallThrottleReturnStep;
+extern u8 gFxSkyfallBoost[];
 void skyfall_add_tyre_trail(void);
 
 /* Smoke, suspension/steer/wheel animations, the L/R boost (0x802B37B0).
  * Vehicle type 3 per-frame update ($gp = gSkyfallState, read as the global):
  * 1. Cooldown gSkyfallSmokeCooldown counts down; at 0 with byte +0x99 set it restarts at
  *    1 and, while fewer than 15 fx_spawn records are active, sets up two
- *    (def D_802C2954, data 0x29810, type 1 at (3, 2, 1) and (3, 3, 1)).
+ *    (def gFxExhaustSmoke, data 0x29810, type 1 at (3, 2, 1) and (3, 3, 1)).
  * 2. Level gSkyfallThrottleAnim (channel 3 of gSkyfallAnim): unless veh_near_top_speed(10),
- *    falls by D_8030D8C4 to 0 with gHeldBOrZ held, or rises by D_8030D8C8 to
- *    1 with gHeldA held; otherwise it moves by D_8030D8CC toward 0.5.
+ *    falls by gSkyfallThrottleDownStep to 0 with gHeldBOrZ held, or rises by gSkyfallThrottleUpStep to
+ *    1 with gHeldA held; otherwise it moves by gSkyfallThrottleReturnStep toward 0.5.
  * 3. gSkyfallSteerAnim steps by -5 (gHeldLeft) / +5 (gHeldRight) within 0..100, or
  *    by 10 toward 50; channel 2 gets it / 100.
  * 4. Channel 1: field 03D4 = (speed < 0), 039C = |speed| / 30 (also passed to
  *    veh_set_engine_level).
  * 5. Boost: gSkyfallBumpTimer counts down; at 0 with gHeldL or gHeldR held
  *    and the meter gSkyfallBoostMeter >= 4: meter -= 4, start sound 0x8D once
- *    (gSkyfallBoosting), sound entry D_802C2314 on, one more fx_spawn record
- *    (def D_802C37C0, data 0x186A0, type 1 at (3, 1, 1)) and speed += 40 up
+ *    (gSkyfallBoosting), sound entry gSkyfallBoostTexAnim on, one more fx_spawn record
+ *    (def gFxSkyfallBoost, data 0x186A0, type 1 at (3, 1, 1)) and speed += 40 up
  *    to 400. Otherwise stop the sound, gSkyfallBoostTrail = 120, entry off, speed
  *    above 250 drops by 25 (not below 250) and the meter refills by 1 to 100.
  * 6. skyfall_add_tyre_trail (tyre trail).
@@ -706,9 +706,9 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         gSkyfallSmokeCooldown = 1;
         if (fx_count_active() < 15) {
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 3, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 3, 2, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x29810, 1, 3, 3, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x29810, 1, 3, 3, 1, t7, s0, s2, s3, s4, 1);
         }
     }
 
@@ -716,22 +716,22 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
     f = gSkyfallThrottleAnim;
     near = veh_near_top_speed(gSkyfallState, 10);
     if (near == 0 && gHeldBOrZ != 0) {
-        f -= D_8030D8C4;
+        f -= gSkyfallThrottleDownStep;
         if (f < 0.0f) {
             f = 0.0f;
         }
     } else if (near == 0 && gHeldA != 0) {
-        f += D_8030D8C8;
+        f += gSkyfallThrottleUpStep;
         if (!(f <= 1.0f)) {
             f = 1.0f;
         }
     } else if (f < 0.5f) {
-        f += D_8030D8CC;
+        f += gSkyfallThrottleReturnStep;
         if (!(f <= 0.5f)) {
             f = 0.5f;
         }
     } else {
-        f -= D_8030D8CC;
+        f -= gSkyfallThrottleReturnStep;
         if (f < 0.5f) {
             f = 0.5f;
         }
@@ -784,9 +784,9 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
             gSkyfallBoosting = 1;
             snd_play(gSfxBank, SFX_SKYFALL_BOOST, &gSkyfallBoostSound);
         }
-        anim_tex_set_frame(0.0f, (s32) D_802C2314, 1);
+        anim_tex_set_frame(0.0f, (s32) gSkyfallBoostTexAnim, 1);
         io.a3 = 0;
-        fx_spawn(&io, D_802C37C0, 0x186A0, 1, 3, 1, 1, t7, s0, s2, s3, s4, 1);
+        fx_spawn(&io, gFxSkyfallBoost, 0x186A0, 1, 3, 1, 1, t7, s0, s2, s3, s4, 1);
         speed = *(s16 *) (gSkyfallState + 0x76);
         *(s16 *) (gSkyfallState + 0x76) = (speed < 400) ? speed + 40 : 400;
         skyfall_add_tyre_trail();
@@ -798,7 +798,7 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
     }
     gSkyfallBoostTrail = 120;
     gSkyfallBoosting = 0;
-    anim_tex_set_frame(0.0f, (s32) D_802C2314, 0);
+    anim_tex_set_frame(0.0f, (s32) gSkyfallBoostTexAnim, 0);
     speed = *(s16 *) (gSkyfallState + 0x76);
     if (speed > 250) {
         speed -= 25;
@@ -1018,25 +1018,25 @@ extern u8 gRamdozerAnim[]; /* its animation channel table */
 /* Getting into Ramdozer: engine sound 0x0B, track animations reset (0x802B448C).
  * Vehicle-type 4 setup (called from hd.c / 17210.c), shape of skyfall_enter:
  * clears byte 0x99 of the state block, resets channel 1 (03D4 only) and
- * channel 2 of gRamdozerAnim, resets the texture animations D_802C2190/A4/B8
+ * channel 2 of gRamdozerAnim, resets the texture animations gRamdozerTrackTexAnimA/B/HeadingTexAnim
  * (0, 0, 0, -1 each), gCamDistance / gCamHeightBase = 3000, 1000, then
  * veh_start_engine_sound(&gRamdozerAnim, 0x0B). Leaves $gp = gRamdozerState (clobbers gp)
  * and v1 = -1, unused by the C callers. */
 void ramdozer_enter(void) {
     gRamdozerState[0x99] = 0;
     anim_set_reverse((AnimChannel *) gRamdozerAnim, 1, 0);
-    anim_tex_set_speed((s32) D_802C2190, 0);
-    anim_tex_set_reverse((s32) D_802C2190, 0);
-    anim_tex_set_loop_mode((s32) D_802C2190, 0);
-    anim_tex_play((s32) D_802C2190, -1);
-    anim_tex_set_speed((s32) D_802C21A4, 0);
-    anim_tex_set_reverse((s32) D_802C21A4, 0);
-    anim_tex_set_loop_mode((s32) D_802C21A4, 0);
-    anim_tex_play((s32) D_802C21A4, -1);
-    anim_tex_set_speed((s32) D_802C21B8, 0);
-    anim_tex_set_reverse((s32) D_802C21B8, 0);
-    anim_tex_set_loop_mode((s32) D_802C21B8, 0);
-    anim_tex_play((s32) D_802C21B8, -1);
+    anim_tex_set_speed((s32) gRamdozerTrackTexAnimA, 0);
+    anim_tex_set_reverse((s32) gRamdozerTrackTexAnimA, 0);
+    anim_tex_set_loop_mode((s32) gRamdozerTrackTexAnimA, 0);
+    anim_tex_play((s32) gRamdozerTrackTexAnimA, -1);
+    anim_tex_set_speed((s32) gRamdozerTrackTexAnimB, 0);
+    anim_tex_set_reverse((s32) gRamdozerTrackTexAnimB, 0);
+    anim_tex_set_loop_mode((s32) gRamdozerTrackTexAnimB, 0);
+    anim_tex_play((s32) gRamdozerTrackTexAnimB, -1);
+    anim_tex_set_speed((s32) gRamdozerHeadingTexAnim, 0);
+    anim_tex_set_reverse((s32) gRamdozerHeadingTexAnim, 0);
+    anim_tex_set_loop_mode((s32) gRamdozerHeadingTexAnim, 0);
+    anim_tex_play((s32) gRamdozerHeadingTexAnim, -1);
     anim_set_speed((AnimChannel *) gRamdozerAnim, 2, 0);
     anim_set_reverse((AnimChannel *) gRamdozerAnim, 2, 0);
     anim_set_loop_mode((AnimChannel *) gRamdozerAnim, 2, 1);
@@ -1075,14 +1075,14 @@ extern u64 * N64P gRamdozerMtxB;
 /* Getting out of Ramdozer (0x802B4658).
  * Vehicle-type 4 shutdown (called from hd.c's veh_leave): zeroes the
  * speed (s16 at +0x76), veh_sync_buffers(gRamdozerMtxA, gRamdozerMtxB, 0x800),
- * veh_stop_engine_sounds(), then anim_tex_set_speed(key, 0) for D_802C2190 and D_802C21A4.
+ * veh_stop_engine_sounds(), then anim_tex_set_speed(key, 0) for gRamdozerTrackTexAnimA and gRamdozerTrackTexAnimB.
  * The asm returns with v1 = 0; the C caller ignores it. */
 void ramdozer_leave(void) {
     *(s16 *) (gRamdozerState + 0x76) = 0;
     veh_sync_buffers(gRamdozerMtxA, gRamdozerMtxB, 0x800);
     veh_stop_engine_sounds();
-    anim_tex_set_speed((s32) D_802C2190, 0);
-    anim_tex_set_speed((s32) D_802C21A4, 0);
+    anim_tex_set_speed((s32) gRamdozerTrackTexAnimA, 0);
+    anim_tex_set_speed((s32) gRamdozerTrackTexAnimB, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/ramdozer_leave.s")
@@ -1157,7 +1157,7 @@ extern s16 gRamdozerDeflectHeading;
  *   ramdozer_steer_rate(); countdown gRamdozerBumpTimer;
  * - port_veh_move: rate gRamdozerGrip, kind 4 / 600.0, drift gRamdozerDeflecting via
  *   gRamdozerDeflectHeading, divisors 0x258 / 0x190, parts ramdozer_build_model, veh_collision_setup
- *   with D_80305D10, 0, 8, 120;
+ *   with gRamdozerNonBlockingParts, 0, 8, 120;
  * - bounce speed: |v| clamped to 62..125 (positive) / 45..90 (negative:
  *   v >= -44 gives -45, v < -90 gives -90), negated (no halving);
  * - veh_prev_contacts_clear before the collision pass on the report path.
@@ -1194,10 +1194,10 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         gRamdozerBumpTimer--;
     }
     port_veh_move(veh, p, 4, gRamdozerAnim, (u16) gRamdozerGrip, 4, 600.0f, (s8) gRamdozerDeflecting, &gRamdozerDeflectHeading, 0x258,
-                  0x190, ramdozer_build_model, D_80305D10, 0, 8, 120);
+                  0x190, ramdozer_build_model, gRamdozerNonBlockingParts, 0, 8, 120);
     if (gCollBlocked == 0) {
         gCollHit = 0;
-        D_803F77D0 = gRamdozerAnim;
+        gCollVehicleAnim = gRamdozerAnim;
         obj_collide_vehicle(4, veh);
         if (gCollHit != 0) {
             gRamdozerDeflecting = 0;
@@ -1226,9 +1226,9 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     } else {
         veh_prepare_escape(veh);
         gRamdozerDeflecting = 1;
-        port_veh_turn(veh, D_8030D8D0, &gRamdozerDeflectHeading);
+        port_veh_turn(veh, gRamdozerDeflectTurnRate, &gRamdozerDeflectHeading);
         veh_prev_contacts_clear();
-        D_803F77D0 = gRamdozerAnim;
+        gCollVehicleAnim = gRamdozerAnim;
         obj_collide_vehicle(4, veh);
     }
     port_veh_publish(veh, p, 4);
@@ -1242,9 +1242,9 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 extern u8 gRamdozerSmokeCooldown;  /* fx_spawn spawn cooldown */
 extern u8 gRamdozerDeflecting;  /* channel 1 restart request */
 extern f32 gRamdozerThrottleAnim; /* 0..1 level for channel 2 */
-extern f32 D_8030D8D4;
-extern f32 D_8030D8D8;
-extern f32 D_8030D8DC;
+extern f32 gRamdozerThrottleDownStep;
+extern f32 gRamdozerThrottleUpStep;
+extern f32 gRamdozerThrottleReturnStep;
 void ramdozer_add_tyre_trail(void);
 
 /* Smoke, start-off puff, throttle, tracks, bump animation (0x802B4EF8).
@@ -1253,18 +1253,18 @@ void ramdozer_add_tyre_trail(void);
  * 1. ramdozer_add_tyre_trail (tyre trail).
  * 2. Cooldown gRamdozerSmokeCooldown counts down; at 0 with byte +0x99 set it restarts
  *    at 1 and, while fewer than 14 fx_spawn records are active, sets up
- *    one (def D_802C2954, data 0x30D40, type 1 at (4, 1, 1)).
+ *    one (def gFxExhaustSmoke, data 0x30D40, type 1 at (4, 1, 1)).
  * 3. With gEngineSoundLevel == 0 and the speed (s16 +0x76) nonzero: sound 10
  *    (snd_play, the asm saving every register around it) and another
  *    record (data 0x1D4C0 at (4, 2, 1)).
  * 4. Level gRamdozerThrottleAnim (channel 2 of gRamdozerAnim): unless veh_near_top_speed(30),
- *    falls by D_8030D8D4 to 0 with gHeldBOrZ held, or rises by D_8030D8D8
- *    to 1 with gHeldA held; otherwise it moves by D_8030D8DC toward 0.5.
- * 5. Texture animations D_802C2190/D_802C21A4: moving, reverse = (speed < 0) on
+ *    falls by gRamdozerThrottleDownStep to 0 with gHeldBOrZ held, or rises by gRamdozerThrottleUpStep
+ *    to 1 with gHeldA held; otherwise it moves by gRamdozerThrottleReturnStep toward 0.5.
+ * 5. Texture animations gRamdozerTrackTexAnimA/gRamdozerTrackTexAnimB: moving, reverse = (speed < 0) on
  *    both, unk14 = |speed| / 2 on both and veh_set_engine_level(|speed| / 8);
  *    standing, unk11 = (stick < 0) / (stick >= 0) and unk14 = |stick|
  *    (gPadStickX).
- * 6. Entry D_802C21B8: unk13 = (u16 +0x4C in [0x355, 0x8AB) ? it - 0x355 :
+ * 6. Entry gRamdozerHeadingTexAnim: unk13 = (u16 +0x4C in [0x355, 0x8AB) ? it - 0x355 :
  *    0) / 76, unk4 = 0.
  * 7. With gRamdozerDeflecting set and channel 1's field 0x10 != 1: channel 1 gets
  *    (9, 1, 2) and sound 1 plays.
@@ -1289,35 +1289,35 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
         gRamdozerSmokeCooldown = 1;
         if (fx_count_active() < 14) {
             io.a3 = 1;
-            fx_spawn(&io, D_802C2954, 0x30D40, 1, 4, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, gFxExhaustSmoke, 0x30D40, 1, 4, 1, 1, t7, s0, s2, s3, s4, 1);
         }
     }
 
     if (gEngineSoundLevel == 0 && *(s16 *) (gRamdozerState + 0x76) != 0) {
         snd_play(gSfxBank, SFX_SKID, NULL);
         io.a3 = 1;
-        fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 4, 2, 1, t7, s0, s2, s3, s4, 1);
+        fx_spawn(&io, gFxExhaustSmoke, 0x1D4C0, 1, 4, 2, 1, t7, s0, s2, s3, s4, 1);
     }
 
     f = gRamdozerThrottleAnim;
     near = veh_near_top_speed(gRamdozerState, 30);
     if (near == 0 && gHeldBOrZ != 0) {
-        f -= D_8030D8D4;
+        f -= gRamdozerThrottleDownStep;
         if (f < 0.0f) {
             f = 0.0f;
         }
     } else if (near == 0 && gHeldA != 0) {
-        f += D_8030D8D8;
+        f += gRamdozerThrottleUpStep;
         if (!(f <= 1.0f)) {
             f = 1.0f;
         }
     } else if (f < 0.5f) {
-        f += D_8030D8DC;
+        f += gRamdozerThrottleReturnStep;
         if (!(f <= 0.5f)) {
             f = 0.5f;
         }
     } else {
-        f -= D_8030D8DC;
+        f -= gRamdozerThrottleReturnStep;
         if (f < 0.5f) {
             f = 0.5f;
         }
@@ -1327,21 +1327,21 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
 
     speed = *(s16 *) (gRamdozerState + 0x76);
     if (speed != 0) {
-        anim_tex_set_reverse((s32) D_802C2190, speed < 0);
-        anim_tex_set_reverse((s32) D_802C21A4, speed < 0);
+        anim_tex_set_reverse((s32) gRamdozerTrackTexAnimA, speed < 0);
+        anim_tex_set_reverse((s32) gRamdozerTrackTexAnimB, speed < 0);
         v = (u32) (speed < 0 ? -speed : speed) >> 1;
-        anim_tex_set_speed((s32) D_802C2190, v);
-        anim_tex_set_speed((s32) D_802C21A4, v);
+        anim_tex_set_speed((s32) gRamdozerTrackTexAnimA, v);
+        anim_tex_set_speed((s32) gRamdozerTrackTexAnimB, v);
         veh_set_engine_level((u32) v >> 2);
     } else {
         v = gPadStickX;
-        anim_tex_set_reverse((s32) D_802C2190, v < 0);
-        anim_tex_set_reverse((s32) D_802C21A4, v >= 0);
+        anim_tex_set_reverse((s32) gRamdozerTrackTexAnimA, v < 0);
+        anim_tex_set_reverse((s32) gRamdozerTrackTexAnimB, v >= 0);
         if (v < 0) {
             v = -v;
         }
-        anim_tex_set_speed((s32) D_802C2190, v);
-        anim_tex_set_speed((s32) D_802C21A4, v);
+        anim_tex_set_speed((s32) gRamdozerTrackTexAnimA, v);
+        anim_tex_set_speed((s32) gRamdozerTrackTexAnimB, v);
     }
 
     v = *(u16 *) (gRamdozerState + 0x4C);
@@ -1350,7 +1350,7 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
     } else {
         v = 0;
     }
-    anim_tex_set_frame(0.0f, (s32) D_802C21B8, (u32) v / 76);
+    anim_tex_set_frame(0.0f, (s32) gRamdozerHeadingTexAnim, (u32) v / 76);
 
     if (gRamdozerDeflecting != 0) {
         anim_get_state(1, (AnimChannel *) gRamdozerAnim, ch);

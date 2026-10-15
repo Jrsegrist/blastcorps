@@ -133,7 +133,7 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     PRINT_SCORE("res", gScoreRes);
     PRINT_SCORE("rs2", gScoreRs2);
     debug_printf("units %d\n", p->units);
-    if (gLevelInfo[levelno].kind == 1) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
         t = stats_print_status();
         if (arg2) {
             if (arg1) {
@@ -163,7 +163,7 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
-        if (gLevelInfo[levelno].kind == 1) {
+        if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
             p->money = ((s32) gLevelMoney);
         }
         if (p->units < 360) {
@@ -177,11 +177,11 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
             *arg0 = 1;
             p->title++;
         }
-        if (!(gLevelInfo[levelno].kind & 0x81)) {
+        if (!(gLevelInfo[levelno].kind & LEVEL_KIND_ANY_MISSION)) {
             p->bestVehicle[levelno] = nss.bdn;
         }
         gBestTimes[playerNumber][gVehicleTimeSlot[nss.bdn]] = nss.tc;
-        if (gLevelFirstClear && gLevelInfo[levelno].kind == 1) {
+        if (gLevelFirstClear && gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
             gBestTimes[playerNumber][gVehicleTimeSlot[0]] = nss.tc;
         }
         p->medal[levelno] = ret;
@@ -223,7 +223,7 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
         ghost_keep_if_best(stats_tenths_to_frames(nss.tc));
     }
     if (arg2 && arg1) {
-        if (gLevelInfo[arg0].kind == 0x80) {
+        if (gLevelInfo[arg0].kind == LEVEL_KIND_MISSION_TIMED) {
             nss.bdn = 0;
         } else if (nss.tc <= gScoreOld.tc) {
             nss.bdn = gDiggerVehicle;

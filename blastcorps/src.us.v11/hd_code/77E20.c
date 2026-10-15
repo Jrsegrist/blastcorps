@@ -773,7 +773,7 @@ static void port_obj_draw_only(LevelObject *o, u32 **pA, u32 **pB, u32 **pC, u32
         if (*s == -1) return;
         if (*s == o->cell) break;
     }
-    if (o->kind == 0x38 && obj_end_object_hidden() != 0) return;
+    if (o->kind == OBJ_KIND_END && obj_end_object_hidden() != 0) return;
     PORT_ITAG(gA, PORT_ITAG_BUILDING, o - gObjects);
     PORT_ITAG(gB, PORT_ITAG_BUILDING, o - gObjects);
     gA[0] = gB[0] = 0xBC002406;
@@ -886,7 +886,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
                 break;
             }
         }
-        if (o->kind == 0x38 && obj_end_object_hidden() != 0) {
+        if (o->kind == OBJ_KIND_END && obj_end_object_hidden() != 0) {
             goto tail;
         }
         PORT_ITAG(gA, PORT_ITAG_BUILDING, o - gObjects);
@@ -1206,9 +1206,9 @@ void obj_move_model(LevelObjectHead *model, s32 dx, s32 dy, s32 dz) {
         ay = (ny < 0) ? -ny : ny;
         az = (nz < 0) ? -nz : nz;
         if (az < ax || az < ay) {
-            r->axis = (ay < ax || ay < az) ? 2 : 1;
+            r->axis = (ay < ax || ay < az) ? TRI_AXIS_X : TRI_AXIS_Y;
         } else {
-            r->axis = 0;
+            r->axis = TRI_AXIS_Z;
         }
     }
 }
@@ -1255,7 +1255,7 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
  * Divisors (period, n, the spans) of 0 trap (break 7); the object can't sit
  * exactly at the player (0 / 0). */
 void obj_step_tex_anims(LevelObject *obj, u8 *rec, u8 *end) {
-    if (obj->kind == 0x38 && (gHaveCarrier != 0 || gHaveShuttle != 0)) {
+    if (obj->kind == OBJ_KIND_END && (gHaveCarrier != 0 || gHaveShuttle != 0)) {
         if (gPathBuildingsDestroyed == 0 || obj_box_targets_done() == 0 || obj_tri_targets_ahead_done() == 0) {
             return;
         }
@@ -1601,7 +1601,7 @@ void obj_collide_vehicle(s32 id, u8 *vehicle) {
             if (math_spheres_overlap(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->radius) == 0) {
                 continue;
             }
-            if (o->kind == 0x38 && obj_end_object_hidden() != 0) {
+            if (o->kind == OBJ_KIND_END && obj_end_object_hidden() != 0) {
                 continue;
             }
             if (obj_is_solid_for_vehicle(o, id) != 0) {
@@ -1805,10 +1805,10 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
         }
     }
 
-    if (id != 0xFF) {
+    if (id != VEH_CARRIER) {
         gObjHitFrame = gUnpausedFrames;
     }
-    if (id != 0xFF && e->info->type != 1 && e->pathBuilding == 0 && e->kind != 0x38 && gHintLastHitObject != e) {
+    if (id != VEH_CARRIER && e->info->type != OBJ_TOUGH_FLIMSY && e->pathBuilding == 0 && e->kind != OBJ_KIND_END && gHintLastHitObject != e) {
         gHintBuildingHit = 1;
         gHintLastHitObject = e;
     }
@@ -1821,7 +1821,7 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
     if (obj_hits_has((s32) e, part) != 0) {
         goto done;
     }
-    if (gFullDamage == 0 && id != 0xFF) {
+    if (gFullDamage == 0 && id != VEH_CARRIER) {
         if (gCollExitProbe == 0) {
             obj_detect_rocking_hits();
             if (gObjRockHit != 0) {
@@ -1834,8 +1834,8 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
     }
 add:
     obj_hits_add((s32) e, part);
-    if (e->kind == 0x38) {
-        if (id == 0) {
+    if (e->kind == OBJ_KIND_END) {
+        if (id == VEH_DRIVER) {
             gEndObjectTouched = 1;
         }
         value = 0;
@@ -1908,7 +1908,7 @@ tail:
  * takes e in t9 and saves v0; asm caller obj_hit_tri keeps a0, a1, t8, t9,
  * f12 and f14 live. */
 void obj_check_mars_fail(LevelObject *e) {
-    if (levelno == 0x2D && e->kind >= 0xE7 && e->kind < 0xEA) {
+    if (levelno == 0x2D && e->kind >= OBJ_KIND_MARS_FAIL_FIRST && e->kind < OBJ_KIND_MARS_FAIL_END) {
         gFailTrigger = 1;
     }
 }
@@ -2400,7 +2400,7 @@ void obj_start_emitter(LevelObject *e, s32 *obj) {
     s8 *p;
     s32 key;
 
-    if (e->info->type == 1) {
+    if (e->info->type == OBJ_TOUGH_FLIMSY) {
         return;
     }
     key = ((u8 *) obj)[0x31];
@@ -2562,7 +2562,7 @@ s32 obj_calc_damage(s32 id, s32 value, s32 bit, LevelObject *e, s32 flag, s32 ke
     s32 m;
     u32 r;
 
-    if (bit == 0xFF) {
+    if (bit == VEH_CARRIER) {
         return (flag == 1) ? 100 : 0;
     }
     gDigHit = 1;
@@ -2584,18 +2584,18 @@ s32 obj_calc_damage(s32 id, s32 value, s32 bit, LevelObject *e, s32 flag, s32 ke
     for (;;) {
         kind = rec[2];
         if (rec[0] == bit && rec[1] == key) {
-            if (kind == 0xFC) {
+            if (kind == DMG_RULE_ATTACK) {
                 if (gVehAttacking != 0) {
                     r = (u32) rec[3] * out;
                     break;
                 }
-            } else if (kind == 0xFB) {
+            } else if (kind == DMG_RULE_EXPOSED) {
                 if (obj_part_exposed(v0, e) != 0) {
                     r = (u32) rec[3] * out;
                     break;
                 }
-            } else if (kind == 0xFF || kind == 0xFE || kind == 0xFD) {
-                if ((kind == 0xFF && gHitSpeed < 0) || (kind == 0xFE && gHitSpeed > 0)) {
+            } else if (kind == DMG_RULE_SPEED_FWD || kind == DMG_RULE_SPEED_REV || kind == DMG_RULE_SPEED) {
+                if ((kind == DMG_RULE_SPEED_FWD && gHitSpeed < 0) || (kind == DMG_RULE_SPEED_REV && gHitSpeed > 0)) {
                     rec += 4;
                     continue;
                 }
@@ -2620,7 +2620,7 @@ s32 obj_calc_damage(s32 id, s32 value, s32 bit, LevelObject *e, s32 flag, s32 ke
                 continue;
             }
         }
-        if (kind == 0xFC || kind == 0xFB || kind == 0xFD || kind == 0xFF || kind == 0xFE) {
+        if (kind == DMG_RULE_ATTACK || kind == DMG_RULE_EXPOSED || kind == DMG_RULE_SPEED || kind == DMG_RULE_SPEED_FWD || kind == DMG_RULE_SPEED_REV) {
             rec += 4;
         } else {
             rec += rec[3] + 4;
@@ -2817,7 +2817,7 @@ void obj_run_effect_queue(void) {
         }
         list = gObjEffectDefLists[r[0x31]];
         def = gFxDefsByKind[list[1 + ((u32) gFrameDrawTime >> 4) % list[0]]];
-        if (r[0x31] == 0x15 || gPartSinking != 0 || (gWaterOn != 0 && gWaterLayer == 1)) {
+        if (r[0x31] == EFFECT_KIND_COMMPT_BURST || gPartSinking != 0 || (gWaterOn != 0 && gWaterLayer == 1)) {
             tag = 1;
         } else {
             tag = 0;
@@ -3495,7 +3495,7 @@ void obj_blast_damage(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
         if (math_spheres_overlap(pz, r, e->pos[0], e->pos[1], px, py, e->pos[2], e->radius) == 0) {
             continue;
         }
-        if (e->kind == 0x38) {
+        if (e->kind == OBJ_KIND_END) {
             continue;
         }
         for (n = e->numParts, p = e->partPct, part = 1; n != 0; n--, p++, part++) {
@@ -3692,16 +3692,16 @@ void obj_tally(s32 onlyFlagged) {
             }
             gPathBuilding = e->kind;
         }
-        if (info->type == 0xFF) {
+        if (info->type == OBJ_TOUGH_UNCOUNTED) {
             continue;
         }
-        if (info->type != 1) {
+        if (info->type != OBJ_TOUGH_FLIMSY) {
             counted++;
         }
         if ((e->destroyed | gCheatAllDestroyed) == 0) {
             continue;
         }
-        if (info->type != 1) {
+        if (info->type != OBJ_TOUGH_FLIMSY) {
             active++;
         }
         total += info->value;

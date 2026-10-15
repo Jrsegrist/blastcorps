@@ -333,7 +333,7 @@ s32 veh_sphere_hits_world(s32 x, s32 y, s32 z, s32 r, s32 kind) {
         if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
-        if (e[1] == 0x38 && obj_end_object_hidden() != 0) {
+        if (e[1] == OBJ_KIND_END && obj_end_object_hidden() != 0) {
             continue;
         }
         objEnd = gObjectsEnd;
@@ -383,7 +383,7 @@ s32 veh_sphere_hits_world(s32 x, s32 y, s32 z, s32 r, s32 kind) {
         }
     }
     veh_grid_cells_at(x, z);
-    if (kind != 9) {
+    if (kind != VEH_JBOMB) {
         for (cell = gCollCells; *cell != -1; cell++) {
             end = gCollCellsB[*cell + 1];
             for (tri = gCollCellsB[*cell]; tri != end; tri += 0x60) {
@@ -444,7 +444,7 @@ void veh_report_world_hits(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
         if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
-        if (e[1] == 0x38 && obj_end_object_hidden() != 0) {
+        if (e[1] == OBJ_KIND_END && obj_end_object_hidden() != 0) {
             continue;
         }
         objEnd = gObjectsEnd;
@@ -495,7 +495,7 @@ void veh_report_world_hits(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
         }
     }
     veh_grid_cells_at(x, z);
-    if (kind != 9) {
+    if (kind != VEH_JBOMB) {
         for (cell = gCollCells; *cell != -1; cell++) {
             end = gCollCellsB[*cell + 1];
             for (tri = gCollCellsB[*cell]; tri != end; tri += 0x60) {
@@ -800,7 +800,7 @@ found:
             return 1;
         }
     }
-    if (levelno != 9 && kind >= 0x13) {
+    if (levelno != 9 && kind >= VEH_COUNT) {
         return 0;
     }
     if (g[0xF9] == 0) {
@@ -809,8 +809,8 @@ found:
     d = *(s64 *) (tri + 0x18);
     s = *(s64 *) (tri + 0) * (gCollX >> 2) + *(s64 *) (tri + 8) * (gCollY >> 2) +
         *(s64 *) (tri + 0x10) * (gCollZ >> 2) + d;
-    side = ((d > 0) ? (s > 0) : (s < 0)) ? 1 : 2;
-    if (tri[0x54] == 0) {
+    side = ((d > 0) ? (s > 0) : (s < 0)) ? TRI_SIDE_FRONT : TRI_SIDE_BACK;
+    if (tri[0x54] == TRI_SIDE_NONE) {
         tri[0x54] = side;
         return 0;
     }
@@ -821,8 +821,8 @@ found:
     p = (u8 * N64P *) (g + 8);
     for (n = g[0xF8]; n != 0; n--) {
         b = *p++;
-        if (b[0x54] != 0) {
-            b[0x54] = (b[0x54] == 1) ? 2 : 1;
+        if (b[0x54] != TRI_SIDE_NONE) {
+            b[0x54] = (b[0x54] == TRI_SIDE_FRONT) ? TRI_SIDE_BACK : TRI_SIDE_FRONT;
         }
     }
     return 0;
@@ -1015,12 +1015,12 @@ void math_tri_project_2d(u8 *tri, s32 px, s32 py, s32 pz, s32 *out) {
     s32 *v = (s32 *) (tri + 0x28);
     s32 axis = (s8) tri[0x4E];
 
-    if (axis == 0) {
+    if (axis == TRI_AXIS_Z) {
         out[6] = px, out[7] = py;
         out[0] = v[0], out[1] = v[1];
         out[2] = v[3], out[3] = v[4];
         out[4] = v[6], out[5] = v[7];
-    } else if (axis == 1) {
+    } else if (axis == TRI_AXIS_Y) {
         out[6] = px, out[7] = pz;
         out[0] = v[0], out[1] = v[2];
         out[2] = v[3], out[3] = v[5];
@@ -1438,10 +1438,10 @@ void veh_collide_vehicles(s32 tag, u8 *veh) {
         if (kind == tag) {
             continue;
         }
-        if (tag == 6 && veh_rides_on(kind, tag) != 0) {
+        if (tag == VEH_CRANE && veh_rides_on(kind, tag) != 0) {
             continue;
         }
-        if (gDriverHidden != 0 && kind == 0) {
+        if (gDriverHidden != 0 && kind == VEH_DRIVER) {
             continue;
         }
         r = veh_scale_other_radius(*(s32 *) (p + 0xC), kind, veh);
@@ -1469,7 +1469,7 @@ void veh_collide_vehicles(s32 tag, u8 *veh) {
 u32 veh_scale_other_radius(u32 v, s32 key, u8 *veh) {
     u32 d;
 
-    if (key != 0xFF) {
+    if (key != VEH_CARRIER) {
         d = VEH_GP_U8(veh, VS_PUSH_DIVISOR);
         if (d != 1) {
             v /= d;
@@ -1508,11 +1508,11 @@ void veh_block_toward_part(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s3
     u32 angle = 0;
 
     veh_contacts_add(n);
-    if (kind == 0xFF) {
+    if (kind == VEH_CARRIER) {
         if (next[-2] != 0) {
             gCarrierContact = 1;
         }
-    } else if (kind != 0 && next[-2] == 0xFF) {
+    } else if (kind != VEH_DRIVER && next[-2] == VEH_CARRIER) {
         gCarrierContact = 1;
     }
     dx = x2 - x1;
@@ -1958,11 +1958,11 @@ void veh_build_tris(s32 id, u8 *model, u8 *mtxBase) {
             nz = -nz;
         }
         if (!(nz < nx) && !(nz < ny)) {
-            rec[0x4E] = 0;
+            rec[0x4E] = TRI_AXIS_Z;
         } else if (!(ny < nx) && !(ny < nz)) {
-            rec[0x4E] = 1;
+            rec[0x4E] = TRI_AXIS_Y;
         } else {
-            rec[0x4E] = 2;
+            rec[0x4E] = TRI_AXIS_X;
         }
         veh_tri_facing(rec);
         veh_set_tri_two_sided(id, rec);
@@ -1979,7 +1979,7 @@ void veh_build_tris(s32 id, u8 *model, u8 *mtxBase) {
  * Register convention: asm takes kind in t2 and rec in s0, restoring v0
  * (conventions.txt); asm callers keep a3, t2, t6, t7, f12, f14 live. */
 void veh_set_tri_two_sided(s32 kind, u8 *rec) {
-    rec[0x55] = (kind == 7) ? 0 : 1;
+    rec[0x55] = (kind == VEH_TRAIN) ? 0 : 1;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/veh_set_tri_two_sided.s")

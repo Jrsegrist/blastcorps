@@ -493,7 +493,7 @@ void util_shuttle_path_step(void) {
             case 0:
                 break;
             case 1:
-                if (((s32) gLevelKind) == 0x80) {
+                if (((s32) gLevelKind) == LEVEL_KIND_MISSION_TIMED) {
                     gShuttlePathBranch = 1;
                 } else {
                     obj_tally(0);
@@ -515,57 +515,57 @@ void util_shuttle_path_step(void) {
             case 5:
                 gYoshiGameItems[42].text = "LANDING ABORTED!";
                 gYoshiGameItems[42].jtext = gShuttleLandingAbortedJText;
-                gYoshiWindows[23].unk12 = 0xDA;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xDA;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 6:
                 gYoshiGameItems[42].text = "DITCHING IN SEA!";
                 gYoshiGameItems[42].jtext = gShuttleDitchingJText;
-                gYoshiWindows[23].unk12 = 0x77;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0x77;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 4:
                 gYoshiGameItems[42].text = "ON FINAL APPROACH!";
                 gYoshiGameItems[42].jtext = gShuttleFinalApproachJText;
-                gYoshiWindows[23].unk12 = 0xD7;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD7;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 7:
                 gYoshiGameItems[42].text = "SUCCESSFUL LANDING!";
                 gYoshiGameItems[42].jtext = gShuttleLandedJText;
-                gYoshiWindows[23].unk12 = 0x82;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0x82;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 8:
                 gYoshiGameItems[42].text = "3000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
-                gYoshiWindows[23].unk12 = 0xD5;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD5;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 9:
                 gYoshiGameItems[42].text = "2000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
-                gYoshiWindows[23].unk12 = 0xD3;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD3;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                 }
                 break;
             case 10:
                 gYoshiGameItems[42].text = "1000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
-                gYoshiWindows[23].unk12 = 0xD1;
+                gYoshiWindows[YW_SHUTTLE_MESSAGE].unk12 = 0xD1;
                 if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
-                    yoshi_demand(0x8017);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_MESSAGE);
                     music_push_danger_tune();
                 }
                 break;
@@ -730,11 +730,11 @@ void util_check_hint_events(void) {
 
     minDist = 999999;
     if (gTrainContactFrames == 15) {
-        yoshi_show_hint(0x50);
+        yoshi_show_hint(YW_HINT_TRAIN);
     }
     if (levelno == 0x12 && (gPlayerX >> 5) < 0x578
         && util_dist2d(gPlayerX >> 5, gPlayerZ >> 5, 0x531, 0x1061) < 0x82) {
-        yoshi_show_hint(0x51);
+        yoshi_show_hint(YW_HINT_LEVEL12_SPOT);
     }
     if (gCurVehicle != gHintLastVehicle) {
         gHintPrevVehicle = gHintLastVehicle;
@@ -745,15 +745,15 @@ void util_check_hint_events(void) {
     p = gVehicles;
     done = 0;
     while (!done && gVehiclesEnd != p) {
-        if (p->unk5C != gHintPrevVehicle && p->unk5C != gCurVehicle && gCurVehicle != 0 && p->unk5C != 0
-            && p->unk5C != 0xFE && p->unk5C != 0xFF && p->unk5C != 7 && p->unk5C != 6) {
+        if (p->unk5C != gHintPrevVehicle && p->unk5C != gCurVehicle && gCurVehicle != VEH_DRIVER && p->unk5C != VEH_DRIVER
+            && p->unk5C != VEH_CHOPPER && p->unk5C != VEH_CARRIER && p->unk5C != VEH_TRAIN && p->unk5C != VEH_CRANE) {
             d = util_dist3d(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, p->unk64 >> 5, p->unk68 >> 5,
                               p->unk6C >> 5);
             if (d < minDist) {
                 minDist = d;
             }
             if (d < 100 && !gHintNearVehicle && (!veh_is_riding(p->unk5C) || !gTrainClosed)) {
-                yoshi_show_hint(0x4C);
+                yoshi_show_hint(YW_HINT_OTHER_VEHICLE);
                 gHintNearVehicle = 1;
                 done = 1;
             }
@@ -764,16 +764,16 @@ void util_check_hint_events(void) {
         gHintNearVehicle = 0;
     }
     if (levelno == 0 && gMarkerArrowsOnScreen >= 2) {
-        yoshi_show_hint(0x4D);
+        yoshi_show_hint(YW_HINT_MARKER_ARROWS);
     }
-    if (levelno == 0 && gCurVehicle == 7 && (gPlayerX >> 5) >= 0x899) {
-        yoshi_show_hint(0x53);
+    if (levelno == 0 && gCurVehicle == VEH_TRAIN && (gPlayerX >> 5) >= 0x899) {
+        yoshi_show_hint(YW_HINT_LEVEL0_TRAIN);
     }
     if (gHintBuildingHit) {
         if (!((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0)
             && !gTargetsCleared) {
-            if (!yoshi_show_hint(0x4E)) {
-                yoshi_show_hint(0x4F);
+            if (!yoshi_show_hint(YW_HINT_BUILDING_HIT)) {
+                yoshi_show_hint(YW_HINT_BUILDING_HIT2);
             }
             gHintBuildingHit = 0;
         }

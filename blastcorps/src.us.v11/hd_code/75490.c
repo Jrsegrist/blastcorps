@@ -73,7 +73,7 @@ void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     gCarrierMtxA = (u8 *) N64_IPTR(buf);
     gCarrierMtxB = (u8 *) N64_IPTR((buf + 0xC00));
     gHeapPtr = buf + 0x1800;
-    veh_add_record(0xFF, 0, (s32) gCarrierMtxA, (s32) gCarrierMtxB, model);
+    veh_add_record(VEH_CARRIER, 0, (s32) gCarrierMtxA, (s32) gCarrierMtxB, model);
     gCarrierX = x;
     gCarrierStartX = x;
     gCarrierZ = z;
@@ -122,7 +122,7 @@ void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     anim_update_model(gCarrierMtxB, gCarrierMtxA, (AnimChannel *) gCarrierAnim);
     hdr = gCarrierModel;
     veh_register_parts(0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x59D8);
-    veh_add_shadow(0xFF, 0x96, 0x3C, 0x3C);
+    veh_add_shadow(VEH_CARRIER, 0x96, 0x3C, 0x3C);
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s0 = 0;
@@ -728,7 +728,7 @@ void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     gCraneMtxA = (u64 *) N64_IPTR(buf);
     gCraneMtxB = (u64 *) N64_IPTR((buf + 0x800));
     gHeapPtr = buf + 0x1000;
-    veh_add_record(6, 0, (s32) gCraneMtxA, (s32) gCraneMtxB, model);
+    veh_add_record(VEH_CRANE, 0, (s32) gCraneMtxA, (s32) gCraneMtxB, model);
     veh_reset_state(gCraneState);
     /* wheel slot offsets (x, z pairs and heights) */
     *(s16 *) (gCraneState + 0x52) = 0x50;
@@ -772,7 +772,7 @@ void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     gCraneState[0xA2] = 0;
     hdr = gCraneModel;
     veh_register_parts(6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x1B58);
-    veh_add_shadow(6, 0x96, 0x2D, 0x2D);
+    veh_add_shadow(VEH_CRANE, 0x96, 0x2D, 0x2D);
     gCraneState[0x9A] = 1;
     crane_update();
     gCraneState[0x9A] = 0;

@@ -228,7 +228,7 @@ void veh_set_engine_level(s32 level) {
     } else if (old == level) {
         return;
     }
-    u.f = 0.5f + (f32) level * ((gCurVehicle == 1) ? gEnginePitchStepSideswipe : gEnginePitchStep);
+    u.f = 0.5f + (f32) level * ((gCurVehicle == VEH_SIDESWIPE) ? gEnginePitchStepSideswipe : gEnginePitchStep);
     snd_modify(gEngineSound, 0x10, u.i);
 }
 #else

@@ -324,9 +324,9 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
  * leaves them, and lvl_spawn_vehicles hands fp and f12-f26 on to the next
  * object's spawn (not modelled; see the fidelity notes). */
 void barge_spawn(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
-    if (type == 0x0B) {
+    if (type == VEH_BARGE_0B) {
         barge_spawn_0b(x, y, z, angle, data, fp);
-    } else if (type == 0x11) {
+    } else if (type == VEH_BARGE_11) {
         barge_spawn_11(x, y, z, angle, data, fp);
     } else {
         barge_spawn_12(x, y, z, angle, data, fp);

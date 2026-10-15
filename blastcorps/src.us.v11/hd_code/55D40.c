@@ -62,7 +62,7 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
         }
     }
     if (((s32) gFramesInMode) == 100) {
-        yoshi_demand(0x8036);
+        yoshi_demand(YOSHI_DEMAND_OPEN | YW_CREDITS_START);
     }
     if ((u32) ((s32) gFramesInMode) >= 0x18C) {
         gCreditsScroll++;
@@ -71,7 +71,7 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
         gCreditsEndTimer++;
     }
     if (gCreditsEndTimer == 0x7D) {
-        yoshi_demand(0x8037);
+        yoshi_demand(YOSHI_DEMAND_OPEN | YW_CREDITS_END);
         music_push_tune(MUS_FINALE);
     }
     if (gCreditsEndTimer >= 0x7E && yoshiState == 1 && areWeFading() == 0) {

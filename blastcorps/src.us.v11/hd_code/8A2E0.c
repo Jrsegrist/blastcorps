@@ -361,7 +361,7 @@ void commpt_burst(s32 *pos) {
         d->unk10[5] = 0;
         d->unk2E = 0;
         d->unk30 = 0;
-        d->unk31 = 0x15;
+        d->unk31 = EFFECT_KIND_COMMPT_BURST;
         d->unk34 = 0;
         d->unk35 = 0;
         obj_queue_effect((u32 *) d);

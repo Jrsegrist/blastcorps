@@ -227,7 +227,7 @@ f32 bridge_max_load(s32 *a, s32 *b, s32 arg2) {
     i = 0;
     max = 0.0f;
     while (&gVehicles[i] != gVehiclesEnd) {
-        if ((type = gVehicles[i].type) != 0xFE && (type != 0 || gDriverHidden == 0)) {
+        if ((type = gVehicles[i].type) != VEH_CHOPPER && (type != VEH_DRIVER || gDriverHidden == 0)) {
             if (bridge_point_in_quad(gVehicles[i].unk64, gVehicles[i].unk6C, a, b) != 0) {
                 if (gVehicles[i].unk70 != 0) {
                     t = bridge_cross_fraction(gVehicles[i].unk64, gVehicles[i].unk6C, a, b);
@@ -322,33 +322,33 @@ f32 bridge_digger_weight(type)
 #endif
 {
     switch (type) {
-    case 0:
+    case VEH_DRIVER:
         return 0.3f;
-    case 1:
+    case VEH_SIDESWIPE:
         return 0.8f;
-    case 5:
+    case VEH_BACKLASH:
         return 0.8f;
-    case 4:
+    case VEH_RAMDOZER:
         return 0.8f;
-    case 2:
+    case VEH_THUNDERFIST:
         return 0.8f;
-    case 16:
+    case VEH_CYCLONE:
         return 0.4f;
-    case 3:
+    case VEH_SKYFALL:
         return 0.8f;
-    case 8:
+    case VEH_AMDREAM:
         return 0.6f;
-    case 10:
+    case VEH_BALLISTA:
         return 0.6f;
-    case 13:
+    case VEH_POLICE:
         return 0.8f;
-    case 14:
+    case VEH_ATEAM:
         return 0.6f;
-    case 15:
+    case VEH_STARSKI:
         return 0.6f;
-    case 9:
+    case VEH_JBOMB:
         return 0.0f;
-    case 0xFF:
+    case VEH_CARRIER:
         return 0.8f;
     default:
         debug_printf("DIGGER WEIGHT NOT SET\n");

@@ -97,4 +97,35 @@ STATIC_ASSERT_SIZE(CollisionTri, 0x60);
 STATIC_ASSERT_SIZE(ObjectModel, 0x4C);
 STATIC_ASSERT_SIZE(LevelObject, 0xFC);
 
+/* LevelObject.kind (word 0x30 of a gObjects record; lvl_add_object's type, gObjSolidKinds entries). */
+#define OBJ_KIND_END             0x38 /* the end object: gEndObjectX/Y/Z, gEndObjectTouched, takes no damage */
+#define OBJ_KIND_SHADOW_A        0xBA /* 0xBA..0xBC cast a blob shadow: groundY (lvl_init_object_shadow, */
+#define OBJ_KIND_SHADOW_B        0xBB /*   obj_draw_ground_shadows); what the objects are is unknown */
+#define OBJ_KIND_SHADOW_C        0xBC
+#define OBJ_KIND_MARS_FAIL_FIRST 0xE7 /* level 0x2D: kinds 0xE7..0xE9 fail the mission when hit */
+#define OBJ_KIND_MARS_FAIL_END   0xEA /*   (obj_check_mars_fail; one past the last) */
+
+/* ObjectModel.type: the toughness (damage divisor) and its two special values (obj_tally). */
+#define OBJ_TOUGH_FLIMSY    1    /* not counted as a building; no emitter, no "new target" mark */
+#define OBJ_TOUGH_UNCOUNTED 0xFF /* left out of the level's tally */
+
+/* Damage-rule record kinds: byte 2 of the gObjDamageRules records obj_calc_damage walks
+ * (any other value is an animation-channel kind). */
+#define DMG_RULE_EXPOSED    0xFB /* n * value if obj_part_exposed */
+#define DMG_RULE_ATTACK     0xFC /* n * value if gVehAttacking */
+#define DMG_RULE_SPEED      0xFD /* |gHitSpeed| * value * n >> 4, always (ends each key's list) */
+#define DMG_RULE_SPEED_REV  0xFE /*   the same, skipped when gHitSpeed > 0 */
+#define DMG_RULE_SPEED_FWD  0xFF /*   the same, skipped when gHitSpeed < 0 */
+
+/* CollisionTri.axis: the dominant normal axis, dropped for the 2-D tests (math_tri_project_2d). */
+#define TRI_AXIS_Z 0
+#define TRI_AXIS_Y 1
+#define TRI_AXIS_X 2
+
+/* Byte 0x54 of a switch triangle (CollisionTri.pad54): the side the vehicle was last on
+ * (veh_hit_switch_triangle; crossing flips gDriverCanExit). */
+#define TRI_SIDE_NONE  0 /* not yet touched (lvl_build_coll_tri) */
+#define TRI_SIDE_FRONT 1 /* on d's side of the plane */
+#define TRI_SIDE_BACK  2
+
 #endif

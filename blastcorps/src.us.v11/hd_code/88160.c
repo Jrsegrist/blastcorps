@@ -60,7 +60,7 @@ void ateam_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *
     gAteamMtxA = (u64 *) p;
     gAteamMtxB = (u64 *) (p + 0x100);
     gHeapPtr = p + 0x200;
-    veh_add_record(0xE, 0, (s32) gAteamMtxA, (s32) gAteamMtxB, hdr);
+    veh_add_record(VEH_ATEAM, 0, (s32) gAteamMtxA, (s32) gAteamMtxB, hdr);
     veh_reset_state(gAteamState);
     VEH14_S16(VS_WHEEL_OFFSETS) = 250;
     VEH14_S16(0x54) = 400;
@@ -114,7 +114,7 @@ void ateam_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *
     gAteamThrottleHold = 0;
     h = gAteamModel;
     veh_register_parts(0xE, h + *(s32 *) (h + 4), h + *(s32 *) (h + 8), 0x55F0);
-    veh_add_shadow(0xE, 60, 25, 25);
+    veh_add_shadow(VEH_ATEAM, 60, 25, 25);
     gAteamState[0x9A] = 1;
     ateam_update();
     gAteamState[0x9A] = 0;

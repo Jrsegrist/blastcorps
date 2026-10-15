@@ -259,7 +259,7 @@ void apply_status(void *in) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* A record counts toward a random status unless it is excluded. */
-#define REC7FB50_ELIGIBLE(r) ((r)->kind != 0x38 && (r)->info[4] != 1)
+#define REC7FB50_ELIGIBLE(r) ((r)->kind != OBJ_KIND_END && (r)->info[4] != OBJ_TOUGH_FLIMSY)
 
 /* create_status: build a status bitstream in the format record_status writes,
  * for difficulty/percentage level `level` (1-based index into gStatusLevelPercents, a
@@ -400,7 +400,7 @@ void jbomb_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     gJbombMtxA = (u64 *) gHeapPtr;
     gJbombMtxB = (u64 *) (gHeapPtr + 0x1000);
     gHeapPtr += 0x2000;
-    veh_add_record(9, 0, (s32) gJbombMtxA, (s32) gJbombMtxB, model);
+    veh_add_record(VEH_JBOMB, 0, (s32) gJbombMtxA, (s32) gJbombMtxB, model);
     veh_reset_state(gJbombState);
     VEH_S16(VS_WHEEL_OFFSETS) = 0;
     VEH_S16(0x54) = 0;
@@ -458,7 +458,7 @@ void jbomb_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     gJbombPrevHeldB = 0;
     m = gJbombModel;
     veh_register_parts(9, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x4268);
-    veh_add_shadow(9, 0x64, 0x2D, 0x2D);
+    veh_add_shadow(VEH_JBOMB, 0x64, 0x2D, 0x2D);
     anim_set_frame(0.0f, (AnimChannel *) gJbombAnim, 6, 2);
     anim_play((AnimChannel *) gJbombAnim, 6, -1);
     VEH_U8(VS_SPAWN_UPDATE) = 1;
@@ -1246,7 +1246,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
                 VEH_U8(0x98) = 1;
                 break;
             }
-            if (gJbombStompTimer != 0 || gJbombStompDelay != 0 || VEH_U8(VS_SURFACE_MAX) == 100) {
+            if (gJbombStompTimer != 0 || gJbombStompDelay != 0 || VEH_U8(VS_SURFACE_MAX) == SURFACE_WATER) {
                 break;
             }
             jbomb_track_lr_taps();
@@ -1498,7 +1498,7 @@ void jbomb_lift_off_water(void) {
     s32 limit;
     s32 cur;
 
-    if (VEH_U8(VS_SURFACE_MAX) != 100) {
+    if (VEH_U8(VS_SURFACE_MAX) != SURFACE_WATER) {
         return;
     }
     if (VEH_U8(VS_ACTION) != 1) {

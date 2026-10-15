@@ -106,8 +106,6 @@ typedef struct {
     if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "./vidiPrint.h", line)
 
 #define YOSHI_OFF 1
-#define NO_YOSHI_WINDOW -1
-#define YOSHI_DEMAND_OFF 0x4000
 
 /* A Yoshi window, 0x1C bytes */
 typedef struct YoshiWindow {
@@ -228,7 +226,7 @@ u8 yoshi_show_hint(s16 arg0) {
                             players[playerNumber].hintShowsById[arg0]++;
                         }
                         gYoshiHintShown[arg0] = 1;
-                        yoshi_demand(arg0 | 0x8000 | 0x2000);
+                        yoshi_demand(arg0 | YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE);
                         found = 1;
                     }
                 }
@@ -247,13 +245,13 @@ void yoshi_demand(u16 yd) {
         YOSHI_ASSERT(!yoshiDemandV, 1312);
         debug_printf("NEW: %x OLD:%x\n", yd, yoshiDemandV);
     }
-    if (yd & 0x4000) {
+    if (yd & YOSHI_DEMAND_OFF) {
         YOSHI_ASSERT(yd==YOSHI_DEMAND_OFF, 1317);
     }
-    if (newWindow == 0x1E || newWindow == 0x23 || newWindow == 5 || newWindow == 0xE) {
-        gYoshiPendingWindow = -1;
+    if (newWindow == YW_MOON_DONE || newWindow == YW_SHUTTLE_DONE || newWindow == YW_LEVEL_DONE || newWindow == YW_MISSION_FAILED) {
+        gYoshiPendingWindow = NO_YOSHI_WINDOW;
     }
-    if (oldWindow == 0x1E || oldWindow == 0x23 || oldWindow == 5 || oldWindow == 0xE) {
+    if (oldWindow == YW_MOON_DONE || oldWindow == YW_SHUTTLE_DONE || oldWindow == YW_LEVEL_DONE || oldWindow == YW_MISSION_FAILED) {
         YOSHI_ASSERT(1==0, 1324);
         debug_printf("OH MY GOD!\n");
         return;
@@ -282,7 +280,7 @@ void yoshi_init(u8 arg0) {
     yoshiState = YOSHI_OFF;
     yoshiSelection = 0;
     yoshiDemandV = 0;
-    gYoshiPendingWindow = -1;
+    gYoshiPendingWindow = NO_YOSHI_WINDOW;
     currentYoshiWindow = NO_YOSHI_WINDOW;
     gYoshiPulse = 0;
     arg = NULL;
@@ -295,7 +293,7 @@ void yoshi_init(u8 arg0) {
             }
         }
     }
-    gYoshiWindows[6].unkC = 3;
+    gYoshiWindows[YW_STATUS].unkC = 3;
     for (i = 0; i < 18; i++) {
         D_8036BAE8[i] = 0;
     }
@@ -313,13 +311,13 @@ void yoshi_init(u8 arg0) {
                 gYoshiFeItems[29].flags &= ~1;
                 gYoshiFeItems[29].unk14 = 11;
             }
-            if (gLevelInfo[levelno].kind == 1) {
+            if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
                 if (academy_marker_found(levelno)) {
                     gYoshiFeItems[18].unk14 = 24;
                 } else {
                     gYoshiFeItems[18].unk14 = 0;
                 }
-            } else if (gLevelInfo[levelno].kind == 0x20) {
+            } else if (gLevelInfo[levelno].kind == LEVEL_KIND_BUILDINGS) {
                 gYoshiFeItems[23].flags &= ~0x400;
                 gYoshiFeItems[26].flags &= ~0x400;
                 gYoshiFeItems[27].unk14 = 0;
@@ -332,14 +330,14 @@ void yoshi_init(u8 arg0) {
             }
             break;
         case MODE_BEST_TIMES:
-            arg = &gYoshiWindows[22];
+            arg = &gYoshiWindows[YW_BEST_TIMES];
             break;
         case MODE_REGRADE_NOTICE:
-            arg = &gYoshiWindows[56];
+            arg = &gYoshiWindows[YW_REGRADE_NOTICE];
             break;
         case MODE_REPLAY:
             arg = &gYoshiWindows[gYoshiReplayWindowByKind[lowest_set_bit(gLevelInfo[levelno].kind)]];
-            if (gLevelInfo[levelno].kind == 0x20) {
+            if (gLevelInfo[levelno].kind == LEVEL_KIND_BUILDINGS) {
                 gYoshiGameItems[27].flags &= ~0x400;
                 gYoshiGameItems[28].flags &= ~0x400;
                 gYoshiGameItems[29].unk14 = 0;
@@ -353,8 +351,8 @@ void yoshi_init(u8 arg0) {
             break;
         case MODE_LEVEL_START:
             if (((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) &&
-                gLevelInfo[levelno].kind == 1) {
-                arg = &gYoshiWindows[6];
+                gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
+                arg = &gYoshiWindows[YW_STATUS];
             } else {
                 arg = NULL;
             }
@@ -362,19 +360,19 @@ void yoshi_init(u8 arg0) {
         case MODE_GLOBE_SEQ:
             switch (levelno) {
                 case 55:
-                    arg = &gYoshiWindows[65];
+                    arg = &gYoshiWindows[YW_DEMO_BACKLASH];
                     break;
                 case 28:
-                    arg = &gYoshiWindows[66];
+                    arg = &gYoshiWindows[YW_DEMO_SIDESWIPE];
                     break;
                 case 53:
-                    arg = &gYoshiWindows[67];
+                    arg = &gYoshiWindows[YW_DEMO_THUNDERFIST];
                     break;
                 case 7:
-                    arg = &gYoshiWindows[68];
+                    arg = &gYoshiWindows[YW_DEMO_SKYFALL];
                     break;
                 case 19:
-                    arg = &gYoshiWindows[69];
+                    arg = &gYoshiWindows[YW_DEMO_JBOMB];
                     break;
                 default:
                     arg = NULL;
@@ -402,7 +400,7 @@ void yoshi_init(u8 arg0) {
 
 /* Destroy-building levels: the target's icon in the briefing (0x8026B8F8). */
 void yoshi_set_target_icons(void) {
-    if (gLevelKind & 0x20) {
+    if (gLevelKind & LEVEL_KIND_BUILDINGS) {
         gYoshiFeItems[23].flags |= 0x400;
         gYoshiFeItems[26].flags |= 0x400;
         gYoshiGameItems[27].flags |= 0x400;
@@ -520,7 +518,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
     c[2] = 255 - gYoshiPulse;
     c[6] = gYoshiPulse;
     if (gGameMode == MODE_CARRIER_END && gHaveCarrier && gCarrierHit) {
-        gYoshiPendingWindow = -1;
+        gYoshiPendingWindow = NO_YOSHI_WINDOW;
         if (yoshiState == 4 || yoshiState == 2) {
             debug_printf("putting off!\n");
             yoshi_demand(YOSHI_DEMAND_OFF);
@@ -533,11 +531,11 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
     }
     if (yoshiDemandV) {
         window = yoshiDemandV & 0xFF;
-        force = yoshiDemandV & 0x2000;
+        force = yoshiDemandV & YOSHI_DEMAND_FORCE;
         keep = 0;
         debug_printf("yoshiDemand=%x\n", yoshiDemandV);
-        if (yoshiDemandV & 0x8000) {
-            gYoshiPendingWindow = -1;
+        if (yoshiDemandV & YOSHI_DEMAND_OPEN) {
+            gYoshiPendingWindow = NO_YOSHI_WINDOW;
             if (currentYoshiWindow != NO_YOSHI_WINDOW) {
                 keep = gYoshiWindows[currentYoshiWindow].flags & 0x8000000;
             }
@@ -555,7 +553,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
     }
     if (currentYoshiWindow == NO_YOSHI_WINDOW) {
         currentYoshiWindow = gYoshiPendingWindow;
-        gYoshiPendingWindow = -1;
+        gYoshiPendingWindow = NO_YOSHI_WINDOW;
         if (currentYoshiWindow == NO_YOSHI_WINDOW) {
             return gfx;
         }
@@ -1268,7 +1266,7 @@ void rdu_update(void) {
                                  gRdus[i].x, gRdus[i].y, gRdus[i].z);
             if (dist < gRduPickupRadius[gCurVehicle]) {
                 if (++gScoreRdus >= 4 && !gPaused) {
-                    yoshi_show_hint(0x46);
+                    yoshi_show_hint(YW_HINT_RDUS);
                 }
                 if (gGameMode != MODE_REPLAY) {
                     gRduLitOrder[gRduLitOrderLen] = gRduLitOrderNext[gRduLitOrderLen] = i;
@@ -1278,7 +1276,7 @@ void rdu_update(void) {
                 gRdus[i].visited = 1;
                 if (!flag) {
                     flag = 1;
-                    if (gLevelKind == 0x40) {
+                    if (gLevelKind == LEVEL_KIND_PILL_MAZE) {
                         snd_play(gSfxBank, SFX_RDU_GHOST_LEVEL, NULL);
                     } else {
                         snd_play(gSfxBank, SFX_RDU, NULL);

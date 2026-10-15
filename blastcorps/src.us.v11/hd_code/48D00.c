@@ -366,8 +366,8 @@ void tnt_update(u8 arg0) {
             if (D_8039B070_entries[i].unk1E > 0 && D_8039B070_entries[i].unk44 == 0 &&
                 D_8039B070_entries[i].unk18 != 0) {
                 snd_play(gSfxBank, SFX_SCRAPE_LOOP, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk44)));
-                if (gCurVehicle == 4) {
-                    yoshi_show_hint(0x54);
+                if (gCurVehicle == VEH_RAMDOZER) {
+                    yoshi_show_hint(YW_HINT_RAMDOZER_PUSH);
                 }
             }
             if (D_8039B070_entries[i].unk44 != 0 && D_8039B070_entries[i].unk1E == 0) {

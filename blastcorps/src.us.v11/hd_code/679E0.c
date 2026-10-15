@@ -91,7 +91,7 @@ void veh_maze_object_hits(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehic
     u8 *p;
     u8 *end;
 
-    if (((s32) gLevelKind) != 0x40) {
+    if (((s32) gLevelKind) != LEVEL_KIND_PILL_MAZE) {
         return;
     }
     veh_collision_setup(z, a1, 1, 0, x, y, b0, 0, 0x40, 0, id, vehicle);

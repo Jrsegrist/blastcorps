@@ -104,7 +104,7 @@ s32 coll_probe_objects(s32 r, s32 amount) {
         if (math_spheres_overlap(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->radius) == 0) {
             continue;
         }
-        if (o->kind == 0x38 && obj_end_object_hidden() != 0) {
+        if (o->kind == OBJ_KIND_END && obj_end_object_hidden() != 0) {
             continue;
         }
         hit = coll_probe_object_tris(x, y, z, r, o, hit);
@@ -181,7 +181,7 @@ void coll_damage_object_part(LevelObject *e, CollisionTri *tri, s32 amount) {
 
     gShakeTime = 10;
     gShakeSize = 200;
-    if (e->kind == 0x38) {
+    if (e->kind == OBJ_KIND_END) {
         return;
     }
     part = tri->partNo;

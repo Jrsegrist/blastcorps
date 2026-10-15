@@ -70,7 +70,7 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gPoliceMtxA = (u64 *) p;
     gPoliceMtxB = (u64 *) (p + 0x100);
     gHeapPtr = p + 0x200;
-    veh_add_record(0xD, 0, (s32) gPoliceMtxA, (s32) gPoliceMtxB, hdr);
+    veh_add_record(VEH_POLICE, 0, (s32) gPoliceMtxA, (s32) gPoliceMtxB, hdr);
     veh_reset_state(gPoliceState);
     VEH13_S16(VS_WHEEL_OFFSETS) = 200;
     VEH13_S16(0x54) = 350;
@@ -125,7 +125,7 @@ void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gPoliceLightPhase = 0;
     h = gPoliceModel;
     veh_register_parts(0xD, h + *(s32 *) (h + 4), h + *(s32 *) (h + 8), 0x4268);
-    veh_add_shadow(0xD, 60, 25, 25);
+    veh_add_shadow(VEH_POLICE, 60, 25, 25);
     gPoliceState[0x9A] = 1;
     police_update();
     gPoliceState[0x9A] = 0;

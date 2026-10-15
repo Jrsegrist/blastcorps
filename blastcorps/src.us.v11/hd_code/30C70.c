@@ -59,9 +59,9 @@ void hud_draw_target_marker(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     ret = obj_find_nearest_target();
     pts = gNearestTargetPts;
     gMarkerArrowsOnScreen = 0;
-    if (!gTargetsCleared && !ret && gLevelKind == 1 && !gPaused) {
-        if (!yoshi_show_hint(0x4B)) {
-            yoshi_demand(0x803D);
+    if (!gTargetsCleared && !ret && gLevelKind == LEVEL_KIND_MISSION && !gPaused) {
+        if (!yoshi_show_hint(YW_HINT_TARGETS_CLEARED)) {
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_TARGETS_CLEARED);
             hud_panel_start(3, 1, 2, SFX_SUCCESS);
         }
         gTargetsCleared = 1;

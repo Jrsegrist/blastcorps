@@ -29,7 +29,7 @@ void fe_pak_error_frame(s32 arg0) {
     tex_reset_decode_queue();
     font_age_cache();
     if (currentYoshiWindow != arg0) {
-        yoshi_demand(arg0 | 0x8000 | 0x2000);
+        yoshi_demand(arg0 | YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE);
         snd_stop_all_looping();
         gPakErrorFrames = 0;
     }

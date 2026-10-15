@@ -56,7 +56,7 @@ void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     gBallistaMtxA = (u64 *) gHeapPtr;
     gBallistaMtxB = (u64 *) (gHeapPtr + 0x700);
     gHeapPtr += 0xE00;
-    veh_add_record(10, 0, (s32) gBallistaMtxA, (s32) gBallistaMtxB, model);
+    veh_add_record(VEH_BALLISTA, 0, (s32) gBallistaMtxA, (s32) gBallistaMtxB, model);
     veh_reset_state(gBallistaState);
     *(s16 *) (gBallistaState + 0x52) = 0x104;
     *(s16 *) (gBallistaState + 0x54) = 0x140;
@@ -116,7 +116,7 @@ void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     gBallistaMissiles = 0;
     m = gBallistaModel;
     veh_register_parts(10, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x3E80);
-    veh_add_shadow(10, 0x64, 0x2D, 0x2D);
+    veh_add_shadow(VEH_BALLISTA, 0x64, 0x2D, 0x2D);
     gBallistaState[0x9A] = 1;
     ballista_update();
     gBallistaState[0x9A] = 0;

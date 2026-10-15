@@ -423,7 +423,7 @@ void hd_main_thread(void *arg) {
                     break;
                 case MODE_PAK_FILES:
                     fe_pak_list_files();
-                    yoshi_demand(0x8012);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAK_FILES);
                     gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case MODE_PAK_MANAGER:
@@ -431,19 +431,19 @@ void hd_main_thread(void *arg) {
                     title_setup_logo();
                     fe_bg_load(1);
                     osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000001, 1);
-                    yoshi_demand(0x8011);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAK_CHECK);
                     break;
                 case MODE_LOAD_GAME:
                     gPendingTune = music_tune_for_mode(gNextGameMode);
                     title_setup_logo();
                     fe_player_build_load_menu();
                     fe_player_ticker_reset(playerNumber);
-                    yoshi_demand(0x800A);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PLAYER_MENU);
                     break;
                 case MODE_PAK_CHECK:
                     osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000001, 1);
                     fe_player_ticker_reset(4);
-                    yoshi_demand(0x8011);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAK_CHECK);
                     break;
                 case MODE_BOOT_CHECK:
                     snd_stop_all();
@@ -490,7 +490,7 @@ void hd_main_thread(void *arg) {
                     title_setup_logo();
                     fe_bg_load(4);
                     fe_player_panel_init(4);
-                    yoshi_demand(0x8038);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_REGRADE_NOTICE);
                     break;
                 case MODE_ATTRACT_START:
                     gRecDemoNumber = -1;
@@ -511,7 +511,7 @@ void hd_main_thread(void *arg) {
                                 hd_mode_setup();
                                 fe_bg_load(7);
                                 fe_attract_pic_load(gAttractPicIndex & 3);
-                                yoshi_demand(0x8035);
+                                yoshi_demand(YOSHI_DEMAND_OPEN | YW_ATTRACT_PICTURE);
                                 fe_player_panel_init(gAttractPicIndex & 3);
                                 gAttractPicIndex++;
                                 break;
@@ -569,13 +569,13 @@ void hd_main_thread(void *arg) {
                     gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case MODE_UNUSED_WINDOW_13:
-                    yoshi_demand(0x8013);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_UNUSED_13);
                     break;
                 case MODE_NO_CONTROLLER:
                     hd_mode_setup();
                     fe_bg_load(1);
                     title_setup_logo();
-                    yoshi_demand(0x8059);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_NO_CONTROLLER);
                     break;
                 case MODE_BEST_TIMES:
                     hd_mode_setup();
@@ -583,17 +583,17 @@ void hd_main_thread(void *arg) {
                     fe_player_panel_init(playerNumber);
                     title_setup_logo();
                     gBestTimesReturnMode = gGameMode;
-                    yoshi_demand(0x8016);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_BEST_TIMES);
                     break;
                 case MODE_BEST_TIMES_RETURN:
                     fe_player_ticker_set_text(playerNumber, 1);
                     fe_best_color_items();
-                    yoshi_demand(0x8016);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_BEST_TIMES);
                     gNextGameMode = MODE_BEST_TIMES;
                     break;
                 case MODE_LEVEL_START:
                     hd_mode_setup();
-                    if (gLevelInfo[levelno].kind != 1) {
+                    if (gLevelInfo[levelno].kind != LEVEL_KIND_MISSION) {
                         hd_setup_level(0);
                         stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
                         stats_copy_result((u8 *) &nss, (u8 *) &gScoreRes);
@@ -620,17 +620,17 @@ void hd_main_thread(void *arg) {
                             gCamSnap = 1;
                             break;
                         case MODE_LEVEL_START:
-                            if (gLevelInfo[levelno].kind != 1) {
+                            if (gLevelInfo[levelno].kind != LEVEL_KIND_MISSION) {
                                 gPendingTune = music_tune_for_mode(gNextGameMode);
                             }
                             gUnpauseRequest = 1;
-                            gUnpauseRequest &= !yoshi_show_hint(0x52);
+                            gUnpauseRequest &= !yoshi_show_hint(YW_HINT_START_A);
                             /* one line: the line break changes as1's schedule */
-                            gUnpauseRequest &= !yoshi_show_hint(0x56); if ((((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0)) &&
-                                gLevelInfo[levelno].kind == 1) {
-                                gUnpauseRequest &= !yoshi_show_hint(0x55);
+                            gUnpauseRequest &= !yoshi_show_hint(YW_HINT_START_B); if ((((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0)) &&
+                                gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
+                                gUnpauseRequest &= !yoshi_show_hint(YW_HINT_START_DONE);
                             } else {
-                                gUnpauseRequest &= !yoshi_show_hint(0x57);
+                                gUnpauseRequest &= !yoshi_show_hint(YW_HINT_START_NEW);
                             }
                             gPauseRequest = !gUnpauseRequest;
                             debug_printf("Unpause at start = %d\n", gUnpauseRequest);
@@ -680,7 +680,7 @@ void hd_main_thread(void *arg) {
                     MODE_ENTRY(gLevelKind).unk0 &= ~1;
                     MODE_ENTRY(gLevelKind).unk0 |= 0x800;
                     yoshi_set_target_icons();
-                    yoshi_demand(gYoshiResultsWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(gYoshiResultsWindowByKind[lowest_set_bit(gLevelKind)] | YOSHI_DEMAND_OPEN);
                     MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
                     MODE_PAGE(gLevelKind).unk8 &= ~8;
                     stats_copy_result((u8 *) &nss, (u8 *) &gScoreOld);
@@ -702,7 +702,7 @@ void hd_main_thread(void *arg) {
                     hd_setup_level(0);
                     chopper_fly_to_carrier();
                     if (levelno == 0x32) {
-                        yoshi_demand(0x8024);
+                        yoshi_demand(YOSHI_DEMAND_OPEN | YW_SHUTTLE_INTRO);
                     }
                     break;
                 case MODE_PROMOTION:
@@ -764,20 +764,20 @@ void hd_main_thread(void *arg) {
                             MS_ASSERT(!saveIt[playerNumber] || saveIt[playerNumber]==levelno+1, 488);
                             saveIt[playerNumber] = levelno + 1;
                             if (gLevelDone) {
-                                obj_tally(gLevelInfo[levelno].kind == 0x20 || gLevelInfo[levelno].kind == 0x80);
+                                obj_tally(gLevelInfo[levelno].kind == LEVEL_KIND_BUILDINGS || gLevelInfo[levelno].kind == LEVEL_KIND_MISSION_TIMED);
                             }
                             gLevelFirstClear = !((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0);
                             if (playerNumber == playerNumberAtStart) {
                                 gRouteRevealFlags |= gLevelFirstClear;
                             }
-                            if (gLevelKind == 1 && !gLevelFirstClear) {
+                            if (gLevelKind == LEVEL_KIND_MISSION && !gLevelFirstClear) {
                                 for (i = 0; i < 0x40; i++) {
                                     gReplayStatus[i] = pakBuffer[i];
                                 }
                             }
                             commpt_save_flags();
                             academy_save_markers();
-                            if (gLevelKind == 1) {
+                            if (gLevelKind == LEVEL_KIND_MISSION) {
                                 MS_ASSERT(record_status(pakBuffer)<=LEVEL_SAVE_SIZE-4, 513);
                                 MS_ASSERT(!saveLevel || saveLevel==levelno+1, 515);
                                 saveLevel = levelno + 1;
@@ -834,7 +834,7 @@ void hd_main_thread(void *arg) {
                     if (gUseEeprom) {
                         gYoshiFeItems[29].unk0 &= ~1;
                     }
-                    yoshi_demand(gYoshiResultsWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(gYoshiResultsWindowByKind[lowest_set_bit(gLevelKind)] | YOSHI_DEMAND_OPEN);
                     break;
                 case MODE_REPLAY:
                     if (gGameMode & (MODE_CARRIER_END | MODE_TIMED_END)) {
@@ -849,14 +849,14 @@ void hd_main_thread(void *arg) {
                     gYoshiGameItems[17].unk0 &= ~1;
                     gYoshiGameItems[17].unk0 |= 0x800;
                     if ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) {
-                        gYoshiWindows[6].unk18 = 0x18, gYoshiWindows[7].unk18 = 0x22;
+                        gYoshiWindows[YW_STATUS].unk18 = 0x18, gYoshiWindows[7].unk18 = 0x22;
                     } else {
-                        gYoshiWindows[6].unk18 = 0x17, gYoshiWindows[7].unk18 = 0x21;
+                        gYoshiWindows[YW_STATUS].unk18 = 0x17, gYoshiWindows[7].unk18 = 0x21;
                     }
                     gReplayMenuShown = 0;
                     gReplayStartTime = PORT_GVI("hd_main_thread:4A54", gSchedFrameCount);
                     hd_mode_setup();
-                    if (gLevelInfo[levelno].kind == 1 &&
+                    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION &&
                         ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) &&
                         !gLevelFirstClear) {
                         hd_setup_level((s32) gReplayStatus);
@@ -883,7 +883,7 @@ void hd_main_thread(void *arg) {
                     osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 0x14 | 0x01000000), 1);
                     osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     fe_player_name_entry_open("ENTER NAME!", gEnterNameGlyphs, 7, 0x1E, (char *) &players[playerNumber]);
-                    yoshi_demand(0x800B);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_NAME_ENTRY);
                     title_setup_logo();
                     gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
@@ -891,13 +891,13 @@ void hd_main_thread(void *arg) {
                     hd_mode_setup();
                     fe_bg_load(1);
                     gYoshiFeItems[9].unkC = "QUIT GAME!", gYoshiFeItems[9].unk10 = gQuitGameGlyphs, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 22;
-                    yoshi_demand(0x800C);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_CONFIRM);
                     break;
                 case MODE_ACADEMY_MARKER:
                     music_push_tune(MUS_ACADEMY_MARKER);
                     snd_set_slot_volume(0, 0);
                     academy_reset_window_cursor();
-                    yoshi_demand(0x8015);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_ACADEMY_MARKER);
                     gPauseRequest = 1;
                     break;
                 case MODE_GLOBE_SEQ:
@@ -919,18 +919,18 @@ void hd_main_thread(void *arg) {
                         title_setup_logo();
                         fe_bg_load(1);
                         gYoshiFeItems[9].unkC = "ERASE SAVED GAME!", gYoshiFeItems[9].unk10 = gEraseSaveGlyphs, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
-                        yoshi_demand(0x800C);
+                        yoshi_demand(YOSHI_DEMAND_OPEN | YW_CONFIRM);
                     } else {
                         gGameModeAfterNext = MODE_BOOT_SCREEN1;
                     }
                     break;
                 case MODE_GUEST_PLAYER:
                     gYoshiFeItems[9].unkC = "BECOME GUEST PLAYER:", gYoshiFeItems[9].unk10 = gGuestPlayerGlyphs, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
-                    yoshi_demand(0x800C);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_CONFIRM);
                     break;
                 case MODE_ERASE_MENU:
                     fe_player_build_erase_menu();
-                    yoshi_demand(0x800A);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PLAYER_MENU);
                     break;
                 case MODE_LEVEL_CLEAR:
                     gPauseRequest = 1;
@@ -1029,7 +1029,7 @@ void hd_game_frame(void) {
         gLevelDoneRequest = 1;
         cmo_hit_request = 0;
         if (gContButtons & 8) {
-            if (gLevelKind != 1 || !(LEVEL_DONE(levelno))) {
+            if (gLevelKind != LEVEL_KIND_MISSION || !(LEVEL_DONE(levelno))) {
                 gLevelDoneRequest = 0;
                 cmo_hit_request = 1;
             }
@@ -1042,7 +1042,7 @@ void hd_game_frame(void) {
             stats_set_level_flag(2);
             stats_set_level_flag(1);
         }
-        if ((LEVEL_DONE(levelno)) && gLevelKind == 1 && gLevelDoneRequest) {
+        if ((LEVEL_DONE(levelno)) && gLevelKind == LEVEL_KIND_MISSION && gLevelDoneRequest) {
             gPauseRequest = 1;
             fade_to_mode(MODE_RESULTS);
         }
@@ -1111,7 +1111,7 @@ void hd_game_frame(void) {
                         snd_set_slot_volume(0, 0);
                     }
                     music_fade_to(0.5f);
-                    if (gGameMode == MODE_LEVEL && (gHaveCarrier || gHaveShuttle) && currentYoshiWindow == 0) {
+                    if (gGameMode == MODE_LEVEL && (gHaveCarrier || gHaveShuttle) && currentYoshiWindow == YW_PAUSE) {
                         gNextGameMode = MODE_MAP_VIEW;
                         cull_restart(10);
                         gMapViewScrollZ = 0;
@@ -1155,7 +1155,7 @@ void hd_game_frame(void) {
     }
     util_check_board_zone();
     gVehJustSwitched = 0;
-    if (gCurVehicle == 0 && !(gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING))) {
+    if (gCurVehicle == VEH_DRIVER && !(gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING))) {
         veh_apply_switch();
     }
     cont_update();
@@ -1218,7 +1218,7 @@ void hd_game_frame(void) {
                 break;
         }
     }
-    if (gGameMode == MODE_MAP_VIEW && gPaused && yoshiState == 2 && gHaveCarrier && currentYoshiWindow == 0) {
+    if (gGameMode == MODE_MAP_VIEW && gPaused && yoshiState == 2 && gHaveCarrier && currentYoshiWindow == YW_PAUSE) {
         if (!(gContButtons & 0x2000) && !(gContButtons & 0x10)) {
             gMapViewScrollSpeed = 0;
         } else {
@@ -1243,25 +1243,25 @@ void hd_game_frame(void) {
             gMapViewScrollZ = lo - gCarrierZ;
         }
         if (gContButtons & 0x2010) {
-            gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 - 0x18 < -0x100) ? -0x100 : gYoshiWindows[0].unk4 - 0x18;
+            gYoshiWindows[YW_PAUSE].unk4 = (gYoshiWindows[YW_PAUSE].unk4 - 0x18 < -0x100) ? -0x100 : gYoshiWindows[YW_PAUSE].unk4 - 0x18;
             gYoshiScale = (gYoshiScale * 0.8 > 0.1) ? gYoshiScale * 0.8 : 0.1;
-            gYoshiWindows[0].unk8 &= ~0x20;
+            gYoshiWindows[YW_PAUSE].unk8 &= ~0x20;
         } else {
-            gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[0].unk4 + 0x20;
+            gYoshiWindows[YW_PAUSE].unk4 = (gYoshiWindows[YW_PAUSE].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[YW_PAUSE].unk4 + 0x20;
             gYoshiScale = (gYoshiScale / 0.8 < 1.0) ? gYoshiScale / 0.8 : 1.0;
             if (gYoshiScale == 1.0) {
-                gYoshiWindows[0].unk8 |= 0x20;
+                gYoshiWindows[YW_PAUSE].unk8 |= 0x20;
             }
         }
     } else {
         gMapViewScrollSpeed = 0;
-        gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[0].unk4 + 0x20;
+        gYoshiWindows[YW_PAUSE].unk4 = (gYoshiWindows[YW_PAUSE].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[YW_PAUSE].unk4 + 0x20;
         gYoshiScale = (gYoshiScale / 0.8 < 1.0) ? gYoshiScale / 0.8 : 1.0;
         if (gYoshiScale == 1.0) {
-            gYoshiWindows[0].unk8 |= 0x20;
+            gYoshiWindows[YW_PAUSE].unk8 |= 0x20;
         }
     }
-    if (gHeldZ && !gPaused && gCurVehicle && !gPlayerSpeed && (gLevelKind == 1 || gLevelKind == 0x80)) {
+    if (gHeldZ && !gPaused && gCurVehicle && !gPlayerSpeed && (gLevelKind == LEVEL_KIND_MISSION || gLevelKind == LEVEL_KIND_MISSION_TIMED)) {
         veh_leave();
     }
     veh_update_others();
@@ -1310,7 +1310,7 @@ void hd_game_frame(void) {
     if (gGhostRecording && !gPaused) {
         ghost_record();
     }
-    if (gHaveCarrier && (gLevelKind & 0x81)) {
+    if (gHaveCarrier && (gLevelKind & LEVEL_KIND_ANY_MISSION)) {
         if (!(gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING))) {
             carrier_update();
         }
@@ -1347,23 +1347,23 @@ void hd_game_frame(void) {
 #else
         anim_tex_update_all();
 #endif
-        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gLevelKind & 1)) {
+        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gLevelKind & LEVEL_KIND_MISSION)) {
             hud_update_value_popups();
             hud_tick_money_counter();
         }
-        if (gLevelKind != 1 && gTurboActive && (u32) (((s32) gSchedRetraceCount) - gLevelStartTime) > 90) {
+        if (gLevelKind != LEVEL_KIND_MISSION && gTurboActive && (u32) (((s32) gSchedRetraceCount) - gLevelStartTime) > 90) {
             gTurboActive = 0;
             mb_stop();
         }
     }
-    if ((gCarrierHit || gLevelDone || (levelno == 0x32 && gTargetsCleared && !(LEVEL_DONE(0x32)))) && gLevelKind == 1 && gTimeInLevel == 0) {
+    if ((gCarrierHit || gLevelDone || (levelno == 0x32 && gTargetsCleared && !(LEVEL_DONE(0x32)))) && gLevelKind == LEVEL_KIND_MISSION && gTimeInLevel == 0) {
         debug_printf("TIME IN LEVEL=%d\n", gTimeInLevel = ((s32) gSchedRetraceCount) - gLevelStartTime);
     }
     cam_apply_height_zone(gLevelData);
     if (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) {
         cull_restart(2);
     }
-    if (currentYoshiWindow == 0x58 && yoshiState != 8 && !gCamFixedEye) {
+    if (currentYoshiWindow == YW_CONTROL_METHOD && yoshiState != 8 && !gCamFixedEye) {
         if (!gCamWindowView) {
             cull_restart(10);
         }
@@ -1390,7 +1390,7 @@ void hd_game_frame(void) {
         shell_update_all();
         crate_update(gCurVehicle);
     }
-    if (gLevelKind != 1) {
+    if (gLevelKind != LEVEL_KIND_MISSION) {
         if (gGameMode & MODE_REPLAY) {
             hud_replay_turbo();
         }
@@ -1423,7 +1423,7 @@ void hd_game_frame(void) {
         util_check_hint_events();
     }
     gdl = hd_build_frame_dl(&gDynamicBufs[gBufferIndex], &gFrameDlLen);
-    if ((gGameMode & (MODE_LEVEL | MODE_REPLAY | MODE_REPLAY_CARRIER_END | MODE_LEVEL_START | MODE_TIMED_END)) && gLevelKind != 1) {
+    if ((gGameMode & (MODE_LEVEL | MODE_REPLAY | MODE_REPLAY_CARRIER_END | MODE_LEVEL_START | MODE_TIMED_END)) && gLevelKind != LEVEL_KIND_MISSION) {
         gdl = hud_draw_objective(gdl, (Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u32 *) &gFrameDlLen);
     }
     if (gGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ)) {
@@ -1460,10 +1460,10 @@ void hd_game_frame(void) {
     }
     if (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) {
         if (gFramesInMode == 150 && levelno != 0x32) {
-            yoshi_demand(0x8040);
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_INTRO_FRAME150);
         }
         if (!players[playerNumber].gameState && gFramesInMode == 10) {
-            yoshi_demand(0x803F);
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_INTRO_GAME_STATE0);
         }
     }
     PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
@@ -1471,8 +1471,8 @@ void hd_game_frame(void) {
     if ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && gSchedFrameCount - gReplayStartTime > 160 && !gReplayMenuShown) {
         gReplayMenuShown = 1;
         if (yoshiState == 1) {
-            if (!(LEVEL_DONE(levelno)) || gLevelKind == 1) {
-                yoshi_demand(gYoshiReplayWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
+            if (!(LEVEL_DONE(levelno)) || gLevelKind == LEVEL_KIND_MISSION) {
+                yoshi_demand(gYoshiReplayWindowByKind[lowest_set_bit(gLevelKind)] | YOSHI_DEMAND_OPEN);
             }
         }
     }
@@ -1490,16 +1490,16 @@ void hd_game_frame(void) {
     }
     if (gGameMode == MODE_YOSHI_PAGES) {
         if ((gContButtons & 0x10) && !(gContPrevButtons & 0x10)) {
-            if (currentYoshiWindow < 0x6B && yoshiState != 8 && yoshiState != 1) {
-                yoshi_demand((currentYoshiWindow + 1) | 0x8000);
+            if (currentYoshiWindow < YW_PAGES_LAST && yoshiState != 8 && yoshiState != 1) {
+                yoshi_demand((currentYoshiWindow + 1) | YOSHI_DEMAND_OPEN);
                 snd_play(gSfxBank, SFX_MENU_MOVE, NULL);
             } else {
                 snd_play(gSfxBank, SFX_DENIED, NULL);
             }
         }
         if ((gContButtons & 0x2000) && !(gContPrevButtons & 0x2000)) {
-            if (currentYoshiWindow >= 0x5F && yoshiState != 8 && yoshiState != 1) {
-                yoshi_demand((currentYoshiWindow - 1) | 0x8000);
+            if (currentYoshiWindow >= YW_PAGES_FIRST + 1 && yoshiState != 8 && yoshiState != 1) {
+                yoshi_demand((currentYoshiWindow - 1) | YOSHI_DEMAND_OPEN);
                 snd_play(gSfxBank, SFX_MENU_MOVE, NULL);
             } else {
                 snd_play(gSfxBank, SFX_DENIED, NULL);
@@ -1507,8 +1507,8 @@ void hd_game_frame(void) {
         }
     }
     if ((((gContButtons & 0x1000) && !(gContPrevButtons & 0x1000)) || ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000))) &&
-        !areWeFading() && gYoshiPendingWindow == -1 && gNextGameMode == 0 && !cmo_hit_request && !gLevelDoneRequest && currentYoshiWindow != 0) {
-        if ((yoshi_get_demand() & 0x8000) && (yoshi_get_demand() & 1)) {
+        !areWeFading() && gYoshiPendingWindow == NO_YOSHI_WINDOW && gNextGameMode == 0 && !cmo_hit_request && !gLevelDoneRequest && currentYoshiWindow != YW_PAUSE) {
+        if ((yoshi_get_demand() & YOSHI_DEMAND_OPEN) && (yoshi_get_demand() & 1)) {
             yoshi_get_demand();
         }
         switch (gGameMode) {
@@ -1522,11 +1522,11 @@ void hd_game_frame(void) {
                 break;
             case MODE_REPLAY:
             case MODE_REPLAY_CARRIER_END:
-                if ((LEVEL_DONE(levelno)) && gLevelKind != 1) {
+                if ((LEVEL_DONE(levelno)) && gLevelKind != LEVEL_KIND_MISSION) {
                     gNextGameMode = MODE_RESULTS;
                     snd_play(gSfxBank, SFX_SELECT, NULL);
                 } else if (yoshiState == 1) {
-                    yoshi_demand(gYoshiReplayWindowByKind[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(gYoshiReplayWindowByKind[lowest_set_bit(gLevelKind)] | YOSHI_DEMAND_OPEN);
                 }
                 break;
             case MODE_ATTRACT:
@@ -1545,14 +1545,14 @@ void hd_game_frame(void) {
             case MODE_LEVEL:
             case MODE_MAP_VIEW:
                 if ((gContButtons & 0x1000) && !gPaused) {
-                    if ((LEVEL_DONE(levelno)) && gLevelKind == 1) {
+                    if ((LEVEL_DONE(levelno)) && gLevelKind == LEVEL_KIND_MISSION) {
                         gYoshiGameItems[2].unk0 |= 1;
                         gYoshiGameItems[2].unk18 = 7;
                     } else {
                         gYoshiGameItems[2].unk0 &= ~1;
                         gYoshiGameItems[2].unk18 = 8;
                     }
-                    yoshi_demand(0x8000);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAUSE);
                 }
                 break;
         }
@@ -1561,8 +1561,8 @@ void hd_game_frame(void) {
     if (yoshiSelection && !cmo_hit_request && !gLevelDoneRequest) {
         hd_handle_yoshi_selection(&yoshiSelection);
     }
-    if ((gGameMode & (MODE_LEVEL | MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && gYoshiPendingWindow == -1 && gTurboStartState == 0 &&
-        !((currentYoshiWindow != -1) ? gYoshiWindows[currentYoshiWindow].unk8 & 0x01000000 : 0)) {
+    if ((gGameMode & (MODE_LEVEL | MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && gYoshiPendingWindow == NO_YOSHI_WINDOW && gTurboStartState == 0 &&
+        !((currentYoshiWindow != NO_YOSHI_WINDOW) ? gYoshiWindows[currentYoshiWindow].unk8 & 0x01000000 : 0)) {
         alpha = (gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) ? 0xB4 : 0xFF;
         if (gHudAlpha < alpha) {
             gHudAlpha = (s32) ((alpha < gHudAlpha + 16) ? alpha : gHudAlpha + 16);
@@ -1613,7 +1613,7 @@ void hud_update_value_popups(void) {
             gValuePopups[gValuePopupTail].unk0 = gValuePopupNew;
             gValuePopups[gValuePopupTail].unk9 = 30;
             if (gPlayerMoveHeading >= 0xE00 || gPlayerMoveHeading < 0x200) {
-                if (gLevelKind == 8) {
+                if (gLevelKind == LEVEL_KIND_DAMAGE) {
                     gValuePopups[gValuePopupTail].unk4 = 30;
                     gValuePopups[gValuePopupTail].unk6 = 60;
                     gValuePopups[gValuePopupTail].unk8 = 1;
@@ -1765,7 +1765,7 @@ void carrier_update_proximity(u32 dist) {
                 break;
             case 0:
                 snd_stop((void *) N64_IPTR(gCarrierAlarmSound));
-                if (gLevelInfo[levelno].kind != 0x80 || !obj_path_buildings_destroyed()) {
+                if (gLevelInfo[levelno].kind != LEVEL_KIND_MISSION_TIMED || !obj_path_buildings_destroyed()) {
                     debug_printf("popTuneImmediate();\n");
                     popTuneImmediate();
                 } else {
@@ -1779,19 +1779,19 @@ void carrier_update_proximity(u32 dist) {
     }
     switch (gCarrierDanger) {
         case 1:
-            if (!yoshi_show_hint(0x49) && currentYoshiWindow != 3) {
-                yoshi_demand(0x8003);
+            if (!yoshi_show_hint(YW_HINT_CARRIER_NEAR) && currentYoshiWindow != YW_CARRIER_DANGER) {
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_CARRIER_DANGER);
             }
             break;
         case 2:
-            if (currentYoshiWindow != 2) {
-                yoshi_demand(0x8002);
+            if (currentYoshiWindow != YW_CARRIER_ALARM) {
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_CARRIER_ALARM);
             }
             break;
         case 0:
             if ((yoshiState == 2 || yoshiState == 4) && !yoshi_get_demand() &&
-                (currentYoshiWindow == 3 || currentYoshiWindow == 2 || currentYoshiWindow == 0x49)) {
-                yoshi_demand(0x4000);
+                (currentYoshiWindow == YW_CARRIER_DANGER || currentYoshiWindow == YW_CARRIER_ALARM || currentYoshiWindow == YW_HINT_CARRIER_NEAR)) {
+                yoshi_demand(YOSHI_DEMAND_OFF);
             }
             break;
     }
@@ -1816,7 +1816,7 @@ void hud_tick_money_counter(void) {
 void veh_apply_switch(void) {
     s32 pad;
 
-    if (gNextVehicle != 0 && gNextVehicle != 0xFF) {
+    if (gNextVehicle != VEH_DRIVER && gNextVehicle != VEH_CARRIER) {
         if (veh_has_partial_rider(gNextVehicle) == 0) {
             veh_attach_riders(gNextVehicle);
             tnt_attach_to_vehicle(gNextVehicle);
@@ -1827,8 +1827,8 @@ void veh_apply_switch(void) {
                 gCurVehicle = gNextVehicle;
                 driver_stop_blend_anim();
                 if (!gPaused && gFramesInMode >= 11 &&
-                    (gCurVehicle == 8 || gCurVehicle == 15 || gCurVehicle == 13 || gCurVehicle == 14)) {
-                    yoshi_show_hint(0x4A);
+                    (gCurVehicle == VEH_AMDREAM || gCurVehicle == VEH_STARSKI || gCurVehicle == VEH_POLICE || gCurVehicle == VEH_ATEAM)) {
+                    yoshi_show_hint(YW_HINT_CAR);
                 }
             }
             players[playerNumber].vehiclesUnlocked |= 1 << gCurVehicle;
@@ -1847,75 +1847,75 @@ s32 veh_enter(s32 id) {
     u8 ok = 1;
 
     switch (id) {
-        case 1:
+        case VEH_SIDESWIPE:
             sideswipe_enter();
             break;
-        case 2:
+        case VEH_THUNDERFIST:
             thunderfist_enter();
             break;
-        case 3:
+        case VEH_SKYFALL:
             skyfall_enter();
             break;
-        case 4:
+        case VEH_RAMDOZER:
             ramdozer_enter();
             break;
-        case 5:
+        case VEH_BACKLASH:
             backlash_enter();
             break;
-        case 6:
+        case VEH_CRANE:
             crane_enter();
             break;
-        case 7:
+        case VEH_TRAIN:
 #ifdef NON_MATCHING
             train_enter(LEAKED(a0));
 #else
             train_enter();
 #endif
             break;
-        case 8:
+        case VEH_AMDREAM:
 #ifdef NON_MATCHING
             amdream_enter(LEAKED(a0));
 #else
             amdream_enter();
 #endif
             break;
-        case 9:
+        case VEH_JBOMB:
             jbomb_enter();
             break;
-        case 10:
+        case VEH_BALLISTA:
             ballista_enter();
             break;
-        case 11:
-        case 17:
-        case 18:
+        case VEH_BARGE_0B:
+        case VEH_BARGE_11:
+        case VEH_BARGE_12:
 #ifdef NON_MATCHING
             barge_enter(LEAKED(a0));
 #else
             barge_enter();
 #endif
             break;
-        case 13:
+        case VEH_POLICE:
 #ifdef NON_MATCHING
             police_enter(LEAKED(a0));
 #else
             police_enter();
 #endif
             break;
-        case 14:
+        case VEH_ATEAM:
 #ifdef NON_MATCHING
             ateam_enter(LEAKED(a0));
 #else
             ateam_enter();
 #endif
             break;
-        case 15:
+        case VEH_STARSKI:
 #ifdef NON_MATCHING
             starski_enter(LEAKED(a0));
 #else
             starski_enter();
 #endif
             break;
-        case 16:
+        case VEH_CYCLONE:
             cyclone_enter();
             break;
         default:
@@ -1967,61 +1967,61 @@ void veh_leave(void) {
         block_detach_all();
         cont_steer_reset();
         switch (gCurVehicle) {
-            case 4:
+            case VEH_RAMDOZER:
                 ramdozer_leave();
                 break;
-            case 3:
+            case VEH_SKYFALL:
                 skyfall_leave();
                 break;
-            case 5:
+            case VEH_BACKLASH:
                 backlash_leave();
                 break;
-            case 2:
+            case VEH_THUNDERFIST:
                 thunderfist_leave();
                 break;
-            case 1:
+            case VEH_SIDESWIPE:
                 sideswipe_leave();
                 break;
-            case 7:
+            case VEH_TRAIN:
                 train_leave();
                 break;
-            case 8:
+            case VEH_AMDREAM:
                 amdream_leave();
                 break;
-            case 9:
+            case VEH_JBOMB:
                 jbomb_leave();
                 break;
-            case 10:
+            case VEH_BALLISTA:
                 ballista_leave();
                 break;
-            case 11:
-            case 17:
-            case 18:
+            case VEH_BARGE_0B:
+            case VEH_BARGE_11:
+            case VEH_BARGE_12:
                 barge_leave(gCurVehicle);
                 break;
-            case 13:
+            case VEH_POLICE:
                 police_leave();
                 break;
-            case 14:
+            case VEH_ATEAM:
                 ateam_leave();
                 break;
-            case 6:
+            case VEH_CRANE:
                 crane_leave();
-                if (veh_is_loaded(4)) {
+                if (veh_is_loaded(VEH_RAMDOZER)) {
                     ramdozer_leave();
                 }
-                if (veh_is_loaded(13)) {
+                if (veh_is_loaded(VEH_POLICE)) {
                     police_leave();
                 }
                 break;
-            case 15:
+            case VEH_STARSKI:
                 starski_leave();
                 break;
-            case 16:
+            case VEH_CYCLONE:
                 cyclone_leave();
                 break;
         }
-        gCurVehicle = 0;
+        gCurVehicle = VEH_DRIVER;
         if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
             rec_record((players[playerNumber].controlModes & 1) ? 0x80 : 0x40, 0, 0);
         }
@@ -2058,51 +2058,51 @@ u8 veh_exit_check(void) {
     s32 ret = 0;
 
     switch (gCurVehicle) {
-        case 4:
+        case VEH_RAMDOZER:
             ret = ramdozer_exit_check();
             break;
-        case 3:
+        case VEH_SKYFALL:
             ret = skyfall_exit_check();
             break;
-        case 5:
+        case VEH_BACKLASH:
             ret = backlash_exit_check();
             break;
-        case 2:
+        case VEH_THUNDERFIST:
             ret = thunderfist_exit_check();
             break;
-        case 1:
+        case VEH_SIDESWIPE:
             ret = sideswipe_exit_check();
             break;
-        case 6:
+        case VEH_CRANE:
             ret = crane_exit_check();
             break;
-        case 7:
+        case VEH_TRAIN:
             ret = train_exit_check();
             break;
-        case 8:
+        case VEH_AMDREAM:
             ret = amdream_exit_check();
             break;
-        case 9:
+        case VEH_JBOMB:
             ret = jbomb_exit_check();
             break;
-        case 10:
+        case VEH_BALLISTA:
             ret = ballista_exit_check();
             break;
-        case 11:
-        case 17:
-        case 18:
+        case VEH_BARGE_0B:
+        case VEH_BARGE_11:
+        case VEH_BARGE_12:
             ret = barge_exit_check();
             break;
-        case 13:
+        case VEH_POLICE:
             ret = police_exit_check();
             break;
-        case 14:
+        case VEH_ATEAM:
             ret = ateam_exit_check();
             break;
-        case 15:
+        case VEH_STARSKI:
             ret = starski_exit_check();
             break;
-        case 16:
+        case VEH_CYCLONE:
             ret = cyclone_exit_check();
             break;
     }
@@ -2111,51 +2111,51 @@ u8 veh_exit_check(void) {
 #else
 u8 veh_exit_check(void) {
     switch (gCurVehicle) {
-        case 4:
+        case VEH_RAMDOZER:
             ramdozer_exit_check();
             break;
-        case 3:
+        case VEH_SKYFALL:
             skyfall_exit_check();
             break;
-        case 5:
+        case VEH_BACKLASH:
             backlash_exit_check();
             break;
-        case 2:
+        case VEH_THUNDERFIST:
             thunderfist_exit_check();
             break;
-        case 1:
+        case VEH_SIDESWIPE:
             sideswipe_exit_check();
             break;
-        case 6:
+        case VEH_CRANE:
             crane_exit_check();
             break;
-        case 7:
+        case VEH_TRAIN:
             train_exit_check();
             break;
-        case 8:
+        case VEH_AMDREAM:
             amdream_exit_check();
             break;
-        case 9:
+        case VEH_JBOMB:
             jbomb_exit_check();
             break;
-        case 10:
+        case VEH_BALLISTA:
             ballista_exit_check();
             break;
-        case 11:
-        case 17:
-        case 18:
+        case VEH_BARGE_0B:
+        case VEH_BARGE_11:
+        case VEH_BARGE_12:
             barge_exit_check();
             break;
-        case 13:
+        case VEH_POLICE:
             police_exit_check();
             break;
-        case 14:
+        case VEH_ATEAM:
             ateam_exit_check();
             break;
-        case 15:
+        case VEH_STARSKI:
             starski_exit_check();
             break;
-        case 16:
+        case VEH_CYCLONE:
             cyclone_exit_check();
             break;
     }
@@ -2206,35 +2206,35 @@ void veh_update_others(void) {
     while (&gVehicles[i] != gVehiclesEnd) {
         if (gVehicles[i].onMovingPart != 0) {
             id = gVehicles[i].type;
-            if (id != gCurVehicle && id != 0xFF && id != 0xFE && id != 0) {
+            if (id != gCurVehicle && id != VEH_CARRIER && id != VEH_CHOPPER && id != VEH_DRIVER) {
                 switch (id) {
-                    case 5:
+                    case VEH_BACKLASH:
                         backlash_reground();
                         break;
-                    case 1:
+                    case VEH_SIDESWIPE:
 #ifdef NON_MATCHING
                         sideswipe_reground(LEAKED(fp));
 #else
                         sideswipe_reground();
 #endif
                         break;
-                    case 4:
+                    case VEH_RAMDOZER:
 #ifdef NON_MATCHING
                         ramdozer_reground(LEAKED(fp));
 #else
                         ramdozer_reground();
 #endif
                         break;
-                    case 8:
+                    case VEH_AMDREAM:
                         amdream_reground();
                         break;
-                    case 13:
+                    case VEH_POLICE:
                         police_reground();
                         break;
-                    case 14:
+                    case VEH_ATEAM:
                         ateam_reground();
                         break;
-                    case 15:
+                    case VEH_STARSKI:
 #ifdef NON_MATCHING
                         starski_reground(LEAKED(fp), LEAKED(a3), LEAKED(f12), LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24),
                                       LEAKED(f26));
@@ -2242,14 +2242,14 @@ void veh_update_others(void) {
                         starski_reground();
 #endif
                         break;
-                    case 9:
+                    case VEH_JBOMB:
 #ifdef NON_MATCHING
                         jbomb_reground(LEAKED(fp));
 #else
                         jbomb_reground();
 #endif
                         break;
-                    case 3:
+                    case VEH_SKYFALL:
 #ifdef NON_MATCHING
                         skyfall_reground(LEAKED(fp));
 #else
@@ -2271,18 +2271,18 @@ void veh_update_others(void) {
 void veh_update_player(void) {
     gRiderPass = 0;
     switch (gCurVehicle) {
-        case 0:
-            gNextVehicle = 0;
+        case VEH_DRIVER:
+            gNextVehicle = VEH_DRIVER;
             driver_update();
             break;
-        case 1:
+        case VEH_SIDESWIPE:
 #ifdef NON_MATCHING
             sideswipe_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
             sideswipe_update();
 #endif
             break;
-        case 2:
+        case VEH_THUNDERFIST:
 #ifdef NON_MATCHING
             thunderfist_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
@@ -2290,50 +2290,50 @@ void veh_update_player(void) {
             thunderfist_update();
 #endif
             break;
-        case 3:
+        case VEH_SKYFALL:
 #ifdef NON_MATCHING
             skyfall_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
             skyfall_update();
 #endif
             break;
-        case 4:
+        case VEH_RAMDOZER:
 #ifdef NON_MATCHING
             ramdozer_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
             ramdozer_update();
 #endif
             break;
-        case 5:
+        case VEH_BACKLASH:
             backlash_update();
             break;
-        case 6:
+        case VEH_CRANE:
             crane_update();
             break;
-        case 7:
+        case VEH_TRAIN:
             train_update();
             break;
-        case 8:
+        case VEH_AMDREAM:
             amdream_update();
             break;
-        case 9:
+        case VEH_JBOMB:
             jbomb_update();
             break;
-        case 10:
+        case VEH_BALLISTA:
             ballista_update();
             break;
-        case 11:
-        case 17:
-        case 18:
+        case VEH_BARGE_0B:
+        case VEH_BARGE_11:
+        case VEH_BARGE_12:
             barge_update(gCurVehicle);
             break;
-        case 13:
+        case VEH_POLICE:
             police_update();
             break;
-        case 14:
+        case VEH_ATEAM:
             ateam_update();
             break;
-        case 15:
+        case VEH_STARSKI:
 #ifdef NON_MATCHING
             starski_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
@@ -2341,7 +2341,7 @@ void veh_update_player(void) {
             starski_update();
 #endif
             break;
-        case 16:
+        case VEH_CYCLONE:
 #ifdef NON_MATCHING
             cyclone_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
@@ -2406,14 +2406,14 @@ void hd_handle_yoshi_selection(u16 *sel) {
         case MODE_MAP_VIEW:
             switch (*sel) {
                 case 1:
-                    if (gCurVehicle == 6 || gCurVehicle == 11 || gCurVehicle == 17 || gCurVehicle == 18) {
+                    if (gCurVehicle == VEH_CRANE || gCurVehicle == VEH_BARGE_0B || gCurVehicle == VEH_BARGE_11 || gCurVehicle == VEH_BARGE_12) {
                         gYoshiGameItems[7].unk0 &= ~1;
                         gYoshiGameItems[7].unk18 = 8;
                     } else {
                         gYoshiGameItems[7].unk0 |= 1;
                         gYoshiGameItems[7].unk18 = 7;
                     }
-                    yoshi_demand(0x8001);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAUSE_OPTIONS);
                     gNextGameMode = MODE_LEVEL;
                     break;
                 case 2:
@@ -2423,7 +2423,7 @@ void hd_handle_yoshi_selection(u16 *sel) {
                     cont_show_method_option();
                     break;
                 case 3:
-                    if (gLevelInfo[levelno].kind & 0x81) {
+                    if (gLevelInfo[levelno].kind & LEVEL_KIND_ANY_MISSION) {
                         fade_to_mode_speed(MODE_LEVEL_START, 0.5f);
                     } else {
                         fade_to_mode_speed(MODE_VEHICLE_SELECT, 0.5f);
@@ -2431,7 +2431,7 @@ void hd_handle_yoshi_selection(u16 *sel) {
                     break;
                 case 8:
                     gNextGameMode = MODE_YOSHI_PAGES;
-                    yoshi_demand(0x805E);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAGES_FIRST);
                     gCamSnap = 1;
                     break;
                 case 4:
@@ -2439,11 +2439,11 @@ void hd_handle_yoshi_selection(u16 *sel) {
                     break;
                 case 9:
                     if (music_get_master_volume() == 1.0) {
-                        gYoshiWindows[13].unk18 = 40;
+                        gYoshiWindows[YW_MUSIC_VOLUME].unk18 = 40;
                     } else {
-                        gYoshiWindows[13].unk18 = 39;
+                        gYoshiWindows[YW_MUSIC_VOLUME].unk18 = 39;
                     }
-                    yoshi_demand(0x800D);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_MUSIC_VOLUME);
                     break;
                 case 0x1A7:
                 case 0x1A8:
@@ -2458,23 +2458,23 @@ void hd_handle_yoshi_selection(u16 *sel) {
                     }
                     break;
                 case 17:
-                    gYoshiWindows[6].unk8 |= 0x80;
+                    gYoshiWindows[YW_STATUS].unk8 |= 0x80;
                     break;
                 case 0xFFFF:
                     switch (currentYoshiWindow) {
-                        case 1:
-                        case 6:
+                        case YW_PAUSE_OPTIONS:
+                        case YW_STATUS:
                             debug_printf("TESTING PAUSE2 %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                            yoshi_demand(0x8000);
+                            yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAUSE);
                             if (gHaveCarrier || gHaveShuttle) {
                                 gNextGameMode = MODE_MAP_VIEW;
                                 cull_restart(10);
                             }
                             break;
-                        case 13:
-                        case 0x58:
+                        case YW_MUSIC_VOLUME:
+                        case YW_CONTROL_METHOD:
                             debug_printf("TESTING PAUSE3 %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                            yoshi_demand(0x8001);
+                            yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAUSE_OPTIONS);
                             break;
                     }
                     break;
@@ -2508,7 +2508,7 @@ void hd_handle_yoshi_selection(u16 *sel) {
         case MODE_YOSHI_PAGES:
             if (*sel == 0xFFFF) {
                 debug_printf("TESTING PAUSE %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                yoshi_demand(0x8001);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_PAUSE_OPTIONS);
             }
             gNextGameMode = MODE_LEVEL;
             break;
@@ -2631,7 +2631,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     veh_update_fail_spin();
     veh_draw_shadows(&gdl, dyn, 0);
     obj_draw_ground_shadows(&gdl, (struct VtxBuf *) dyn);
-    if (!gPaused && gLevelKind != 0x40 && !(gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && !gPlayerHidden) {
+    if (!gPaused && gLevelKind != LEVEL_KIND_PILL_MAZE && !(gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && !gPlayerHidden) {
         mb_draw(&gdl, (s32) dyn, gBufferIndex);
     }
     gSPClearGeometryMode(gdl++, -1);
@@ -2730,7 +2730,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         hud_draw_veh_overlay(&gdl, gCurVehicle);
     }
-    if ((gLevelKind & 1) && (gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END | MODE_TIMED_END))) {
+    if ((gLevelKind & LEVEL_KIND_MISSION) && (gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END | MODE_TIMED_END))) {
         util_itoa(gHudMoney, (u8 *) &money[1]);
         money[0] = '$';
         text_print((Gfx * N64P *) dyn, (u8 *) money, 0, 1, 0, 0x118, 0x12, 0x14, 0x14, 0, 0xFF, 0xFF, 0xFF, gHudAlpha);
@@ -2741,9 +2741,9 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
                           gValuePopupAlpha);
         }
     }
-    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_YOSHI_PAGES)) && (!(gLevelKind & 0x81) || gHaveCarrier || gHaveShuttle)) {
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_YOSHI_PAGES)) && (!(gLevelKind & LEVEL_KIND_ANY_MISSION) || gHaveCarrier || gHaveShuttle)) {
         PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0); /* follows the target in the 3D view */
-        hud_draw_target_marker((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & MODE_MAP_VIEW) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
+        hud_draw_target_marker((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & MODE_MAP_VIEW) || currentYoshiWindow == YW_HINT_MARKER_ARROWS || currentYoshiWindow == YW_HINT_CARRIER_NEAR);
     }
     if (gNextGameMode == 0 && !areWeFading()) {
         if (!(gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END | MODE_LEVEL_START | MODE_TIMED_END | MODE_ACADEMY_MARKER | MODE_YOSHI_PAGES)) && PORT_GVI("hd_build_frame_dl", gSchedFrameCount) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
@@ -2757,7 +2757,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
                 if (gGameMode == MODE_YOSHI_PAGES && yoshiState == 2) {
                     text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), gTurnPagesGlyphs, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
-                } else if (gGameMode == MODE_MAP_VIEW && currentYoshiWindow == 0 && yoshiState == 2 && gHaveCarrier &&
+                } else if (gGameMode == MODE_MAP_VIEW && currentYoshiWindow == YW_PAUSE && yoshiState == 2 && gHaveCarrier &&
                            !(gContButtons & 0x2010)) {
                     text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO MOVE MAP"), gMoveMapGlyphs, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
@@ -2774,7 +2774,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         }
     }
     if (((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) || levelno == 0x26) && yoshiState == 1 && !areWeFading()) {
-        if ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && gLevelKind != 1) {
+        if ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && gLevelKind != LEVEL_KIND_MISSION) {
             PORT_WTAG(gdl, PORT_WTAG_RIGHT, 0, 0);
             spr_draw_blinking(&gdl, (s32) dyn, gRecReplaySprite, 0x108, 0x12);
         } else {
@@ -2786,14 +2786,14 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         PORT_WTAG(gdl, PORT_WTAG_RIGHT, 0, 0);
         spr_draw_blinking(&gdl, (s32) dyn, gCamFixedIconSprite, 0x108, 0xBE);
     }
-    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gLevelKind == 1 && !gPaused) {
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gLevelKind == LEVEL_KIND_MISSION && !gPaused) {
         stats_award_bonuses();
     }
     if (gHaveCarrier && gGameMode == MODE_LEVEL) {
         PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
         hud_draw_target_arrow(&gdl, (Mtx *) dyn, gPlayerX, gPlayerY, gPlayerZ, gCarrierX, gCarrierY, gCarrierZ);
     }
-    if ((gLevelInfo[levelno].kind & 0x81) && gGameMode == MODE_LEVEL) {
+    if ((gLevelInfo[levelno].kind & LEVEL_KIND_ANY_MISSION) && gGameMode == MODE_LEVEL) {
         if (levelno != 0x32 ||
             ((players[playerNumber].medal[0x32] > 0 && players[playerNumber].medal[0x32] < 6) ? 1 : 0)) {
             PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
@@ -2861,15 +2861,15 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     all = !gDriverHidden && (gVehEntered || (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)));
     i = 0;
     while (&gVehicleShadows[i] != gVehicleShadowsEnd) {
-        if ((gVehicleShadows[i].type != 0 || all) && gVehicleShadows[i].type != 0xFE &&
-            (gVehicleShadows[i].type != 0xFF || !gCarrierExplodeDone) &&
-            (gVehicleShadows[i].type == 0xFD || !gPlayerHidden || !gHaveShuttle) && gVehicleShadows[i].layer == layer) {
+        if ((gVehicleShadows[i].type != VEH_DRIVER || all) && gVehicleShadows[i].type != VEH_CHOPPER &&
+            (gVehicleShadows[i].type != VEH_CARRIER || !gCarrierExplodeDone) &&
+            (gVehicleShadows[i].type == VEH_SHUTTLE || !gPlayerHidden || !gHaveShuttle) && gVehicleShadows[i].layer == layer) {
             x = gVehicleShadows[i].x >> 5;
             y = gVehicleShadows[i].floorY >> 5;
             z = gVehicleShadows[i].z >> 5;
             w = gVehicleShadows[i].halfWidth;
             d = gVehicleShadows[i].halfDepth;
-            spin = gVehicleShadows[i].type == gCurVehicle && gSurfaceMax == 0x65;
+            spin = gVehicleShadows[i].type == gCurVehicle && gSurfaceMax == SURFACE_SPIN_SHADOW;
             if (spin) {
                 guRotateF(tmp, (f32) gPlayerHeading * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             }
@@ -2941,7 +2941,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             dyn->shadowVtx[gShadowVtxCount].v.cn[3] = 0x8C;
             gShadowVtxCount++;
             PORT_ITAG(gdl, PORT_ITAG_SHADOW, i);
-            if (gCarrierHit && !(gLevelKind & 0x81) && gVehicleShadows[i].type == gCurVehicle) {
+            if (gCarrierHit && !(gLevelKind & LEVEL_KIND_ANY_MISSION) && gVehicleShadows[i].type == gCurVehicle) {
                 gSPMatrix(gdl++, &seg2Base[0x55], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             }
             gSPMatrix(gdl++, &seg2Base[i + 11], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
@@ -2949,7 +2949,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
             gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
-            if (gCarrierHit && !(gLevelKind & 0x81) && gVehicleShadows[i].type == gCurVehicle) {
+            if (gCarrierHit && !(gLevelKind & LEVEL_KIND_ANY_MISSION) && gVehicleShadows[i].type == gCurVehicle) {
                 gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
             }
             gDPPipeSync(gdl++);
@@ -2983,7 +2983,7 @@ void veh_draw_chopper_shadow(Gfx **gfx, DynamicBuf *dyn) {
     found = 0;
     i = 0;
     while (!found) {
-        if (gVehicleShadows[i].type == 0xFE) {
+        if (gVehicleShadows[i].type == VEH_CHOPPER) {
             found = 1;
         } else {
             i++;
@@ -3061,11 +3061,11 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
     all = !gDriverHidden && (gVehEntered || (gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)));
     i = 0;
     while (&gVehicles[i] != gVehiclesEnd) {
-        if ((gVehicles[i].type != 0 || all) && (gVehicles[i].type != 0xFF || !gCarrierExplodeDone) &&
-            (gVehicles[i].type == 0xFD || !gPlayerHidden || !gHaveShuttle)) {
+        if ((gVehicles[i].type != VEH_DRIVER || all) && (gVehicles[i].type != VEH_CARRIER || !gCarrierExplodeDone) &&
+            (gVehicles[i].type == VEH_SHUTTLE || !gPlayerHidden || !gHaveShuttle)) {
             PORT_ITAG(gdl, PORT_ITAG_OBJ, i | (lod << 8));
             gSPSegment(gdl++, 6, osVirtualToPhysical(gVehicles[i].unk0));
-            if ((gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) && (gVehicles[i].type == 0xFE || gVehicles[i].type == 0)) {
+            if ((gGameMode & (MODE_INTRO_APPROACH | MODE_INTRO_FLY | MODE_INTRO_LANDING)) && (gVehicles[i].type == VEH_CHOPPER || gVehicles[i].type == VEH_DRIVER)) {
                 alt = gBufferIndex;
             } else {
                 alt = gVehDrawBufferIndex;
@@ -3078,7 +3078,7 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
             gDPPipeSync(gdl++);
             gDPSetEnvColor(gdl++, 0, 0, 0, gVehicles[i].alpha);
             gSPClearGeometryMode(gdl++, -1);
-            if (gCarrierHit && !(gLevelKind & 0x81) && gVehicles[i].type == gCurVehicle) {
+            if (gCarrierHit && !(gLevelKind & LEVEL_KIND_ANY_MISSION) && gVehicles[i].type == gCurVehicle) {
                 gSPMatrix(gdl++, &seg2Base[0x54], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             }
             if (alt) {
@@ -3125,7 +3125,7 @@ void veh_update_fail_spin(void) {
     s16 y;
     s16 z;
 
-    if (gCarrierHit != 0 && !(gLevelKind & 0x81)) {
+    if (gCarrierHit != 0 && !(gLevelKind & LEVEL_KIND_ANY_MISSION)) {
         guTranslateF(mf, -(f32) gPlayerX / 32.0, -(f32) gPlayerY / 32.0, -(f32) gPlayerZ / 32.0);
         guScaleF(tmp, gFailSpinScale, gFailSpinScale, gFailSpinScale);
         guMtxCatF(mf, tmp, mf);
@@ -3289,7 +3289,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gShuttleCamFollow = 0;
     }
     inShuttle = gHaveShuttle && ((gGameMode & (MODE_REPLAY | MODE_MAP_VIEW | MODE_INTRO_FLY)) || gShuttleCamFollow);
-    if (gGameMode == MODE_LEVEL_CLEAR || (currentYoshiWindow == 0x4B && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x14D)) {
+    if (gGameMode == MODE_LEVEL_CLEAR || (currentYoshiWindow == YW_HINT_TARGETS_CLEARED && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x14D)) {
         if (!gCamOnEndObject) {
             changed = 1;
         }
@@ -3300,7 +3300,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         gCamOnEndObject = 0;
     }
-    if (currentYoshiWindow == 0x49 && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x130) {
+    if (currentYoshiWindow == YW_HINT_CARRIER_NEAR && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x130) {
         if (!gCamOnCarrierTarget) {
             changed = 1;
         }
@@ -3311,7 +3311,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         gCamOnCarrierTarget = 0;
     }
-    if (currentYoshiWindow == 0x4D && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 != 0x164) {
+    if (currentYoshiWindow == YW_HINT_MARKER_ARROWS && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 != 0x164) {
         if (!gCamOnMarkedTarget) {
             changed = 1;
         }
@@ -3322,7 +3322,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         gCamOnMarkedTarget = 0;
     }
-    if (currentYoshiWindow == 0x58 && yoshiState != 8 && !gCamFixedEye) {
+    if (currentYoshiWindow == YW_CONTROL_METHOD && yoshiState != 8 && !gCamFixedEye) {
         if (!gCamWindowView) {
             gCamSnap = changed = 1;
         }
@@ -3339,7 +3339,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         rateX = 0.2f;
         rateY = 0.1f;
         rateZ = 0.2f;
-    } else if ((yoshiState == 2 && (currentYoshiWindow == 0x4D || currentYoshiWindow == 0x4B || currentYoshiWindow == 0x49)) ||
+    } else if ((yoshiState == 2 && (currentYoshiWindow == YW_HINT_MARKER_ARROWS || currentYoshiWindow == YW_HINT_TARGETS_CLEARED || currentYoshiWindow == YW_HINT_CARRIER_NEAR)) ||
                (gLevelDone && (gGameMode & (MODE_CARRIER_END | MODE_REPLAY_CARRIER_END | MODE_GLOBE_SEQ))) || gGameMode == MODE_LEVEL_CLEAR) {
         rateX = 0.08f;
         rateY = 0.03f;
@@ -3348,11 +3348,11 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         rateX = 0.06f;
         rateY = 0.03f;
         rateZ = 0.03f;
-    } else if ((gLevelKind == 0x10 || gLevelKind == 0x40) && gGameMode == MODE_REPLAY) {
+    } else if ((gLevelKind == LEVEL_KIND_RDUS || gLevelKind == LEVEL_KIND_PILL_MAZE) && gGameMode == MODE_REPLAY) {
         rateX = 0.1f;
         rateY = 0.03f;
         rateZ = 0.1f;
-    } else if (gCurVehicle == 9) {
+    } else if (gCurVehicle == VEH_JBOMB) {
         rateX = 0.5f;
         rateY = 0.06f;
         rateZ = 0.5f;
@@ -3377,18 +3377,18 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         case MODE_CARRIER_END:
         case MODE_REPLAY_CARRIER_END:
             if (gHaveShuttle) {
-                gCamType = 0xFD;
+                gCamType = VEH_SHUTTLE;
             } else {
-                gCamType = 0xFF;
+                gCamType = VEH_CARRIER;
             }
             break;
         case MODE_INTRO_APPROACH:
         case MODE_INTRO_FLY:
         case MODE_INTRO_LANDING:
             if (gHaveShuttle) {
-                gCamType = 0xFD;
+                gCamType = VEH_SHUTTLE;
             } else {
-                gCamType = 0xFE;
+                gCamType = VEH_CHOPPER;
             }
             break;
         default:
@@ -3405,7 +3405,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         turnRate = 0.0f;
     } else {
         switch (gCamType) {
-            case 7:
+            case VEH_TRAIN:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3413,7 +3413,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0xEB;
                 gCamTiltMin = -0xA5;
                 break;
-            case 10:
+            case VEH_BALLISTA:
                 radius = 9;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3421,9 +3421,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0xF5;
                 gCamTiltMin = -0x87;
                 break;
-            case 11:
-            case 17:
-            case 18:
+            case VEH_BARGE_0B:
+            case VEH_BARGE_11:
+            case VEH_BARGE_12:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3431,7 +3431,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0xEB;
                 gCamTiltMin = -0xA5;
                 break;
-            case 8:
+            case VEH_AMDREAM:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
@@ -3439,7 +3439,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x14F;
                 gCamTiltMin = -0xA5;
                 break;
-            case 15:
+            case VEH_STARSKI:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
@@ -3447,7 +3447,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x131;
                 gCamTiltMin = -0xA5;
                 break;
-            case 13:
+            case VEH_POLICE:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
@@ -3455,7 +3455,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x145;
                 gCamTiltMin = -0xA5;
                 break;
-            case 14:
+            case VEH_ATEAM:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
@@ -3463,7 +3463,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x13B;
                 gCamTiltMin = -0xA5;
                 break;
-            case 9:
+            case VEH_JBOMB:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3471,7 +3471,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x87;
                 gCamTiltMin = -0x55;
                 break;
-            case 6:
+            case VEH_CRANE:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3479,7 +3479,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0;
                 gCamTiltMin = 0;
                 break;
-            case 5:
+            case VEH_BACKLASH:
                 radius = 9;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3487,7 +3487,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0xCD;
                 gCamTiltMin = -0x69;
                 break;
-            case 4:
+            case VEH_RAMDOZER:
                 radius = 9;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3495,7 +3495,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0xEB;
                 gCamTiltMin = -0xA5;
                 break;
-            case 3:
+            case VEH_SKYFALL:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
@@ -3503,7 +3503,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0xEB;
                 gCamTiltMin = -0xA5;
                 break;
-            case 2:
+            case VEH_THUNDERFIST:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3511,7 +3511,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x91;
                 gCamTiltMin = -0x55;
                 break;
-            case 16:
+            case VEH_CYCLONE:
                 radius = 2;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3519,7 +3519,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x91;
                 gCamTiltMin = -0x55;
                 break;
-            case 1:
+            case VEH_SIDESWIPE:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3527,7 +3527,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0xCD;
                 gCamTiltMin = -0xA5;
                 break;
-            case 0:
+            case VEH_DRIVER:
                 radius = 20;
                 tiltRate = 0.25f;
                 turnRate = 15.0f;
@@ -3535,7 +3535,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0x55;
                 gCamTiltMin = -0x19;
                 break;
-            case 0xFF:
+            case VEH_CARRIER:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3543,7 +3543,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0;
                 gCamTiltMin = 0;
                 break;
-            case 0xFE:
+            case VEH_CHOPPER:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3553,7 +3553,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamTiltMax = 0;
                 gCamTiltMin = 0;
                 break;
-            case 0xFD:
+            case VEH_SHUTTLE:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
@@ -3669,8 +3669,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             break;
         case MODE_REPLAY:
             switch (gLevelKind) {
-                case 1:
-                case 0x80:
+                case LEVEL_KIND_MISSION:
+                case LEVEL_KIND_MISSION_TIMED:
                     if (gHaveCarrier) {
                         gCamEyeGoalX = (gCarrierX + offX) << 11;
                         gCamEyeGoalY = (gCarrierY + 2000) << 11;
@@ -3689,8 +3689,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     if (gHaveCarrier || gHaveShuttle) {
                         break;
                     }
-                case 4:
-                case 8:
+                case LEVEL_KIND_TARGETS:
+                case LEVEL_KIND_DAMAGE:
                     if (!gCamSnap) {
                         gCamEasedHeading = (s16) ((u16) gPlayerMoveHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                     } else {
@@ -3700,8 +3700,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     gCamEyeGoalY = (gCamHeight + gPlayerY) << 11;
                     gCamEyeGoalZ = (s32) (gPlayerZ - COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offZ) << 11;
                     break;
-                case 2:
-                case 0x20:
+                case LEVEL_KIND_RACE:
+                case LEVEL_KIND_BUILDINGS:
                     if (!gCamSnap) {
                         gCamEasedHeading = (s16) ((u16) gPlayerMoveHeading * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                     } else {
@@ -3711,8 +3711,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     gCamEyeGoalY = (gCamHeight + gPlayerY + gPadStickY * 50) << 11;
                     gCamEyeGoalZ = (s32) (COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + gPlayerZ + offZ) << 11;
                     break;
-                case 0x10:
-                case 0x40:
+                case LEVEL_KIND_RDUS:
+                case LEVEL_KIND_PILL_MAZE:
                     gCamEyeGoalX = ((gRdus[gRduLitOrder[gScoreRdus]].unk0 << 5) + offX) << 11;
                     gCamEyeGoalY = ((gRdus[gRduLitOrder[gScoreRdus]].unk2 << 5) + 2000) << 11;
                     gCamEyeGoalZ = ((gRdus[gRduLitOrder[gScoreRdus]].unk4 << 5) + offZ) << 11;
@@ -3783,7 +3783,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamEyeGoalY = gCamFixedEyeY;
                 gCamEyeGoalZ = gCamFixedEyeZ;
             } else {
-                if (gLevelKind == 0x40) {
+                if (gLevelKind == LEVEL_KIND_PILL_MAZE) {
                     gCamDistance = 9000;
                     gCamHeight = 11000;
                     gCamEyeHeight = 11000;
@@ -3822,7 +3822,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                         if (angle >= 360) {
                             angle %= 360;
                         }
-                        if (gCurVehicle == 2 || gCurVehicle == 9) {
+                        if (gCurVehicle == VEH_THUNDERFIST || gCurVehicle == VEH_JBOMB) {
                             cam_polar_offset(gCamDistance, angle, &px, &pz);
                         } else {
                             cam_polar_offset(gCamDistance / 2, angle, &px, &pz);
@@ -4127,54 +4127,54 @@ f32 cam_eye_scale(f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
     f32 dist;
 
     switch (gCurVehicle) {
-        case 0:
+        case VEH_DRIVER:
             speed = 3.5f;
             break;
-        case 1:
+        case VEH_SIDESWIPE:
             speed = 1.4f;
             break;
-        case 2:
+        case VEH_THUNDERFIST:
             speed = 1.6f;
             break;
-        case 3:
+        case VEH_SKYFALL:
             speed = 4.8f;
             break;
-        case 4:
+        case VEH_RAMDOZER:
             speed = 5.0f;
             break;
-        case 5:
+        case VEH_BACKLASH:
             speed = 5.0f;
             break;
-        case 6:
+        case VEH_CRANE:
             speed = 1.6f;
             break;
-        case 7:
+        case VEH_TRAIN:
             speed = 1.6f;
             break;
-        case 8:
+        case VEH_AMDREAM:
             speed = 4.8f;
             break;
-        case 9:
+        case VEH_JBOMB:
             speed = 1.6f;
             break;
-        case 10:
+        case VEH_BALLISTA:
             speed = 5.0f;
             break;
-        case 11:
-        case 17:
-        case 18:
+        case VEH_BARGE_0B:
+        case VEH_BARGE_11:
+        case VEH_BARGE_12:
             speed = 1.6f;
             break;
-        case 13:
+        case VEH_POLICE:
             speed = 4.8f;
             break;
-        case 14:
+        case VEH_ATEAM:
             speed = 4.8f;
             break;
-        case 15:
+        case VEH_STARSKI:
             speed = 4.8f;
             break;
-        case 16:
+        case VEH_CYCLONE:
             speed = 1.6f;
             break;
     }
@@ -4456,7 +4456,7 @@ void hd_mode_setup(void) {
     align_up(&gHeapPtr, 0x10);
     gRdpOutputBuffer = gHeapPtr;
     gHeapPtr += 0xA000;
-    if (gLevelInfo[levelno].kind == 2 && !(gNextGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ))) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_RACE && !(gNextGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ))) {
         debug_printf("Allocating ghost buffer memory\n");
         gHeapPtr += 0x20000;
     }
@@ -4785,7 +4785,7 @@ void hd_setup_level(s32 arg0) {
     }
     gGhostRecording = 0;
     gGhostPlaying = 0;
-    if (gLevelKind == 2 && gNextGameMode == MODE_LEVEL_START) {
+    if (gLevelKind == LEVEL_KIND_RACE && gNextGameMode == MODE_LEVEL_START) {
         if (!gGhostRetry) {
             ghost_init();
         }
@@ -4813,7 +4813,7 @@ void hd_setup_level(s32 arg0) {
             commpt_load_flags();
         }
     }
-    obj_tally(gLevelKind == 0x20 || gLevelKind == 0x80);
+    obj_tally(gLevelKind == LEVEL_KIND_BUILDINGS || gLevelKind == LEVEL_KIND_MISSION_TIMED);
     hud_init_objective(levelno);
     if (gCamFixedEye) {
         gCamFixedIconSprite = spr_load((u16 *) gCamFixedIconSprIds, 0, 1, 1, 1, 1.0f);
@@ -4831,7 +4831,7 @@ void hd_setup_level(s32 arg0) {
     hud_init_veh_overlay();
     fx_init_carrier_blast();
     fx_init_power_pill(levelno);
-    if (gLevelInfo[levelno].kind == 1) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
         people_init(arg0);
     }
     ptcl_init();

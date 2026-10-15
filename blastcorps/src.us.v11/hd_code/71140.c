@@ -89,7 +89,7 @@ void backlash_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     gBacklashMtxA = (u64 *) N64_IPTR(buf);
     gBacklashMtxB = (u64 *) N64_IPTR((buf + 0x800));
     gHeapPtr = buf + 0x1000;
-    veh_add_record(5, 1, (s32) gBacklashMtxA, (s32) gBacklashMtxB, model);
+    veh_add_record(VEH_BACKLASH, 1, (s32) gBacklashMtxA, (s32) gBacklashMtxB, model);
     veh_reset_state(gBacklashState);
     /* wheel slot offsets */
     *(s16 *) (gBacklashState + 0x52) = 0x168;
@@ -153,7 +153,7 @@ void backlash_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     gBacklashLean = 0.5f;
     hdr = gBacklashModel;
     veh_register_parts(5, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x4268);
-    veh_add_shadow(5, 0x64, 0x2D, 0x2D);
+    veh_add_shadow(VEH_BACKLASH, 0x64, 0x2D, 0x2D);
     gBacklashState[0x9A] = 1;
     backlash_update();
     gBacklashState[0x9A] = 0;
@@ -566,7 +566,7 @@ void backlash_update(void) {
     if (gCollBlocked == 0) {
         gCollHit = 0;
         gBacklashHitSound = -1;
-        if (((s32) gLevelKind) == 0x40) {
+        if (((s32) gLevelKind) == LEVEL_KIND_PILL_MAZE) {
             goto no_hit;
         }
         gCollVehicleAnim = gBacklashAnim;
@@ -614,7 +614,7 @@ void backlash_update(void) {
     VEH5(VS_MOMENTUM_HEADING, s16) = cur;
     veh_step_heading(gBacklashState, turn, d, &tgt);
     veh_hit_slowdown(gBacklashState, 0);
-    if (((s32) gLevelKind) != 0x40) {
+    if (((s32) gLevelKind) != LEVEL_KIND_PILL_MAZE) {
         gCollVehicleAnim = gBacklashAnim;
         obj_collide_vehicle(5, gBacklashState);
     }

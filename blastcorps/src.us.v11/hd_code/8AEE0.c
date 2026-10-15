@@ -106,7 +106,7 @@ void starski_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     gStarskiMtxA = (u64 *) buf;
     gStarskiMtxB = (u64 *) (buf + 0x100);
     gHeapPtr = buf + 0x200;
-    veh_add_record(0xF, 0, (s32) gStarskiMtxA, (s32) gStarskiMtxB, model);
+    veh_add_record(VEH_STARSKI, 0, (s32) gStarskiMtxA, (s32) gStarskiMtxB, model);
     veh_reset_state(v);
     *(s16 *) (v + 0x52) = 0xAF;
     *(s16 *) (v + 0x54) = 0xFA;
@@ -160,7 +160,7 @@ void starski_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     gStarskiThrottleHold = 0;
     model = gStarskiModel;
     veh_register_parts(0xF, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x32C8);
-    veh_add_shadow(0xF, 0x3C, 0x19, 0x19);
+    veh_add_shadow(VEH_STARSKI, 0x3C, 0x19, 0x19);
     v[0x9A] = 1;
     starski_update(t6, t7, z, (s32) (v + 4), (s32) &gStarskiPos[1], (s32) s3v, (s32) (v + 0x4C), f->cross, f->cz,
                   f->side, f->sideZ, f->dz);
@@ -737,7 +737,7 @@ void cyclone_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     gCycloneMtxA = (u64 *) buf;
     gCycloneMtxB = (u64 *) (buf + 0x1400);
     gHeapPtr = buf + 0x2800;
-    veh_add_record(0x10, 1, (s32) gCycloneMtxA, (s32) gCycloneMtxB, model);
+    veh_add_record(VEH_CYCLONE, 1, (s32) gCycloneMtxA, (s32) gCycloneMtxB, model);
     veh_reset_state(v);
     *(s16 *) (v + 0x52) = 0;
     *(s16 *) (v + 0x54) = 0;
@@ -794,7 +794,7 @@ void cyclone_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     D_803FC999 = 0;
     model = gCycloneModel;
     veh_register_parts(0x10, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x2134);
-    veh_add_shadow(0x10, 0x64, 0x2D, 0x2D);
+    veh_add_shadow(VEH_CYCLONE, 0x64, 0x2D, 0x2D);
     anim_set_frame(0.0f, (AnimChannel *) gCycloneAnim, 1, 0);
     anim_play((AnimChannel *) gCycloneAnim, 1, 1);
     v[0x9A] = 1;

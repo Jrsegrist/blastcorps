@@ -439,7 +439,7 @@ Gfx *fe_lvlsel_build_level_icons_dl(void) {
                             continue;
                         }
                     }
-                    if (gLevelInfo[lvl].kind & 0x81) {
+                    if (gLevelInfo[lvl].kind & LEVEL_KIND_ANY_MISSION) {
                         scale = 1.75f;
                     } else {
                         scale = 1.0f;

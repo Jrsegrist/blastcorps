@@ -62,7 +62,7 @@ void shuttle_spawn(u8 *hdr) {
     gShuttleMtxA = (u8 *) p;
     gShuttleMtxB = (u8 *) (p + 0x800);
     gHeapPtr = p + 0x1000;
-    veh_add_record(0xFD, 0, (s32) gShuttleMtxA, (s32) gShuttleMtxB, hdr);
+    veh_add_record(VEH_SHUTTLE, 0, (s32) gShuttleMtxA, (s32) gShuttleMtxB, hdr);
     *(s16 *) (gShuttleState + 0x4C) = 0;
     *(s16 *) (gShuttleState + 0x4E) = 0;
     *(s16 *) (gShuttleState + 0x76) = 0;
@@ -100,7 +100,7 @@ void shuttle_spawn(u8 *hdr) {
     anim_set_frame(0.0f, (AnimChannel *) gShuttleAnim, 1, 0);
     anim_set_loop_mode((AnimChannel *) gShuttleAnim, 1, 1);
     anim_play((AnimChannel *) gShuttleAnim, 1, -1);
-    veh_add_shadow(0xFD, 120, 45, 45);
+    veh_add_shadow(VEH_SHUTTLE, 120, 45, 45);
     util_shuttle_path_init();
     gShuttleState[0x9A] = 1;
     shuttle_update();

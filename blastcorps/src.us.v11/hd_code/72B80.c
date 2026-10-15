@@ -98,7 +98,7 @@ void amdream_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     gAmdreamMtxA = (u64 *) buf;
     gAmdreamMtxB = (u64 *) (buf + 0x100);
     gHeapPtr = buf + 0x200;
-    veh_add_record(8, 0, (s32) gAmdreamMtxA, (s32) gAmdreamMtxB, hdr);
+    veh_add_record(VEH_AMDREAM, 0, (s32) gAmdreamMtxA, (s32) gAmdreamMtxB, hdr);
     veh_reset_state(gAmdreamState);
     h = (s16 *) (gAmdreamState + 0x52);
     h[0] = 0xC8;
@@ -152,7 +152,7 @@ void amdream_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     gAmdreamThrottleLock = 0;
     hdr = gAmdreamModel;
     veh_register_parts(8, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x32C8);
-    veh_add_shadow(8, 0x3C, 0x19, 0x19);
+    veh_add_shadow(VEH_AMDREAM, 0x3C, 0x19, 0x19);
     gAmdreamState[0x9A] = 1;
     amdream_update();
     gAmdreamState[0x9A] = 0;
@@ -719,7 +719,7 @@ void chopper_spawn(s32 a1Val, u8 *hdr) {
     gChopperMtxA = buf;
     gChopperMtxB = buf + 0x800;
     gHeapPtr = buf + 0x1000;
-    veh_add_record(0xFE, a1Val, (s32) gChopperMtxA, (s32) gChopperMtxB, hdr);
+    veh_add_record(VEH_CHOPPER, a1Val, (s32) gChopperMtxA, (s32) gChopperMtxB, hdr);
     *(s16 *) (gChopperState + 0x4C) = 0;
     *(s16 *) (gChopperState + 0x4E) = 0;
     gChopperCamHeading = 0;
@@ -750,7 +750,7 @@ void chopper_spawn(s32 a1Val, u8 *hdr) {
     gChopperTurn = 0;
     gChopperTouchdown = 0;
     gChopperGroundY = 0;
-    veh_add_shadow(0xFE, 0x78, 0x2D, 0x2D);
+    veh_add_shadow(VEH_CHOPPER, 0x78, 0x2D, 0x2D);
     chopper_update();
     hdr = gChopperModel;
     mtx_copy_at(gChopperMtxB, gChopperMtxA, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
@@ -986,7 +986,7 @@ static s32 port_state1(void) {
             gChopperTargetX = (&gChopperRetargetZ)[-1];
             bx = gChopperRetargetZ;
             gChopperTargetZ = bx;
-            yoshi_demand(0x4000);
+            yoshi_demand(YOSHI_DEMAND_OFF);
         }
     }
     if (dist < 0x7D0) {

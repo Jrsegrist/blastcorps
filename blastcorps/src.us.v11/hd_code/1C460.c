@@ -332,7 +332,7 @@ void music_init_audio(void) {
 
 /* The sound of an effect id ("effect id %d out of range!") (0x802619D0). */
 void snd_play_effect(u32 id) {
-    if (id >= 28) {
+    if (id >= EFFECT_KIND_COUNT) {
         debug_printf("effect id %d out of range!\n", id);
     } else if (gEffectSounds[id] != 0) {
         snd_play(gSfxBank, gEffectSounds[id], NULL);

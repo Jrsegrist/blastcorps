@@ -114,7 +114,7 @@ s32 fe_digger_init(void) {
     unused = 0xE73C;
     gDiggerPrevVehicle = gDiggerVehicle;
     anim_tex_init();
-    for (i = 0; i < 19; i++) {
+    for (i = 0; i < VEH_COUNT; i++) {
         slot[i] = -1;
         if ((players[playerNumberAtStart].vehiclesUnlocked & (1 << i) & level->vehicles) &&
             (playerNumber == playerNumberAtStart || gBestTimes[playerNumberAtStart][gVehicleTimeSlot[i]] != 0)) {

@@ -137,7 +137,7 @@ void veh_add_record(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
     for (i = 0; i < 9; i++) {
         *(s32 *) (rec + 0x30 + i * 4) = *(s32 *) (rec + 0xC + i * 4) + delta;
     }
-    if (((s32) gLevelKind) != 1 || a1Val != 0) {
+    if (((s32) gLevelKind) != LEVEL_KIND_MISSION || a1Val != 0) {
         veh_copy_dl(*(Gfx * N64P *) (rec + 0xC), *(Gfx * N64P *) (rec + 0x18), (Gfx * N64P *) (rec + 0x58));
     }
 }
@@ -804,7 +804,7 @@ void lvl_add_object(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u
     u8 *out;
 
     lvl_resolve_object_tex(obj, param, s1io);
-    if (type == 0x38) {
+    if (type == OBJ_KIND_END) {
         gEndObjectX = x;
         gEndObjectY = y;
         gEndObjectZ = z;
@@ -920,7 +920,7 @@ void lvl_object_centre(u8 *rec, u8 *obj) {
 void lvl_init_object_shadow(u8 *rec, u8 *param) {
     s32 type = *(s32 *) (rec + 0x30);
 
-    if (type == 0xBA || type == 0xBB || type == 0xBC) {
+    if (type == OBJ_KIND_SHADOW_A || type == OBJ_KIND_SHADOW_B || type == OBJ_KIND_SHADOW_C) {
         gObjShadowTex = tex_get_impl(0xF81, param);
         *(s32 *) (rec + 0x44) = coll_ground_height(*(s32 *) (rec + 0x10), *(s32 *) (rec + 0x18), *(s32 *) (rec + 0x14));
     }
@@ -1345,7 +1345,7 @@ void lvl_spawn_shuttle(void) {
 void lvl_spawn_chopper(u8 *obj) {
     Out802A396C o;
 
-    if (*OBJ_PTR(obj, 0x54) != 0 && ((s32) gLevelKind) != 0x80) {
+    if (*OBJ_PTR(obj, 0x54) != 0 && ((s32) gLevelKind) != LEVEL_KIND_MISSION_TIMED) {
         lvl_load_model(0xFE, &o);
         chopper_spawn((s32) o.a1, o.s2);
         gHaveChopper = 1;
@@ -1455,31 +1455,31 @@ void lvl_load_model_plain(s32 type, Out802A32CC *out) {
 
     switch (type) {
         default: /* syscall */
-        case 3:
+        case VEH_SKYFALL:
             rom = 0x490AC0, romEnd = 0x491E00;
             break;
-        case 4:
+        case VEH_RAMDOZER:
             rom = 0x496AD0, romEnd = 0x497AF0;
             break;
-        case 5:
+        case VEH_BACKLASH:
             rom = 0x497AF0, romEnd = 0x4989E0;
             break;
-        case 8:
+        case VEH_AMDREAM:
             rom = 0x49BCE0, romEnd = 0x49C480;
             break;
-        case 9:
+        case VEH_JBOMB:
             rom = 0x49C480, romEnd = 0x49E8E0;
             break;
-        case 0xA:
+        case VEH_BALLISTA:
             rom = 0x49E8E0, romEnd = 0x49F7A0;
             break;
-        case 0xD:
+        case VEH_POLICE:
             rom = 0x49FF70, romEnd = 0x4A0720;
             break;
-        case 0xE:
+        case VEH_ATEAM:
             rom = 0x4A0720, romEnd = 0x4A1000;
             break;
-        case 0xF:
+        case VEH_STARSKI:
             rom = 0x4A1000, romEnd = 0x4A1690;
             break;
     }
@@ -1573,10 +1573,10 @@ s32 lvl_spawn_vehicles(u8 *obj, s32 fp) {
             p += 9;
             continue;
         }
-        if (type == 1 && ((s32) gLevelKind) != 1 && ((s32) gLevelKind) != 0x80) {
+        if (type == VEH_SIDESWIPE && ((s32) gLevelKind) != LEVEL_KIND_MISSION && ((s32) gLevelKind) != LEVEL_KIND_MISSION_TIMED) {
             type = gDiggerVehicle;
         }
-        if (type == 6 || type == 7 || type == 0xB || type == 0x11 || type == 0x12) {
+        if (type == VEH_CRANE || type == VEH_TRAIN || type == VEH_BARGE_0B || type == VEH_BARGE_11 || type == VEH_BARGE_12) {
             gHaveRideables = 1;
         }
         x = BE16S(p + 1) << 5;
@@ -1586,54 +1586,54 @@ s32 lvl_spawn_vehicles(u8 *obj, s32 fp) {
         p += 9;
         lvl_load_model(type, &o);
         switch (type) {
-            case 0:
+            case VEH_DRIVER:
                 driver_spawn(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
-            case 1:
+            case VEH_SIDESWIPE:
                 sideswipe_spawn(o.s2, x, y, z, heading, fp);
                 break;
-            case 2:
+            case VEH_THUNDERFIST:
                 thunderfist_spawn(o.s2, x, y, z, heading, fp, 0, (TriSideOut *) &f);
                 break;
-            case 3:
+            case VEH_SKYFALL:
                 skyfall_spawn(o.s2, x, y, z, heading, fp);
                 break;
-            case 4:
+            case VEH_RAMDOZER:
                 ramdozer_spawn(o.s2, x, y, z, heading, fp);
                 break;
-            case 5:
+            case VEH_BACKLASH:
                 backlash_spawn(o.s2, x, y, z, heading, fp);
                 break;
-            case 6:
+            case VEH_CRANE:
                 crane_spawn(o.s2, x, y, z, heading, fp);
                 break;
-            case 7:
+            case VEH_TRAIN:
                 train_spawn(x, y, z, heading, o.s2, fp);
                 break;
-            case 8:
+            case VEH_AMDREAM:
                 amdream_spawn(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
-            case 9:
+            case VEH_JBOMB:
                 jbomb_spawn(x, y, z, heading, o.s2, fp);
                 break;
-            case 0xA:
+            case VEH_BALLISTA:
                 ballista_spawn(x, y, z, heading, o.s2, fp);
                 break;
-            case 0xB:
-            case 0x11:
-            case 0x12:
+            case VEH_BARGE_0B:
+            case VEH_BARGE_11:
+            case VEH_BARGE_12:
                 barge_spawn(type, x, y, z, heading, o.s2, fp);
                 break;
-            case 0xD:
+            case VEH_POLICE:
                 police_spawn(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
-            case 0xE:
+            case VEH_ATEAM:
                 ateam_spawn(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
-            case 0xF:
+            case VEH_STARSKI:
                 starski_spawn(o.s2, x, y, z, heading, fp, 0, (TriSideOut *) &f);
                 break;
-            case 0x10:
+            case VEH_CYCLONE:
                 cyclone_spawn(o.s2, x, y, z, heading, fp, 0, (TriSideOut *) &f);
                 break;
             default: /* the asm's syscall, then its epilogue */
@@ -1667,7 +1667,7 @@ void lvl_find_start_vehicle(u8 *obj) {
     s32 z;
     u8 kind;
 
-    while (r[0] != 0) {
+    while (r[0] != VEH_DRIVER) {
         r += 9;
     }
     x = BE16S(r + 1);
@@ -1675,8 +1675,8 @@ void lvl_find_start_vehicle(u8 *obj) {
     z = BE16S(r + 5);
     for (; p != end; p += 9) {
         kind = p[0];
-        if (kind != 0 && BE16S(p + 1) == x && BE16S(p + 3) == y && BE16S(p + 5) == z) {
-            if (((s32) gLevelKind) != 1 && ((s32) gLevelKind) != 0x80) {
+        if (kind != VEH_DRIVER && BE16S(p + 1) == x && BE16S(p + 3) == y && BE16S(p + 5) == z) {
+            if (((s32) gLevelKind) != LEVEL_KIND_MISSION && ((s32) gLevelKind) != LEVEL_KIND_MISSION_TIMED) {
                 kind = gDiggerVehicle;
             }
             gStartVehicle = kind;
@@ -1711,63 +1711,63 @@ void lvl_load_model(s32 type, Out802A396C *out) {
 
     switch (type) {
         default: /* syscall */
-        case 0:
+        case VEH_DRIVER:
             rom = 0x491E00, romEnd = 0x4929D0;
             break;
-        case 1:
+        case VEH_SIDESWIPE:
             rom = 0x4929D0, romEnd = 0x494390;
             break;
-        case 2:
+        case VEH_THUNDERFIST:
             rom = 0x494390, romEnd = 0x496AD0;
             break;
-        case 0x10:
+        case VEH_CYCLONE:
             rom = 0x4A1690, romEnd = 0x4A4120;
             break;
-        case 3:
+        case VEH_SKYFALL:
             rom = 0x490AC0, romEnd = 0x491E00;
             break;
-        case 4:
+        case VEH_RAMDOZER:
             rom = 0x496AD0, romEnd = 0x497AF0;
             break;
-        case 5:
+        case VEH_BACKLASH:
             rom = 0x497AF0, romEnd = 0x4989E0;
             break;
-        case 6:
+        case VEH_CRANE:
             rom = 0x49AD20, romEnd = 0x49B630;
             break;
-        case 7:
+        case VEH_TRAIN:
             rom = 0x49B630, romEnd = 0x49BCE0;
             break;
-        case 8:
+        case VEH_AMDREAM:
             rom = 0x49BCE0, romEnd = 0x49C480;
             break;
-        case 9:
+        case VEH_JBOMB:
             rom = 0x49C480, romEnd = 0x49E8E0;
             break;
-        case 0xA:
+        case VEH_BALLISTA:
             rom = 0x49E8E0, romEnd = 0x49F7A0;
             break;
-        case 0xB:
-        case 0x11:
-        case 0x12:
+        case VEH_BARGE_0B:
+        case VEH_BARGE_11:
+        case VEH_BARGE_12:
             rom = 0x49F7A0, romEnd = 0x49FF70;
             break;
-        case 0xD:
+        case VEH_POLICE:
             rom = 0x49FF70, romEnd = 0x4A0720;
             break;
-        case 0xE:
+        case VEH_ATEAM:
             rom = 0x4A0720, romEnd = 0x4A1000;
             break;
-        case 0xF:
+        case VEH_STARSKI:
             rom = 0x4A1000, romEnd = 0x4A1690;
             break;
-        case 0xFE:
+        case VEH_CHOPPER:
             rom = 0x4989E0, romEnd = 0x499690;
             break;
-        case 0xFF:
+        case VEH_CARRIER:
             rom = 0x499690, romEnd = 0x49AD20;
             break;
-        case 0xFD:
+        case VEH_SHUTTLE:
             rom = 0x4A4120, romEnd = 0x4A5660;
             break;
         case 0x96:
@@ -2151,13 +2151,13 @@ u8 *lvl_build_coll_tri(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s
     ay = (ny < 0) ? -ny : ny;
     az = (nz < 0) ? -nz : nz;
     if (!(az < ax) && !(az < ay)) {
-        rec[0x4E] = 0;
+        rec[0x4E] = TRI_AXIS_Z;
     } else if (!(ay < ax) && !(ay < az)) {
-        rec[0x4E] = 1;
+        rec[0x4E] = TRI_AXIS_Y;
     } else {
-        rec[0x4E] = 2;
+        rec[0x4E] = TRI_AXIS_X;
     }
-    rec[0x54] = 0;
+    rec[0x54] = TRI_SIDE_NONE;
     *(u16 *) (rec + 0x4C) = BE16U(v + 0x12);
     *s1io = dx2;
     return rec + 0x60;

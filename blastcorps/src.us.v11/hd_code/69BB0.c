@@ -78,7 +78,7 @@ void driver_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     gDriverMtxA = buf;
     gDriverMtxB = buf + 0xC80;
     gHeapPtr = buf + 0x1900;
-    veh_add_record(0, 0, (s32) gDriverMtxA, (s32) gDriverMtxB, hdr);
+    veh_add_record(VEH_DRIVER, 0, (s32) gDriverMtxA, (s32) gDriverMtxB, hdr);
     veh_reset_state(gDriverState);
     h = (s16 *) (gDriverState + 0x52);
     h[0] = 30;
@@ -134,7 +134,7 @@ void driver_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut 
     h[14] = 2;
     hdr = gDriverModel;
     veh_register_parts(0, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x4E20);
-    veh_add_shadow(0, 0x28, 0xF, 0xF);
+    veh_add_shadow(VEH_DRIVER, 0x28, 0xF, 0xF);
     gDriverState[0x9A] = 1;
     driver_update();
     gDriverState[0x9A] = 0;
@@ -281,7 +281,7 @@ s32 driver_try_exit(s32 dist) {
         }
         pos[0] = gPlayerX;
         t = gPlayerY;
-        if (gCurVehicle == 0xB || gCurVehicle == 0x11 || gCurVehicle == 0x12) {
+        if (gCurVehicle == VEH_BARGE_0B || gCurVehicle == VEH_BARGE_11 || gCurVehicle == VEH_BARGE_12) {
             t += 500;
         }
         pos[1] = t;
@@ -392,7 +392,7 @@ s32 driver_check_exit_point(s32 dist, s32 key, s32 *fp, TriSideOut *f) {
     *fp = func_8029AA10_fp(0, *fp);
     gCollVehicleAnim = gDriverAnim;
     obj_collide_vehicle(0, gDriverState);
-    if (gCurVehicle != 0xB) {
+    if (gCurVehicle != VEH_BARGE_0B) {
         tnt_test_point(pos[0], pos[1], pos[2]);
     }
     return gCollHit == 0;

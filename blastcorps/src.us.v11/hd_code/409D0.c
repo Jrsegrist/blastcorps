@@ -84,7 +84,7 @@ void stats_level_start(void) {
     s32 i;
 
     gScoreVehicle = players[playerNumber].commPts[levelno + 0x3E];
-    gScoreTime = gBestTimes[playerNumber][gVehicleTimeSlot[(gLevelInfo[levelno].kind == 1) ? 1 : gScoreVehicle]];
+    gScoreTime = gBestTimes[playerNumber][gVehicleTimeSlot[(gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) ? 1 : gScoreVehicle]];
     gScoreGrade = gPlayerMedals[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
         gBonusEarned[i] = 0;
@@ -190,7 +190,7 @@ u8 stats_save_status(void) {
         osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     }
     if (LEVEL_DONE(levelno)) {
-        if (gLevelInfo[levelno].kind == 1) {
+        if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
             if (pakBuffer[0] == 0x1234567887654321) {
                 hd_setup_level(NULL);
                 debug_printf("Creating status ...\n");
@@ -252,7 +252,7 @@ void stats_finish_bonus_level(s32 arg0) {
 
     if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         if (LEVEL_DONE(levelno)) {
-            if (gLevelInfo[levelno].kind != 1 && playerNumber == playerNumberAtStart) {
+            if (gLevelInfo[levelno].kind != LEVEL_KIND_MISSION && playerNumber == playerNumberAtStart) {
                 commpt_save_flags();
                 gPauseRequest = 1;
                 fade_to_mode_speed(MODE_WORLD, 1.25f);
@@ -265,7 +265,7 @@ void stats_finish_bonus_level(s32 arg0) {
 
 /* Shows the communication-point hint window (hint 0x47) (0x80285CA0). */
 void stats_show_commpt_hint(void) {
-    yoshi_show_hint(0x47);
+    yoshi_show_hint(YW_HINT_COMMPT);
 }
 
 /* The per-count bonus jingles (0x80285CC0).
@@ -281,23 +281,23 @@ void stats_award_bonuses(void) {
             switch (i) {
                 case 0:
                     if (gBonusEarned[i] = (gScoreRdus == gRduCount)) {
-                        sfx = 0x39;
+                        sfx = YW_BONUS_RDUS;
                     }
                     break;
                 case 1:
                     if (gBonusEarned[i] = (gScorePeople == gPeopleTotal)) {
-                        sfx = 0x3A;
+                        sfx = YW_BONUS_PEOPLE;
                     }
                     break;
                 case 2:
                     obj_tally(0);
                     if (gBonusEarned[i] = (gScoreBuildings == gBuildingCount)) {
-                        sfx = 0x3B;
+                        sfx = YW_BONUS_BUILDINGS;
                     }
                     break;
                 case 3:
                     if (gBonusEarned[i] = (gBonusEarned[0] && gBonusEarned[2] && gBonusEarned[1])) {
-                        sfx = 0x3C;
+                        sfx = YW_BONUS_ALL;
                         snd = 0xC6;
                     }
                     break;
@@ -305,8 +305,8 @@ void stats_award_bonuses(void) {
         }
     }
     if (gPlayFrames) {
-        if (sfx != -1 && !(yoshi_get_demand() & 0x8000)) {
-            yoshi_demand(sfx | 0x8000);
+        if (sfx != -1 && !(yoshi_get_demand() & YOSHI_DEMAND_OPEN)) {
+            yoshi_demand(sfx | YOSHI_DEMAND_OPEN);
         }
         if (snd) {
             snd_play(gSfxBank, snd, 0);
@@ -332,10 +332,10 @@ void stats_finish_level(s32 start) {
     gYoshiGameItems[23].flags |= 0x800;
     gYoshiGameItems[17].flags |= 1;
     gYoshiGameItems[17].flags &= ~0x800;
-    gYoshiWindows[6].f18 = 0x11;
-    gYoshiWindows[6].f8 |= 0x80;
-    yoshi_demand(0x8006);
-    gYoshiWindows[6].fC = 0;
+    gYoshiWindows[YW_STATUS].f18 = 0x11;
+    gYoshiWindows[YW_STATUS].f8 |= 0x80;
+    yoshi_demand(YOSHI_DEMAND_OPEN | YW_STATUS);
+    gYoshiWindows[YW_STATUS].fC = 0;
     gPauseRequest = 1;
 }
 

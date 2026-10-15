@@ -224,22 +224,22 @@ void hud_init_objective(u8 arg0) {
     gIntroSecond = -1;
     gHudObjectiveY = 0;
     switch (gLevelKind) {
-        case 4:
-        case 0x80:
+        case LEVEL_KIND_TARGETS:
+        case LEVEL_KIND_MISSION_TIMED:
             anim = 6;
             break;
-        case 0x20:
+        case LEVEL_KIND_BUILDINGS:
             anim = yoshi_get_target_building(&gObjectiveName, &gObjectiveWord);
             gHudObjectiveY = 2;
             break;
-        case 0x10:
-        case 0x40:
+        case LEVEL_KIND_RDUS:
+        case LEVEL_KIND_PILL_MAZE:
             anim = 9;
             gHudObjectiveY = -2;
             break;
-        case 1:
-        case 2:
-        case 8:
+        case LEVEL_KIND_MISSION:
+        case LEVEL_KIND_RACE:
+        case LEVEL_KIND_DAMAGE:
             break;
     }
     if (anim == 6) {
@@ -248,9 +248,9 @@ void hud_init_objective(u8 arg0) {
         unused = 0;
         gObjectiveWord = gObjectiveBuildingsWord;
     }
-    if (gLevelKind != 1) {
+    if (gLevelKind != LEVEL_KIND_MISSION) {
         size = romControllerPicture - romTrafficLights;
-        if (gLevelKind != 0x80 && gNextGameMode == MODE_LEVEL_START) {
+        if (gLevelKind != LEVEL_KIND_MISSION_TIMED && gNextGameMode == MODE_LEVEL_START) {
             hd_rom_load((u32) romTrafficLights, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 gTurboStartImages[i] = (i << 15) + (u8 *) gHeapPtr;
@@ -274,7 +274,7 @@ void hud_init_objective(u8 arg0) {
         gTurboEarned = 0;
     }
     gObjectiveAnim = &gYoshiSprites[anim];
-    if (gLevelInfo[arg0].kind == 0x20) {
+    if (gLevelInfo[arg0].kind == LEVEL_KIND_BUILDINGS) {
         gObjectiveAnim2 = NULL;
         gObjectiveSprite = spr_load(gObjectiveAnim->ids, 0, gObjectiveAnim->count, gObjectiveAnim->unk2C, gObjectiveAnim->unk2D,
                                    gObjectiveAnim->scale * 0.5);
@@ -309,29 +309,29 @@ void hud_mission_intro(void) {
                 gIntroObjectiveJText[0] = 0xFFF;
                 gIntroTimeJText[0] = 0xFFF;
                 switch (gLevelKind) {
-                    case 2:
+                    case LEVEL_KIND_RACE:
                         sprintf(gIntroObjectiveText, "FINISH %d LAPS IN", gCurLevelInfo->target);
                         break;
-                    case 4:
-                    case 0x20:
+                    case LEVEL_KIND_TARGETS:
+                    case LEVEL_KIND_BUILDINGS:
                         if (levelno == 0x34) {
                             sprintf(gIntroObjectiveText, "DESTROY TARGETS IN");
                         } else {
                             sprintf(gIntroObjectiveText, "DESTROY %s IN", (char *) gObjectiveName); /* (char *): N64P via varargs */
                         }
                         break;
-                    case 0x80:
+                    case LEVEL_KIND_MISSION_TIMED:
                         if (levelno == 0x32) {
                             sprintf(gIntroObjectiveText, "CLEAR SHUTTLE PATH");
                         } else {
                             sprintf(gIntroObjectiveText, "CLEAR CARRIER PATH");
                         }
                         break;
-                    case 8:
+                    case LEVEL_KIND_DAMAGE:
                         sprintf(gIntroObjectiveText, "CAUSE $%d DAMAGE", gCurLevelInfo->target);
                         break;
-                    case 0x10:
-                    case 0x40:
+                    case LEVEL_KIND_RDUS:
+                    case LEVEL_KIND_PILL_MAZE:
                         sprintf(gIntroObjectiveText, "FIND %d RDUS IN", gCurLevelInfo->target);
                         break;
                 }
@@ -342,7 +342,7 @@ void hud_mission_intro(void) {
                 gYoshiGameItems[262] = gIntroTimeText;
                 gYoshiGameItems[256] = gIntroObjectiveJText;
                 gYoshiGameItems[263] = gIntroTimeJText;
-                yoshi_demand(0x8009);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_MISSION_INTRO);
                 snd_play(gSfxBank, snd_random_id(SND_GROUP_MISSION_INTRO), 0);
                 break;
             case 1:
@@ -397,7 +397,7 @@ void hud_update_objective(void) {
                 }
                 gPrevSecondsLeft = gSecondsLeft;
             }
-            if (gFailTrigger && gLevelKind == 0x40) {
+            if (gFailTrigger && gLevelKind == LEVEL_KIND_PILL_MAZE) {
                 snd_play(gSfxBank, SFX_GHOST_CAUGHT, 0);
             }
             if (gFailTrigger) {
@@ -406,28 +406,28 @@ void hud_update_objective(void) {
             if (gCarrierHit) {
                 snd_stop_all_looping();
                 snd_stop_all_repeating();
-                yoshi_demand(0xA00E);
-                gYoshiPendingWindow = -1;
+                yoshi_demand(YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE | YW_MISSION_FAILED);
+                gYoshiPendingWindow = NO_YOSHI_WINDOW;
                 gNextGameMode = MODE_TIMED_END;
             } else if (gLevelDone) {
                 gNextGameMode = MODE_TIMED_END;
             } else {
                 switch (gLevelKind) {
-                    case 2:
+                    case LEVEL_KIND_RACE:
                         hud_update_race();
                         break;
-                    case 4:
+                    case LEVEL_KIND_TARGETS:
                         hud_check_targets();
                         break;
-                    case 0x20:
-                    case 0x80:
+                    case LEVEL_KIND_BUILDINGS:
+                    case LEVEL_KIND_MISSION_TIMED:
                         hud_check_path();
                         break;
-                    case 8:
+                    case LEVEL_KIND_DAMAGE:
                         hud_check_damage();
                         break;
-                    case 0x10:
-                    case 0x40:
+                    case LEVEL_KIND_RDUS:
+                    case LEVEL_KIND_PILL_MAZE:
                         hud_check_rdus();
                         break;
                 }
@@ -472,12 +472,12 @@ void hud_check_path(void) {
 
     obj_tally(1);
     switch (gLevelKind) {
-        case 0x20:
+        case LEVEL_KIND_BUILDINGS:
             if (gScoreBuildings >= gBuildingCount) {
                 gLevelDoneRequest = 1;
             }
             break;
-        case 0x80:
+        case LEVEL_KIND_MISSION_TIMED:
             if (gPathBuildingsDestroyed || (levelno == 0x32 && gScoreBuildings >= gBuildingCount)) {
                 gLevelDoneRequest = 1;
             }
@@ -492,10 +492,10 @@ void hud_check_path(void) {
         cmo_hit_request = 1;
     }
     switch (gLevelKind) {
-        case 0x20:
+        case LEVEL_KIND_BUILDINGS:
             sprintf(gHudLines[0], "%d/%d", gScoreBuildings, gBuildingCount);
             break;
-        case 0x80:
+        case LEVEL_KIND_MISSION_TIMED:
             if (levelno == 0x32) {
                 sprintf(gHudLines[0], "%d/%d", gScoreBuildings, gBuildingCount);
             } else {
@@ -561,7 +561,7 @@ void hud_update_race(void) {
                 } else {
                     left = gCurLevelInfo->target - gRaceLap;
                     if (!gPaused) {
-                        yoshi_demand(0x8008);
+                        yoshi_demand(YOSHI_DEMAND_OPEN | YW_LAPS_LEFT);
                     }
                     if (left == 1) {
                         sprintf(gLapsLeftText, "1 LAP LEFT!");
@@ -613,13 +613,13 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
 #endif
 
     g = gdl;
-    if ((gGameMode & (MODE_CARRIER_END | MODE_TIMED_END)) && currentYoshiWindow != 0x1E) {
+    if ((gGameMode & (MODE_CARRIER_END | MODE_TIMED_END)) && currentYoshiWindow != YW_MOON_DONE) {
         alpha = 0xFF;
     } else {
         alpha = gHudAlpha;
     }
     switch (gLevelKind) {
-        case 2:
+        case LEVEL_KIND_RACE:
             for (i = 0; i < gRaceLap - ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) ? 1 : 0) && i < gCurLevelInfo->target; i++) {
                 if (i + 1 == gBestLap && i + 1 != gRaceLap) {
                     /* best lap */
@@ -635,16 +635,16 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
                 }
             }
             break;
-        case 4:
-        case 0x20:
-        case 0x80:
+        case LEVEL_KIND_TARGETS:
+        case LEVEL_KIND_BUILDINGS:
+        case LEVEL_KIND_MISSION_TIMED:
             text_print(arg1, (u8 *) gHudLines[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
-        case 8:
+        case LEVEL_KIND_DAMAGE:
             text_print(arg1, (u8 *) gHudLines[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
-        case 0x10:
-        case 0x40:
+        case LEVEL_KIND_RDUS:
+        case LEVEL_KIND_PILL_MAZE:
             text_print(arg1, (u8 *) gHudLines[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
     }
@@ -664,7 +664,7 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
         flash = 0;
     }
     if (!flash || gSchedFrameCount % 20 < 16) {
-        if (gLevelKind == 2) {
+        if (gLevelKind == LEVEL_KIND_RACE) {
             text_print(arg1, (u8 *) gHudTimeText, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, gHudAlpha);
         } else {
             text_print(arg1, (u8 *) gHudTimeText, 0, 1, 0, 0x1C, gHudObjectiveY + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
@@ -759,7 +759,7 @@ Gfx *hud_draw_turbo_start(Gfx * N64P *arg0, Gfx *gdl) {
             }
             break;
     }
-    if (gLevelKind != 0x80) {
+    if (gLevelKind != LEVEL_KIND_MISSION_TIMED) {
         gDPPipeSync(g++);
         gSPTexture(g++, 0, 0, 0, G_TX_RENDERTILE, G_OFF);
         gDPSetTexturePersp(g++, G_TP_NONE);
@@ -804,7 +804,7 @@ void hud_race_time_left(void) {
     u16 sum;
 
     sum = 0;
-    if (gLevelKind == 2 && gRaceLap >= 2) {
+    if (gLevelKind == LEVEL_KIND_RACE && gRaceLap >= 2) {
         for (i = 0; i < gRaceLap - 1; i++) {
             sum += gLapTimes[i];
         }

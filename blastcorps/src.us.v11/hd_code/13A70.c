@@ -203,9 +203,9 @@ void obj_draw_ground_shadows(Gfx **gdlp, VtxBuf *buf) {
     while (&gObjects[i] != gObjectsEnd) {
         if (gObjects[i].destroyed == 0) {
             switch (gObjects[i].kind) {
-                case 0xBA:
-                case 0xBB:
-                case 0xBC:
+                case OBJ_KIND_SHADOW_A:
+                case OBJ_KIND_SHADOW_B:
+                case OBJ_KIND_SHADOW_C:
                     h = 60 - (gObjects[i].pos[1] - gObjects[i].groundY) / 800;
                     if (h < 0) {
                         h = 0;

@@ -159,7 +159,7 @@ void seq_start_level(void) {
             gRecDemoNoLogo = 0;
             rec_start_playback(9, &levelno);
             gDiggerVehicle = 5;
-            yoshi_demand(0x8041);
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_BACKLASH);
             hud_load_pad_image();
             break;
         case 28:
@@ -167,7 +167,7 @@ void seq_start_level(void) {
             gRecDemoNoLogo = 0;
             rec_start_playback(10, &levelno);
             gDiggerVehicle = 1;
-            yoshi_demand(0x8042);
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_SIDESWIPE);
             hud_load_pad_image();
             break;
         case 53:
@@ -175,7 +175,7 @@ void seq_start_level(void) {
             gRecDemoNoLogo = 0;
             rec_start_playback(11, &levelno);
             gDiggerVehicle = 2;
-            yoshi_demand(0x8043);
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_THUNDERFIST);
             hud_load_pad_image();
             break;
         case 7:
@@ -183,7 +183,7 @@ void seq_start_level(void) {
             gRecDemoNoLogo = 0;
             rec_start_playback(12, &levelno);
             gDiggerVehicle = 3;
-            yoshi_demand(0x8044);
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_SKYFALL);
             hud_load_pad_image();
             break;
         case 19:
@@ -191,7 +191,7 @@ void seq_start_level(void) {
             gRecDemoNoLogo = 0;
             rec_start_playback(13, &levelno);
             gDiggerVehicle = 9;
-            yoshi_demand(0x8045);
+            yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO_JBOMB);
             hud_load_pad_image();
             break;
         case 49:

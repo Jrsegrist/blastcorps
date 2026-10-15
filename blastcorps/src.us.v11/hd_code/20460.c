@@ -83,7 +83,7 @@ void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     n = 0;
     gScorePeople += arg5;
     if (arg5 != 0 && gPaused == 0) {
-        yoshi_show_hint(0x48);
+        yoshi_show_hint(YW_HINT_PEOPLE);
     }
     if (arg3 > 200) {
         arg3 = 200;

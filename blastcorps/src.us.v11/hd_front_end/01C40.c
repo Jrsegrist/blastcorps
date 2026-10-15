@@ -415,7 +415,7 @@ void fe_player_count_medals(u8 arg0) {
         if (p->medal[i] > 0 && p->medal[i] < 5) {
             gMedalCounts[p->medal[i]]++;
         }
-        if (((players[arg0].medal[i] > 0 && players[arg0].medal[i] < 6) ? 1 : 0) && (gLevelInfo[i].kind & 0x81) &&
+        if (((players[arg0].medal[i] > 0 && players[arg0].medal[i] < 6) ? 1 : 0) && (gLevelInfo[i].kind & LEVEL_KIND_ANY_MISSION) &&
             i != 0x31 && i != 0x2F && i != 0x26) {
             gMedalCounts[3]++;
         }
@@ -670,7 +670,7 @@ void fe_player_build_load_menu(void) {
         gYoshiFeItems[6].unk10 = gIgnorePakJText;
     }
     gYoshiFeItems[6].unk19 = 2;
-    gYoshiWindows[10].unk8 &= ~0x400;
+    gYoshiWindows[YW_PLAYER_MENU].unk8 &= ~0x400;
 }
 
 /* The erase-game menu (0x801EA6E8).
@@ -701,8 +701,8 @@ void fe_player_build_erase_menu(void) {
     gYoshiFeItems[6].unkC = "GO BACK";
     gYoshiFeItems[6].unk10 = gGoBackJText;
     gYoshiFeItems[6].unk19 = 2;
-    gYoshiWindows[10].unk8 |= 0x400;
-    gYoshiWindows[10].unk18 = 6;
+    gYoshiWindows[YW_PLAYER_MENU].unk8 |= 0x400;
+    gYoshiWindows[YW_PLAYER_MENU].unk18 = 6;
 }
 
 /* Opens the name entry ("ENTER NAME!") (0x801EA93C).
@@ -863,7 +863,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         if (gNameLen != 0) {
             gNextGameMode = MODE_NAME_ENTERED;
             gSlotState[playerNumber] = 1;
-            yoshi_demand(0x4000);
+            yoshi_demand(YOSHI_DEMAND_OFF);
         } else {
             snd_play(gSfxBank, SFX_ERROR, 0);
         }
@@ -883,7 +883,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                                 gNextGameMode = MODE_LOAD_GAME_RETURN;
                             }
                             snd_play(gSfxBank, SFX_BACK, 0);
-                            yoshi_demand(0x4000);
+                            yoshi_demand(YOSHI_DEMAND_OFF);
                         } else {
                             snd_play(gSfxBank, SFX_ERROR, 0);
                         }
@@ -1021,7 +1021,7 @@ void fe_player_medals_init(u8 arg0) {
     spr_load(gMedalExtraSprites, 0, 1, 2, 1, 1.0f);
     gMedalRank[0] = 3;
     gMedalRank[1] = arg0;
-    if (gLevelInfo[levelno].kind == 1) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
         j = 0;
     } else {
         j = 1;
@@ -1112,7 +1112,7 @@ Gfx *fe_player_draw_medals(Gfx *start, void *gfxp, s32 *count) {
 
     gdl = start;
     gdl = spr_begin(gdl);
-    if (gLevelKind == 1) {
+    if (gLevelKind == LEVEL_KIND_MISSION) {
         gdl = fe_player_draw_medal(gdl, 0x5C, 0x68, 0);
         if (gMedalRank[1] != 0) {
             gdl = fe_player_draw_medal(gdl, 0xA8, 0x68, 1);
@@ -1127,7 +1127,7 @@ Gfx *fe_player_draw_medals(Gfx *start, void *gfxp, s32 *count) {
         gdl = spr_draw(gdl, n + gMedalSpriteBase, 0x2E, 0x6C, (gMedalAlpha[1] * 3) / 4, 0, 0.75f);
     }
     gdl = spr_end(gdl);
-    if (gLevelKind != 1) {
+    if (gLevelKind != LEVEL_KIND_MISSION) {
         hud_format_time((char *) gMedalTimeText, gLevelInfo[levelno].times[5 - n], 0);
         gMedalTimeText[5] = 0;
         text_print_gradient(gfxp, gMedalTimeText, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, gMedalAlpha[1], 0xFF, 0x78, 0,
@@ -1144,7 +1144,7 @@ u64 fe_player_loop_done_mode(u8 level) {
 
     if ((players[playerNumber].medal[level] > 0 && players[playerNumber].medal[level] < 6) ? 1 : 0) {
         mask = 0x80;
-    } else if (gLevelInfo[level].kind & 0x81) {
+    } else if (gLevelInfo[level].kind & LEVEL_KIND_ANY_MISSION) {
         mask = 0x800;
     } else {
         mask = 0x20000000;
@@ -1159,7 +1159,7 @@ void fe_player_load_level_save(void) {
     gRouteRevealFlags = 0;
     gLevelFirstClear = 0;
     if ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1 : 0) {
-        if (gLevelInfo[levelno].kind == 1) {
+        if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION) {
             osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 0xC | (playerNumber << 16)), OS_MESG_BLOCK);
         }
         osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
@@ -1206,11 +1206,11 @@ void fe_player_update_level_kinds(void) {
     s32 i;
 
     for (i = 0; i < 0x3C; i++) {
-        if (gLevelInfo[i].kind & 0x81) {
+        if (gLevelInfo[i].kind & LEVEL_KIND_ANY_MISSION) {
             if (players[playerNumber].gameState >= 11 && gNextGameMode == MODE_WORLD) {
-                gLevelInfo[i].kind = 0x80;
+                gLevelInfo[i].kind = LEVEL_KIND_MISSION_TIMED;
             } else {
-                gLevelInfo[i].kind = 1;
+                gLevelInfo[i].kind = LEVEL_KIND_MISSION;
             }
         }
     }
@@ -1237,7 +1237,7 @@ void fe_player_regrade_missions(void) {
     PLAYER_ASSERT(saveIt[playerNumber], 1384);
     for (level = 0; level < 0x3C; level++) {
         if (((players[playerNumber].medal[level] > 0 && players[playerNumber].medal[level] < 6) ? 1 : 0) &&
-            gLevelInfo[level].kind == 1 && level != 0x31 && level != 0x2F && level != 0x26) {
+            gLevelInfo[level].kind == LEVEL_KIND_MISSION && level != 0x31 && level != 0x2F && level != 0x26) {
             info = &gLevelInfo[level];
             if (saveIt[playerNumber] != level + 1) {
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);

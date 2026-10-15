@@ -439,7 +439,7 @@ void veh_reset_state(u8 *veh) {
     VEH_U8(veh, VS_SLOT_AIRBORNE) = 0;
     VEH_U8(veh, 0x97) = 0;
     VEH_U8(veh, 0x98) = 0;
-    VEH_U8(veh, VS_SURFACE) = 1;
+    VEH_U8(veh, VS_SURFACE) = SURFACE_NORMAL;
     VEH_U8(veh, VS_PUSH_DIVISOR) = 1;
     VEH_S32(veh, VS_SLOT_LAUNCH_VEL) = 0;
     VEH_S32(veh, 0x2C) = 0;
@@ -669,8 +669,8 @@ void veh_throttle(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delt
             *speed = s;
         }
     } else {
-        if (((s8) gVehSlowed) != 0 && levelno != 0x22 && gCurVehicle != 0xB && gCurVehicle != 0x11 &&
-            gCurVehicle != 0x12) {
+        if (((s8) gVehSlowed) != 0 && levelno != 0x22 && gCurVehicle != VEH_BARGE_0B && gCurVehicle != VEH_BARGE_11 &&
+            gCurVehicle != VEH_BARGE_12) {
             s = *speed;
             if (s >= 0) {
                 lim = bands[13] >> 1;
@@ -802,7 +802,7 @@ void veh_throttle_lr(u8 *veh, s16 *speed, s16 *bands, s32 delta) {
 s32 veh_band_accel(u8 *veh, s32 x, s16 *band) {
     s32 n = VEH_U8(veh, VS_SURFACE);
 
-    if (n == 1) {
+    if (n == SURFACE_NORMAL) {
         n = 5;
     } else {
         n = 7 - n;
@@ -841,7 +841,7 @@ s32 veh_near_top_speed(u8 *veh, s32 range) {
 
     if (speed >= 0) {
         i = VEH_U8(veh, VS_SURFACE);
-        if (i == 1) {
+        if (i == SURFACE_NORMAL) {
             i = 4;
         } else {
             i = 6 - i;
@@ -1173,7 +1173,7 @@ void veh_apply_slope(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f3
     }
     s = veh_slope_drop(p);
     s = *speed + port_cvt_w_s((f32) s / div * -4.0f);
-    if (kind == 0 || kind == 2 || kind == 0x10 || kind == 9) {
+    if (kind == VEH_DRIVER || kind == VEH_THUNDERFIST || kind == VEH_CYCLONE || kind == VEH_JBOMB) {
         step = 3;
     } else {
         step = 1;
@@ -1489,7 +1489,7 @@ void veh_respawn_if_out(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC 
     if (!out && gx >= gBoundsMinX && gx <= gBoundsMaxX && gz >= gBoundsMinZ && gz <= gBoundsMaxZ) {
         return;
     }
-    key = (((s32) gLevelKind) == 1 || ((s32) gLevelKind) == 0x80) ? id : 1;
+    key = (((s32) gLevelKind) == LEVEL_KIND_MISSION || ((s32) gLevelKind) == LEVEL_KIND_MISSION_TIMED) ? id : 1;
     rec = gRespawnPoints;
     while (rec[0] != key) {
         rec += 9;
@@ -1537,7 +1537,7 @@ void veh_rider_gravity(void) {
  * gBounceDamping = 8. (The asm clobbers v0.) Asm callers keep a1-a3, t0, t1,
  * t7-t9, f12 and f14 live. */
 void veh_diamond_sands_damping(u8 *veh) {
-    if (VEH_U8(veh, VS_SURFACE_MAX) == 0x67 && levelno == 12) {
+    if (VEH_U8(veh, VS_SURFACE_MAX) == SURFACE_DIAMOND_SANDS && levelno == 12) {
         gBounceDamping = 8;
     }
 }
@@ -1639,10 +1639,10 @@ void veh_ground_surface(u8 *veh, u8 *f, s32 kind) {
     }
     VEH_U8(veh, VS_SURFACE_MAX) = max;
     gSurfaceMax = max;
-    if (gSurfaceMax == 0x66 && f[0] != 1) {
+    if (gSurfaceMax == SURFACE_FATAL && f[0] != 1) {
         gFailTrigger = 1;
     }
-    if (kind != 9 && kind != 11 && kind != 0x11 && kind != 0x12 && gPlayFrames != 0 && gSurfaceMax == 100 &&
+    if (kind != VEH_JBOMB && kind != VEH_BARGE_0B && kind != VEH_BARGE_11 && kind != VEH_BARGE_12 && gPlayFrames != 0 && gSurfaceMax == SURFACE_WATER &&
         f[0] != 1) {
         gFailTrigger = 1;
     }
@@ -2001,7 +2001,7 @@ s32 ground_slot_height(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fp
     if (ground_scan_grid(x, z, yy, f, &h3, &fp) == 0) {
         if (h1 == 0x5F5E0FF && h2 == 0x5F5E0FF) {
             res = yy - 0x78;
-            flag = 1;
+            flag = SURFACE_NORMAL;
             goto store;
         }
         d2 = ABS_9B1C(h2 - yy);
@@ -2019,7 +2019,7 @@ s32 ground_slot_height(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fp
     }
     if (d2 < d1) {
         res = h2;
-        flag = 1;
+        flag = SURFACE_NORMAL;
         kind = id;
     } else {
         VEH_U8(veh, VS_ON_MOVING_PART) = 1;
@@ -3063,31 +3063,31 @@ void veh_attach_riders_walk(s32 id, InterpRegs *r) {
         }
         type = e[0];
         switch (type) {
-            case 3:
+            case VEH_SKYFALL:
                 skyfall_ride_attach(e[1], r);
                 break;
-            case 5:
+            case VEH_BACKLASH:
                 backlash_ride_attach(e[1], r);
                 break;
-            case 4:
+            case VEH_RAMDOZER:
                 ramdozer_ride_attach(e[1], r);
                 break;
-            case 8:
+            case VEH_AMDREAM:
                 amdream_ride_attach(e[1], r);
                 break;
-            case 0xD:
+            case VEH_POLICE:
                 police_ride_attach(e[1], r);
                 break;
-            case 0xE:
+            case VEH_ATEAM:
                 ateam_ride_attach(e[1], r);
                 break;
-            case 0xF:
+            case VEH_STARSKI:
                 starski_ride_attach(e[1], r);
                 break;
-            case 9:
+            case VEH_JBOMB:
                 jbomb_ride_attach(e[1], r);
                 break;
-            case 0xA:
+            case VEH_BALLISTA:
                 ballista_ride_attach(e[1], r);
                 break;
             default: /* 0 and unknown types */
@@ -3145,31 +3145,31 @@ void veh_move_riders_walk(s32 id, s32 *s3, InterpRegs *r) {
         }
         type = e[0];
         switch (type) {
-            case 3:
+            case VEH_SKYFALL:
                 *s3 = skyfall_ride_follow(id, r);
                 break;
-            case 5:
+            case VEH_BACKLASH:
                 *s3 = backlash_ride_follow(id, (TriSideOut *) &r->f12);
                 break;
-            case 4:
+            case VEH_RAMDOZER:
                 *s3 = ramdozer_ride_follow(id, r);
                 break;
-            case 8:
+            case VEH_AMDREAM:
                 amdream_ride_follow(id, &r->f24);
                 break;
-            case 0xD:
+            case VEH_POLICE:
                 *s3 = police_ride_follow(id, (TriSideOut *) &r->f12);
                 break;
-            case 0xE:
+            case VEH_ATEAM:
                 *s3 = ateam_ride_follow(id, (TriSideOut *) &r->f12);
                 break;
-            case 0xF:
+            case VEH_STARSKI:
                 *s3 = starski_ride_follow(id, r);
                 break;
-            case 9:
+            case VEH_JBOMB:
                 jbomb_ride_follow(id, s3, r);
                 break;
-            case 0xA:
+            case VEH_BALLISTA:
                 ballista_ride_follow(id, s3, r);
                 break;
             default: /* 0 and unknown types */

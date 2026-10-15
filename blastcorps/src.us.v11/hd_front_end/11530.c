@@ -1264,7 +1264,7 @@ s32 fe_globe_level_locked(level, arg1)
 #endif
 
     if (gLevelInfo[level].gameState > players[playerNumber].gameState &&
-        ((gLevelInfo[level].kind & 0x81) || (level >= 0x2B && level < 0x2F))) {
+        ((gLevelInfo[level].kind & LEVEL_KIND_ANY_MISSION) || (level >= 0x2B && level < 0x2F))) {
         locked = 1;
     }
     if (level == 0xA) {

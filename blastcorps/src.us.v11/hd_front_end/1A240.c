@@ -150,7 +150,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
                     break;
             }
             if (fe_player_ticker_at_end()) {
-                yoshi_demand(0x4000);
+                yoshi_demand(YOSHI_DEMAND_OFF);
             }
             break;
         case 8:

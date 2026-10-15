@@ -13,73 +13,73 @@ void hud_attract_messages(void) {
         case 0:
             if (gGameMode == MODE_ATTRACT) {
                 if (((s32) gFramesInMode) == 0x96) {
-                    yoshi_demand(0x803E);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO0_MSG1);
                 }
                 if (((s32) gFramesInMode) == 0x190) {
-                    yoshi_demand(0x8025);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO0_MSG2);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    yoshi_demand(0x8026);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO0_MSG3);
                 }
             } else {
                 if (((s32) gFramesInMode) == 0x64) {
-                    yoshi_demand(0x8027);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG1);
                 }
                 if (((s32) gFramesInMode) == 0x12C) {
-                    yoshi_demand(0x8028);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG2);
                 }
                 if (((s32) gFramesInMode) == 0x1F4) {
-                    yoshi_demand(0x8029);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG3);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    yoshi_demand(0x802A);
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YW_SEQ2F_MSG4);
                 }
             }
             break;
         case 1:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802B);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO1_MSG1);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                yoshi_demand(0x802C);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO1_MSG2);
             }
             break;
         case 2:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802D);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO2_MSG);
             }
             break;
         case 3:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802E);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO3_MSG);
             }
             break;
         case 4:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x802F);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO4_MSG);
             }
             break;
         case 5:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8030);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO5_MSG);
             }
             break;
         case 6:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8031);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO6_MSG1);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                yoshi_demand(0x8032);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO6_MSG2);
             }
             break;
         case 7:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8033);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO7_MSG);
             }
             break;
         case 8:
             if (((s32) gFramesInMode) == 0xB4) {
-                yoshi_demand(0x8034);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_DEMO8_MSG);
             }
             break;
     }
@@ -467,15 +467,15 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
     gfx = *arg0;
     if (gLevelDone != 0 && areWeFading() == 0) {
         if (gLevelDoneSeen == 0) {
-            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            obj_tally(gLevelInfo[levelno * 68] == LEVEL_KIND_BUILDINGS || gLevelInfo[levelno * 68] == LEVEL_KIND_MISSION_TIMED);
             gEndSeqTime = 0;
             if ((players[playerNumber][levelno + 0x18] > 0 &&
                  players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
                 snd_stop_all_repeating();
                 snd_stop_all_looping();
-                gLevelDoneWindow = 5;
+                gLevelDoneWindow = YW_LEVEL_DONE;
                 gLevelDoneTuneOn = 0;
-                if (((s32) gLevelKind) != 1) {
+                if (((s32) gLevelKind) != LEVEL_KIND_MISSION) {
                     music_play_done_tune();
                     gLevelDoneTuneOn = 1;
                 }
@@ -484,26 +484,26 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
                     case 0x28:
                         snd_stop_all_looping();
                         music_push_danger_tune();
-                        gLevelDoneWindow = 0x1E;
+                        gLevelDoneWindow = YW_MOON_DONE;
                         gLevelDoneTuneOn = 0;
                         break;
                     case 0x32:
                         snd_stop_all_looping();
                         music_push_tune(MUS_FINALE);
-                        gLevelDoneWindow = 0x23;
+                        gLevelDoneWindow = YW_SHUTTLE_DONE;
                         gLevelDoneTuneOn = 0;
                         break;
                     default:
                         snd_stop_all_looping();
-                        gLevelDoneWindow = 5;
+                        gLevelDoneWindow = YW_LEVEL_DONE;
                         music_play_done_tune();
                         gLevelDoneTuneOn = 1;
                         break;
                 }
             }
-            yoshi_demand(gLevelDoneWindow | 0x8000 | 0x2000);
-            gYoshiPendingWindow = -1;
-            if (gLevelDoneWindow == 5) {
+            yoshi_demand(gLevelDoneWindow | YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE);
+            gYoshiPendingWindow = NO_YOSHI_WINDOW;
+            if (gLevelDoneWindow == YW_LEVEL_DONE) {
                 snd_play(gSfxBank, snd_random_id(SND_GROUP_LEVEL_DONE), NULL);
             }
         }
@@ -516,7 +516,7 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
             }
         } else if (alCSPGetState(gMusicPlayer) == 0 ||
                    (gLevelDoneTuneOn != 0 && gSchedFrameCount - gDoneTuneStartTime >= 0x1E1) ||
-                   (gLevelDoneTuneOn == 0 && gSchedFrameCount - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
+                   (gLevelDoneTuneOn == 0 && gSchedFrameCount - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & LEVEL_KIND_ANY_MISSION) ? 1 : 0])) {
             fade_to_mode_speed(MODE_RESULTS, 0.75f);
             gEndSeqTime = 0;
             gLevelDoneSeen = 0;
@@ -542,24 +542,24 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
     if (gCarrierHit != 0) {
         if (gCarrierHitSeen == 0) {
             snd_stop_all();
-            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            obj_tally(gLevelInfo[levelno * 68] == LEVEL_KIND_BUILDINGS || gLevelInfo[levelno * 68] == LEVEL_KIND_MISSION_TIMED);
             switch (levelno) {
                 case 0x31:
                     snd_play(gSfxBank, SFX_FAIL_CRASH, NULL);
                     music_fade_to(0.0f);
                     break;
                 case 0x32:
-                    gYoshiPendingWindow = -1;
-                    yoshi_demand(0xA00E);
+                    gYoshiPendingWindow = NO_YOSHI_WINDOW;
+                    yoshi_demand(YOSHI_DEMAND_OPEN | YOSHI_DEMAND_FORCE | YW_MISSION_FAILED);
                     music_fade_to(0.0f);
                     break;
                 default:
                     snd_play(gSfxBank, SFX_FAIL_CRASH, NULL);
                     gPauseRequest = 1;
-                    if (currentYoshiWindow != -1 || yoshi_get_demand() != 0) {
-                        yoshi_demand(0x4000);
+                    if (currentYoshiWindow != NO_YOSHI_WINDOW || yoshi_get_demand() != 0) {
+                        yoshi_demand(YOSHI_DEMAND_OFF);
                     }
-                    gYoshiPendingWindow = -1;
+                    gYoshiPendingWindow = NO_YOSHI_WINDOW;
                     music_fade_to(0.0f);
                     break;
             }

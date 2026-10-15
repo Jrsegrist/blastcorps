@@ -82,7 +82,7 @@ void fe_back_loop(void) {
                 gNextGameMode = MODE_PAK_MANAGER_CHECKED;
             }
             snd_stop((void *) N64_IPTR(gPakCheckTickSound));
-            yoshi_demand(0x4000);
+            yoshi_demand(YOSHI_DEMAND_OFF);
         }
     }
     if (yoshiSelection) {
@@ -92,7 +92,7 @@ void fe_back_loop(void) {
                 if (yoshiSelection == 0xFFFF) {
                     gNextGameMode = MODE_LOAD_GAME_EXIT;
                     fe_player_ticker_set_text(4, 1);
-                } else if (gYoshiWindows[10].unk18 - 2 < 4) {
+                } else if (gYoshiWindows[YW_PLAYER_MENU].unk18 - 2 < 4) {
                     gNextGameMode = MODE_PLAYER_CHOSEN;
                 } else if (gLoadMenuFullSlot == 4) {
                     gPakReady = 0;
@@ -148,8 +148,8 @@ void fe_back_loop(void) {
                             gNextGameMode = MODE_REPLAY;
                             break;
                         case 2:
-                            if (!(((s32) gLevelKind) & 0x81)) {
-                                if (((s32) gLevelKind) == 2 && gGameMode == MODE_RESULTS) {
+                            if (!(((s32) gLevelKind) & LEVEL_KIND_ANY_MISSION)) {
+                                if (((s32) gLevelKind) == LEVEL_KIND_RACE && gGameMode == MODE_RESULTS) {
                                     gGhostRetry = 1;
                                 }
                                 gNextGameMode = MODE_VEHICLE_SELECT;
@@ -242,7 +242,7 @@ void fe_back_loop(void) {
         if (gYoshiTypeState == 0 && playerNumber == 4) {
             playerNumber = playerNumberAtStart;
             fe_player_ticker_reset(playerNumber);
-            gYoshiWindows[56].unk8 |= 0x20;
+            gYoshiWindows[YW_REGRADE_NOTICE].unk8 |= 0x20;
         }
     }
     if (gGameMode & (MODE_LEVEL_STATUS | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_BEST_TIMES | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_LOAD_GAME_EXIT)) {
@@ -254,7 +254,7 @@ void fe_back_loop(void) {
     if (gGameMode & (MODE_LOAD_GAME | MODE_ERASE_MENU)) {
         u8 old = playerNumber;
 
-        playerNumber = gYoshiWindows[10].unk18 - 2;
+        playerNumber = gYoshiWindows[YW_PLAYER_MENU].unk18 - 2;
         if (playerNumber != old) {
             if (old == 4) {
                 fe_player_ticker_set_text(playerNumber, 0);
@@ -282,7 +282,7 @@ void fe_back_loop(void) {
         if (gPromoCueDelay) {
             gPromoCueDelay--;
         } else if (gYoshiTypeState != 2 && yoshiState == 2) {
-            yoshi_demand(0x4000);
+            yoshi_demand(YOSHI_DEMAND_OFF);
             snd_play(gSfxBank, SFX_PROMOTION_CUE, NULL);
         }
     }
@@ -315,7 +315,7 @@ void fe_back_loop(void) {
     if (!(gGameMode & (MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END))) {
         gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
-    if (yoshiState != 1 && currentYoshiWindow == 0xB) {
+    if (yoshiState != 1 && currentYoshiWindow == YW_NAME_ENTRY) {
         gdl = fe_player_name_entry_draw(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
     gDPFullSync(gdl++);
@@ -328,7 +328,7 @@ void fe_back_loop(void) {
         tex_decode_next();
     }
     if ((gGameMode & (MODE_PAK_CHECKED | MODE_NEW_PLAYER | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_ACADEMY_MESSAGE | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_LOAD_GAME_EXIT)) && yoshiState == 1 && !fade_window_held() && !areWeFading() &&
-        gNextGameMode == 0 && gYoshiPendingWindow == -1) {
+        gNextGameMode == 0 && gYoshiPendingWindow == NO_YOSHI_WINDOW) {
         switch (gGameMode) {
             case MODE_NEW_PLAYER:
                 gNextGameMode = MODE_NAME_ENTRY;
@@ -344,14 +344,14 @@ void fe_back_loop(void) {
                 gYoshiFeItems[9].unkC = gYoshiFeItems[playerNumber + 2].unkC;
                 gYoshiFeItems[9].unk10 = NULL;
                 gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 0x14;
-                yoshi_demand(0x800C);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_CONFIRM);
                 break;
             case MODE_PAK_FILE_CHOSEN:
                 gNextGameMode = MODE_PAK_DELETE_CONFIRM;
                 gYoshiFeItems[9].unkC = gYoshiFeItems[gPakDeleteItem].unkC;
                 gYoshiFeItems[9].unk10 = gYoshiFeItems[gPakDeleteItem].unk10;
                 gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 0xF;
-                yoshi_demand(0x800C);
+                yoshi_demand(YOSHI_DEMAND_OPEN | YW_CONFIRM);
                 break;
             case MODE_TO_ERASE_MENU:
                 gNextGameMode = MODE_ERASE_MENU;

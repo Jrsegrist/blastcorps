@@ -151,6 +151,43 @@ typedef struct VehState {
 #define VS_LAST_DIR 0xA5
 #define VEH_STATE_SIZE 0xA6
 
+/* Vehicle types ("diggers"): gCurVehicle, gNextVehicle, VehRecord.type (gVehicles),
+ * VehShadow.type, gCamType, gDigHitVehicle, the level file's 9-byte spawn records,
+ * gStandOn type bytes, the hit-sphere / collision-triangle owner ids.  From the
+ * dispatchers in hd.c (veh_enter / veh_leave / veh_exit_check / veh_update_player),
+ * 5CB60.c lvl_spawn_vehicles / lvl_load_model and each type's veh_add_record. */
+#define VEH_DRIVER       0    /* on foot: driver_spawn / driver_update, veh_add_record(0, ..) (69BB0.c) */
+#define VEH_SIDESWIPE    1    /* sideswipe_* (6B4A0.c) */
+#define VEH_THUNDERFIST  2    /* thunderfist_* (6C5E0.c), veh_add_record(2, ..) */
+#define VEH_SKYFALL      3    /* skyfall_* (6E200.c: "vehicle type 3's state block") */
+#define VEH_RAMDOZER     4    /* ramdozer_* (6E200.c: "vehicle type 4's state block") */
+#define VEH_BACKLASH     5    /* backlash_* (71140.c), veh_add_record(5, ..) */
+#define VEH_CRANE        6    /* crane_* (75490.c), veh_add_record(6, ..) */
+#define VEH_TRAIN        7    /* train_* (772A0.c), veh_add_record(7, ..) */
+#define VEH_AMDREAM      8    /* amdream_* (72B80.c), veh_add_record(8, ..) */
+#define VEH_JBOMB        9    /* jbomb_* (7FB50.c), veh_add_record(9, ..) */
+#define VEH_BALLISTA     10   /* ballista_* (853D0.c), veh_add_record(10, ..) */
+#define VEH_BARGE_0B     11   /* barge_spawn_0b / gBarge0BState (83910.c) */
+#define VEH_POLICE       13   /* police_* (86F60.c), veh_add_record(0xD, ..) */
+#define VEH_ATEAM        14   /* ateam_* (88160.c), veh_add_record(0xE, ..) */
+#define VEH_STARSKI      15   /* starski_* (8AEE0.c), veh_add_record(0xF, ..) */
+#define VEH_CYCLONE      16   /* cyclone_* (8AEE0.c), veh_add_record(0x10, ..) */
+#define VEH_BARGE_11     17   /* barge_spawn_11 / gBarge11State (83910.c) */
+#define VEH_BARGE_12     18   /* barge_spawn_12 / gBarge12State (83910.c) */
+#define VEH_COUNT        19   /* types 0..18 (19-entry front-end tables; 12 has no code) */
+#define VEH_SHUTTLE      0xFD /* veh_add_record(0xFD, ..) (8DDB0.c gShuttleState); gCamType with gHaveShuttle */
+#define VEH_CHOPPER      0xFE /* the BCT chopper: veh_add_record(0xFE, ..) (72B80.c); veh_draw_chopper_shadow */
+#define VEH_CARRIER      0xFF /* the missile carrier: veh_add_record(0xFF, ..) (75490.c gCarrierMtxA) */
+
+/* Surface classes: the ground byte of a ground-grid triangle (+0x12) / level part
+ * triangle (+0x24) under each wheel slot -> gSlotSurface[3], VehState.surface (their
+ * average, classes >= 100 counted as 2) and VehState.surfaceMax / gSurfaceMax (62740.c). */
+#define SURFACE_NORMAL        1    /* default: no triangle / a moving deck (ground_slot_height); full speed bands */
+#define SURFACE_WATER         100  /* fails non-floating types (veh_ground_surface); jbomb_lift_off_water */
+#define SURFACE_SPIN_SHADOW   0x65 /* player's shadow drawn as the 32x32 gHudArrowTex turned by heading (veh_draw_shadows) */
+#define SURFACE_FATAL         0x66 /* gFailTrigger (veh_ground_surface) */
+#define SURFACE_DIAMOND_SANDS 0x67 /* level 12: gBounceDamping = 8 (veh_diamond_sands_damping) */
+
 /* The sound player's configuration (snd_init, 1A630.c; the ancestor of
  * GoldenEye's snd.c). */
 typedef struct SndConfig {

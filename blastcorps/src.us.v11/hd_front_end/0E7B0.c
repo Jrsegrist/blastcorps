@@ -555,7 +555,7 @@ void fe_pak_thread(void *arg) {
         } while (!done);
         if (gPakErrorShown) {
             yoshiState = 1;
-            currentYoshiWindow = -1;
+            currentYoshiWindow = NO_YOSHI_WINDOW;
         }
         if (reply) {
             osSendMesg(&pakToGameMessageQ, (OSMesg) ret, OS_MESG_BLOCK);
@@ -826,7 +826,7 @@ s32 fe_pak_rw_status(u8 player, u8 nlevels, u8 rw) {
     ret = 0;
     count = 0;
     for (i = 0; i < nlevels; i++) {
-        if (gLevelInfo[i].kind == 1 && i != 0x31 && i != 0x2F && i != 0x26) {
+        if (gLevelInfo[i].kind == LEVEL_KIND_MISSION && i != 0x31 && i != 0x2F && i != 0x26) {
             count++;
         }
     }

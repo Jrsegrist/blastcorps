@@ -90,7 +90,7 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     gTrainMtxA = (u64 *) heap;
     gTrainMtxB = (u64 *) (heap + 0x800);
     gHeapPtr = heap + 0x1000;
-    veh_add_record(7, 0, (s32) gTrainMtxA, (s32) gTrainMtxB, data);
+    veh_add_record(VEH_TRAIN, 0, (s32) gTrainMtxA, (s32) gTrainMtxB, data);
     veh_reset_state(veh);
     VEH_S16(veh, VS_WHEEL_OFFSETS) = 0x50;
     VEH_S16(veh, 0x54) = 0x50;
@@ -151,7 +151,7 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     gTrainPart2Clear = 999999;
     data = gTrainModel;
     veh_register_parts(7, OBJ_PTR(data, 4), OBJ_PTR(data, 8), 0x3A98);
-    veh_add_shadow(7, 0x96, 0x2D, 0x2D);
+    veh_add_shadow(VEH_TRAIN, 0x96, 0x2D, 0x2D);
     VEH_U8(veh, VS_SPAWN_UPDATE) = 1;
     train_update();
     VEH_U8(veh, VS_SPAWN_UPDATE) = 0;

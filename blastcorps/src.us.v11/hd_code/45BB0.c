@@ -200,13 +200,13 @@ void cont_update(void) {
                 switch (mode) {
                     case 0:
                         switch (gCurVehicle) {
-                            case 9:
+                            case VEH_JBOMB:
                                 if (gJbombAirborne) {
                                     gSteerAirborne = 1;
                                 }
-                            case 0:
-                            case 2:
-                            case 16:
+                            case VEH_DRIVER:
+                            case VEH_THUNDERFIST:
+                            case VEH_CYCLONE:
                                 cont_stick_to_steer(&pad->stick_x, &pad->stick_y, gCurVehicle);
                                 cont_dead_zone(&pad->stick_x, &pad->stick_y);
                                 break;
@@ -217,7 +217,7 @@ void cont_update(void) {
                         }
                         break;
                     case 1:
-                        if (gCurVehicle == 9) {
+                        if (gCurVehicle == VEH_JBOMB) {
                             gSteerTurnAround = 0;
                             cont_process_stick(1, 1, &pad->button, &pad->stick_x, &pad->stick_y);
                         } else {
@@ -364,11 +364,11 @@ void cont_buttons_to_stick(u16 btn, s8 *x, s8 *y) {
 /* Snap the stick to -80/0/80 for the digital control methods */
 void cont_snap_stick(s8 *x, s8 *y) {
     switch (gCurVehicle) {
-        case 1:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
+        case VEH_SIDESWIPE:
+        case VEH_SKYFALL:
+        case VEH_RAMDOZER:
+        case VEH_BACKLASH:
+        case VEH_CRANE:
             if (*x <= 50 && *x >= -50) {
                 *x = 0;
             } else {
@@ -455,9 +455,9 @@ void cont_show_method_option(void) {
     gYoshiGameItems[422].text = tbl[i];
     gYoshiGameItems[422].unk6 = 0x13;
     if ((gPlayerControlModes[playerNumber].controlModes ^ 0x10205) & (1 << gCurVehicle)) {
-        gYoshiWindows[88].unk18 = 0x1A8;
+        gYoshiWindows[YW_CONTROL_METHOD].unk18 = 0x1A8;
     } else {
-        gYoshiWindows[88].unk18 = 0x1A7;
+        gYoshiWindows[YW_CONTROL_METHOD].unk18 = 0x1A7;
     }
-    yoshi_demand(0x8058);
+    yoshi_demand(YOSHI_DEMAND_OPEN | YW_CONTROL_METHOD);
 }

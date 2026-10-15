@@ -77,7 +77,7 @@ void academy_announce_state(void) {
                 fe_player_save_pending();
                 break;
         }
-        yoshi_demand((players[playerNumber].gameState + 0x16) | 0x8000);
+        yoshi_demand((players[playerNumber].gameState + YW_GAME_STATE_BASE) | YOSHI_DEMAND_OPEN);
     }
 }
 
@@ -159,7 +159,7 @@ u8 academy_advance_state(void) {
             case 3:
                 for (i = 0; i < 60 && advance; i++) {
                     if (gLevelInfo[i].gameState == players[playerNumber].gameState && !LEVEL_DONE(i) &&
-                        gLevelInfo[i].kind == 1) {
+                        gLevelInfo[i].kind == LEVEL_KIND_MISSION) {
                         advance = 0;
                     }
                 }

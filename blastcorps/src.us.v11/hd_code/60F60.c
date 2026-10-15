@@ -492,7 +492,7 @@ extern u8 gFxHeapEnd[]; /* heap end otherwise */
  * messages and clears each block's inUse word. */
 void fx_alloc_texture_caches(void) {
     u8 *start = gHeapPtr;
-    s32 span = ((gLevelKind & 0x20) ? gFxHeapEndKind20 : gFxHeapEnd) - start;
+    s32 span = ((gLevelKind & LEVEL_KIND_BUILDINGS) ? gFxHeapEndKind20 : gFxHeapEnd) - start;
     u32 n;
     HeapBlock *b;
     HeapBlock *end;

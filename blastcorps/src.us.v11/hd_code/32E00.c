@@ -139,7 +139,7 @@ void dig_coach_update(s32 now) {
 /* Most recent hits strong: "DOING REALLY WELL" (0x802778FC). */
 void dig_check_doing_well(void) {
     switch (gCurVehicle) {
-        case 5:
+        case VEH_BACKLASH:
             if (gDigStrongHits >= 16 && gDigStrongPartHits >= 16) {
                 hud_panel_start(3, 1, 1, SFX_COACH_WELL_BACKLASH);
                 gDigSampleTail = 0;
@@ -147,7 +147,7 @@ void dig_check_doing_well(void) {
                 debug_printf("DOING REALLY WELL\n");
             }
             break;
-        case 4:
+        case VEH_RAMDOZER:
             if (gDigStrongHits >= 41 && gDigStrongPartHits >= 41) {
                 hud_panel_start(4, 1, 1, snd_random_id(SND_GROUP_DOING_WELL));
                 gDigSampleTail = 0;
@@ -155,7 +155,7 @@ void dig_check_doing_well(void) {
                 debug_printf("DOING REALLY WELL\n");
             }
             break;
-        case 3:
+        case VEH_SKYFALL:
             if (gDigStrongHits >= 11 && gDigStrongPartHits >= 11) {
                 hud_panel_start(0, 1, 3, SFX_COACH_WELL_SKYFALL);
                 gDigSampleTail = 0;
@@ -163,7 +163,7 @@ void dig_check_doing_well(void) {
                 debug_printf("DOING REALLY WELL\n");
             }
             break;
-        case 9:
+        case VEH_JBOMB:
             if (gDigStrongHits >= 26 && gDigStrongPartHits >= 26) {
                 hud_panel_start(4, 1, 1, snd_random_id(SND_GROUP_DOING_WELL));
                 gDigSampleTail = 0;
@@ -177,10 +177,10 @@ void dig_check_doing_well(void) {
 /* Strong hits but weak part damage: "USING WRONG DIGGER" (0x80277AE0). */
 void dig_check_wrong_digger(void) {
     switch (gCurVehicle) {
-        case 3:
-        case 4:
-        case 5:
-        case 9:
+        case VEH_SKYFALL:
+        case VEH_RAMDOZER:
+        case VEH_BACKLASH:
+        case VEH_JBOMB:
             if (gDigStrongHits >= 6 && gDigStrongPartHits < 2) {
                 hud_panel_start(1, 1, 3, SFX_COACH_WRONG_DIGGER);
                 gDigSampleTail = 0;
@@ -194,9 +194,9 @@ void dig_check_wrong_digger(void) {
 /* Most hits weak: "USING DIGGER INCORRECTLY" (0x80277B84). */
 void dig_check_misuse(void) {
     switch (gCurVehicle) {
-        case 3:
-        case 4:
-        case 5:
+        case VEH_SKYFALL:
+        case VEH_RAMDOZER:
+        case VEH_BACKLASH:
             if (gDigWeakHits >= 31 && gDigStrongPartHits < 6) {
                 hud_panel_start(2, 1, 2, SFX_COACH_MISUSE);
                 gDigSampleTail = 0;
@@ -236,22 +236,22 @@ void dig_count_samples(void) {
 /* 1 if the hit's damage is under the vehicle's limit (0x80277D34). */
 s32 dig_hit_is_weak(void) {
     switch (gDigHitVehicle) {
-        case 5:
+        case VEH_BACKLASH:
             if (gDigHitDamage > 400) {
                 return 0;
             }
             return 1;
-        case 4:
+        case VEH_RAMDOZER:
             if (gDigHitDamage > 400) {
                 return 0;
             }
             return 1;
-        case 9:
+        case VEH_JBOMB:
             if (gDigHitDamage >= 100) {
                 return 0;
             }
             return 1;
-        case 3:
+        case VEH_SKYFALL:
             if (gDigHitDamage >= 100) {
                 return 0;
             }
@@ -263,22 +263,22 @@ s32 dig_hit_is_weak(void) {
 /* The same on the per-part damage (0x80277E08). */
 s32 dig_part_hit_is_weak(void) {
     switch (gDigHitVehicle) {
-        case 5:
+        case VEH_BACKLASH:
             if (gDigHitDamagePerPart > 80) {
                 return 0;
             }
             return 1;
-        case 4:
+        case VEH_RAMDOZER:
             if (gDigHitDamagePerPart > 80) {
                 return 0;
             }
             return 1;
-        case 9:
+        case VEH_JBOMB:
             if (gDigHitDamagePerPart >= 100) {
                 return 0;
             }
             return 1;
-        case 3:
+        case VEH_SKYFALL:
             if (gDigHitDamagePerPart >= 100) {
                 return 0;
             }
@@ -351,7 +351,7 @@ void hud_panel_start(type, arg1, arg2, sound)
                 gHudPanelFrameDelay = 1;
                 break;
         }
-        if (gLevelKind != 1) {
+        if (gLevelKind != LEVEL_KIND_MISSION) {
             pos = 1;
         }
         switch (pos) {

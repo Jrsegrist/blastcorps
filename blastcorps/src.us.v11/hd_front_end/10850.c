@@ -105,7 +105,7 @@ void fe_best_build_menu(void) {
                 item = &gYoshiHeapItems[n * 4 + i];
                 p = &players[i];
                 if (gSlotState[i] == 1 && gBestTimes[i][gVehicleTimeSlot[lvl]] > 0
-                    && (gLevelInfo[levelno].kind != 0x80 || p->gameState >= 11)) {
+                    && (gLevelInfo[levelno].kind != LEVEL_KIND_MISSION_TIMED || p->gameState >= 11)) {
                     hud_format_time(timeStr, gBestTimes[i][gVehicleTimeSlot[lvl]], 0);
                     sprintf(gBestRowText[n * 4 + i], "%-7.7s %s", p, timeStr);
                     item->text = gBestRowText[n * 4 + i];
@@ -150,7 +150,7 @@ void fe_best_build_menu(void) {
         item->unk16 = 0x1E;
         item->unk4 += lvl / 4 * 100;
     }
-    if (gLevelInfo[levelno].kind == 0x80) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION_TIMED) {
         item = &gYoshiHeapItems[lvl];
         item->text = 0;
         item->unk10 = 0;
@@ -172,7 +172,7 @@ void fe_best_build_menu(void) {
 /* A vehicle slot the player knows (special levels: slot 0) (0x801F7F74).
  * whether best-time slot `lvl` is shown (special levels: only slot 0) */
 s32 fe_best_slot_shown(u8 lvl) {
-    if (gLevelInfo[levelno].kind == 0x80) {
+    if (gLevelInfo[levelno].kind == LEVEL_KIND_MISSION_TIMED) {
         return lvl == 0;
     }
     return (players[playerNumberAtStart].vehiclesUnlocked & (1 << lvl)) ? 1 : 0;
@@ -269,7 +269,7 @@ Gfx *fe_best_draw_icon(s32 arg0, Gfx *gfx) {
 
     off = 0;
     g = gfx;
-    if (gLevelInfo[levelno].kind != 0x80) {
+    if (gLevelInfo[levelno].kind != LEVEL_KIND_MISSION_TIMED) {
         g = spr_begin(g);
         g = spr_draw(g, gBestRowSlot[((u16 *) gYoshiWindows)[0x280 / 2] / 4] + gVehicleIconTex, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
         g = spr_end(g);

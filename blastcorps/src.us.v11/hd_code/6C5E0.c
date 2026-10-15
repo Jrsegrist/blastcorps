@@ -71,7 +71,7 @@ void thunderfist_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s3
     gThunderfistMtxA = (u64 *) buf;
     gThunderfistMtxB = (u64 *) (buf + 0x1400);
     gHeapPtr = buf + 0x2800;
-    veh_add_record(2, 1, (s32) gThunderfistMtxA, (s32) gThunderfistMtxB, model);
+    veh_add_record(VEH_THUNDERFIST, 1, (s32) gThunderfistMtxA, (s32) gThunderfistMtxB, model);
     veh_reset_state(v);
     *(s16 *) (v + 0x52) = 0;
     *(s16 *) (v + 0x54) = 0;
@@ -128,7 +128,7 @@ void thunderfist_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s3
     gThunderfistUnusedFlag = 0;
     model = gThunderfistModel;
     veh_register_parts(2, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x6590);
-    veh_add_shadow(2, 0x64, 0x2D, 0x2D);
+    veh_add_shadow(VEH_THUNDERFIST, 0x64, 0x2D, 0x2D);
     anim_set_frame(0.0f, (AnimChannel *) gThunderfistAnim, 1, 0);
     anim_play((AnimChannel *) gThunderfistAnim, 1, 1);
     v[0x9A] = 1;

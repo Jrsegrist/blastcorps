@@ -4,8 +4,8 @@
 # Where a level is below the rest, the reason (see the levels agent's notes):
 #   49 mission intro: two frames submitted one retrace early natively (CPU time not modelled)
 #   47 CMO intro: a streaming inflate's progress between frames (thread CPU time)
-#   58 music tune state (audio thread timing); 23/45 level-end screen: RDP-rendered words
-#   and the front end's save queue
+#   58 music tune state (audio thread timing).  (23/45 were 11: the pak thread's retrace
+#   queue at the level end, a scheduler-client race fixed by match100: cmp_spec SCHED_FUNCS)
 * exe_exit =0
 * frames 1900
 0 timeline_state 1900
@@ -78,7 +78,7 @@
 22 dumps_match 14
 22 level_frames 729
 23 timeline_state 1900
-23 dumps_match 11
+23 dumps_match 14
 23 level_frames 287
 24 timeline_state 1900
 24 dumps_match 14
@@ -144,7 +144,7 @@
 44 dumps_match 14
 44 level_frames 770
 45 timeline_state 1900
-45 dumps_match 11
+45 dumps_match 14
 45 level_frames 472
 46 timeline_state 1900
 46 dumps_match 14

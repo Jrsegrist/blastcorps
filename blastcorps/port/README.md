@@ -1372,8 +1372,8 @@ All 60 levels take about 85 minutes the first time (two emulators at a
 time; ~5.6 GB of cache) and 11 minutes cached.
 
 Results (Oct 2026): every level is reached, no crash, the timeline matches
-on all 1900 frames in 59 levels (49, the ending: two mission-intro frames
-are submitted a retrace early natively), and all 14 RAM dumps match in 55;
+on all 1900 frames in all 60 levels (49, the ending, used to submit two
+mission-intro frames a retrace early natively), and all 14 RAM dumps match in 58;
 the rest differ in what the comparison can't follow: 47 a streaming
 decompressor's progress between frames, 58 the music's sequence position
 (audio thread timing).

@@ -96,7 +96,11 @@ void bcopy(const void *, void *, int);
 
 #define playerInfo (players[0])
 
+#ifdef NON_MATCHING
 void fe_pak_thread(void *);
+#else
+void fe_pak_thread();
+#endif
 void fe_pak_chars_to_ascii(u8 *str);
 void fe_pak_ascii_to_chars(u8 *str);
 s32 fe_pak_add_crc(u8 *data, s32 size);
@@ -122,225 +126,16 @@ void fe_pak_start_thread(void) {
 }
 
 /*
- * TODO: fe_pak_thread, the save thread's main loop (447 insns). The C below
- * matches every instruction except one: the target ends `case 1:` (the last
- * case body, at 0x801F5EB4) with a `b` to the very next instruction
- * (0x801F5EE8, the switch end) carrying `sb done` in its delay slot. IDO drops
- * that branch for every spelling tried: explicit break/goto/else, trailing
- * `default:`/`case 4:` (4 is the jtbl's default), do/while(0), while+break,
- * dead code after the break, an unused label. Oct 2026, ~35 more: a break inside the if,
- * double breaks, used labels (gotos) in and after the switch, trailing cases with if (0) /
- * dead-assert / while (0) bodies, dead calls/stores/return/continue after the break, ternary
- * and && statements, empty else, a nested switch, `if (!c) break;`, block locals. No -O1
- * function in the matched build contains a `b` to the next instruction (only -O3 ultralib
- * code does), so this may be an assembler or toolchain-version quirk. The callers' fe_pak_create_file,
- * fe_pak_delete_file and fe_pak_get_file_state return values are used here (original
- * declared them s32 with no return statement), and fe_pak_thread takes no
- * argument (cast it for osCreateThread).
- *
- * The NON_MATCHING build uses this C (below the comment; it keeps the
- * osCreateThread prototype's unused argument), checked with
- * tools_port/checks/fe_0E7B0.txt; fe_pak_create_file/61C8/6ED4 now return their
- * osPfs* call's result explicitly, which compiles to the same bytes.
- *
- * void fe_pak_thread(void) {
- *     OSMesg msg;
- *     s32 ret;
- *     s32 lastRet;
- *     u8 pad33;
- *     u8 player;
- *     u8 arg1;
- *     u8 reply;
- *     u8 cmd;
- *     u8 next;
- *     u8 done;
- *     s32 yoshi;
- *     u32 tries;
- *
- *     while (1) {
- *         pakBusy = 0;
- *         tries = 0;
- *         osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
- *         osRecvMesg(&gPakRequestQueue, &msg, OS_MESG_BLOCK);
- *         osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
- *         while (gPreNmi != 0) {
- *         }
- *         cmd = (u32) msg & 0xFF;
- *         arg1 = ((u32) msg >> 8) & 0xFF;
- *         player = ((u32) msg >> 16) & 0xFF;
- *         reply = ((u32) msg >> 24) & 0xFF;
- *         gPakExtName[0] = player + 0x11;
- *         pakBusy = 1;
- *         cont_wait_read();
- *         fe_pak_request_hook();
- *         gPakErrorShown = 0;
- *         do {
- *             done = 0;
- *             next = 0;
- *             yoshi = 0x5B;
- *             lastRet = 0;
- *             switch (cmd) {
- *                 case 1:
- *                 case 2:
- *                     ret = fe_pak_init_pak();
- *                     break;
- *                 case 3:
- *                     ret = fe_pak_create_file(player);
- *                     break;
- *                 case 4:
- *                     ret = fe_pak_delete_file(player);
- *                     break;
- *                 case 5:
- *                     ret = fe_pak_delete_listed_file(player);
- *                     break;
- *                 case 6:
- *                     ret = fe_pak_rw_player(player, 0);
- *                     break;
- *                 case 7:
- *                     ret = fe_pak_rw_player(player, 1);
- *                     break;
- *                 case 8:
- *                     ret = fe_pak_rw_times(player, arg1, 0);
- *                     break;
- *                 case 9:
- *                     ret = fe_pak_rw_times(player, arg1, 1);
- *                     break;
- *                 case 10:
- *                     ret = fe_pak_rw_eeprom_times(player, arg1, 0);
- *                     break;
- *                 case 11:
- *                     ret = fe_pak_rw_eeprom_times(player, arg1, 1);
- *                     break;
- *                 case 12:
- *                     ret = fe_pak_rw_status(player, arg1, 0);
- *                     break;
- *                 case 13:
- *                     ret = fe_pak_rw_status(player, arg1, 1);
- *                     break;
- *                 case 14:
- *                     ret = osPfsFreeBlocks(&gPfs, &gPakFreeBytes);
- *                     break;
- *                 case 15:
- *                     ret = fe_pak_is_missing();
- *                     break;
- *                 case 16:
- *                     done = 1;
- *                     ret = osEepromProbe(&gSiMesgQueue);
- *                     break;
- *                 case 17:
- *                     ret = fe_pak_get_file_state(player);
- *                     break;
- *                 case 18:
- *                     ret = osPfsChecker(&gPfs);
- *                     break;
- *                 case 19:
- *                     ret = 10;
- *                     break;
- *                 case 20:
- *                     ret = fe_pak_put_semaphore(player, 0x2704197125121981);
- *                     break;
- *                 case 21:
- *                     ret = fe_pak_put_semaphore(player, 0x87569AB6CD076AEC);
- *                     break;
- *                 case 22:
- *                     ret = 0;
- *                     break;
- *                 default:
- *                     debug_printf("Nonsense pak message\n");
- *                     break;
- *             }
- *             debug_printf("pak command %d returned %d\n", cmd, ret);
- *             switch (ret) {
- *                 case 0x6E382:
- *                     if ((gGameMode & 0x10E18000) || (gNextGameMode & MODE_BOOT_CHECK)) {
- *                         done = 1;
- *                         break;
- *                     }
- *                     // fallthrough
- *                 case 6:
- *                 case 10:
- *                 case 11:
- *                     if (tries >= 4) {
- *                         if (cmd != 0x13) {
- *                             if (ret == 0x6E382) {
- *                                 gPakErrorWindow = 0x5D;
- *                             } else {
- *                                 gPakErrorWindow = 0x5C;
- *                             }
- *                             fe_pak_put_semaphore(player, 0x2704197125121981);
- *                             next = 0x13;
- *                         }
- *                         yoshi = gPakErrorWindow;
- *                     } else {
- *                         yoshi = 0;
- *                         tries++;
- *                     }
- *                     break;
- *                 case 0:
- *                 case 5:
- *                 case 9:
- *                     done = 1;
- *                     break;
- *                 case 8:
- *                     if (!(gGameMode & 0x10E18000) || fe_pak_is_missing() != 0) {
- *                         break;
- *                     }
- *                     // fallthrough
- *                 case 7:
- *                     gPakFullSlot = (player < gPakFullSlot) ? player : gPakFullSlot;
- *                     done = 1;
- *                     break;
- *                 case 3:
- *                     if (tries >= 4) {
- *                         if (cmd != 0x13) {
- *                             fe_pak_put_semaphore(player, 0x2704197125121981);
- *                             next = 0x13;
- *                         }
- *                         yoshi = 0x5C;
- *                     } else {
- *                         debug_printf("trying to fix pak ...\n");
- *                         if (cmd != 0x12) {
- *                             osSendMesg(&gPakRequestQueue, (OSMesg) (cmd | (arg1 << 8) | (player << 16) | (reply << 24)), OS_MESG_NOBLOCK);
- *                         }
- *                         next = 0x12;
- *                         reply = 0;
- *                         tries++;
- *                     }
- *                     break;
- *                 case 2:
- *                     if (lastRet == 8 && !(gGameMode & 0x10E18000)) {
- *                         PFS_ASSERT(1==0, 342);
- *                         done = 1;
- *                     }
- *                     break;
- *                 case 1:
- *                     if (gNextGameMode & MODE_BOOT_CHECK) {
- *                         done = 1;
- *                     }
- *                     break;
- *             }
- *             lastRet = ret;
- *             if (gPreNmi == 0 && yoshi != 0 && !done && !next && pakToGameMessageQ.mtqueue == &gMainThread) {
- *                 fe_pak_error_frame(yoshi);
- *                 gPakErrorShown = 1;
- *             }
- *             if (next) {
- *                 cmd = next;
- *                 next = 0;
- *             }
- *             osRecvMesg(&gPakRetraceQueue, NULL, OS_MESG_BLOCK);
- *         } while (!done);
- *         if (gPakErrorShown) {
- *             yoshiState = 1;
- *             currentYoshiWindow = -1;
- *         }
- *         if (reply) {
- *             osSendMesg(&pakToGameMessageQ, (OSMesg) ret, OS_MESG_BLOCK);
- *         }
- *     }
- * }
+ * fe_pak_thread, the save thread's main loop (447 insns). Matched (Oct 2026): the target
+ * ends `case 1:` (the last case body) with a `b` to the very next instruction, the switch
+ * end, carrying `sb done` in its delay slot. That branch comes from an empty test in an
+ * else branch (`else { if (tries) { } }`): IDO drops the side-effect-free condition but
+ * keeps the jump that skipped it. A constant condition (`if (0)`), a plain empty else and
+ * ~45 other spellings (see git history) drop the branch. The callers' fe_pak_create_file,
+ * fe_pak_delete_file and fe_pak_get_file_state return values are used here, and
+ * fe_pak_thread takes no argument (the NON_MATCHING build keeps osCreateThread's
+ * `void *` parameter). Checks: tools_port/checks/fe_0E7B0.txt.
  */
-#ifdef NON_MATCHING
 extern s32 gPakErrorShown;     /* a Yoshi window was opened for a pak error */
 extern s32 gPakErrorWindow;     /* Yoshi window of the last pak error */
 s32 fe_pak_is_missing(void);
@@ -359,7 +154,11 @@ s32 fe_pak_get_file_state(u8 arg0);
  * The save thread: one pak/EEPROM command per message (cmd | arg1 << 8 |
  * player << 16 | reply << 24), retried until it settles, the result sent
  * back on pakToGameMessageQ when `reply` is set. */
+#ifdef NON_MATCHING
 void fe_pak_thread(void *arg) {
+#else
+void fe_pak_thread(void) { /* the original takes no parameter (no $a0 home) */
+#endif
     OSMesg msg;
 #ifdef NON_MATCHING
     s32 ret = 0; /* a "Nonsense pak message" keeps the previous command's result; on the first pass the original reads an indeterminate register */
@@ -539,6 +338,11 @@ void fe_pak_thread(void *arg) {
                 case 1:
                     if (gNextGameMode & MODE_BOOT_CHECK) {
                         done = 1;
+                    } else {
+                        /* an empty test: IDO drops the condition but keeps the `b` to the
+                         * switch end (the target's branch to the next instruction) */
+                        if (tries) {
+                        }
                     }
                     break;
             }
@@ -562,9 +366,6 @@ void fe_pak_thread(void *arg) {
         }
     }
 }
-#else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0E7B0/fe_pak_thread.s")
-#endif
 
 /* Command 15: 1 if no Controller Pak is in port 1 (0x801F5FE4). */
 s32 fe_pak_is_missing(void) {

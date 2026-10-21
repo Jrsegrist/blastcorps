@@ -11,6 +11,9 @@ Discarded input sections
  .mdebug        0x00000000      0x7c0 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/11530.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/11530.c.o
+ .gptab.data    0x00000000       0x38 build_nm/src.us.v11/hd_front_end/11530.c.o
+ .gptab.bss     0x00000000       0x18 build_nm/src.us.v11/hd_front_end/11530.c.o
+ .mdebug        0x00000000     0x31e0 build_nm/src.us.v11/hd_front_end/11530.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
@@ -41,6 +44,7 @@ Discarded input sections
  .mdebug        0x00000000      0xcd8 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+ .mdebug        0x00000000     0x1f28 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
  .mdebug        0x00000000      0xf34 build_nm/src.us.v11/hd_front_end/10850.c.o
@@ -172,7 +176,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x00000000                        hd_front_end_ROM_START = __romPos
                 0x80900000                        hd_front_end_VRAM = ADDR (.hd_front_end)
 
-.hd_front_end   0x80900000    0x20ee0 load address 0x00000000
+.hd_front_end   0x80900000    0x20ed0 load address 0x00000000
                 0x80900000                        hd_front_end_TEXT_START = .
  build_nm/src.us.v11/hd_front_end/00000.c.o(.text)
  .text          0x80900000     0x1bb0 build_nm/src.us.v11/hd_front_end/00000.c.o
@@ -280,7 +284,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8091134c                fe_best_clear_times
                 0x80911438                fe_best_draw_icon
  build_nm/src.us.v11/hd_front_end/11530.c.o(.text)
- .text          0x80911520     0x64b0 build_nm/src.us.v11/hd_front_end/11530.c.o
+ .text          0x80911520     0x64a0 build_nm/src.us.v11/hd_front_end/11530.c.o
                 0x80911520                fe_globe_init
                 0x80911850                fe_globe_select_level
                 0x80911974                fe_globe_frame
@@ -289,121 +293,121 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80912b7c                fe_globe_build_plane_dl
                 0x8091317c                fe_globe_draw_routes
                 0x8091374c                fe_globe_draw_route
-                0x809155d0                fe_globe_draw_plane
-                0x80915e8c                fe_globe_quad_at_level
-                0x80915f50                fe_globe_quad_at
-                0x8091649c                fe_globe_latlon_to_xyz
-                0x809166d0                fe_globe_angle_diff
-                0x80916760                fe_globe_scroll_stars
-                0x80916cbc                fe_globe_respawn_star
-                0x80916e68                fe_load_vehicle_icons
-                0x80916eb0                fe_globe_set_light
-                0x80917030                fe_open_reachable_levels
-                0x80917250                fe_globe_draw_earth
-                0x809175e8                fe_globe_draw_stars
-                0x80917778                fe_globe_level_locked
+                0x809155b8                fe_globe_draw_plane
+                0x80915e74                fe_globe_quad_at_level
+                0x80915f38                fe_globe_quad_at
+                0x80916484                fe_globe_latlon_to_xyz
+                0x809166b8                fe_globe_angle_diff
+                0x80916748                fe_globe_scroll_stars
+                0x80916ca4                fe_globe_respawn_star
+                0x80916e50                fe_load_vehicle_icons
+                0x80916e98                fe_globe_set_light
+                0x80917018                fe_open_reachable_levels
+                0x80917238                fe_globe_draw_earth
+                0x809175d0                fe_globe_draw_stars
+                0x80917760                fe_globe_level_locked
  build_nm/src.us.v11/hd_front_end/17990.c.o(.text)
- .text          0x809179d0     0x1d60 build_nm/src.us.v11/hd_front_end/17990.c.o
-                0x809179d0                fe_back_loop
+ .text          0x809179c0     0x1d60 build_nm/src.us.v11/hd_front_end/17990.c.o
+                0x809179c0                fe_back_loop
  build_nm/src.us.v11/hd_front_end/196F0.c.o(.text)
- .text          0x80919730      0xb50 build_nm/src.us.v11/hd_front_end/196F0.c.o
-                0x80919730                fe_bg_reload
-                0x80919754                fe_bg_load
-                0x80919c14                fe_bg_set
-                0x80919c20                fe_bg_draw
+ .text          0x80919720      0xb50 build_nm/src.us.v11/hd_front_end/196F0.c.o
+                0x80919720                fe_bg_reload
+                0x80919744                fe_bg_load
+                0x80919c04                fe_bg_set
+                0x80919c10                fe_bg_draw
  build_nm/src.us.v11/hd_front_end/1A240.c.o(.text)
- .text          0x8091a280      0xc50 build_nm/src.us.v11/hd_front_end/1A240.c.o
-                0x8091a280                fe_attract_pic_load
-                0x8091a3ac                fe_attract_pic_draw
+ .text          0x8091a270      0xc50 build_nm/src.us.v11/hd_front_end/1A240.c.o
+                0x8091a270                fe_attract_pic_load
+                0x8091a39c                fe_attract_pic_draw
  build_nm/src.us.v11/hd_front_end/1AE80.c.o(.text)
- .text          0x8091aed0      0x280 build_nm/src.us.v11/hd_front_end/1AE80.c.o
-                0x8091aed0                fe_pak_restore_from_eeprom
+ .text          0x8091aec0      0x280 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+                0x8091aec0                fe_pak_restore_from_eeprom
  build_nm/src.us.v11/hd_front_end/1B100.c.o(.text)
- .text          0x8091b150      0x480 build_nm/src.us.v11/hd_front_end/1B100.c.o
-                0x8091b150                fe_load_model
-                0x8091b24c                fe_anim_update_model
-                0x8091b280                fe_anim_init_model
-                0x8091b2bc                fe_anim_start_channel
-                0x8091b338                fe_veh_reset_tex_anims
-                0x8091b4bc                fe_veh_set_heading_tex_anims
+ .text          0x8091b140      0x480 build_nm/src.us.v11/hd_front_end/1B100.c.o
+                0x8091b140                fe_load_model
+                0x8091b23c                fe_anim_update_model
+                0x8091b270                fe_anim_init_model
+                0x8091b2ac                fe_anim_start_channel
+                0x8091b328                fe_veh_reset_tex_anims
+                0x8091b4ac                fe_veh_set_heading_tex_anims
  build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o(.text)
- .text          0x8091b5d0      0x150 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
-                0x8091b5d0                osPfsFreeBlocks
+ .text          0x8091b5c0      0x150 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
+                0x8091b5c0                osPfsFreeBlocks
  build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o(.text)
- .text          0x8091b720       0x70 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
-                0x8091b720                osEepromProbe
+ .text          0x8091b710       0x70 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
+                0x8091b710                osEepromProbe
  build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o(.text)
- .text          0x8091b790      0xa60 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
-                0x8091b790                osPfsChecker
-                0x8091be54                corrupted_init
-                0x8091c008                corrupted
+ .text          0x8091b780      0xa60 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
+                0x8091b780                osPfsChecker
+                0x8091be44                corrupted_init
+                0x8091bff8                corrupted
  build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o(.text)
- .text          0x8091c1f0      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
-                0x8091c1f0                osPfsInitPak
-                0x8091c2a4                __osPfsGetStatus
+ .text          0x8091c1e0      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
+                0x8091c1e0                osPfsInitPak
+                0x8091c294                __osPfsGetStatus
  build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o(.text)
- .text          0x8091c3b0      0x7b0 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
-                0x8091c3b0                osPfsAllocateFile
-                0x8091c834                __osPfsDeclearPage
+ .text          0x8091c3a0      0x7b0 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
+                0x8091c3a0                osPfsAllocateFile
+                0x8091c824                __osPfsDeclearPage
  build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o(.text)
- .text          0x8091cb60      0x610 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
-                0x8091cb60                osPfsDeleteFile
-                0x8091ce40                __osPfsReleasePages
-                0x8091d078                __osBlockSum
+ .text          0x8091cb50      0x610 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
+                0x8091cb50                osPfsDeleteFile
+                0x8091ce30                __osPfsReleasePages
+                0x8091d068                __osBlockSum
  build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o(.text)
- .text          0x8091d170      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
-                0x8091d170                osEepromLongWrite
+ .text          0x8091d160      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
+                0x8091d160                osEepromLongWrite
  build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o(.text)
- .text          0x8091d2b0      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
-                0x8091d2b0                osEepromLongRead
+ .text          0x8091d2a0      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
+                0x8091d2a0                osEepromLongRead
  build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o(.text)
- .text          0x8091d3f0      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
-                0x8091d3f0                osPfsFindFile
+ .text          0x8091d3e0      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
+                0x8091d3e0                osPfsFindFile
  build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o(.text)
- .text          0x8091d5b0      0x500 build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
-                0x8091d6ac                osPfsReadWriteFile
+ .text          0x8091d5a0      0x500 build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
+                0x8091d69c                osPfsReadWriteFile
  build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o(.text)
- .text          0x8091dab0      0x4e0 build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
-                0x8091dab0                osEepromWrite
-                0x8091dd6c                __osEepStatus
+ .text          0x8091daa0      0x4e0 build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
+                0x8091daa0                osEepromWrite
+                0x8091dd5c                __osEepStatus
  build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o(.text)
- .text          0x8091df90      0x300 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
-                0x8091df90                osEepromRead
+ .text          0x8091df80      0x300 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+                0x8091df80                osEepromRead
  build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o(.text)
- .text          0x8091e290      0x2f0 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
-                0x8091e290                osPfsFileState
+ .text          0x8091e280      0x2f0 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
+                0x8091e280                osPfsFileState
  build_nm/src.us.v11/hd_front_end/ul_crc.c.o(.text)
- .text          0x8091e580      0x180 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
-                0x8091e580                __osContAddressCrc
-                0x8091e630                __osContDataCrc
+ .text          0x8091e570      0x180 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
+                0x8091e570                __osContAddressCrc
+                0x8091e620                __osContDataCrc
  build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o(.text)
- .text          0x8091e700      0xd60 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
-                0x8091e700                __osSumcalc
-                0x8091e75c                __osIdCheckSum
-                0x8091e7c4                __osRepairPackId
-                0x8091ebdc                __osCheckPackId
-                0x8091ed74                __osGetId
-                0x8091efd0                __osCheckId
-                0x8091f0cc                __osPfsRWInode
-                0x8091f3ec                __osPfsSelectBank
+ .text          0x8091e6f0      0xd60 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
+                0x8091e6f0                __osSumcalc
+                0x8091e74c                __osIdCheckSum
+                0x8091e7b4                __osRepairPackId
+                0x8091ebcc                __osCheckPackId
+                0x8091ed64                __osGetId
+                0x8091efc0                __osCheckId
+                0x8091f0bc                __osPfsRWInode
+                0x8091f3dc                __osPfsSelectBank
  build_nm/src.us.v11/hd_front_end/ul_contramread.c.o(.text)
- .text          0x8091f460      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
-                0x8091f460                __osContRamRead
+ .text          0x8091f450      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
+                0x8091f450                __osContRamRead
  build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o(.text)
- .text          0x8091f810      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
-                0x8091f810                __osContRamWrite
+ .text          0x8091f800      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
+                0x8091f800                __osContRamWrite
  build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o(.text)
- .text          0x8091fbc0      0x370 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
-                0x8091fbc0                osPfsIsPlug
-                0x8091fd60                __osPfsRequestData
-                0x8091fe5c                __osPfsGetInitData
-                0x8091ff30                        hd_front_end_TEXT_END = .
-                0x8091ff30                        hd_front_end_DATA_START = .
-                0x8091ff30                        hd_front_end_20090_bin = .
+ .text          0x8091fbb0      0x370 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+                0x8091fbb0                osPfsIsPlug
+                0x8091fd50                __osPfsRequestData
+                0x8091fe4c                __osPfsGetInitData
+                0x8091ff20                        hd_front_end_TEXT_END = .
+                0x8091ff20                        hd_front_end_DATA_START = .
+                0x8091ff20                        hd_front_end_20090_bin = .
  build_nm/assets/hd_front_end/20090.bin.o(.data)
- .data          0x8091ff30      0xfb0 build_nm/assets/hd_front_end/20090.bin.o
-                0x8091ff30                _binary_assets_hd_front_end_20090_bin_start
-                0x80920ee0                _binary_assets_hd_front_end_20090_bin_end
+ .data          0x8091ff20      0xfb0 build_nm/assets/hd_front_end/20090.bin.o
+                0x8091ff20                _binary_assets_hd_front_end_20090_bin_start
+                0x80920ed0                _binary_assets_hd_front_end_20090_bin_end
                 0x00029e90                        __romPos = 0x21040
                 0x00029e90                        . = __romPos
                 0x00021040                        hd_front_end_data_ROM_START = __romPos

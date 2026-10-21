@@ -1372,11 +1372,11 @@ All 60 levels take about 85 minutes the first time (two emulators at a
 time; ~5.6 GB of cache) and 11 minutes cached.
 
 Results (Oct 2026): every level is reached, no crash, the timeline matches
-on all 1900 frames in 59 levels (49, the ending: two mission-intro frames
-are submitted a retrace early natively), and all 14 RAM dumps match in 55;
+on all 1900 frames in all 60 levels (49, the ending, used to submit two
+mission-intro frames a retrace early natively), and all 14 RAM dumps match in 58;
 the rest differ in what the comparison can't follow: 47 a streaming
 decompressor's progress between frames, 58 the music's sequence position
-(audio thread timing), 23 and 45 RDP-rendered words on the level-end screen.
+(audio thread timing).
 bc.exe, following the emulator's clock, shows the same pictures as the
 emulator's Glide64mk2 window (radar colour aside, a Glide64 error) and gives
 bc_headless's per-frame trace in all 60.  The fixes this found (levels agent):
@@ -1390,6 +1390,14 @@ list (hd_front_end fe_lvlsel_build_globe_dl) changed the NM ROM's CPU timing, th
 more such races showed up (lvfix agent): the mode-0x40 start time
 (hd_main_thread:4A54), the ghost recorder's sample time (ghost_record) and
 the retrace handler's freeze test (__scHandleRetrace:8BD0, PORT_EMU).
+Matching the last two front-end functions moved the NM ROM's timing again
+(match100 agent) and three more showed up: the Yoshi window's fade and the
+typewriter's blinking cursor read the retrace counter mid-function
+(GVI_FUNCS yoshi_run_window, yoshi_get_item_text; `PORT_GVI_LAST` where IDO
+reuses the loaded register), and the pak thread's scheduler client, added by
+hd_load_front_end after the inflate's CPU time, got a retrace message natively
+that the emulator's retrace had already passed (sched_add_client and
+sched_remove_client are entry switch points now; levels 23 and 45 match 14/14).
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
 writes to ADDR's 4 KB page from frame F on (rip and the stack's code

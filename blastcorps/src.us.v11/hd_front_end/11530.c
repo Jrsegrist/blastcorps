@@ -640,29 +640,25 @@ Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
 }
 
 /*
- * TODO: fe_globe_draw_route (1947 insns) draws one route between two levels: an arc of line segments
+ * fe_globe_draw_route (1947 insns) draws one route between two levels: an arc of line segments
  * over the globe (gSPVertex + gSPLineW3D), coloured from (r0,g0,b0) to (r1,g1,b1), brightened
  * towards the camera, with the route-open fade timed by gRouteRevealMin and a sound on completion.
- * The draft below compiles to 1953 instructions. Two edits give the target's 1947 with every
- * opcode equal, leaving only register numbers (779 instructions, nearly all FP):
- *   1. `switch (gGlobePlanet) { case 3: <the i != 0 / else calls> break; default: if (i != 0)
- *      *lon = ...; }` instead of the if/else: the case label stops ugen caching x/y in FP
- *      registers across the hud_project_point call (+3 insns per call site otherwise);
- *   2. bright = MAX2R(E, 0.0) with `#define MAX2R(a, b) ((b) > (a) ? (b) : (a))`: testing
- *      0.0 first hoists its mtc1 pair.
- * They are not applied to the NON_MATCHING code: with them, `make -C port verify` diverges at
- * frame 1360 (emulator vs native, front-end counters off by one; probably a timing race the
- * slower/faster code exposes), so the port keeps this form.
- * IDO's FP temp choice is whole-function (a spelling change at the end moves registers at the
- * start). A scripted greedy/random search over ~60 spelling sites (MIN/MAX/FABS operand orders,
- * compare directions, sum/product operand orders) got the register diffs to 619 at best, with
- * mixed macro spellings that look like noise. Fixed earlier: the MAX with gRouteRevealMin is
+ * Matched (Oct 2026). The levers, besides the earlier ones (the MAX with gRouteRevealMin is
  * "(AB28 > e) ? AB28 : e", the colour factors are (f32) u8, *lon gets an int ternary, the acos
- * sign goes first (as in fe_globe_draw_plane). Also tried earlier: statement/declaration-initializer
- * orders, matrix spellings, a pos[3] array.
+ * sign goes first as in fe_globe_draw_plane):
+ *   - `switch (gGlobePlanet) { case 3: ... break; default: ... }`: the case label stops ugen
+ *     caching x/y in FP registers across the hud_project_point call (1953 -> 1947 insns);
+ *   - MAX2R (0.0 / 0.001 tested first) for bright and for the curve's falloff;
+ *   - the colour sums written (0.5 - |t - 0.5|) * c1 + |t - 0.5| * c0: IDO hoists the FABS
+ *     ternaries left to right, so this decides which of them lands in $f22 and which in $f20;
+ *   - `gdl = arg1;` before the other initialisers (the $t2/$t5 pair at the top).
+ * IDO -O1 hands out FP temporaries from a queue that carries over from the end of the function to
+ * its start, so one wrong spelling anywhere renumbers the FP registers everywhere. Two compiles
+ * with the same allocation pattern differ only by a consistent renaming of $f4..$f18; the first
+ * line where no single renaming fits marks the real divergence (scratchpad match100_sigma.py).
+ * All of these are exact rewrites (commutative sums and products, and ternaries that pick the
+ * same operand for NaN), so the port computes the same values.
  */
-#ifdef NON_MATCHING
-/* (The NON_MATCHING build uses this draft; checks in tools_port/checks/fe_11530.txt.) */
 /* gSolarNodeMtx seen as a struct (the same address) */
 typedef struct {
     Mtx pad[12];
@@ -672,6 +668,7 @@ typedef struct {
 #define D_80217B70x (*(GlobeMtx *) gSolarNodeMtx)
 
 #define FABS(x) ((x) > 0 ? (x) : -(x))
+#define MAX2R(a, b) ((b) > (a) ? (b) : (a))
 
 /* One great-circle arc between two levels (0x801FA74C).
  * One route between two levels: an arc of line segments over the globe, coloured r0..r1 along it. */
@@ -713,9 +710,9 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
     u8 lit;
     u32 extra;
 
+    gdl = arg1;
     unk117 = 1;
     lit = 0;
-    gdl = arg1;
     scale = 1.0f;
     if (to == gGlobeSelLevel || players[playerNumber].medal[from] == 0) {
         u8 tmp;
@@ -796,31 +793,35 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
         y = (a * y0 + b * y1) * scale;
         z = (a * z0 + b * z1) * scale;
         if (*out != -1 && i < 2) {
-            if (gGlobePlanet == 3) {
-                if (i != 0) {
-                    hud_project_point(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
-                                  &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
-                    *lon = math_angle_2d_deg(sx0, sy0, sx1, sy1);
-                } else {
-                    hud_project_point(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
-                                  &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
-                }
-            } else if (i != 0) {
-                *lon = (from < to) ? 0 : 180;
+            switch (gGlobePlanet) {
+                case 3:
+                    if (i != 0) {
+                        hud_project_point(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
+                                          &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
+                        *lon = math_angle_2d_deg(sx0, sy0, sx1, sy1);
+                    } else {
+                        hud_project_point(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
+                                          &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
+                    }
+                    break;
+                default:
+                    if (i != 0) {
+                        *lon = (from < to) ? 0 : 180;
+                    }
             }
         }
         v->v.ob[0] = x;
         v->v.ob[1] = y;
         v->v.ob[2] = z;
-        bright = MAX2((x * gGlobeCamX + y * gGlobeCamY + z * gGlobeCamZ) / scale / 250000.0, 0.0);
+        bright = MAX2R((x * gGlobeCamX + y * gGlobeCamY + z * gGlobeCamZ) / scale / 250000.0, 0.0);
         if (curved) {
-            extra = 1.0 / MAX2(FABS(bright - angd), 0.001) * dmm * dmm * mmm;
+            extra = 1.0 / MAX2R(FABS(bright - angd), 0.001) * dmm * dmm * mmm;
         } else {
             extra = 0;
         }
-        v->v.cn[0] = MIN2(255.0, (FABS(t - 0.5) * (f32) r0 + (0.5 - FABS(t - 0.5)) * (f32) r1) * 2.0 + extra);
-        v->v.cn[1] = MIN2(255.0, (FABS(t - 0.5) * (f32) g0 + (0.5 - FABS(t - 0.5)) * (f32) g1) * 2.0 * bright + extra);
-        v->v.cn[2] = MIN2(255.0, (FABS(t - 0.5) * (f32) b0 + (0.5 - FABS(t - 0.5)) * (f32) b1) * 2.0 * (1.0 - bright) + extra);
+        v->v.cn[0] = MIN2(255.0, ((0.5 - FABS(t - 0.5)) * (f32) r1 + FABS(t - 0.5) * (f32) r0) * 2.0 + extra);
+        v->v.cn[1] = MIN2(255.0, ((0.5 - FABS(t - 0.5)) * (f32) g1 + FABS(t - 0.5) * (f32) g0) * 2.0 * bright + extra);
+        v->v.cn[2] = MIN2(255.0, ((0.5 - FABS(t - 0.5)) * (f32) b1 + FABS(t - 0.5) * (f32) b0) * 2.0 * (1.0 - bright) + extra);
         v->v.cn[3] = gGlobeOverlayAlpha * bright / (2 - curved);
         if (i != 0 && !found && lit && bright > 0.0f) {
             if (!loaded) {
@@ -833,9 +834,6 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
     gRouteCount++;
     return gdl;
 }
-#else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/fe_globe_draw_route.s")
-#endif
 
 /* The marker flying between two levels (0x801FC5B8).
  * The plane icon flying along the great circle between two levels. */

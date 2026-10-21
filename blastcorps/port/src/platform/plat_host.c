@@ -419,8 +419,13 @@ static int watch_filter(EXCEPTION_POINTERS *ep) {
         fprintf(stderr, "WATCH: frame %u write %08lX eip=%08lX stack", plat_frames(),
                 (unsigned long) er->ExceptionInformation[1], (unsigned long) c->Eip);
 #endif
-        for (i = 0; i < 64 && k < 8; i++)
-            if (sp[i] >= lo + 0x1000 && sp[i] < hi) fprintf(stderr, " %08llX", (unsigned long long) sp[i]), k++;
+        {
+            /* not past the stack's top: near the top of a fiber's stack, 64 words
+             * reach beyond its allocation (the watch then faulted itself) */
+            ULONG_PTR top = (ULONG_PTR) ((NT_TIB *) NtCurrentTeb())->StackBase;
+            for (i = 0; i < 64 && k < 8 && (ULONG_PTR) &sp[i + 1] <= top; i++)
+                if (sp[i] >= lo + 0x1000 && sp[i] < hi) fprintf(stderr, " %08llX", (unsigned long long) sp[i]), k++;
+        }
         fprintf(stderr, "\n");
         g_watch_left--;
         VirtualProtect((void *) g_watch_page, 0x1000, PAGE_READWRITE, &old);

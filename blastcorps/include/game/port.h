@@ -64,6 +64,9 @@
  *                     function fn after code the native port runs in no time;
  *                     when following an emulator, the value the emulator
  *                     read there (port/tools/cmp_spec.py GVI_FUNCS). */
+/*   PORT_GVI_LAST(v)  v, a second use of the counter that IDO takes from the
+ *                     register of the PORT_GVI read just before (no load of
+ *                     its own): when following an emulator, that read's value. */
 /*   PORT_EMU(site, v) v, a value whose timing against the retrace the native
  *                     port can't reproduce (another thread writes it after CPU
  *                     time the native code doesn't take); when following an
@@ -72,10 +75,13 @@
 #if defined(NON_MATCHING) && defined(PORT_HOST)
 unsigned int port_gvi_read(const char *fn, unsigned int v);
 unsigned int port_emu_read(const char *site, unsigned int v);
+unsigned int port_gvi_last(unsigned int v);
 #define PORT_GVI(fn, v) port_gvi_read(fn, v)
+#define PORT_GVI_LAST(v) port_gvi_last(v)
 #define PORT_EMU(site, v) port_emu_read(site, v)
 #else
 #define PORT_GVI(fn, v) (v)
+#define PORT_GVI_LAST(v) (v)
 #define PORT_EMU(site, v) (v)
 #endif
 #define PORT_SAVE_PLAYER 0  /* player record, 0x100 bytes */

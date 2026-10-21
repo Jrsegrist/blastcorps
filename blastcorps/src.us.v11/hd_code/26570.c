@@ -489,9 +489,9 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
     u8 done;
 
     gdl = gfx;
-    dt = (gSchedFrameCount - gYoshiLastTime) * 15;
+    dt = (PORT_GVI("yoshi_run_window", gSchedFrameCount) - gYoshiLastTime) * 15;
     one = 1.0f;
-    gYoshiLastTime = gSchedFrameCount;
+    gYoshiLastTime = PORT_GVI_LAST(gSchedFrameCount);
     gYoshiPulse += gYoshiPulseDir * dt;
     redraw = 0;
     if (gYoshiPulse >= 256) {
@@ -587,10 +587,10 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
         }
     }
     if (redraw) {
-        gYoshiStateTime = gSchedFrameCount;
+        gYoshiStateTime = PORT_GVI("yoshi_run_window", gSchedFrameCount);
         switch (yoshiState) {
             case 8:
-                gYoshiStateTime = gSchedFrameCount - gYoshiOpenTime * gYoshiOpen * gYoshiScale;
+                gYoshiStateTime = PORT_GVI("yoshi_run_window", gSchedFrameCount) - gYoshiOpenTime * gYoshiOpen * gYoshiScale;
             case 1:
                 yoshiState = 4;
                 gYoshiScale = 1.0f;
@@ -636,7 +636,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 gYoshiScroll = gYoshiScrollGoal;
                 break;
             case 4:
-                gYoshiStateTime = (gYoshiOpen - one) * gYoshiOpenTime + gSchedFrameCount;
+                gYoshiStateTime = (gYoshiOpen - one) * gYoshiOpenTime + PORT_GVI("yoshi_run_window", gSchedFrameCount);
             case 2:
                 yoshiState = 8;
                 sound = arg->closeSound;
@@ -657,7 +657,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
             if (arg->flags & 0x100000) {
                 done = gYoshiScroll < (f32) (arg->h / 8 - gYoshiItems[arg->unkE + arg->unk10 - 1].y);
             } else {
-                done = arg->unkC != 0 && (gSchedFrameCount - gYoshiStateTime) / 60.0f > arg->unkC &&
+                done = arg->unkC != 0 && (PORT_GVI("yoshi_run_window", gSchedFrameCount) - gYoshiStateTime) / 60.0f > arg->unkC &&
                        (!(arg->flags & 0x400000) || !(gYoshiTypeState != 0));
             }
             if (done) {
@@ -669,13 +669,13 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                     music_fade_to(0.0f);
                 }
                 yoshiState = 8;
-                gYoshiStateTime = gSchedFrameCount;
+                gYoshiStateTime = PORT_GVI("yoshi_run_window", gSchedFrameCount);
             }
             break;
         case 4:
-            gYoshiOpen = (gSchedFrameCount - gYoshiStateTime) / gYoshiOpenTime;
+            gYoshiOpen = (PORT_GVI("yoshi_run_window", gSchedFrameCount) - gYoshiStateTime) / gYoshiOpenTime;
             if (gYoshiOpen > one) {
-                gYoshiStateTime = gSchedFrameCount;
+                gYoshiStateTime = PORT_GVI_LAST(gSchedFrameCount);
                 yoshiState = 2;
                 gYoshiOpen = one;
                 if (arg->flags & 0x40) {
@@ -696,7 +696,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
             }
             break;
         case 8:
-            gYoshiOpen = one - (gSchedFrameCount - gYoshiStateTime) / gYoshiOpenTime;
+            gYoshiOpen = one - (PORT_GVI("yoshi_run_window", gSchedFrameCount) - gYoshiStateTime) / gYoshiOpenTime;
             if (gYoshiOpen < 0.001) {
                 gYoshiOpen = 0.0f;
                 yoshiState = 1;
@@ -812,12 +812,12 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 }
                 gYoshiScrollGoal += gYoshiItems[arg->sel].y - gYoshiItems[next].y;
                 arg->sel = next;
-                gYoshiStateTime = gSchedFrameCount;
+                gYoshiStateTime = PORT_GVI("yoshi_run_window", gSchedFrameCount);
             }
         }
         if (arg->flags & 0x4000) {
             if (arg->flags & 0x100000) {
-                if (arg->unkC == 0 || !((gSchedFrameCount - gYoshiStateTime) / 60.0f < arg->unkC)) {
+                if (arg->unkC == 0 || !((PORT_GVI("yoshi_run_window", gSchedFrameCount) - gYoshiStateTime) / 60.0f < arg->unkC)) {
                     if (arg->flags & 0x800000) {
                         gYoshiScroll -= 0.5;
                     } else {
@@ -922,7 +922,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                         visible = 0;
                     }
                     prev = gYoshiSpriteTick[node->unk14];
-                    cur = gYoshiSpriteTick[node->unk14] = FRAMES(gSchedFrameCount) / snd->speed % snd->numFrames;
+                    cur = gYoshiSpriteTick[node->unk14] = FRAMES(PORT_GVI("yoshi_run_window", gSchedFrameCount)) / snd->speed % snd->numFrames;
                     if (cur != prev && (visible || gYoshiSpriteFrame[node->unk14])) {
                         gYoshiSpriteFrame[node->unk14] = (gYoshiSpriteFrame[node->unk14] + 1) % snd->numFrames;
                     }
@@ -966,7 +966,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                                       gYoshiAlpha * gYoshiColors[node->selColor][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + gYoshiScrollY) / 65025 / 2,
                                       0, 0, 0,
                                       gYoshiAlpha * gYoshiColors[node->selColor][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + gYoshiScrollY + node->h) / 65025 / 2);
-                    } else if (!(node->flags & 4) || FRAMES(gSchedFrameCount % 23) < 16) {
+                    } else if (!(node->flags & 4) || FRAMES(PORT_GVI("yoshi_run_window", gSchedFrameCount) % 23) < 16) {
                         text_print_gradient((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? gYoshiScrollY : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
@@ -983,8 +983,8 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
             text = yoshi_get_item_text(arg, i, 0);
             if (!(node->flags & 0x800)) {
                 if (i == arg->sel) {
-                    if ((!(node->flags & 4) || FRAMES(gSchedFrameCount % 23) < 16) &&
-                        (!(node->flags & 0x40) || FRAMES(gSchedFrameCount % 15) < 11)) {
+                    if ((!(node->flags & 4) || FRAMES(PORT_GVI("yoshi_run_window", gSchedFrameCount) % 23) < 16) &&
+                        (!(node->flags & 0x40) || FRAMES(PORT_GVI("yoshi_run_window", gSchedFrameCount) % 15) < 11)) {
                         text_print_gradient((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
                                       ((node->flags & 0x1000) ? gYoshiScrollY : 0) + (node->y - halfH), node->w,
                                       node->h, 1, gYoshiColors[node->selColor][0], gYoshiColors[node->selColor][1],
@@ -994,7 +994,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                                       gYoshiColors[node->selColor][6],
                                       gYoshiAlpha * gYoshiColors[node->selColor][7] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + gYoshiScrollY + node->h) / 65025);
                     }
-                } else if (!(node->flags & 4) || FRAMES(gSchedFrameCount % 23) < 16) {
+                } else if (!(node->flags & 4) || FRAMES(PORT_GVI("yoshi_run_window", gSchedFrameCount) % 23) < 16) {
                     text_print_gradient((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
                                   ((node->flags & 0x1000) ? gYoshiScrollY : 0) + (node->y - halfH), node->w, node->h,
                                   1, gYoshiColors[node->color][0], gYoshiColors[node->color][1],
@@ -1047,7 +1047,7 @@ void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese) {
         case 1:
             if (yoshiState == 2) {
                 gYoshiTypeState = 2;
-                gYoshiTypeTime = gSchedFrameCount;
+                gYoshiTypeTime = PORT_GVI("yoshi_get_item_text", gSchedFrameCount);
             }
             break;
         case 2:
@@ -1058,8 +1058,8 @@ void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese) {
                 return text;
             }
             if (idx <= gYoshiTypeItem) {
-                if (gSchedFrameCount - gYoshiTypeTime >= 5) {
-                    gYoshiTypeTime = gSchedFrameCount;
+                if (PORT_GVI("yoshi_get_item_text", gSchedFrameCount) - gYoshiTypeTime >= 5) {
+                    gYoshiTypeTime = PORT_GVI_LAST(gSchedFrameCount);
                     gYoshiTypeChar++;
                     if (japanese) {
                         ch = jtext[gYoshiTypeChar];
@@ -1101,7 +1101,7 @@ void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese) {
                     if (next == gYoshiTypeItem) {
                         gYoshiTypeState = 0;
                         if ((arg0->flags & 0x400000) && yoshiState == 2) {
-                            gYoshiStateTime = gSchedFrameCount;
+                            gYoshiStateTime = PORT_GVI("yoshi_get_item_text", gSchedFrameCount);
                         }
                     } else {
                         snd_play(gSfxBank, SFX_TYPE_NEWLINE, NULL);
@@ -1110,7 +1110,7 @@ void *yoshi_get_item_text(YoshiWindow *arg0, u16 idx, u8 japanese) {
                     gYoshiTypeChar = 0;
                 } else {
                     gYoshiTypeBuf[gYoshiTypeChar] = gTextTerminator[lang];
-                    if (!(node->flags & 0x4000) && gSchedFrameCount % 10 >= 6) {
+                    if (!(node->flags & 0x4000) && PORT_GVI("yoshi_get_item_text", gSchedFrameCount) % 10 >= 6) {
                         gYoshiTypeBuf[gYoshiTypeChar] = gYoshiTypeCursor[lang];
                         gYoshiTypeBufNext[gYoshiTypeChar] = gTextTerminator[lang];
                     }

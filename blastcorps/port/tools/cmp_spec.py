@@ -156,6 +156,15 @@ SOUND_FUNCS = ["snd_play", "snd_post_pitch_step", "snd_modify", "snd_set_slot_vo
 for name in SOUND_FUNCS:
     if name in func_sizes:
         ENTRY[func_sizes[name][0]] = name
+# ... and the scheduler's client list (2C560.c): whether a retrace message reaches
+# a client depends on whether the game thread adds (removes) it before or after
+# that retrace.  hd_load_front_end adds the pak thread's client after inflating
+# the front end, CPU time the native code doesn't take (levels 23/45: the retrace
+# landed before the add in the emulator, after it natively).
+SCHED_FUNCS = ["sched_add_client", "sched_remove_client"]
+for name in SCHED_FUNCS:
+    if name in func_sizes:
+        ENTRY[func_sizes[name][0]] = name
 # CMP_CALLS=func_a,func_b: log every call of these (for `compare.py calls`)
 CALLS = {}
 for n in filter(None, os.environ.get("CMP_CALLS", "").split(",")):
@@ -185,8 +194,14 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 # Also gSchedRetraceCount (the scheduler's retrace count): hd_front_end 00000.c
 # fe_digger_frame (the vehicle select screen's title pulse).  And 50670.c
 # ghost_record (the ghost recorder's sample time, gSchedRetraceCount - start): a
-# retrace can land between its entry (a switch point) and the read.
-GVI_FUNCS = ["hd_build_frame_dl", "fe_digger_frame", "ghost_record"]
+# retrace can land between its entry (a switch point) and the read.  26570.c
+# yoshi_run_window (the Yoshi window's open/close fade, gYoshiOpen, read after
+# yoshi_select_items) and yoshi_get_item_text (the typewriter's blinking cursor,
+# `gSchedFrameCount % 10`, read after copying the text): level 31's closing fade
+# and verify's cursor glyph at frame 1360 flipped with the NM ROM's code layout.
+# Every gSchedFrameCount load in a GVI_FUNCS function must be a PORT_GVI in the C
+# (PORT_GVI_LAST where IDO reuses the register instead of loading again).
+GVI_FUNCS = ["hd_build_frame_dl", "fe_digger_frame", "ghost_record", "yoshi_run_window", "yoshi_get_item_text"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]

@@ -378,10 +378,22 @@ void plat_clock_report(void) {
 /* include/game/port.h PORT_GVI: the game's retrace counter as FN reads it
  * mid-function; following an emulator, the value it read there (it spent CPU
  * time the native code doesn't before the read: cmp_spec.py GVI_FUNCS). */
+static u32 g_gvi_last;
+static int g_gvi_have_last;
+
 u32 port_gvi_read(const char *fn, u32 v) {
     u64 x;
-    if (g_nkeys[4] && plat_clock_key_take_name(4, fn, &x)) return (u32) x;
+    if (g_nkeys[4] && plat_clock_key_take_name(4, fn, &x)) v = (u32) x;
+    g_gvi_last = v;
+    g_gvi_have_last = 1;
     return v;
+}
+
+/* include/game/port.h PORT_GVI_LAST: a use of the counter that the original
+ * code takes from the register of the PORT_GVI read just before it (IDO kept
+ * the loaded value; no second load, so the emulator logs no value for it). */
+u32 port_gvi_last(u32 v) {
+    return g_gvi_have_last ? g_gvi_last : v;
 }
 
 /* include/game/port.h PORT_EMU: following an emulator, the value it read at

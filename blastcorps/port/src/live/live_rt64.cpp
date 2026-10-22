@@ -50,7 +50,11 @@
  *     --present-pacing P  timer (default: RT64's own present timer, the lowest latency) or
  *                       vsync (with vsync on, pictures go to the display on its refreshes,
  *                       port patch 0005: even under load, about 5-10 ms more latency);
- *                       short for --set video.present_pacing=P (bc.ini, the settings menu)
+ *                       short for --set video.present_pacing=P (bc.ini, the settings menu);
+ *                       also vrr (G-Sync / FreeSync) and auto (applyPresentPacing)
+ *     --present-legacy  (testing) RT64's own present timer, as before port patch 0007
+ *   Frame times (present-to-present intervals, CPU and GPU time per picture, the
+ *   display's state) go to the log every 10 s and at exit (frameLog).
  *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
  *                       --set audio.volume=50
  *     --resolution R    internal resolution: window (default), 1 (320x240), 2, 3, 4 ...
@@ -77,7 +81,9 @@
  *     --interp-log      log every frame's camera motion (the interpolation cut test) and
  *                       tagged objects that jumped
  *     --tag-test MASK   (testing) tagged interpolation experiments: 1 no vertex blending, 2 HUD
- *                       matched like the rest, 4 no decomposition, 8 ORDER_AUTO, 16 every ID auto
+ *                       matched like the rest, 4 no decomposition, 8 ORDER_AUTO, 16 every ID auto,
+ *                       32 no pivots for parts turning about an axle (live_interp.cpp wheelPivot),
+ *                       64 / 512 with --interp-log: vehicle parts' turns and pivots / vehicle 1's matrices
  *     --display-hz N    (testing) tell RT64 the display runs at N Hz (its cap on --framerate)
  *     --wseq F:MS       (testing) from frame F, every new picture the window shows for MS ms
  *                       (seq_F_NN.png + seq_F.txt with the times, in --shot-dir)
@@ -639,7 +645,8 @@ double steadyMs(const RT64::Timestamp &t) {
     return ns / 1e6 - double(g_tStart.QuadPart) * 1e3 / double(g_freq.QuadPart);
 }
 
-void presentedHook(const RT64::PresentQueue::PresentedInfo &p) {
+/* (called by framePresented, the present thread's hook, with --flip-log) */
+void flipPresented(const RT64::PresentQueue::PresentedInfo &p) {
     PresentedRec r = {p.presentId, p.frameIndex, p.frameCount, p.hold, 0, steadyMs(p.submitTime),
                       steadyMs(p.presentTime)};
     UINT n = 0;
@@ -665,7 +672,6 @@ void flipThread() {
 
 void flipStart() {
     if (g_flip.path == nullptr) return;
-    g_app->presentQueue->presentedHook = presentedHook;
     if (!g_opt.vulkan) {
         auto *sc = static_cast<plume::D3D12SwapChain *>(g_app->swapChain.get());
         g_flip.dxgi = sc->d3d;
@@ -680,7 +686,6 @@ void flipWrite() {
     g_flip.path = nullptr;
     g_flip.stop = true;
     if (g_flip.thread.joinable()) g_flip.thread.join();
-    if (g_app != nullptr) g_app->presentQueue->presentedHook = nullptr;
     std::lock_guard<std::mutex> lock(g_flip.mutex);
     FILE *f = static_cast<FILE *>(host_fopen(path, "w"));
     if (f == nullptr) return;
@@ -716,11 +721,13 @@ struct Counter {
     live::CounterStats stats;
 } g_counter;
 
-void counterPresent() {
-    const double t = secondsSince(g_tStart);
+/* (the present thread: framePresented, at every swap-chain present) */
+void counterPresentAt(double t) {
     std::lock_guard<std::mutex> lock(g_counter.mutex);
     g_counter.times.push_back(t);
 }
+void counterGraph(live::CounterStats &s);
+void counterStutterReset();
 
 void counterApply() {
     const bool on = g_cfg.fpsCounter != 0;
@@ -730,6 +737,7 @@ void counterApply() {
         g_counter.times.clear();
         g_counter.graph.clear();
         g_counter.lastUpdate = -1;
+        counterStutterReset();
     }
     g_counter.stats.mode = g_cfg.fpsCounter;
     g_counter.stats.corner = g_cfg.fpsCorner;
@@ -762,15 +770,13 @@ void counterTick(unsigned frames) {
                 sum += ms;
                 mx = std::max(mx, ms);
                 n++;
-                g_counter.graph.push_back(float(ms));
             }
             prev = x;
         }
         if (!t.empty()) g_counter.lastPresent = t.back();
-        if (g_counter.graph.size() > 120) g_counter.graph.erase(g_counter.graph.begin(), g_counter.graph.end() - 120);
         s.frameMs = n != 0 ? sum / n : 0;
         s.frameMsMax = mx;
-        s.graph = g_counter.graph;
+        counterGraph(s);   /* the last 240 present intervals, the stutters (frame times) */
         s.note = g_cfg.framerate == 0 ? "original frame rate"
                  : live::interpTagsOn() ? "interpolated, tagged" : "interpolated, auto";
         g_counter.lastUpdate = now;
@@ -796,6 +802,277 @@ unsigned displayHz() {
     dm.dmSize = sizeof dm;
     if (!GetMonitorInfoW(mon, &mi) || !EnumDisplaySettingsW(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm)) return 0;
     return dm.dmDisplayFrequency;
+}
+
+/* ---- frame times (always measured; bc.log every 10 s and at exit) -----------
+ * Every swap-chain present (RT64's present thread, port patch 0005/0007's
+ * presentedHook): the interval from the present before, against the target
+ * (one picture at RT64's target rate when it draws in-between pictures,
+ * else the game's own rate), into a histogram (0.05 ms bins: percentiles
+ * without keeping the intervals) and a ring of the last 240 for the F2
+ * counter's graph; with D3D12, DXGI's frame statistics show whether the
+ * display's refreshes followed the presents (a variable refresh rate).  The
+ * main thread's time per retrace is split into the game (and the host's
+ * per-frame work), reading the display lists (processDisplayLists), RT64's
+ * updateScreen and the pacing wait; the GPU's time per rendered picture comes
+ * from RT64's timestamp queries.  A block of lines in the log whenever a
+ * video setting changes and at exit, one line every 10 s.  Costs a few clock
+ * reads per picture.  It only reads clocks: the game never sees it. */
+struct Hist {
+    static constexpr int kBins = 5000;   /* 0.05 ms each, up to 250 ms */
+    std::vector<uint32_t> bins = std::vector<uint32_t>(kBins + 1);
+    uint64_t n = 0, over15 = 0, over2 = 0;
+    double sum = 0, sq = 0, max = 0, targetSum = 0;
+    void add(double ms, double target) {
+        bins[std::min(kBins, int(ms / 0.05))]++;
+        n++;
+        sum += ms;
+        sq += ms * ms;
+        max = std::max(max, ms);
+        targetSum += target;
+        over15 += ms > 1.5 * target;
+        over2 += ms > 2.0 * target;
+    }
+    double pct(double p) const {
+        if (n == 0) return 0;
+        const uint64_t want = uint64_t(std::ceil(p * double(n)));
+        uint64_t c = 0;
+        for (int i = 0; i <= kBins; i++)
+            if ((c += bins[i]) >= std::max<uint64_t>(1, want)) return std::min(max, (i + 0.5) * 0.05);
+        return max;
+    }
+    double mean() const { return n ? sum / double(n) : 0; }
+    double sd() const { return n > 1 ? std::sqrt(std::max(0.0, sq / double(n) - mean() * mean())) : 0; }
+    void reset() { *this = Hist(); }
+};
+/* main-thread and GPU times of a span */
+struct Busy {
+    double game = 0, dl = 0, submit = 0, wait = 0, gpu = 0, gpuMax = 0, presentWait = 0;
+    unsigned gpuN = 0, retraces = 0;
+    uint32_t rendered = 0, reduced = 0, late = 0, cut = 0, skipped = 0, resyncs = 0;   /* RT64's counters at the start */
+};
+struct FrameTimes {
+    std::mutex mutex;                    /* present thread -> main thread */
+    Hist seg, win;                       /* this settings segment; the last 10 s */
+    double last = -1;                    /* the last present (ms since start) */
+    unsigned gaps = 0;                   /* intervals over 250 ms (loads, the menu): not in the statistics */
+    float ring[240] = {};
+    unsigned ringPos = 0, ringN = 0;
+    unsigned stutters = 0;               /* over 1.5x the target since the counter was turned on */
+    double targetMs = 0;
+    unsigned syncCount[5] = {};          /* presents by sync interval 0..4 */
+    /* the display's refreshes (DXGI frame statistics): intervals of one refresh */
+    UINT lastRefresh = 0;
+    LONGLONG lastQpc = 0;
+    double refSum = 0, refSq = 0;
+    unsigned refN = 0, refLong = 0;      /* refreshes over 1.2x the nominal period: variable refresh */
+    Busy segBusy, winBusy;
+    double segStart = 0, winStart = 0;
+    unsigned segment = 0;
+    bool suspended = false;              /* the menu is open */
+    IDXGISwapChain *dxgi = nullptr;
+    uint32_t gpuIdx = 0;
+    double viExit = -1;                  /* the main thread left liveVi (s) */
+    double dlInTick = 0;                 /* processDisplayLists time since then */
+    unsigned hz = 0;                     /* the display's rate (main thread, at each segment) */
+} g_ft;
+
+void counterPresentAt(double t);
+void flipPresented(const RT64::PresentQueue::PresentedInfo &p);
+
+void framePresented(const RT64::PresentQueue::PresentedInfo &p) {
+    if (g_flip.path != nullptr) flipPresented(p);
+    const double t = steadyMs(p.presentTime);
+    const double target = p.targetRate > 0 && p.targetRate > p.viOriginalRate ? 1000.0 / p.targetRate
+                          : p.viOriginalRate > 0 ? 1000.0 / p.viOriginalRate : 1000.0 / 30.0;
+    if (g_counter.on) counterPresentAt(t / 1e3);
+    std::lock_guard<std::mutex> lock(g_ft.mutex);
+    g_ft.syncCount[std::min(4u, p.syncInterval)]++;
+    if (p.readyTime != RT64::Timestamp()) {
+        const double w = steadyMs(p.presentTime) - steadyMs(p.readyTime);
+        if (w > 0 && w < 250) g_ft.segBusy.presentWait += w, g_ft.winBusy.presentWait += w;
+    }
+    if (g_ft.last >= 0 && !g_ft.suspended) {
+        const double ms = t - g_ft.last;
+        if (ms > 250.0) {
+            g_ft.gaps++;
+        } else {
+            g_ft.seg.add(ms, target);
+            g_ft.win.add(ms, target);
+            g_ft.ring[g_ft.ringPos] = float(ms);
+            g_ft.ringPos = (g_ft.ringPos + 1) % 240;
+            g_ft.ringN = std::min(240u, g_ft.ringN + 1);
+            if (ms > 1.5 * target) g_ft.stutters++;
+        }
+    }
+    g_ft.last = t;
+    g_ft.targetMs = target;
+    if (g_ft.dxgi != nullptr) {
+        DXGI_FRAME_STATISTICS s = {};
+        if (SUCCEEDED(g_ft.dxgi->GetFrameStatistics(&s))) {
+            if (g_ft.lastRefresh != 0 && s.SyncRefreshCount == g_ft.lastRefresh + 1) {
+                const double ms = double(s.SyncQPCTime.QuadPart - g_ft.lastQpc) * 1e3 / double(g_freq.QuadPart);
+                const unsigned hz = g_ft.hz;
+                if (ms > 0 && ms < 100) {
+                    g_ft.refSum += ms;
+                    g_ft.refSq += ms * ms;
+                    g_ft.refN++;
+                    if (hz != 0 && ms > 1.2 * 1000.0 / hz) g_ft.refLong++;
+                }
+            }
+            g_ft.lastRefresh = s.SyncRefreshCount;
+            g_ft.lastQpc = s.SyncQPCTime.QuadPart;
+        }
+    }
+}
+
+/* RT64's counters now (patch 0007) */
+void rt64Counters(Busy &b) {
+    const RT64::WorkloadQueue &w = *g_app->workloadQueue;
+    const RT64::PresentQueue &q = *g_app->presentQueue;
+    b.rendered = w.picturesRendered;
+    b.reduced = w.framesReduced;
+    b.late = w.framesSkippedLate;
+    b.cut = w.framesCut;
+    b.skipped = q.presentsSkipped;
+    b.resyncs = q.scheduleResyncs;
+}
+
+const char *pacingName();
+
+/* the log lines of a span: `head` names it */
+void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bool full) {
+    Busy now;
+    rt64Counters(now);
+    const double pics = double(std::max<uint64_t>(1, h.n + 1));
+    if (!full) {
+        host_log("live: frame times %s: %llu pictures in %.1f s, interval ms mean %.2f sd %.2f p99 %.2f max %.1f, "
+                 "over 1.5x %llu, over 2x %llu; CPU ms per picture game %.2f lists %.2f submit %.2f wait %.2f; "
+                 "GPU %.2f ms\n",
+                 head, (unsigned long long) h.n, seconds, h.mean(), h.sd(), h.pct(0.99), h.max,
+                 (unsigned long long) h.over15, (unsigned long long) h.over2, b.game / pics, b.dl / pics,
+                 b.submit / pics, b.wait / pics, b.gpuN ? b.gpu / b.gpuN : 0.0);
+        return;
+    }
+    const double target = h.n ? h.targetSum / double(h.n) : 0;
+    host_log("live: frame times (%s): %llu presents in %.1f s (%.1f/s), target %.2f ms; present-to-present ms: "
+             "mean %.3f sd %.3f p50 %.2f p95 %.2f p99 %.2f max %.2f; over 1.5x the target %llu, over 2x %llu; "
+             "%u gaps over 250 ms left out\n",
+             head, (unsigned long long) h.n, seconds, seconds > 0 ? double(h.n) / seconds : 0.0, target, h.mean(),
+             h.sd(), h.pct(0.5), h.pct(0.95), h.pct(0.99), h.max, (unsigned long long) h.over15,
+             (unsigned long long) h.over2, g_ft.gaps);
+    host_log("live: frame times (%s): CPU ms per presented picture (main thread): game %.3f, display lists %.3f, "
+             "RT64 submit %.3f, pacing wait %.3f; present thread waiting %.3f; GPU ms per rendered picture %.3f "
+             "(max %.2f, %u pictures)\n",
+             head, b.game / pics, b.dl / pics, b.submit / pics, b.wait / pics, b.presentWait / pics,
+             b.gpuN ? b.gpu / b.gpuN : 0.0, b.gpuMax, b.gpuN);
+    int pw = 0, ph = 0;
+    if (g_window != nullptr) SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+    float sx, sy;
+    {
+        std::scoped_lock<std::mutex> lock(g_app->sharedQueueResources->configurationMutex);
+        sx = g_app->sharedQueueResources->resolutionScale.x;
+        sy = g_app->sharedQueueResources->resolutionScale.y;
+    }
+    const bool tearing = !g_opt.vulkan && static_cast<plume::D3D12Interface *>(g_app->renderInterface.get())->allowTearing;
+    char vrr[160] = "no frame statistics";
+    if (g_ft.refN > 0) {
+        const double m = g_ft.refSum / g_ft.refN, sd = std::sqrt(std::max(0.0, g_ft.refSq / g_ft.refN - m * m));
+        snprintf(vrr, sizeof vrr, "refresh ms mean %.3f sd %.3f, %u of %u refreshes over 1.2x the nominal: %s", m, sd,
+                 g_ft.refLong, g_ft.refN,
+                 g_ft.refLong * 20 > g_ft.refN ? "the refresh followed the presents (variable refresh seen)"
+                                               : "fixed refresh");
+    }
+    host_log("live: frame times (%s): display %u Hz, RT64 target %u/s (game %u/s), pacing %s, vsync %s, %s, "
+             "tearing %s; %s; window %dx%d, drawn at %.0fx%.0f, MSAA %ux; sync intervals 0:%u 1:%u 2+:%u\n",
+             head, displayHz(), unsigned(g_app->sharedQueueResources->targetRate),
+             unsigned(g_app->sharedQueueResources->viOriginalRate), pacingName(), g_opt.vsync ? "on" : "off",
+             g_opt.fullscreen ? "fullscreen" : "windowed", tearing ? "supported" : "not supported", vrr, pw, ph,
+             320.0f * sx, 240.0f * sy, g_app->userConfig.msaaSampleCount(), g_ft.syncCount[0], g_ft.syncCount[1],
+             g_ft.syncCount[2] + g_ft.syncCount[3] + g_ft.syncCount[4]);
+    host_log("live: frame times (%s): RT64 rendered %u pictures; in-between pictures not drawn: %u reduced (present "
+             "thread late), %u skipped (rendering late), %u cut (next frame waiting); %u presents skipped; even "
+             "timer restarted %u times (a picture over a period late)\n",
+             head, now.rendered - b.rendered, now.reduced - b.reduced, now.late - b.late, now.cut - b.cut,
+             now.skipped - b.skipped, now.resyncs - b.resyncs);
+}
+
+/* a new settings segment (start-up, a video setting changed): the last one's block in the log */
+void frameSegment(const char *why) {
+    if (g_app == nullptr) return;
+    const double now = secondsSince(g_tStart);
+    std::lock_guard<std::mutex> lock(g_ft.mutex);
+    if (g_ft.segment > 0 && g_ft.seg.n > 0) {
+        char head[160];
+        snprintf(head, sizeof head, "segment %u, until %s", g_ft.segment, why);
+        frameLog(head, g_ft.seg, g_ft.segBusy, now - g_ft.segStart, true);
+    }
+    g_ft.segment++;
+    g_ft.hz = displayHz();
+    g_ft.seg.reset();
+    g_ft.segBusy = Busy();
+    rt64Counters(g_ft.segBusy);
+    g_ft.segStart = now;
+    g_ft.gaps = 0;
+    g_ft.refSum = g_ft.refSq = 0;
+    g_ft.refN = g_ft.refLong = 0;
+    memset(g_ft.syncCount, 0, sizeof g_ft.syncCount);
+}
+
+void busyAdd(double Busy::*f, double ms) {
+    g_ft.segBusy.*f += ms;
+    g_ft.winBusy.*f += ms;
+}
+
+/* each retrace (main thread), after updateScreen: the GPU's times, the 10 s line */
+void frameTick(double gameMs, double submitMs, double waitMs) {
+    std::lock_guard<std::mutex> lock(g_ft.mutex);
+    busyAdd(&Busy::game, gameMs);
+    busyAdd(&Busy::submit, submitMs);
+    busyAdd(&Busy::wait, waitMs);
+    const RT64::ProfilingTimer &p = g_app->workloadQueue->rendererGPUProfiler;
+    const uint32_t idx = p.index();
+    for (uint32_t i = g_ft.gpuIdx; i != idx; i = uint32_t((i + 1) % p.size())) {
+        const double ms = p.data()[i];
+        for (Busy *b : {&g_ft.segBusy, &g_ft.winBusy}) b->gpu += ms, b->gpuMax = std::max(b->gpuMax, ms), b->gpuN++;
+    }
+    g_ft.gpuIdx = idx;
+    const double now = secondsSince(g_tStart);
+    if (g_ft.winStart <= 0) {
+        g_ft.winStart = now;
+    } else if (now - g_ft.winStart >= 10.0) {
+        if (g_ft.win.n > 0) frameLog("(10 s)", g_ft.win, g_ft.winBusy, now - g_ft.winStart, false);
+        g_ft.win.reset();
+        g_ft.winBusy = Busy();
+        g_ft.winStart = now;
+    }
+}
+
+/* the F2 counter (detailed): the last 240 intervals, the stutters since it was turned on */
+unsigned g_stutterBase;
+void counterGraph(live::CounterStats &s) {
+    std::lock_guard<std::mutex> lock(g_ft.mutex);
+    s.graph.clear();
+    for (unsigned i = 0; i < g_ft.ringN; i++) s.graph.push_back(g_ft.ring[(g_ft.ringPos + 240 - g_ft.ringN + i) % 240]);
+    s.targetMs = g_ft.targetMs;
+    s.stutters = g_ft.stutters - g_stutterBase;
+}
+void counterStutterReset() {
+    std::lock_guard<std::mutex> lock(g_ft.mutex);
+    g_stutterBase = g_ft.stutters;
+}
+
+/* at exit */
+void frameEnd() {
+    static bool done;
+    if (g_app == nullptr || g_ft.segment == 0 || done) return;
+    done = true;
+    const double now = secondsSince(g_tStart);
+    std::lock_guard<std::mutex> lock(g_ft.mutex);
+    if (g_ft.seg.n == 0) return;
+    char head[64];
+    snprintf(head, sizeof head, "segment %u, at exit", g_ft.segment);
+    frameLog(head, g_ft.seg, g_ft.segBusy, now - g_ft.segStart, true);
 }
 
 struct Stats {
@@ -974,6 +1251,8 @@ void perfWrite() {
              g_tasks, g_unknownUcode, g_spIntr, g_dpIntr, g_fixedBytes);
     if (g_wseq.thread.joinable()) g_wseq.thread.join();
     flipWrite();
+    frameEnd();
+    if (g_app != nullptr) g_app->presentQueue->presentedHook = nullptr;
     if (g_app != nullptr) g_app->end();
     if (g_window != nullptr) SDL_DestroyWindow(g_window);
     SDL_Quit();
@@ -992,6 +1271,7 @@ void setFullscreen(bool on) {
     int pw, ph;
     SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
     host_log("live: %s (%dx%d pixels)\n", on ? "fullscreen" : "windowed", pw, ph);
+    frameSegment(on ? "fullscreen" : "windowed");
 }
 
 /* widescreen: the visibility test as wide as the picture RT64 draws
@@ -1425,13 +1705,13 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     live::interpTagsBeforeTask(dataPtr, frameDl);
     live::wideBeforeTask();
     LARGE_INTEGER t0, t1;
-    const bool timed = g_cfg.framerate != 0 || g_perf.path != nullptr;
     const int cursor = g_app->workloadQueue->writeCursor;
-    if (timed) QueryPerformanceCounter(&t0);
+    QueryPerformanceCounter(&t0);
     g_app->processDisplayLists(rdramBase(), dataPtr & 0x3FFFFFF, 0, true);
-    if (timed) {
+    {
         QueryPerformanceCounter(&t1);
         const double s = double(t1.QuadPart - t0.QuadPart) / double(g_freq.QuadPart);
+        g_ft.dlInTick += s * 1e3;   /* frame times (main thread only) */
         if (g_cfg.framerate != 0) {
             g_dlSeconds += s;
             g_dlTasks++;
@@ -1448,6 +1728,7 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
 }
 
 unsigned long long g_when0;
+bool g_paceFromSeen;
 unsigned g_nextShot, g_nextWshot;
 bool g_quitRequested;
 unsigned g_hashFrame = ~0u;          /* --texture-hashes */
@@ -1461,6 +1742,10 @@ void packWatch(unsigned viCount);
  * The pacing starts over afterwards.  `shotFrame` != 0: --menu-shot (save
  * the window's picture after a few frames and close the menu). */
 void runMenu(unsigned shotFrame) {
+    {
+        std::lock_guard<std::mutex> lock(g_ft.mutex);   /* frame times: the menu's pictures don't count */
+        g_ft.suspended = true;
+    }
     g_app->state->debuggerInspector.paused = true;
     for (unsigned n = 0; live::menuIsOpen(); n++) {
         if (shotFrame != 0 && n == 2)
@@ -1479,6 +1764,11 @@ void runMenu(unsigned shotFrame) {
         if (live::menuIsOpen()) pumpEvents();
     }
     g_app->state->debuggerInspector.paused = false;
+    {
+        std::lock_guard<std::mutex> lock(g_ft.mutex);
+        g_ft.suspended = false;
+        g_ft.last = -1;
+    }
     if (g_quitRequested) shutdown(0);
     g_t0.QuadPart = 0;   /* pacing: start over from the next retrace */
     /* what is held now (the keys or buttons that closed the menu) doesn't
@@ -1487,6 +1777,13 @@ void runMenu(unsigned shotFrame) {
 }
 
 void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsigned frames) {
+    /* frame times: the main thread since it left the last retrace (the game's
+     * step and the host's per-frame work, less reading the display lists) */
+    const double viEnter = secondsSince(g_tStart);
+    const double sinceExit = g_ft.viExit >= 0 ? (viEnter - g_ft.viExit) * 1e3 : 0.0;
+    const double dlMs = g_ft.dlInTick;
+    double waitMs = 0;
+    g_ft.dlInTick = 0;
     if (g_cfg.framerate != 0) interpVi(*r, viCount);
     if (g_interp.displayHz != 0) g_app->sharedQueueResources->setSwapChainRate(g_interp.displayHz);
     if (r->status != VI_STATUS_REG)
@@ -1524,6 +1821,10 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
      * display's next refresh).  Waiting before handing it over (not after)
      * keeps the hand-over times regular: the game's and RT64's own work for
      * the next retrace happens after it, inside the wait's slack. */
+    if (g_opt.pace && g_opt.paceFrom != 0 && frames >= g_opt.paceFrom && g_t0.QuadPart == 0 && !g_paceFromSeen) {
+        g_paceFromSeen = true;   /* (testing) the frame times from here */
+        frameSegment("--pace-from");
+    }
     if (g_opt.pace && frames >= g_opt.paceFrom) {
         LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
@@ -1546,6 +1847,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
                 t = double(now.QuadPart - g_t0.QuadPart) / double(g_freq.QuadPart);
             }
             perfWait(t - waitFrom);
+            waitMs = (t - waitFrom) * 1e3;
         }
     }
     counterTick(frames);
@@ -1559,8 +1861,14 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
                               double(when - g_when0) / 46875000.0;
         g_app->state->presentDueTime = RT64::Timer::current() - std::chrono::nanoseconds(int64_t(dueAgo * 1e9));
     }
-    const double before = g_opt.paceLog != nullptr ? secondsSince(g_tStart) : 0.0;
+    const double before = secondsSince(g_tStart);
     g_app->updateScreen();
+    const double submitted = secondsSince(g_tStart);
+    {
+        std::lock_guard<std::mutex> lock(g_ft.mutex);
+        busyAdd(&Busy::dl, dlMs);
+    }
+    frameTick(std::max(0.0, sinceExit - dlMs), (submitted - before) * 1e3, waitMs);
     perfTick(frames);
     g_app->state->presentDueTime = RT64::Timestamp();
     if (g_opt.paceLog != nullptr) {
@@ -1595,6 +1903,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
     pumpEvents();
     live::orbitVi(g_pads, g_focused ? SDL_GetKeyboardState(nullptr) : nullptr);
     if (live::menuIsOpen()) runMenu(0);
+    g_ft.viExit = secondsSince(g_tStart);
 }
 
 int liveInput(unsigned short *button, signed char *x, signed char *y) {
@@ -1614,7 +1923,6 @@ const HostLive kLive = {liveBoot, liveGfxTask, liveVi, liveInput, liveAudio};
 /* RT64's present thread, after the picture: --pace-log's times, the menu */
 void drawHook(plume::RenderCommandList *list, plume::RenderFramebuffer *fb) {
     if (g_presentTimes != nullptr) presentHook(list, fb);
-    if (g_counter.on) counterPresent();
     live::menuDraw(list);
 }
 
@@ -1629,6 +1937,14 @@ unsigned msaaSupported() {
     const bool hdr = g_app->shaderLibrary->usesHDR;
     return unsigned(g_app->device->getSampleCountsSupported(RT64::RenderTarget::colorBufferFormat(hdr)) &
                     g_app->device->getSampleCountsSupported(RT64::RenderTarget::depthBufferFormat()));
+}
+
+/* present pacing (applyPresentPacing) */
+bool g_presentLegacy;                /* --present-legacy (testing): RT64's timer as before patch 0007 */
+int g_pacing;                        /* the effective pacing: 0 timer, 1 vsync, 2 vrr */
+constexpr double kVrrMargin = 0.97;  /* vrr: at most this fraction of the display's rate (3 % under, the usual cap) */
+unsigned effectiveDisplayHz() {
+    return g_interp.displayHz != 0 ? g_interp.displayHz : displayHz();
 }
 
 /* bc.ini's video enhancements as RT64's user configuration.  The defaults
@@ -1670,6 +1986,15 @@ void configToRT64(RT64::UserConfiguration &u) {
     } else {
         u.refreshRate = U::RefreshRate::Manual;
         u.refreshRateTarget = g_cfg.framerate;
+    }
+    /* present_pacing = vrr: a little under the display's highest rate (applyPresentPacing) */
+    if (g_pacing == 2 && g_cfg.framerate != 0) {
+        const unsigned hz = effectiveDisplayHz();
+        const unsigned cap = hz != 0 ? unsigned(std::floor(double(hz) * kVrrMargin)) : 0;
+        if (cap != 0 && (g_cfg.framerate < 0 || unsigned(g_cfg.framerate) > cap)) {
+            u.refreshRate = U::RefreshRate::Manual;
+            u.refreshRateTarget = int(cap);
+        }
     }
 }
 
@@ -1756,8 +2081,79 @@ void logTextureHashes(unsigned frame) {
  * which stays even when the PC is busy, for about half a refresh more
  * latency.  Vsync pacing applies only with vsync on and D3D12 (the patch
  * checks), and not with --no-pace (no real time to keep). */
+/*
+ * Port patch 0007 adds how the pictures between the game's are scheduled
+ * when the vsync pacing is off (PresentQueue::scheduling):
+ *  - timer: with vsync on and a frame rate that divides the display's (120 or
+ *    60 on 120 Hz), locked to the display's refreshes (one picture per
+ *    refresh, or per N), no timer: RT64's timer, which counted from the last
+ *    present, beat against the refreshes at the display's own rate (a picture
+ *    replaced before it was shown, the one before held two refreshes);
+ *    otherwise an even timer (due times one period apart);
+ *  - vrr (G-Sync / FreeSync): the even timer, presented with a sync interval
+ *    of 1 when vsync is on (the display refreshes when a picture comes), at a
+ *    rate a little under the display's highest (kVrrMargin) so it never waits
+ *    for a fixed refresh;
+ *  - auto: vsync off: timer; vsync on: vsync pacing at the game's own rate (no
+ *    in-between pictures), timer (locked) when the frame rate divides the
+ *    display's, else timer.  Windows doesn't say whether G-Sync / FreeSync is
+ *    on, so auto never picks vrr (the log reports what the refreshes did).
+ * --present-legacy (testing): RT64's own timer as before patch 0007. */
+const char *g_pacingNote = "";
+
+/* the frame rate RT64 aims at (0: the game's own) for a setting */
+unsigned requestedRate() {
+    if (g_cfg.framerate == 0) return 0;
+    const unsigned hz = effectiveDisplayHz();
+    return g_cfg.framerate < 0 ? hz : (hz != 0 ? std::min(unsigned(g_cfg.framerate), hz) : unsigned(g_cfg.framerate));
+}
+
+int pickPacing() {
+    if (g_cfg.vsyncPacing) {
+        g_pacingNote = "";
+        return 1;
+    }
+    if (g_cfg.pacingOther == 2) {
+        g_pacingNote = "";
+        return 2;
+    }
+    if (g_cfg.pacingOther != 3) {
+        g_pacingNote = "";
+        return 0;
+    }
+    const unsigned hz = effectiveDisplayHz(), rate = requestedRate();
+    if (!g_opt.vsync) {
+        g_pacingNote = " (auto: vsync off)";
+        return 0;
+    }
+    if (rate == 0) {
+        g_pacingNote = " (auto: the game's own rate with vsync)";
+        return 1;
+    }
+    g_pacingNote = hz != 0 && hz % rate == 0 ? " (auto: locked to the refreshes)" : " (auto: even timer)";
+    return 0;
+}
+
+const char *pacingName() {
+    static char buf[96];
+    const char *base = g_pacing == 1 ? "vsync" : g_pacing == 2 ? "vrr" : "timer";
+    snprintf(buf, sizeof buf, "%s%s%s", base, g_presentLegacy && g_pacing != 1 ? " (legacy RT64 timer)" : "",
+             g_pacingNote);
+    return buf;
+}
+
 void applyPresentPacing() {
-    g_app->presentQueue->vsyncPacing = g_cfg.vsyncPacing && g_opt.pace;
+    const int before = g_pacing;
+    g_pacing = pickPacing();
+    g_app->presentQueue->vsyncPacing = g_pacing == 1 && g_opt.pace;
+    using S = RT64::PresentQueue::Scheduling;
+    g_app->presentQueue->scheduling = uint32_t(g_presentLegacy ? S::Legacy : g_pacing == 2 ? S::Vrr : S::Locked);
+    /* vrr caps the frame rate (configToRT64) */
+    if ((before == 2) != (g_pacing == 2) && g_cfg.framerate != 0) {
+        configToRT64(g_app->userConfig);
+        g_app->userConfig.validate();
+        g_app->updateUserConfig(false);
+    }
 }
 
 /* the menu changed g_cfg: apply it now where that is possible */
@@ -1798,6 +2194,7 @@ void settingChanged(const live::Setting &s) {
         } else if (s.key == "vsync") {
             g_opt.vsync = g_cfg.vsync;
             g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+            applyPresentPacing();   /* (auto follows vsync) */
         } else if (s.key == "present_pacing") {
             /* at once: the present thread reads the flag at every picture (an atomic; the
              * same switch the patch's own fallback to RT64's timer makes) */
@@ -1811,6 +2208,14 @@ void settingChanged(const live::Setting &s) {
         live::orbitApply();   /* the camera's settings, or the bindings it leaves the N64 pad */
     }
     host_log("live: setting %s.%s = %s\n", s.section.c_str(), s.key.c_str(), live::configValue(g_cfg, s).c_str());
+    /* frame times: a new segment when what they depend on changed */
+    if (s.section == "video" && (s.key == "framerate" || s.key == "present_pacing" || s.key == "vsync" ||
+                                 s.key == "fullscreen" || s.key == "msaa" || s.key == "resolution")) {
+        if (s.key == "framerate") applyPresentPacing();   /* (auto follows the frame rate) */
+        const std::string why = "video." + s.key + " = " + live::configValue(g_cfg, s);
+        frameSegment(why.c_str());
+        host_log("live: present pacing %s\n", pacingName());
+    }
 }
 
 /* the menu's status line */
@@ -1885,6 +2290,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     }
     else if (!strcmp(a, "--set")) next();   /* applied with the config file (main) */
     else if (!strcmp(a, "--low-test")) next();   /* read first thing (main) */
+    else if (!strcmp(a, "--present-legacy")) g_presentLegacy = true;
     else if (!strcmp(a, "--window")) {
         const char *s = next();
         if (sscanf(s, "%ux%u", &g_opt.windowW, &g_opt.windowH) != 2 || g_opt.windowW < 160 || g_opt.windowH < 120)
@@ -2069,6 +2475,9 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
     applyPresentPacing();
+    /* frame times: every present (and --flip-log's records) */
+    if (!g_opt.vulkan) g_ft.dxgi = static_cast<plume::D3D12SwapChain *>(g_app->swapChain.get())->d3d;
+    g_app->presentQueue->presentedHook = framePresented;
     flipStart();
     live::MenuEnv menu;
     menu.app = g_app;
@@ -2097,7 +2506,8 @@ void prestart(HostOpts *o) {
     host_log("live: RT64 up (%s), window %dx%d (%dx%d pixels)%s, vsync %s, display %u Hz, present pacing %s\n",
              g_opt.vulkan ? "Vulkan" : "D3D12", ww, wh, pw, ph, g_opt.fullscreen ? " fullscreen" : "",
              g_opt.vsync ? "on" : "off", displayHz(),
-             !g_cfg.vsyncPacing ? "timer" : g_opt.pace ? "vsync" : "timer (--no-pace)");
+             g_pacing == 1 && !g_opt.pace ? "timer (--no-pace)" : pacingName());
+    frameSegment("start");
     if (g_cfg.resolution != 0 || g_cfg.msaa != 0 || g_cfg.filtering != 0 || g_cfg.aspect != 0 ||
         g_cfg.framerate != 0 || g_app->userConfig.msaaSampleCount() > 1)
         host_log("live: video: resolution %s, MSAA %ux%s, filtering %s, aspect %s (HUD %s), frame rate %s\n",
@@ -2288,6 +2698,7 @@ int main(int, char **) {
     host_exit_hook = [] {
         if (g_wseq.thread.joinable()) g_wseq.thread.join();
         flipWrite();
+        frameEnd();
         writePaceLog();
         perfWrite();
         if (g_dlTasks != 0)

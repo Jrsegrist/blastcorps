@@ -64,7 +64,9 @@ static const char kDefaultIni[] =
     "vsync = 1\r\n"
     "; Frame pacing with vsync: timer (the default: the renderer's own timer, the lowest\r\n"
     "; latency, even on a PC that isn't busy) or vsync (pictures handed to the display on its\r\n"
-    "; refreshes: stays even while the PC is busy with other work, about 5-10 ms more latency).\r\n"
+    "; refreshes: stays even while the PC is busy with other work, about 5-10 ms more latency),\r\n"
+    "; vrr (for G-Sync / FreeSync displays: an even pace a little under the display's rate) or\r\n"
+    "; auto (picks one from the display).\r\n"
     "present_pacing = timer\r\n"
     "; The settings below are optional enhancements; their defaults show the game as before.\r\n"
     "; The settings menu (F1) changes them too.\r\n"
@@ -368,8 +370,10 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             else if (key == "vsync") ok = parseBool(v, c.vsync);
             else if (key == "present_pacing") {
                 std::string l = lower(v);
-                if (l == "timer" || l == "default" || l == "low-latency") c.vsyncPacing = false;
-                else if (l == "vsync" || l == "smooth") c.vsyncPacing = true;
+                if (l == "timer" || l == "default" || l == "low-latency") c.vsyncPacing = false, c.pacingOther = 0;
+                else if (l == "vsync" || l == "smooth") c.vsyncPacing = true, c.pacingOther = 0;
+                else if (l == "vrr" || l == "gsync" || l == "g-sync" || l == "freesync") c.vsyncPacing = false, c.pacingOther = 2;
+                else if (l == "auto") c.vsyncPacing = false, c.pacingOther = 3;
                 else ok = false;
             } else if (key == "resolution") {
                 std::string l = lower(v);
@@ -735,7 +739,8 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "scale") return std::to_string(c.scale);
         if (k == "fullscreen") return c.fullscreen ? "1" : "0";
         if (k == "vsync") return c.vsync ? "1" : "0";
-        if (k == "present_pacing") return c.vsyncPacing ? "vsync" : "timer";
+        if (k == "present_pacing")
+            return c.vsyncPacing ? "vsync" : c.pacingOther == 2 ? "vrr" : c.pacingOther == 3 ? "auto" : "timer";
         if (k == "resolution") return c.resolution == 0 ? "window" : std::to_string(c.resolution);
         if (k == "msaa") return std::to_string(c.msaa);
         if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";

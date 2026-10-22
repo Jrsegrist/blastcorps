@@ -62,6 +62,7 @@
 
 extern "C" {
 #include "plat_host.h"
+unsigned plat_frames(void);
 }
 
 namespace live {
@@ -140,6 +141,11 @@ uint8_t g_vpos[kDepth];
 int g_depth;
 uint32_t g_applied;            /* the ID last given to RT64 */
 uint8_t g_appliedVpos;
+struct Pivot {
+    bool on = false;
+    float p[3] = {};               /* in the transform's model space */
+};
+Pivot g_piv[kDepth];           /* each level's pivot (a part turning about an axle: wheelPivot) */
 unsigned g_frame;              /* main frames seen */
 bool g_mainTask;
 
@@ -148,6 +154,15 @@ struct Track {
     unsigned frame = 0;
     float pos[3] = {};
     float move = 0;
+    float rot[3][3] = {};   /* the rotation (rows normalised) */
+    bool haveRot = false;
+    /* a part multiplied onto its parent: its matrix relative to the parent last frame, and the
+     * pivot found from the last two (wheelPivot) */
+    double local[4][3] = {};
+    unsigned localFrame = ~0u;
+    double cand[3] = {};    /* the last frame's solution */
+    bool haveCand = false;
+    Pivot pivot;
 };
 std::unordered_map<uint64_t, Track> g_tracks;
 constexpr float kJumpMin = 400.0f;      /* world units in one frame ... */
@@ -184,12 +199,16 @@ uint32_t ownerId(const Owner &o, uint32_t ordinal) {
 }
 
 unsigned g_test;   /* --tag-test (experiments): 1 no vertex interpolation, 2 HUD auto, 4 no decompose,
-                      8 ORDER_AUTO, 16 IDs auto (wrapping and tags only) */
+                      8 ORDER_AUTO, 16 IDs auto (wrapping and tags only), 32 no pivots (parts turned
+                      about their model origin, as before), 64 (with --interp-log) every vehicle part's
+                      turn logged, 512 (with --interp-log) vehicle 1's matrices logged */
 
-void apply(RT64::State *state, uint32_t id, uint8_t vpos) {
+void apply(RT64::State *state, uint32_t id, uint8_t vpos, const Pivot *pivot = nullptr) {
     if (g_test & 1) vpos = G_EX_COMPONENT_SKIP;
     if ((g_test & 2) && id == G_EX_ID_IGNORE) id = G_EX_ID_AUTO;
     if (g_test & 16) id = G_EX_ID_AUTO;
+    if ((g_test & 32) || (pivot != nullptr && !pivot->on)) pivot = nullptr;
+    /* (an ID names one matrix: the same ID, the same pivot) */
     if (id == g_applied && vpos == g_appliedVpos) return;
     g_applied = id;
     g_appliedVpos = vpos;
@@ -212,6 +231,10 @@ void apply(RT64::State *state, uint32_t id, uint8_t vpos) {
                      (g_test & 8) ? G_EX_ORDER_AUTO : G_EX_ORDER_LINEAR, G_EX_ASPECT_AUTO, G_EX_EDIT_NONE, false,
                      false);
     }
+    /* the pivot (port patch 0007 TransformGroup::pivot) of the group matrixId just set */
+    RT64::TransformGroup &g = rsp.extended.modelMatrixIdStack[rsp.extended.modelMatrixIdStackSize - 1];
+    g.usePivot = pivot != nullptr;
+    for (int i = 0; i < 3; i++) g.pivot[i] = pivot != nullptr ? pivot->p[i] : 0.0f;
 }
 
 /* the ID for drawing that has no matrix of its own under owner o */
@@ -236,18 +259,69 @@ void setOwner(RT64::State *state, const Tag &t) {
     if (own || had) {
         g_ids[g_depth] = own ? plainId(g_owner) : G_EX_ID_AUTO;
         g_vpos[g_depth] = vertexKind(t.kind) ? G_EX_COMPONENT_INTERPOLATE : G_EX_COMPONENT_SKIP;
+        g_piv[g_depth] = Pivot();
         state->rsp->modelViewProjChanged = true;   /* a new world transform at the next vertex */
         apply(state, g_ids[g_depth], g_vpos[g_depth]);
     }
 }
 
-/* after a tagged model matrix: did the object jump? (then a new generation) */
-bool jumped(RT64::State *state, uint32_t ordinal) {
+/* turn statistics: tagged model matrices by how far they turned in a frame
+ * (30-degree buckets), and the largest turn per kind */
+unsigned g_turnHist[6];
+float g_turnMaxKind[32];
+unsigned g_turnLogged;
+
+/* after a tagged model matrix: did the object jump? (then a new generation)
+ * *turnDeg: how far its rotation turned since the frame before (-1: unknown) */
+bool jumped(RT64::State *state, uint32_t ordinal, float *turnDeg, Track **track) {
     const RT64::RSP &rsp = *state->rsp;
     const hlslpp::float4x4 &m = rsp.modelMatrixStack[rsp.modelMatrixStackSize - 1];
     const float p[3] = {float(m[3][0]), float(m[3][1]), float(m[3][2])};
     const uint64_t key = (uint64_t(slotKey(g_owner.kind, g_owner.index)) << 32) ^ ordinal;
     Track &t = g_tracks[key];
+    *track = &t;
+    /* the rotation: the 3x3 part, rows normalised (the scale left out) */
+    float r[3][3];
+    bool rotOk = true;
+    for (int i = 0; i < 3; i++) {
+        const float a = float(m[i][0]), b = float(m[i][1]), c = float(m[i][2]);
+        const float len = std::sqrt(a * a + b * b + c * c);
+        if (!(len > 1e-6f)) rotOk = false;
+        r[i][0] = rotOk ? a / len : 0;
+        r[i][1] = rotOk ? b / len : 0;
+        r[i][2] = rotOk ? c / len : 0;
+    }
+    *turnDeg = -1;
+    /* (--tag-test 512 with --interp-log: vehicle 1's matrices in detail, up to 600 lines) */
+    if ((g_test & 512) && g_log && g_owner.kind == K_OBJ && (g_owner.index & 0xFF) == 1 && g_turnLogged < 600 &&
+        plat_frames() >= 1750) {
+        g_turnLogged++;
+        host_log("live: mtx frame %u owner %u key %08X len %.3f %.3f %.3f pos %.1f %.1f %.1f depth %u\n", g_frame,
+                 g_owner.index, ordinal, std::sqrt(float(m[0][0] * m[0][0] + m[0][1] * m[0][1] + m[0][2] * m[0][2])),
+                 std::sqrt(float(m[1][0] * m[1][0] + m[1][1] * m[1][1] + m[1][2] * m[1][2])),
+                 std::sqrt(float(m[2][0] * m[2][0] + m[2][1] * m[2][1] + m[2][2] * m[2][2])), p[0], p[1], p[2],
+                 unsigned(rsp.modelMatrixStackSize));
+    }
+    if (rotOk && t.haveRot && t.frame + 1 == g_frame) {
+        /* the angle of prev^T cur: trace = sum of the elementwise products */
+        double tr = 0;
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++) tr += double(t.rot[i][j]) * r[i][j];
+        *turnDeg = float(std::acos(std::max(-1.0, std::min(1.0, (tr - 1.0) / 2.0))) * 57.29577951308232);
+        g_turnHist[std::min(5, int(*turnDeg / 30.0f))]++;
+        g_turnMaxKind[g_owner.kind & 31] = std::max(g_turnMaxKind[g_owner.kind & 31], *turnDeg);
+        /* (--tag-test 64: every vehicle part's turn, up to 6000 lines) */
+        if (g_log && ((g_test & 64) ? (g_owner.kind == K_OBJ && *turnDeg > 0.5f && g_turnLogged < 6000)
+                                    : (*turnDeg > 60.0f && g_turnLogged < 400))) {
+            g_turnLogged++;
+            host_log("live: interp tag %u/%u (matrix %08X) turned %.0f deg in frame %u\n", g_owner.kind, g_owner.index,
+                     ordinal, *turnDeg, g_frame);
+        }
+    }
+    if (t.frame != g_frame) {
+        memcpy(t.rot, r, sizeof r);
+        t.haveRot = rotOk;
+    }
     bool jump = false;
     if (t.frame + 1 == g_frame) {
         const float dx = p[0] - t.pos[0], dy = p[1] - t.pos[1], dz = p[2] - t.pos[2];
@@ -269,6 +343,141 @@ bool jumped(RT64::State *state, uint32_t ordinal) {
         memcpy(t.pos, p, sizeof p);
     }
     return jump;
+}
+
+/* (Spinning parts: RT64 turns a matrix along the shortest arc between the two
+ * frames', so a part turning over half a turn in a game frame would turn
+ * backwards in between; the turn statistics, --interp-log summary, show the
+ * vehicles' parts turn at most about 65 degrees a frame: no such part.) */
+unsigned g_pivotsFound, g_pivotsUsed, g_pivotLogged;
+
+bool inv3(const double a[3][3], double r[3][3]) {
+    const double c00 = a[1][1] * a[2][2] - a[1][2] * a[2][1], c01 = a[1][2] * a[2][0] - a[1][0] * a[2][2],
+                 c02 = a[1][0] * a[2][1] - a[1][1] * a[2][0];
+    const double det = a[0][0] * c00 + a[0][1] * c01 + a[0][2] * c02;
+    if (!(std::fabs(det) > 1e-30)) return false;
+    const double k = 1.0 / det;
+    r[0][0] = c00 * k;
+    r[1][0] = c01 * k;
+    r[2][0] = c02 * k;
+    r[0][1] = (a[0][2] * a[2][1] - a[0][1] * a[2][2]) * k;
+    r[1][1] = (a[0][0] * a[2][2] - a[0][2] * a[2][0]) * k;
+    r[2][1] = (a[0][1] * a[2][0] - a[0][0] * a[2][1]) * k;
+    r[0][2] = (a[0][1] * a[1][2] - a[0][2] * a[1][1]) * k;
+    r[1][2] = (a[0][2] * a[1][0] - a[0][0] * a[1][2]) * k;
+    r[2][2] = (a[0][0] * a[1][1] - a[0][1] * a[1][0]) * k;
+    return true;
+}
+
+/* A part multiplied onto its parent P (G_MTX_MUL, pushed or not: a wheel on
+ * a vehicle's body) whose model origin is away from the axle it turns about:
+ * the origin swings round the axle, and RT64 moves the origin along a
+ * straight line between two frames while it turns the part, so in the
+ * in-between pictures the part left its axle (the Backlash's and other
+ * vehicles' wheels wobbled off their hubs, more the faster they spun).  The
+ * axle is where the part's matrix relative to its parent, L, keeps a point
+ * still between the two frames: c Lprev = c Lcur (row vectors), the least-
+ * norm solution of c (Lprev - Lcur) = tcur - tprev; when that holds (a turn
+ * about a fixed axle) c is the part's pivot (port patch 0007: RT64 then
+ * moves c's world position along the line and turns the part about it).  A
+ * pivot found is kept (the axle is fixed in the model) while the part
+ * doesn't turn.  --tag-test 32: no pivots. */
+Pivot wheelPivot(const RT64::RSP &rsp, const hlslpp::float4x4 &P, Track &t) {
+    const hlslpp::float4x4 &M = rsp.modelMatrixStack[rsp.modelMatrixStackSize - 1];
+    double p3[3][3], ip[3][3], L[4][3];
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) p3[i][j] = double(float(P[i][j]));
+    if (!inv3(p3, ip)) return t.pivot;
+    /* L = M inv(P): L3 = M3 ip, tL = (tM - tP) ip */
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 3; j++) {
+            double s = 0;
+            for (int k = 0; k < 3; k++) {
+                const double m = i < 3 ? double(float(M[i][k])) : double(float(M[3][k])) - double(float(P[3][k]));
+                s += m * ip[k][j];
+            }
+            L[i][j] = s;
+        }
+    if (t.localFrame + 1 == g_frame) {
+        double A[3][3], b[3], AAt[3][3], na = 0, nl = 0, tr = 0;
+        for (int i = 0; i < 3; i++) {
+            b[i] = L[3][i] - t.local[3][i];
+            for (int j = 0; j < 3; j++) {
+                A[i][j] = t.local[i][j] - L[i][j];
+                na += A[i][j] * A[i][j];
+                nl += L[i][j] * L[i][j];
+            }
+        }
+        /* turned by about a degree or more relative to the parent */
+        if (nl > 0 && na / nl > 3e-4) {
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++) {
+                    AAt[i][j] = 0;
+                    for (int k = 0; k < 3; k++) AAt[i][j] += A[i][k] * A[j][k];
+                }
+            tr = AAt[0][0] + AAt[1][1] + AAt[2][2];
+            /* the axle's direction u: the axis of the turn Lprev Lcur^-1 (its
+             * antisymmetric part); c's component along it is free (any point of
+             * the axle will do): held at 0 by a penalty along u */
+            double lc[3][3], ilc[3][3], R[3][3], u[3] = {0, 0, 0};
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++) lc[i][j] = L[i][j];
+            if (inv3(lc, ilc)) {
+                for (int i = 0; i < 3; i++)
+                    for (int j = 0; j < 3; j++)
+                        R[i][j] = t.local[i][0] * ilc[0][j] + t.local[i][1] * ilc[1][j] + t.local[i][2] * ilc[2][j];
+                u[0] = R[1][2] - R[2][1];
+                u[1] = R[2][0] - R[0][2];
+                u[2] = R[0][1] - R[1][0];
+                const double nu = std::sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
+                for (int i = 0; i < 3; i++) u[i] = nu > 1e-12 ? u[i] / nu : 0.0;
+            }
+            for (int i = 0; i < 3; i++) {
+                AAt[i][i] += 1e-6 * tr;
+                for (int j = 0; j < 3; j++) AAt[i][j] += tr * u[i] * u[j];
+            }
+            double inv[3][3], bAt[3], c[3];
+            if (inv3(AAt, inv)) {
+                /* c = b A^T (A A^T + e I)^-1 */
+                for (int j = 0; j < 3; j++) bAt[j] = b[0] * A[j][0] + b[1] * A[j][1] + b[2] * A[j][2];
+                for (int j = 0; j < 3; j++) c[j] = bAt[0] * inv[0][j] + bAt[1] * inv[1][j] + bAt[2] * inv[2][j];
+                double res = 0, nb = 0, nc = 0;
+                for (int j = 0; j < 3; j++) {
+                    const double r = c[0] * A[0][j] + c[1] * A[1][j] + c[2] * A[2][j] - b[j];
+                    res += r * r;
+                    nb += b[j] * b[j];
+                    nc += c[j] * c[j];
+                }
+                /* a turn about a fixed axle: c solves it exactly, and the axle (c the
+                 * point of it nearest the origin) is where it was found the frame
+                 * before (a matrix that also moves or scales gives a different point
+                 * every frame) */
+                double dc = 0;
+                for (int j = 0; j < 3; j++) dc += (c[j] - t.cand[j]) * (c[j] - t.cand[j]);
+                const bool ok = res <= 1e-4 * nb + 1e-6 && nc < 1e10 && t.haveCand &&
+                                dc <= 1e-3 * (nc + 1.0);
+                for (int j = 0; j < 3; j++) t.cand[j] = c[j];
+                t.haveCand = true;
+                if (g_log && (((g_test & 64) && g_pivotLogged < 3000) ||
+                              ((g_test & 512) && (g_owner.index & 0xFF) == 1 && plat_frames() >= 1750 &&
+                               g_pivotLogged < 3000))) {
+                    g_pivotLogged++;
+                    host_log("live: interp pivot %u/%u frame %u: %.2f %.2f %.2f, residual %.4f of %.4f%s\n",
+                             g_owner.kind, g_owner.index, g_frame, c[0], c[1], c[2], std::sqrt(res), std::sqrt(nb),
+                             ok ? "" : " (not a turn about a fixed axle)");
+                }
+                if (ok) {
+                    if (!t.pivot.on) g_pivotsFound++;
+                    t.pivot.on = true;
+                    for (int j = 0; j < 3; j++) t.pivot.p[j] = float(c[j]);
+                }
+            }
+        }
+    }
+    memcpy(t.local, L, sizeof L);
+    t.localFrame = g_frame;
+    if (t.pivot.on) g_pivotsUsed++;
+    return t.pivot;
 }
 
 /* a command other than G_MTX / G_POPMTX: the hooks' turn (the orbit camera's,
@@ -323,11 +532,16 @@ void dispatch(RT64::State *state, RT64::DisplayList **dl) {
         const uint8_t params = uint8_t(w0 >> 16);
         const uint32_t w1 = (*dl)->w1;
         const bool proj = (params & rsp.projMask) != 0;
+        /* (the matrix a G_MTX_MUL multiplies onto: the part's parent, wheelPivot) */
+        const bool mul = !proj && !(params & rsp.loadMask) && rsp.modelMatrixStackSize >= 1;
+        hlslpp::float4x4 parent;
+        if (mul && g_on && g_owner.kind == K_OBJ) parent = rsp.modelMatrixStack[rsp.modelMatrixStackSize - 1];
         g_cur[op](state, dl);
         if (g_mtxHook != nullptr) g_mtxHook(state, params);
         if (!proj) {
             if ((params & rsp.pushMask) && g_depth < kDepth - 1) g_depth++;
             uint32_t id;
+            Pivot pivot;
             if (g_owner.kind == K_NONE) {
                 id = G_EX_ID_AUTO;
             } else if (g_owner.kind == K_HUD) {
@@ -339,19 +553,23 @@ void dispatch(RT64::State *state, RT64::DisplayList **dl) {
                  * pools) by its order in the owner's drawing */
                 const uint32_t ord = g_owner.ordinal++;
                 const uint32_t k = ((w1 >> 24) & 0xF) != 0 ? (0x80000000u | (w1 & 0x0FFFFFFF)) : ord;
-                if (jumped(state, k)) {
+                float turn;
+                Track *t;
+                if (jumped(state, k, &turn, &t)) {
                     Gen &g = g_gen[slotKey(g_owner.kind, g_owner.index)];
                     if (g.jumpFrame != g_frame) {   /* once a frame, however many of its matrices jumped */
                         g.gen++;
                         g.jumpFrame = g_frame;
                     }
                 }
+                if (g_owner.kind == K_OBJ && mul) pivot = wheelPivot(rsp, parent, *t);
                 id = ownerId(g_owner, k);
                 g_frameMtx++;
             }
             g_ids[g_depth] = id;
             g_vpos[g_depth] = G_EX_COMPONENT_SKIP;
-            apply(state, id, G_EX_COMPONENT_SKIP);
+            g_piv[g_depth] = pivot;
+            apply(state, id, G_EX_COMPONENT_SKIP, &pivot);
         }
         return;
     }
@@ -359,7 +577,7 @@ void dispatch(RT64::State *state, RT64::DisplayList **dl) {
         g_cur[op](state, dl);
         if ((*dl)->w1 == 0 && g_depth > 0) {
             g_depth--;
-            apply(state, g_ids[g_depth], g_vpos[g_depth]);
+            apply(state, g_ids[g_depth], g_vpos[g_depth], &g_piv[g_depth]);
         }
         return;
     }
@@ -372,6 +590,7 @@ void resetTask() {
     g_depth = 0;
     g_ids[0] = G_EX_ID_AUTO;
     g_vpos[0] = G_EX_COMPONENT_SKIP;
+    g_piv[0] = Pivot();
     g_applied = G_EX_ID_AUTO;   /* RSP::reset (each task) put RT64's ID stack back to AUTO */
     g_appliedVpos = G_EX_COMPONENT_SKIP;
 }
@@ -496,6 +715,16 @@ void interpTagsSummary() {
     host_log("live: tagged interpolation: %u tasks (%u frames), %llu commands, %u owner changes, %u spawns, "
              "%u jumps; %.3f ms per task reading the display lists (tags included)\n",
              g_tasks, g_frame, g_cmds, g_tagged, g_spawnsSeen, g_jumps, g_taskSeconds * 1e3 / g_tasks);
+    char kinds[256];
+    int n = 0;
+    for (int k = 0; k < 32 && n < 200; k++)
+        if (g_turnMaxKind[k] > 0) n += snprintf(kinds + n, sizeof kinds - n, " %d:%.0f", k, g_turnMaxKind[k]);
+    kinds[n] = 0;
+    host_log("live: tagged interpolation: matrices by their turn in a frame (0-30-60-90-120-150-180 deg): %u %u %u %u "
+             "%u %u; largest per kind (kind:deg)%s; %u parts turning about an axle found, %u of their matrices "
+             "blended about it%s\n",
+             g_turnHist[0], g_turnHist[1], g_turnHist[2], g_turnHist[3], g_turnHist[4], g_turnHist[5], kinds,
+             g_pivotsFound, g_pivotsUsed, (g_test & 32) ? " (off: --tag-test 32)" : "");
 }
 
 }  // namespace live

@@ -177,6 +177,13 @@ int main(int, char **) {
                   live::configValue(f, {"video", "present_pacing"}) == "vsync", "present pacing vsync");
         check(live::configSet(f, "video.present_pacing=Timer") && !f.vsyncPacing, "present pacing timer");
         check(!live::configSet(f, "video.present_pacing=fast") && !f.vsyncPacing, "present pacing 'fast' rejected");
+        check(live::configSet(f, "video.present_pacing=VRR") && !f.vsyncPacing && f.pacingOther == 2 &&
+                  live::configValue(f, {"video", "present_pacing"}) == "vrr", "present pacing vrr");
+        check(live::configSet(f, "video.present_pacing=auto") && f.pacingOther == 3 &&
+                  live::configValue(f, {"video", "present_pacing"}) == "auto", "present pacing auto");
+        check(live::configSet(f, "video.present_pacing=vsync") && f.vsyncPacing && f.pacingOther == 0 &&
+                  live::configSet(f, "video.present_pacing=timer") && !f.vsyncPacing && f.pacingOther == 0,
+              "present pacing back to vsync, then timer");
 
         const std::string old = "old.ini";   /* no present_pacing line */
         files()[old] = "[game]\r\nrom = x.z64\r\n\r\n[video]\r\napi = d3d12\r\nvsync = 1\r\n"

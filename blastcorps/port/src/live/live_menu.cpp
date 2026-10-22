@@ -148,22 +148,29 @@ void videoTab(Config &c) {
     }
     {
         /* video.present_pacing: applies at once (live_rt64.cpp applyPresentPacing) */
-        int p = c.vsyncPacing ? 1 : 0;
+        int p = c.vsyncPacing ? 1 : c.pacingOther == 2 ? 2 : c.pacingOther == 3 ? 3 : 0;
         const bool d3d12 = g_env.app == nullptr ||
                            g_env.app->chosenGraphicsAPI != RT64::UserConfiguration::GraphicsAPI::Vulkan;
-        ImGui::BeginDisabled(!c.vsync || !d3d12);
-        if (combo("Frame pacing", &p, {"Low latency (default)", "Smooth under load (vsync)"})) {
+        ImGui::BeginDisabled(!d3d12);
+        if (combo("Frame pacing", &p, {"Low latency (default)", "Smooth under load (vsync)", "G-Sync / FreeSync (VRR)",
+                                       "Auto"})) {
             c.vsyncPacing = p == 1;
+            c.pacingOther = p >= 2 ? p : 0;
             markChanged("video", "present_pacing");
         }
         ImGui::EndDisabled();
-        help("Low latency: the renderer's own timer hands pictures to the display, the quickest response; on a PC "
-             "that isn't busy with other work it is as even as the other choice. Smooth under load: each picture "
-             "waits for its own display refresh, so motion stays even while other programs load the PC, for "
-             "about 5-10 ms more delay. Needs vertical sync and Direct3D 12.");
-        ImGui::TextDisabled("%s", !c.vsync || !d3d12 ?"Frame pacing needs vertical sync and Direct3D 12."
-                            : c.vsyncPacing ? "Even under load, about 5-10 ms more delay."
-                                            : "Lowest delay; even unless the PC is busy.");
+        help("Low latency: pictures go to the display as soon as they are due; with vertical sync and a frame rate "
+             "that divides the display's (60 or 120 on a 120 Hz display) one per refresh. Smooth under load: each "
+             "picture waits for its own display refresh, so motion stays even while other programs load the PC, for "
+             "about 5-10 ms more delay. G-Sync / FreeSync: for a variable-refresh display; an even pace a little "
+             "under its highest rate, each picture shown as it comes. Auto picks one from the display. "
+             "Needs Direct3D 12.");
+        ImGui::TextDisabled("%s", !d3d12 ? "Frame pacing needs Direct3D 12."
+                            : p == 1 && !c.vsync ? "Smooth under load needs vertical sync."
+                            : p == 1 ? "Even under load, about 5-10 ms more delay."
+                            : p == 2 ? "For G-Sync / FreeSync displays only (else a stutter now and then)."
+                            : p == 3 ? "Picked from the display (the log names it)."
+                                     : "Lowest delay; even unless the PC is busy.");
     }
     ImGui::SeparatorText("Picture (optional enhancements)");
     {
@@ -709,12 +716,20 @@ void drawCounter() {
         ImGui::TextDisabled("game %.0f/s", s.game);
         if (s.mode == 2) {
             ImGui::Text("%.2f ms  (max %.1f)", s.frameMs, s.frameMsMax);
+            if (s.targetMs > 0) {
+                ImGui::TextDisabled("target %.2f ms,", s.targetMs);
+                ImGui::SameLine();
+                if (s.stutters != 0) ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "%u stutters", s.stutters);
+                else ImGui::TextDisabled("no stutters");
+            }
             if (!s.note.empty()) ImGui::TextDisabled("%s", s.note.c_str());
             if (!s.graph.empty()) {
-                float top = 34.0f;
-                for (float v : s.graph) top = std::max(top, v);
-                ImGui::PlotLines("##ft", s.graph.data(), int(s.graph.size()), 0, nullptr, 0.0f, top * 1.1f,
-                                 ImVec2(g_fontPx * 8.0f, g_fontPx * 2.0f));
+                /* the last 240 present intervals; the scale from 0 to 3x the target
+                 * (more when a longer one is in view) */
+                float top = s.targetMs > 0 ? float(s.targetMs) * 3.0f : 34.0f;
+                for (float v : s.graph) top = std::max(top, v * 1.1f);
+                ImGui::PlotLines("##ft", s.graph.data(), int(s.graph.size()), 0, nullptr, 0.0f, top,
+                                 ImVec2(g_fontPx * 10.0f, g_fontPx * 2.5f));
             }
         }
     }

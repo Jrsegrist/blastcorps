@@ -63,7 +63,9 @@ struct CounterStats {
     double shown = 0;           /* pictures presented a second */
     double game = 0;            /* the game's own frames a second */
     double frameMs = 0, frameMsMax = 0;   /* present intervals (mean, max) */
-    std::vector<float> graph;   /* the last present intervals, ms (detailed) */
+    std::vector<float> graph;   /* the last present intervals (up to 240), ms (detailed) */
+    double targetMs = 0;        /* the interval aimed at */
+    unsigned stutters = 0;      /* intervals over 1.5x the target since the counter was turned on */
     std::string note;           /* e.g. "interpolated, tagged" */
 };
 void counterSet(const CounterStats &s);

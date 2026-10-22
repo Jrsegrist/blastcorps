@@ -8,6 +8,10 @@
 #         (each held for the refreshes it is due) instead of RT64's present timer
 #   0006  a host view hook per rendered picture (the orbit camera,
 #         src/live/live_orbit.cpp)
+#   0007  present scheduling: locked to the refreshes at a target that divides
+#         the display's rate, an even timer otherwise, VRR; counters for the
+#         frame-time report (src/live/live_rt64.cpp); pivots for the frame
+#         interpolation (wheels turning about their axles, live_interp.cpp)
 # (0001/0002 served the retired mingw cross build.)
 set(BC_RT64_COMMIT 43373749dac9bbc1b653e6a02aed40a9e1783bed)
 set(BC_RT64_PATCH_NAMES
@@ -15,4 +19,5 @@ set(BC_RT64_PATCH_NAMES
     0004-l3d-and-fixes.patch
     0005-vsync-pacing.patch
     0006-view-hook.patch
+    0007-pacing-and-pivots.patch
 )

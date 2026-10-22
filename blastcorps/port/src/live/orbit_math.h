@@ -65,10 +65,17 @@ struct Limits {
     double liftTime = 0.3;        /* where pulled in as far as allowed and still too low: the eye is
                                      lifted above the ground (rises at once, settles in this time) */
     double riseBelow = 0.6;       /* blocked before this share of the distance: look for a steeper view
-                                     (up to riseMax degrees more, in riseStep steps) that sees past it */
-    double riseMax = 50.0;
+                                     (up to riseMax degrees more, in riseStep steps, at most pitchMax)
+                                     that sees past it; if none does, the one that sees farthest when
+                                     that is at least riseGain more of the distance (a camera pulled in
+                                     to the target ends up inside the vehicle: ugly, and pictures of
+                                     big close-up polygons cost the GPU up to 3x) */
+    double riseMax = 75.0;
     double riseStep = 5.0;
-    double riseTime = 0.2;        /* ... reached in about this time (and back with letOutTime) */
+    double riseGain = 0.15;
+    double riseTime = 0.2;        /* ... reached in about this time (and back with letOutTime), or at once
+                                     where the view as it is would be pulled in under riseSnapBelow */
+    double riseSnapBelow = 0.3;
     double pullInTime = 0.04;     /* time constants of the collision distance (s): in fast ... */
     double letOutTime = 0.5;      /* ... out slowly */
 };

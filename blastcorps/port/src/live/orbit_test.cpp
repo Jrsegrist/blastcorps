@@ -197,13 +197,7 @@ int main() {
         check(near(o.pitch(), -30, 1e-9), "tilted to the lowest tilt");
         check(eye.y >= l.clearance - 0.05, "the eye stays above the ground");
         check(o.rise() > 25.0, "tilted into the ground: the view rises over it");
-        /* tilt back up: lets out slowly, not at once */
-        in.pitch = 6.0;
-        o.step(g, in, 1.0 / 60, l, flat);
-        o.step(g, in, 1.0 / 60, l, flat);
-        o.eyeFor(g, 0, 0, l, eye);
-        const double d1 = length(eye - g.target);
-        check(d1 < 50.0, "lets out slowly");
+        check(o.distanceRatio() > 0.5, "... at once, not pulled in to the target meanwhile");
         run(o, g, Input(), 1.0, l, flat);
         run(o, g, Input(), 5.0, l, flat);   /* idle: recentres too, all the way out */
         o.eyeFor(g, 0, 0, l, eye);
@@ -223,10 +217,22 @@ int main() {
         gw.eye = gw.target + direction(90, 10) * 100.0;   /* +x side */
         in = Input();
         in.yaw = 1e-6;
-        run(o3, gw, in, 0.5, l, wall);
+        run(o3, gw, in, 2.0, l, wall);
         o3.eyeFor(gw, 0, 0, l, eye);
-        check(eye.x <= 30.0 + 1e-6 && eye.x > 25.0, "pulled in to just before a wall too high to see over");
-        check(near(o3.lift(), 0.0, 1e-9) && near(o3.rise(), 0.0, 1e-9), "no lift or rise in front of the wall");
+        check(eye.x <= 30.0 + 1e-6 && eye.x > 25.0, "kept just before a wall too high to see over");
+        check(near(o3.lift(), 0.0, 1e-9) && o3.rise() > 40.0 && length(eye - gw.target) > 50.0,
+              "... looking down past it from higher up rather than pulled in to the target (no lift)");
+        /* the rise that sees farthest only if clearly farther: a wall right behind the target
+         * (no rise helps much) still pulls in */
+        const HeightFn nearWall = [](double x, double, double) { return x > 3.0 ? 1e6 : 0.0; };
+        Orbit o5;
+        run(o5, gw, in, 0.5, l, nearWall);
+        check(o5.rise() < 1e-6 && o5.distanceRatio() < 0.2, "a wall right behind the target: pulled in, no rise "
+                                                             "(none sees clearly farther)");
+        /* the wall gone: lets out slowly, not at once */
+        o5.step(gw, in, 1.0 / 60, l, flat);
+        o5.step(gw, in, 1.0 / 60, l, flat);
+        check(o5.distanceRatio() < 0.5, "lets out slowly");
         /* a low wall 20 high at x 20..30: rises over it (clear 4 above it from x = 20:
          * tan p >= 19 / 20, p >= 43.5: to 45 degrees, 10 + 35) */
         const HeightFn lowWall = [](double x, double, double) { return x > 20.0 && x < 30.0 ? 20.0 : 0.0; };
@@ -235,6 +241,16 @@ int main() {
         o4.eyeFor(gw, 0, 0, l, eye);
         check(near(o4.rise(), 35.0, 0.5), "rises over a low wall");
         check(near(o4.distanceRatio(), 1.0, 0.01), "... at the full distance");
+        /* turned to face a low wall close behind: rises at once, never pulled in to the target meanwhile */
+        Orbit o6;
+        Orbit::Game gf = gw;
+        gf.eye = gf.target + direction(270, 10) * 100.0;   /* -x side: open */
+        in = Input();
+        in.yaw = 1e-6;
+        run(o6, gf, in, 1.0, l, lowWall);
+        in.yaw = 180.0;   /* one step round to the wall's side */
+        o6.step(gf, in, 1.0 / 60, l, lowWall);
+        check(o6.rise() > 30.0 && o6.distanceRatio() > 0.5, "turned to a low wall: rises at once, not pulled in");
     }
     /* the collision's triangle grid: the same heights as a test of every triangle */
     {

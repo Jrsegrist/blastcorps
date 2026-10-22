@@ -151,18 +151,33 @@ void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, c
         if (want < lim.riseBelow && rise_ < 1e-9 + lim.riseMax) {
             double y0, p0;
             angles(dir0, y0, p0);
+            /* the first rise that sees past it; else the one that sees farthest, if that is
+             * clearly farther (rather than pull in to the target: into the vehicle) */
+            double best = want + lim.riseGain, bestRise = 0;
             for (double r = lim.riseStep; p0 + r <= std::max(lim.pitchMax, p0) + 1e-9 && r <= lim.riseMax + 1e-9;
                  r += lim.riseStep) {
                 const double s = clearShare(g.target, direction(y0, p0 + r), dist, lim.clearance, height, lim.nearShare);
                 if (s >= lim.riseBelow) {
-                    wantRise = r;
+                    bestRise = r;
                     break;
                 }
+                if (s > best) best = s, bestRise = r;
             }
+            wantRise = bestRise;
         }
     }
-    if (wantRise > rise_) rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.riseTime)));
-    else rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.letOutTime)));
+    if (wantRise > rise_) {
+        /* easing up would meanwhile pull the eye in close to the target (into the vehicle): at once */
+        double y0, p0;
+        angles(dir0, y0, p0);
+        if (clearShare(g.target, direction(y0, std::min(89.0, p0 + rise_)), dist, lim.clearance, height,
+                       lim.nearShare) < lim.riseSnapBelow)
+            rise_ = wantRise;
+        else
+            rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.riseTime)));
+    } else {
+        rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.letOutTime)));
+    }
     Vec3 dir = dir0;
     if (rise_ > 1e-6) {
         double y0, p0;

@@ -84,7 +84,8 @@ game is closed. It holds:
   [audio]      volume, mute
   [camera]     mode (original, the default, or orbit: the free camera, below),
                sensitivity_x/y, invert_x/y, recentre (0/1) and recentre_delay
-               (seconds), recentre_on_foot, zoom_min/max, tilt_min/max, mouse (0/1)
+               (seconds), relative_steering (0/1), recentre_on_foot, collision
+               (smooth, off or strict), zoom_min/max, tilt_min/max, mouse (0/1)
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
   [controller] the same for a game controller, plus which stick is the analog stick,
                its dead zone and sensitivity, which controller plays (pad = 1, 2 ...
@@ -114,17 +115,27 @@ HUD is never blended; auto lets the renderer guess the pairs instead (to compare
 The orbit camera (camera mode = orbit, in the settings menu's Camera tab, or
 bc.exe --camera orbit) lets you turn the view around your vehicle, or the driver on
 foot, at any angle, tilt it and zoom it, while you play: the right stick (or keypad
-4 6 8 2, + and -; or hold a mouse button and move the mouse, the wheel zooms), Y and
-the left stick's click zoom, the right stick's click (keypad 5, the middle mouse
-button) resets it. By default it eases back behind you a moment after you let go
-(recentre); with recentre off it stays where you left it. It only changes what you
-see: the game itself still uses its own camera, so everything plays out exactly as
-before. While it is on, the right stick turns the camera instead of being the C
-buttons (C left/right, the game's own 45-degree camera turns, stay on J and L); in
-menus the right stick is the C buttons as before. The view rises over walls and hills
-(looking down more steeply) and moves in only when that can't see past them. (Before
-this version it often moved right up to your vehicle first, so close that the view
-went inside it; those pictures were also the slowest to draw.) People still face the game's own
+4 6 8 2, + and -; or hold a mouse button and move the mouse, the wheel zooms); hold Y
+and push the right stick up or down to zoom in or out; the right stick's click (keypad
+5, the middle mouse button) resets it. (Older versions zoomed out with a click of the
+left stick, easy to do by accident while steering hard; a bc.ini with those old
+default buttons is changed to the new ones when the game starts.) By default it eases
+back behind you a moment after you let go (recentre); with recentre off it stays where
+you left it. It only changes what you see, with one exception: the driver on foot,
+the J-Bomb, Thunderfist and the Cyclone Suit are steered by the game relative to its
+own camera, so with the view turned round "up" on the stick used to go towards you.
+With relative_steering = 1 (the default) the stick is turned to match the orbit's view
+(up always goes away from you) before the game reads it; the vehicles steer as always,
+and with the orbit off (or not turned) the game gets exactly what you press. While it
+is on, the right stick turns the camera instead of being the C buttons (C left/right,
+the game's own 45-degree camera turns, stay on J and L); in menus the right stick is
+the C buttons as before. Buildings in the way (collision = smooth, the default): the
+view rises over a building that stays between the camera and you, or moves in front
+of it, calmly (no jumps in and out), and goes back a moment after the view is clear;
+poles, corners and buildings rushing past just hide you for a moment. strict moves at
+once every time (as before); off never moves for buildings. The sky now moves picture
+by picture with the orbit's view too (before, it moved only with the game's own 30
+frames a second, which looked like a stutter at high frame rates). People still face the game's own
 camera, the radar keeps the game's heading, and the screen doesn't shake in the
 orbit view. (Before this version, turning the orbit camera could slow the whole game
 down to about 20 frames a second on a laptop: its collision test was too slow. Fixed.)
@@ -257,8 +268,15 @@ prepared, other work of the program between pictures, or the display side), and 
 the orbit camera on a second line shows its own work. A "content" line checks what
 the pictures show: each one should be exactly one picture's time further on, and on
 the display each refresh should show that much more. A pause of over 50 ms gets a
-"long retrace" line saying where the time went. If motion isn't smooth, send the
-lines starting with "live: frame times" and "live: long retrace" from bc.log.
+"long retrace" line saying where the time went (the events split by kind: window,
+keys, mouse, controllers). If motion isn't smooth, send the lines starting with "live:
+frame times", "live: long retrace" and "live: controllers" from bc.log.
+
+Controllers: the game controllers now run on a thread of their own. Windows' search
+for new devices (a Bluetooth controller connecting, any USB or Bluetooth device coming
+or going) could take 50-400 ms, and it used to happen while the game waited, as a
+pause; now the game carries on with the controller's last state meanwhile, and bc.log
+gets a "live: controllers: ... took over 20 ms" line when it happens.
 
 Settings for integrated graphics (measured on a laptop's Ryzen 7 5700U with its
 Radeon graphics, 1920x1080 fullscreen at 60 Hz): framerate 60 with widescreen and

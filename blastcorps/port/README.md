@@ -940,9 +940,70 @@ it without a fault.  The x64-asan preset is the tool for this now.
       15 178 -> 102, level 29 245 -> 100 (the game's camera: 1, 39, 228); at
       60: 44 -> 8, 3 -> 2, 17 -> 13 (3, 3, 18); the slowest picture on the GPU
       11.5 -> 8.6, 10.4 -> 8.9, 31.2 -> 18.4 ms.
+    - Collision comfort (`[camera] collision`, `orbit::Collision`, default
+      `smooth`; `strict` is the behaviour above, `off` never moves for
+      obstacles, only lifts the eye above the terrain grid): the view along
+      the line of sight and a ray each side (`rayOffset` of the distance
+      beside the eye; the larger of the line of sight's and the three rays'
+      median: a pole on the line of sight is ignored, a clear line of sight
+      between two buildings is clear) must be blocked for `holdIn` (0.15 s)
+      before the camera rises (lowest 5-degree step that sees past) or pulls
+      in (to 97 % of the free part along the view the rise is going to), and
+      clear by `hysteresis` (8 %) for `holdOut` (0.8 s) before it goes back
+      (the rise straight to the lowest step that sees past); positions follow
+      critically damped springs (`orbit::Spring`, 0.15 s in/up, 0.9 s
+      out/down).  Only the eye itself inside an obstacle (a point test) moves
+      it at once, on a 0.05 s spring, to the obstacle's near side along the
+      line (or hurries a rise); the lift above the ground is immediate.  When
+      the target itself is blocked (the player pushing into a building) it
+      doesn't pull in at all: that would only put the eye into the vehicle.
+      `--orbit-steplog` logs every step.  The summary line `orbit collision` counts turning
+      points of the pull-in and the rise (moves of 3 % / 1.5 degrees one way
+      after the other), the fastest moves and the steps with the eye inside an
+      obstacle (`orbit::CollisionStats`).  Measured (3600 frames, the
+      levels' driving input; strict = before -> smooth), with the stress
+      sweep: pull-in / rise turning points level 0 25/39 -> 11/23, level 3
+      33/33 -> 2/14, level 19 9/7 -> 7/7, level 29 9/11 -> 5/7; fastest
+      pull-in 30-42 -> 1.5-7 shares of the distance a second, fastest rise
+      276-1472 -> 60-181 degrees a second; with the view held 120 degrees
+      round (`--orbit-test hold:120:15`, as when driving with a turned
+      view): level 0 6/15 -> 2/13, level 3 19/31 -> 3/9, level 29 0/3 ->
+      0/1, fastest pull-in 43-51 -> 3-6, rise 600-2334 -> 49-361.
+    - Camera-relative steering (`[camera] relative_steering`, default 1): the
+      game steers the driver on foot (vehicle 0), Thunderfist (2), the J-Bomb
+      (9) and the Cyclone Suit (16) relative to its camera (45BB0.c
+      cont_update, control method 0, calls 46F60.c cont_stick_to_steer, which
+      adds gCamHeading to the stick's angle) unless the player picked the
+      other control method for it (gPlayerControlModes[playerNumber], a bit
+      per vehicle type); every other vehicle reads the stick as steering and
+      throttle (cont_process_stick).  For those characters, in play
+      (gGameMode 4, not paused), while the orbit shows a turned view, the
+      stick of each controller read (`host_input_hook` in plat_input_read:
+      the player's input and an `--input` file alike) is turned by the
+      difference between the game's view and the orbit's
+      (`orbit::steerTurn`, `orbit::rotateStick`, length kept).  This is the
+      one place the orbit camera changes the game's input, by design; with the
+      orbit off, not turned, or no stick held, the game gets the input as
+      before (traces equal).  `recentre_on_foot` now only applies with
+      relative steering off (then for all four characters).  Checked with
+      `--orbit-test hold:DEG[:PITCH]` (the orbit kept DEG from the game's
+      camera) and scripted input: level 0 on foot, held 90 degrees round,
+      stick up: the driver walks 2 degrees off "away from the orbit's eye"
+      (94 with relative steering off).
+    - The sky: the backdrop's texture follows the heading in whole 1/4096
+      turns and only once a game frame; in the orbit view its vertices get
+      the view's heading in fractions, unwrapped, and its G_VTX an
+      interpolation ID of its own (texture coordinates and vertices
+      interpolated; `rsp.matrixId` set just for that G_VTX and put back), so
+      RT64 moves it picture by picture.  A cut, engaging the orbit or taking a
+      texture repeat off the s16 values gets a new ID (no blend).
     - Controls: `[controller] camera_left/right/up/down` (default the right
-      stick), `camera_zoom_in` (Y), `camera_zoom_out` (left stick click),
-      `camera_reset` (right stick click); `[keyboard]` keypad 4/6/8/2, + and -,
+      stick), `camera_zoom_hold` (Y: held, look up/down zoom in/out instead),
+      `camera_zoom_in` / `camera_zoom_out` (buttons that zoom while held;
+      default none: the old default, Y and the left stick's click, which a
+      hard push on the stick could click while steering, is changed to the
+      new one when a bc.ini still has exactly it), `camera_reset` (right stick
+      click); `[keyboard]` keypad 4/6/8/2, + and -,
       5; the mouse (`[camera] mouse`): hold the left or right button and move
       to turn, the wheel zooms, the middle button resets. In play the camera's
       inputs don't reach the N64 pad (by default the right stick was the C
@@ -953,12 +1014,13 @@ it without a fault.  The x64-asan preset is the tool for this now.
     - Settings: `sensitivity_x/y` (percent), `invert_x/y`, `recentre` (ease
       back behind the player after `recentre_delay` seconds without camera
       input; 0: the camera keeps its world direction until reset),
-      `recentre_on_foot` (on foot the game steers the driver relative to its
-      own camera heading, 46F60.c cont_stick_to_steer with gCamHeading: a turned
-      view would make the stick feel rotated, so by default it eases back on
-      foot anyway; camera-relative on-foot input would change the game's
-      input, so it isn't offered), `zoom_min/max` (times the game's
-      distance), `tilt_min/max` (degrees), `mouse`.
+      `relative_steering`, `recentre_on_foot` (with relative steering off:
+      ease back for the camera-relative characters anyway), `collision`,
+      `zoom_min/max` (times the game's distance), `tilt_min/max` (degrees),
+      `mouse`.  The camera stick uses `[controller] deadzone` (per axis, as
+      the N64 stick) and a curve (0.6 v|v| + 0.4 v); its input is one amount
+      per step (1/60 s of the game's virtual time, `orbitVi`): a stall of
+      the main thread doesn't turn or zoom it further.
     - Billboards: smoke, explosions and particles (60F60.c, 43A60.c) are
       quads the game turns toward its camera; after each G_MTX RT64 runs
       (the matrix hook of `interpSetCommandHook`), a model matrix whose
@@ -966,8 +1028,8 @@ it without a fault.  The x64-asan preset is the tool for this now.
       scale) is turned by Rg Ro^T to face the orbit camera, in RT64's copy.
     - Known limits: the screen shake isn't applied to the orbit view;
       people sprites (world-space quads built on the CPU) face the game's
-      camera; the radar keeps the game's heading; the backdrop updates with
-      the game's frames (it can't be added where the game didn't draw one);
+      camera; the radar keeps the game's heading; with the game's own camera
+      the backdrop still moves once a game frame (its sky is rarely in view);
       environment-mapped reflections use the game's view.
     - Testing: `--orbit-test YAWSPEED[:PITCH[:ZOOM]]` turns the camera by
       itself (degrees a second, an absolute pitch, a zoom); `--orbit-test
@@ -1022,9 +1084,25 @@ it without a fault.  The x64-asan preset is the tool for this now.
     tilt; 100 = before), picks the controller (`pad = 1` the first one found,
     the default, `N`, or `any` = all at once) and resets to the defaults.
     Every SDL game controller is opened (`src/live/live_input.cpp`,
-    `live::PadSet`): on SDL's device events and once a second, detached ones
-    are closed and new ones opened, so a controller that drops out and
-    reconnects (a new SDL instance id) plays again as `pad = 1`.
+    `live::PadSet`): about every 16 ms detached ones are closed and new ones
+    opened, so a controller that drops out and reconnects (a new SDL instance
+    id) plays again as `pad = 1`.  SDL's controllers run on a thread of their
+    own (`live::InputThread`): SDL 2.26's device detection - DirectInput's
+    device enumeration and XInput's after any HID device arrives or leaves
+    (and again 300 ms and 2 s later), HIDAPI's and Raw Input's opening of new
+    devices - ran inside the main thread's `SDL_PollEvent` (SDL_JoystickUpdate
+    with SDL's controller lock held, and its device window's messages), and
+    a user's log showed 50-400 ms pauses there (an Xbox Elite 2, maybe over
+    Bluetooth, connecting; more in play and on the level-complete screen).
+    The thread starts SDL's game controller subsystem itself (its device
+    windows are its own), waits for messages or 1 ms, dispatches them, calls
+    `SDL_JoystickUpdate`, rescans and samples every controller into plain
+    data (`PadState`); the main thread (`SDL_HINT_AUTO_UPDATE_JOYSTICKS` 0)
+    copies the newest sample once a retrace and never calls SDL's controller
+    functions.  SDL's controller events still reach its queue (the menu, the
+    menu buttons; a button event newer than the sample is applied to it).
+    bc_inputtest: a 300 ms update on the thread with SDL's controller lock
+    held, the main thread's reads all under 0.02 ms.
     Controllers keep working when the window loses the focus
     (`SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS`: SDL's default drops their
     input then, and with the keyboard also gone a player in fullscreen had
@@ -1209,8 +1287,11 @@ it without a fault.  The x64-asan preset is the tool for this now.
     the load-time byte swaps), audio (tasks and the output), gfx tasks (RT64
     reading the display lists), save files written and the rest, the game's
     own code with its inflate (`plat_host.h` `host_prof`); RT64's submit; the
-    host's work after the retrace (events, the controllers' once-a-second
-    rescan, the orbit camera's step).
+    host's work after the retrace (the events: SDL's pump - the window's
+    messages - and the handlers of window, keyboard, mouse, controller and
+    other events, reading the pad state; the orbit camera's step; and the
+    controllers' own thread's longest update meanwhile, which no longer holds
+    the game up).
   - **Textures**: every 10 s, the textures RT64 made, by size (its texture
     map's creation frames, sampled every other retrace: RT64 evicts a texture
     unused for a few frames, and the hash map's growth in `spikes by cause`

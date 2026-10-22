@@ -162,7 +162,8 @@ public:
 
     /* the eye of the last step inside an obstacle (point test; smooth/strict) */
     bool eyeInside() const { return inside_; }
-
+    double ratioTarget() const { return ratioT_; }   /* smooth: where the springs are going */
+    double riseTarget() const { return riseT_; }
 private:
     void stepStrict(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
                     const HeightFn &height);

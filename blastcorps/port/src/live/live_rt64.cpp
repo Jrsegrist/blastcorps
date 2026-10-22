@@ -2899,6 +2899,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--display-hz")) g_interp.displayHz = std::max(1u, num(next()));
     else if (!strcmp(a, "--interp-log")) g_interp.log = true;
     else if (!strcmp(a, "--orbit-log")) live::orbitSetLog(true);
+    else if (!strcmp(a, "--orbit-steplog")) live::orbitSetStepLog(true);
     else if (!strcmp(a, "--orbit-repeatable")) live::orbitSetRepeatable(true);
     else if (!strcmp(a, "--orbit-cull")) {
         const char *s = next();

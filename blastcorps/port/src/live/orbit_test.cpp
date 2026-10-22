@@ -432,6 +432,15 @@ int main() {
             if (!(e.x > 60.0 && e.y < 1e5)) out = i;
         }
         check(out >= 0 && out <= 12, "smooth: the eye inside an obstacle gets out within 0.2 s");
+        /* the target itself under a roof (pushing into a building): nothing sees it, pulling in would only put
+         * the eye into the vehicle: the view stays (occluded) */
+        const HeightFn roof = [](double x, double, double z) {
+            return std::fabs(x) < 20.0 && std::fabs(z) < 20.0 ? 1e6 : 0.0;
+        };
+        Orbit orf;
+        run(orf, gw, in, 2.0, l, roof);
+        check(near(orf.distanceRatio(), 1.0, 1e-9) && near(orf.rise(), 0.0, 1e-9) && !orf.eyeInside(),
+              "smooth: the target under a roof: no pull-in into the vehicle");
         /* off: never moves for obstacles; kept above the terrain */
         Limits lo = l;
         lo.collision = COLLISION_OFF;

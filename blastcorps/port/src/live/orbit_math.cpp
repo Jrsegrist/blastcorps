@@ -245,7 +245,9 @@ void Orbit::stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collid
             s[k + 1] = clearShare(g.target, normalize(end - g.target), len, lim.clearance, height, lim.nearShare);
         }
         std::sort(s, s + 3);
-        return s[1];
+        /* (the median ignores a thin obstruction on the line of sight; a clear line of sight between two
+         * obstacles beside it is clear) */
+        return std::max(c, s[1]);
     };
     /* the eye now (last step's spring positions) */
     inside_ = insideAt(g.target, dirAt(rise_), dist, ratio_, lift_, lim.clearance, height);
@@ -264,6 +266,19 @@ void Orbit::stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collid
                 break;
             }
             if (s > best) best = s, up = r;
+        }
+        /* nothing clearly better and the camera would end up pulled in close to the target (into the
+         * vehicle): as strict, the rise along the line of sight alone that sees farthest */
+        if (up <= riseT_ + 1e-9 && atTarget < lim.riseSnapBelow) {
+            double bestC = clearShare(g.target, dirAt(riseT_), dist, lim.clearance, height, lim.nearShare) + lim.riseGain;
+            for (double r = riseT_ + lim.riseStep; p0 + r <= top + 1e-9 && r <= lim.riseMax + 1e-9; r += lim.riseStep) {
+                const double s = clearShare(g.target, dirAt(r), dist, lim.clearance, height, lim.nearShare);
+                if (s >= lim.riseBelow) {
+                    up = r;
+                    break;
+                }
+                if (s > bestC) bestC = s, up = r;
+            }
         }
     }
     if (up > riseT_ + 1e-9) {
@@ -299,11 +314,14 @@ void Orbit::stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collid
     const Vec3 dir = dirAt(rise_);
     double centre = 1.0;
     double s = robust(dirAt(riseT_), &centre);
+    /* blocked right at the target (the player pushing into a building, under a roof): pulling in wouldn't see
+     * it either, only put the eye into the vehicle: the view stays as it is (occluded) */
+    const bool buried = s <= lim.nearShare + 0.02;
     if (s < 1.0) s *= kShort;
     centre *= kShort;
     s = std::max(minShare, s);
     centre = std::max(minShare, centre);
-    if (s < ratioT_ - 1e-6) {
+    if (s < ratioT_ - 1e-6 && !buried) {
         pullIn_ += dt;
         if (pullIn_ >= lim.holdIn - 1e-9) ratioT_ = s, pullIn_ = 0.0;
     } else {
@@ -315,13 +333,20 @@ void Orbit::stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collid
     } else {
         letOut_ = 0.0;
     }
-    bool insideNow = insideAt(g.target, dir, dist, ratio_, 0.0, lim.clearance, height);
-    /* (still rising to a view that clears it: the rise hurries instead - inside_ - rather than pulling in too) */
-    if (insideNow && riseT_ > rise_ + 0.5 && !insideAt(g.target, dirAt(riseT_), dist, ratio_, 0.0, lim.clearance, height))
-        insideNow = false;
+    const bool insideNow = insideAt(g.target, dir, dist, ratio_, 0.0, lim.clearance, height);
     if (insideNow) {
-        const double c = clearShare(g.target, dir, dist, lim.clearance, height, lim.nearShare) * kShort;
-        ratioT_ = std::min(ratioT_, std::max(minShare, c));
+        /* out of it the shortest way along the line: to the obstacle's near side (from the eye towards the
+         * target, the first point outside), not to the first obstruction from the target */
+        double c = minShare;
+        const int n = 48;
+        for (int i = 1; i <= n; i++) {
+            const double r = ratio_ - (ratio_ - minShare) * double(i) / n;
+            if (!insideAt(g.target, dir, dist, r, 0.0, lim.clearance, height)) {
+                c = std::max(minShare, r - 0.02);
+                break;
+            }
+        }
+        ratioT_ = std::min(ratioT_, c);
     }
     Spring::step(ratio_, ratioV_, ratioT_, ratioT_ < ratio_ ? (insideNow ? lim.springEye : lim.springIn) : lim.springOut,
                  dt);

@@ -581,6 +581,7 @@ bool g_resetHeld;
  * DEG from the game's camera */
 double g_testYaw, g_testPitch = 1e9, g_testZoom = 0, g_testHold = 1e9;
 orbit::CollisionStats g_cstats;   /* how calm the collision was (orbitSummary) */
+bool g_stepLog;                   /* --orbit-steplog */
 /* camera-relative steering (steerHook) */
 unsigned g_steerReads, g_steerTurned;
 double g_steerMaxTurn;
@@ -1237,6 +1238,10 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
         g_perf.steps++;
         g_perf.closeSteps += g_orbit.distanceRatio() < 0.3;
         g_cstats.add(g_orbit.distanceRatio(), g_orbit.rise(), g_orbit.eyeInside(), dt);
+        if (g_stepLog)   /* --orbit-steplog: every step's collision state */
+            host_log("live: orbit step frame %u: pull-in %.3f (to %.3f) rise %.1f (to %.1f) lift %.1f inside %d\n",
+                     plat_frames(), g_orbit.distanceRatio(), g_orbit.ratioTarget(), g_orbit.rise(), g_orbit.riseTarget(),
+                     g_orbit.lift(), g_orbit.eyeInside() ? 1 : 0);
     } else {
         g_cstats.restart();
     }
@@ -1390,6 +1395,10 @@ bool orbitSetTest(const std::string &spec) {
 
 void orbitSetLog(bool on) {
     g_log = on;
+}
+
+void orbitSetStepLog(bool on) {
+    g_stepLog = on;
 }
 
 OrbitPerf OrbitPerf::operator-(const OrbitPerf &o) const {

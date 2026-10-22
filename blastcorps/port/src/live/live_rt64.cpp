@@ -866,6 +866,9 @@ struct FrameTimes {
     LONGLONG lastQpc = 0;
     double refSum = 0, refSq = 0;
     unsigned refN = 0, refLong = 0;      /* refreshes over 1.2x the nominal period: variable refresh */
+    UINT shownCount = 0, shownRefresh = 0;   /* the present on screen and the refresh it came at */
+    unsigned holds[5] = {};              /* pictures shown 0..4+ refreshes */
+    unsigned neverShown = 0;             /* presents replaced before they were shown */
     Busy segBusy, winBusy;
     double segStart = 0, winStart = 0;
     unsigned segment = 0;
@@ -922,6 +925,19 @@ void framePresented(const RT64::PresentQueue::PresentedInfo &p) {
             }
             g_ft.lastRefresh = s.SyncRefreshCount;
             g_ft.lastQpc = s.SyncQPCTime.QuadPart;
+            /* what the display showed: a newer present on screen since the last
+             * look -> the one before stayed (its refresh to this one's) refreshes;
+             * presents in between were never shown (sampled once a present:
+             * approximate when two came on screen between two presents) */
+            if (s.PresentCount > g_ft.shownCount && s.PresentRefreshCount > 0) {
+                if (g_ft.shownCount != 0 && !g_ft.suspended && s.PresentRefreshCount > g_ft.shownRefresh) {
+                    const unsigned hold = s.PresentRefreshCount - g_ft.shownRefresh;
+                    g_ft.holds[std::min(4u, hold)]++;
+                    g_ft.neverShown += s.PresentCount - g_ft.shownCount - 1;
+                }
+                g_ft.shownCount = s.PresentCount;
+                g_ft.shownRefresh = s.PresentRefreshCount;
+            }
         }
     }
 }
@@ -990,6 +1006,10 @@ void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bo
              g_opt.fullscreen ? "fullscreen" : "windowed", tearing ? "supported" : "not supported", vrr, pw, ph,
              320.0f * sx, 240.0f * sy, g_app->userConfig.msaaSampleCount(), g_ft.syncCount[0], g_ft.syncCount[1],
              g_ft.syncCount[2] + g_ft.syncCount[3] + g_ft.syncCount[4]);
+    if (g_ft.refN > 0)
+        host_log("live: frame times (%s): on the display (DXGI frame statistics): pictures shown 1 refresh %u, 2 %u, "
+                 "3 %u, 4+ %u; %u presents replaced before they were shown\n",
+                 head, g_ft.holds[1], g_ft.holds[2], g_ft.holds[3], g_ft.holds[4], g_ft.neverShown);
     host_log("live: frame times (%s): RT64 rendered %u pictures; in-between pictures not drawn: %u reduced (present "
              "thread late), %u skipped (rendering late), %u cut (next frame waiting); %u presents skipped; even "
              "timer restarted %u times (a picture over a period late)\n",
@@ -1017,6 +1037,8 @@ void frameSegment(const char *why) {
     g_ft.refSum = g_ft.refSq = 0;
     g_ft.refN = g_ft.refLong = 0;
     memset(g_ft.syncCount, 0, sizeof g_ft.syncCount);
+    memset(g_ft.holds, 0, sizeof g_ft.holds);
+    g_ft.neverShown = 0;
 }
 
 void busyAdd(double Busy::*f, double ms) {
@@ -1768,6 +1790,7 @@ void runMenu(unsigned shotFrame) {
         std::lock_guard<std::mutex> lock(g_ft.mutex);
         g_ft.suspended = false;
         g_ft.last = -1;
+        g_ft.shownCount = 0;
     }
     if (g_quitRequested) shutdown(0);
     g_t0.QuadPart = 0;   /* pacing: start over from the next retrace */

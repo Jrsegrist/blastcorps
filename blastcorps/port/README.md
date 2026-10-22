@@ -1107,7 +1107,14 @@ it without a fault.  The x64-asan preset is the tool for this now.
   any scheduling but RT64's own, the workload queue's `frameReduction` (one
   in-between picture fewer when it waited for the present thread) counts only
   waits over half a picture, as the vsync pacing does.  `--present-legacy`
-  (testing): RT64's own timer.
+  (testing): RT64's own timer.  Measured on this PC (60 Hz, level 0, frames
+  1100-1700 paced, windowed, idle): `framerate = 60` with vsync, RT64's timer
+  1195-1198 of ~1199 pictures one refresh and 1-2 held two (3 runs; in earlier
+  runs up to 9 reduced pictures and 5 intervals over 1.5x), locked 1199/1199
+  in all 3 (no reduced pictures); the vsync pacing and auto the same.  Without
+  vsync (`--display-hz`) at 120 / 144 / 240 both timers kept the target
+  (sd 0.05-0.3 ms; the outliers were the integrated GPU rendering late), and
+  vrr at 116 a second sd 0.05-0.6 ms against RT64's timer's 0.1-1.3.
 - **Frame times** (always measured; `live_rt64.cpp` `framePresented` /
   `frameLog`): every swap-chain present (the patch's `presentedHook`) goes
   into a histogram of present-to-present intervals (0.05 ms bins) against the
@@ -1117,7 +1124,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
   pacing wait; the GPU time per rendered picture comes from RT64's timestamp
   queries (`rendererGPUProfiler`); with D3D12 the DXGI frame statistics after
   each present show whether the refreshes followed the presents (refreshes
-  over 1.2 times the nominal period: variable refresh seen).  bc.log gets
+  over 1.2 times the nominal period: variable refresh seen) and how many
+  refreshes each picture stayed on screen and how many presents were replaced
+  before they were shown (sampled once a present).  bc.log gets
   `live: frame times (10 s)` lines and, per settings segment (a video setting
   changed, F11, `--pace-from`) and at exit, a block: presents, mean, sd,
   p50/p95/p99/max, over 1.5x and 2x the target; CPU and GPU ms per picture;

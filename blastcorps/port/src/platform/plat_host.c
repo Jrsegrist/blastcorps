@@ -32,6 +32,16 @@ void *host_fopen(const char *path, const char *mode) {
     return fopen(path, mode);
 }
 
+HostProf host_prof;
+
+double host_ms(void) {
+    static LARGE_INTEGER freq;
+    LARGE_INTEGER now;
+    if (freq.QuadPart == 0) QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&now);
+    return (double) now.QuadPart * 1000.0 / (double) freq.QuadPart;
+}
+
 void host_message(const char *text, int error) {
     static wchar_t w[8192];
     fprintf(stderr, "message box (%s)%s: %s\n", error ? "error" : "warning",

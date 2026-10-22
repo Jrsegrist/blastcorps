@@ -81,8 +81,13 @@
  *                       query against a test of every triangle (summary at exit)
  *     --orbit-cull M    (testing) all: the drawing paths get every cell (as before the orbit
  *                       view's test), view: the game's cells and the orbit view's (default)
- *     --orbit-repeatable  (testing) pictures use the orbit as it was when their frame was made
- *                       (the same pictures every run, for comparisons) *     --interp-log      log every frame's camera motion (the interpolation cut test) and
+ *     --orbit-repeatable  (testing; kept for old scripts) pictures always use the orbit at their
+ *                       own time now (the same pictures every run)
+ *     --view-log FILE   (testing) every picture drawn with the orbit camera's view: when it was
+ *                       rendered, its frame and weight, the view's heading and pitch, CSV
+ *     --picture-log FILE  (testing) every present: its interval and what the picture shows (its
+ *                       content time: the frame and interpolation weight, port patch 0008), CSV
+ *     --interp-log      log every frame's camera motion (the interpolation cut test) and
  *                       tagged objects that jumped
  *     --tag-test MASK   (testing) tagged interpolation experiments: 1 no vertex blending, 2 HUD
  *                       matched like the rest, 4 no decomposition, 8 ORDER_AUTO, 16 every ID auto,
@@ -636,6 +641,8 @@ struct PresentedRec {
     unsigned long long presentId;
     unsigned frameIndex, frameCount, syncInterval, dxgiCount;
     double submit, present;
+    double content;   /* what the picture shows (contentMs; -1 unknown) */
+    float weight;     /* its interpolation weight (port patch 0008) */
 };
 struct FlipLog {
     const char *path = nullptr;
@@ -653,9 +660,9 @@ double steadyMs(const RT64::Timestamp &t) {
 }
 
 /* (called by framePresented, the present thread's hook, with --flip-log) */
-void flipPresented(const RT64::PresentQueue::PresentedInfo &p) {
+void flipPresented(const RT64::PresentQueue::PresentedInfo &p, double content) {
     PresentedRec r = {p.presentId, p.frameIndex, p.frameCount, p.hold, 0, steadyMs(p.submitTime),
-                      steadyMs(p.presentTime)};
+                      steadyMs(p.presentTime), content, p.contentWeight};
     UINT n = 0;
     if (g_flip.dxgi != nullptr && SUCCEEDED(g_flip.dxgi->GetLastPresentCount(&n))) r.dxgiCount = n;
     std::lock_guard<std::mutex> lock(g_flip.mutex);
@@ -696,15 +703,17 @@ void flipWrite() {
     std::lock_guard<std::mutex> lock(g_flip.mutex);
     FILE *f = static_cast<FILE *>(host_fopen(path, "w"));
     if (f == nullptr) return;
-    fprintf(f, "kind,a,b,c,d,e,f,g\n");
-    fprintf(f, "info,%u,%s,%s,%s,%s,,\n", displayHz(), g_opt.vsync ? "vsync" : "novsync",
+    fprintf(f, "kind,a,b,c,d,e,f,g,h,i\n");
+    fprintf(f, "info,%u,%s,%s,%s,%s,,,,\n", displayHz(), g_opt.vsync ? "vsync" : "novsync",
             g_opt.fullscreen ? "fullscreen" : "windowed", g_opt.vulkan ? "vulkan" : "d3d12",
             g_app->presentQueue->vsyncPacing ? "vsyncpacing" : "timerpacing");
     for (const FlipRec &r : g_flip.flips)
-        fprintf(f, "flip,%u,%u,%u,%.4f,,,\n", r.syncRefresh, r.presentCount, r.presentRefresh, r.t);
+        fprintf(f, "flip,%u,%u,%u,%.4f,,,,,\n", r.syncRefresh, r.presentCount, r.presentRefresh, r.t);
+    /* present: id, picture, pictures, hold, DXGI count, submitted, presented, content time (ms; -1
+     * unknown), weight */
     for (const PresentedRec &r : g_flip.presents)
-        fprintf(f, "present,%llu,%u,%u,%u,%u,%.4f,%.4f\n", r.presentId, r.frameIndex, r.frameCount, r.syncInterval,
-                r.dxgiCount, r.submit, r.present);
+        fprintf(f, "present,%llu,%u,%u,%u,%u,%.4f,%.4f,%.4f,%.4f\n", r.presentId, r.frameIndex, r.frameCount,
+                r.syncInterval, r.dxgiCount, r.submit, r.present, r.content, double(r.weight));
     fclose(f);
     host_log("live: flip log: %u refreshes, %u presents -> %s; vsync pacing: %u pictures dropped to catch up, "
              "%u holds shortened, %u fallbacks to RT64's pacing\n", unsigned(g_flip.flips.size()),
@@ -831,7 +840,7 @@ struct Hist {
     uint64_t n = 0, over15 = 0, over2 = 0;
     double sum = 0, sq = 0, max = 0, targetSum = 0;
     void add(double ms, double target) {
-        bins[std::min(kBins, int(ms / 0.05))]++;
+        bins[std::max(0, std::min(kBins, int(ms / 0.05)))]++;   /* (a content step can be negative) */
         n++;
         sum += ms;
         sq += ms * ms;
@@ -871,6 +880,82 @@ struct Slot {
 };
 struct PendingSpike {
     double t, ms, target;                /* present time (ms since start), interval, target */
+    double contentStep;                  /* its picture's content step (ms; -1 unknown) */
+    float weight;                        /* its picture's interpolation weight */
+};
+
+/* ---- what each picture shows (its content time; port patch 0008) -------------
+ * RT64 reports with every present the workload the picture was rendered from
+ * and its interpolation weight.  The game frames' times are their retraces'
+ * virtual times (liveVi's `when`: the retrace each frame's display list came
+ * after); a picture shows the frame before's time plus its weight of the way to
+ * its own frame's.  At an even rate each picture's content advances by one
+ * period of the target; on a fixed-refresh display (DXGI frame statistics) each
+ * refresh then shows one period's more.  The frame-time report counts the
+ * steps (even, repeated, skipped), their spread against the present calls'
+ * intervals and against the display's refreshes. */
+struct ContentMap {
+    std::mutex mutex;
+    struct Rec {
+        uint64_t workload = 0;
+        double ms = 0;
+    } recs[64];
+    unsigned pos = 0;
+} g_content;
+double g_viWhenMs = -1;                  /* the last retrace's virtual time (ms; main thread) */
+
+/* (main thread) a frame's workload was submitted */
+void contentFrame(uint64_t workload) {
+    if (g_viWhenMs < 0) return;
+    std::lock_guard<std::mutex> lock(g_content.mutex);
+    if (g_content.pos > 0 && g_content.recs[(g_content.pos - 1) % 64].workload == workload) return;
+    g_content.recs[g_content.pos % 64] = {workload, g_viWhenMs};
+    g_content.pos++;
+}
+
+/* (present thread) the content time (virtual ms) of a picture; -1 if unknown */
+double contentMs(uint64_t workload, float weight) {
+    if (weight < 0.0f || workload == 0) return -1;
+    std::lock_guard<std::mutex> lock(g_content.mutex);
+    const unsigned n = std::min(64u, g_content.pos);
+    for (unsigned k = 1; k <= n; k++) {
+        const ContentMap::Rec &r = g_content.recs[(g_content.pos - k) % 64];
+        if (r.workload != workload) continue;
+        if (k == n) return weight >= 1.0f ? r.ms : -1.0;   /* (no frame before it known) */
+        const ContentMap::Rec &prev = g_content.recs[(g_content.pos - k - 1) % 64];
+        return prev.ms + double(weight) * (r.ms - prev.ms);
+    }
+    return -1;
+}
+
+/* the content steps of a span */
+struct ContentStats {
+    Hist step;                           /* content step per presented picture (ms) */
+    unsigned even = 0, repeated = 0, skipped = 0, unknown = 0;
+    double judSum = 0, judSq = 0, judMax = 0;   /* present-call interval less the content step */
+    unsigned judN = 0;
+    unsigned dispN = 0, dispOff = 0;     /* on the display: consecutive pictures; off by over half a period */
+    double dispSum = 0, dispSq = 0, dispMax = 0;   /* refresh interval less the content step */
+    void add(double s, double interval, double target) {
+        step.add(s, target);
+        even += std::fabs(s - target) <= 0.1 * target;
+        repeated += s < 0.5 * target;
+        skipped += s > 1.5 * target;
+        const double j = interval - s;
+        judSum += j, judSq += j * j, judN++;
+        judMax = std::max(judMax, std::fabs(j));
+    }
+    void addDisplay(double off, double target) {
+        dispN++;
+        dispSum += off, dispSq += off * off;
+        dispMax = std::max(dispMax, std::fabs(off));
+        dispOff += std::fabs(off) > 0.5 * target;
+    }
+    static double sd(double sum, double sq, unsigned n) {
+        if (n < 2) return 0;
+        const double m = sum / n;
+        return std::sqrt(std::max(0.0, sq / n - m * m));
+    }
 };
 struct FrameTimes {
     std::mutex mutex;                    /* present thread -> main thread */
@@ -908,13 +993,27 @@ struct FrameTimes {
     uint32_t wlIdx = 0;
     size_t shaderSeen = 0, shaderReadySeen = 0, textureSeen = 0;
     FILE *spikeLog = nullptr;            /* --spike-log FILE (testing) */
+    /* content times (ContentStats): the last present's; DXGI present counts -> content, the last shown */
+    ContentStats segC, winC;
+    double lastContent = -1;
+    struct Counted {
+        UINT count = 0;
+        double content = -1;
+    } counted[64];
+    unsigned countedPos = 0;
+    UINT shownPrevCount = 0;
+    double shownPrevMs = 0, shownPrevContent = -1;
+    /* the segment's settings as they were (frameSettings; the log line names them, not the new ones) */
+    std::string settings;
+    FILE *pictureLog = nullptr;          /* --picture-log FILE (testing): every present */
 } g_ft;
 
 void counterPresentAt(double t);
-void flipPresented(const RT64::PresentQueue::PresentedInfo &p);
+void flipPresented(const RT64::PresentQueue::PresentedInfo &p, double content);
 
 void framePresented(const RT64::PresentQueue::PresentedInfo &p) {
-    if (g_flip.path != nullptr) flipPresented(p);
+    const double content = contentMs(p.contentWorkload, p.contentWeight);
+    if (g_flip.path != nullptr) flipPresented(p, content);
     const double t = steadyMs(p.presentTime);
     const double target = p.targetRate > 0 && p.targetRate > p.viOriginalRate ? 1000.0 / p.targetRate
                           : p.viOriginalRate > 0 ? 1000.0 / p.viOriginalRate : 1000.0 / 30.0;
@@ -925,6 +1024,7 @@ void framePresented(const RT64::PresentQueue::PresentedInfo &p) {
         const double w = steadyMs(p.presentTime) - steadyMs(p.readyTime);
         if (w > 0 && w < 250) g_ft.segBusy.presentWait += w, g_ft.winBusy.presentWait += w;
     }
+    double contentStep = -1;
     if (g_ft.last >= 0 && !g_ft.suspended) {
         const double ms = t - g_ft.last;
         if (ms > 250.0) {
@@ -935,17 +1035,60 @@ void framePresented(const RT64::PresentQueue::PresentedInfo &p) {
             g_ft.ring[g_ft.ringPos] = float(ms);
             g_ft.ringPos = (g_ft.ringPos + 1) % 240;
             g_ft.ringN = std::min(240u, g_ft.ringN + 1);
+            if (content >= 0 && g_ft.lastContent >= 0) {
+                contentStep = content - g_ft.lastContent;
+                g_ft.segC.add(contentStep, ms, target);
+                g_ft.winC.add(contentStep, ms, target);
+            } else {
+                g_ft.segC.unknown++;
+                g_ft.winC.unknown++;
+            }
             if (ms > 1.5 * target) {
                 g_ft.stutters++;
-                if (g_ft.spikes.size() < 4096) g_ft.spikes.push_back({t, ms, target});
+                if (g_ft.spikes.size() < 4096) g_ft.spikes.push_back({t, ms, target, contentStep, p.contentWeight});
             }
         }
     }
+    if (g_ft.pictureLog != nullptr)
+        fprintf(g_ft.pictureLog, "%.3f,%.3f,%.3f,%.3f,%.4f,%llu,%u,%u,%u,%u,%.3f\n", t, g_ft.last >= 0 ? t - g_ft.last : -1.0,
+                target, content, double(p.contentWeight), (unsigned long long) p.contentWorkload, p.frameIndex,
+                p.frameCount, p.syncInterval, g_ft.suspended ? 1u : 0u,
+                p.readyTime != RT64::Timestamp() ? steadyMs(p.readyTime) : -1.0);
     g_ft.last = t;
+    g_ft.lastContent = content;
     g_ft.targetMs = target;
     if (g_ft.dxgi != nullptr) {
+        /* this present's DXGI count -> its content (what the display showed, below) */
+        UINT count = 0;
+        if (SUCCEEDED(g_ft.dxgi->GetLastPresentCount(&count))) {
+            g_ft.counted[g_ft.countedPos % 64] = {count, content};
+            g_ft.countedPos++;
+        }
         DXGI_FRAME_STATISTICS s = {};
         if (SUCCEEDED(g_ft.dxgi->GetFrameStatistics(&s))) {
+            /* the newest picture on screen came at this refresh: its content against the picture
+             * before's (consecutive presents, both seen at the refresh they came on) */
+            if (s.PresentCount != g_ft.shownPrevCount && s.PresentRefreshCount == s.SyncRefreshCount &&
+                s.SyncRefreshCount != 0) {
+                double shownContent = -1;
+                for (unsigned k = 1; k <= std::min(64u, g_ft.countedPos); k++) {
+                    const FrameTimes::Counted &c = g_ft.counted[(g_ft.countedPos - k) % 64];
+                    if (c.count == s.PresentCount) {
+                        shownContent = c.content;
+                        break;
+                    }
+                }
+                const double shownMs = double(s.SyncQPCTime.QuadPart - g_tStart.QuadPart) * 1e3 / double(g_freq.QuadPart);
+                if (!g_ft.suspended && s.PresentCount == g_ft.shownPrevCount + 1 && shownContent >= 0 &&
+                    g_ft.shownPrevContent >= 0 && shownMs - g_ft.shownPrevMs < 250.0) {
+                    const double off = (shownMs - g_ft.shownPrevMs) - (shownContent - g_ft.shownPrevContent);
+                    g_ft.segC.addDisplay(off, target);
+                    g_ft.winC.addDisplay(off, target);
+                }
+                g_ft.shownPrevCount = s.PresentCount;
+                g_ft.shownPrevMs = shownMs;
+                g_ft.shownPrevContent = shownContent;
+            }
             if (g_ft.lastRefresh != 0 && s.SyncRefreshCount == g_ft.lastRefresh + 1) {
                 const double ms = double(s.SyncQPCTime.QuadPart - g_ft.lastQpc) * 1e3 / double(g_freq.QuadPart);
                 const unsigned hz = g_ft.hz;
@@ -996,10 +1139,11 @@ void causeLog(const char *head, const Busy &b, double seconds) {
     unsigned n = 0;
     for (int i = 0; i < SPIKE_CAUSES; i++) n += c[i];
     host_log("live: frame times %s: spikes by cause %u: main thread (game %u, display lists %u, orbit camera %u, "
-             "RT64 submit %u), GPU %u, RT64 render thread %u, new shaders %u, new textures %u, present/other %u; "
+             "RT64 submit %u, other %u), GPU %u, RT64 render thread %u, new shaders %u, new textures %u, present/other %u; "
              "retraces missed %u (longest %.1f ms), longest RT64 workload %.1f ms; RT64 given %u new shaders "
              "(%u compiled), %u new textures\n",
-             head, n, c[SPIKE_MAIN_GAME], c[SPIKE_MAIN_LISTS], c[SPIKE_MAIN_ORBIT], c[SPIKE_MAIN_SUBMIT], c[SPIKE_GPU],
+             head, n, c[SPIKE_MAIN_GAME], c[SPIKE_MAIN_LISTS], c[SPIKE_MAIN_ORBIT], c[SPIKE_MAIN_SUBMIT],
+             c[SPIKE_MAIN_OTHER], c[SPIKE_GPU],
              c[SPIKE_RENDER], c[SPIKE_SHADERS], c[SPIKE_TEXTURES], c[SPIKE_PRESENT], b.missed, b.retraceMax,
              b.renderMax, b.shaders, b.shadersReady, b.textures);
     const live::OrbitPerf &o = b.orbit;
@@ -1016,8 +1160,23 @@ void causeLog(const char *head, const Busy &b, double seconds) {
              o.steps);
 }
 
+/* what the pictures showed (ContentStats) of a span */
+void contentLog(const char *head, const ContentStats &c) {
+    const Hist &s = c.step;
+    if (s.n == 0 && c.unknown == 0) return;
+    char disp[200] = "no frame statistics";
+    if (c.dispN > 0)
+        snprintf(disp, sizeof disp, "%u pairs, refresh less content step sd %.3f ms max %.2f, %u off by over half a "
+                 "period", c.dispN, ContentStats::sd(c.dispSum, c.dispSq, c.dispN), c.dispMax, c.dispOff);
+    host_log("live: frame times %s: content (the time each picture shows, port patch 0008): steps ms mean %.3f sd "
+             "%.3f min %.2f max %.2f; even %u, repeated %u, skipped %u, unknown %u; present-call interval less "
+             "content step sd %.3f max %.2f; on the display: %s\n",
+             head, s.mean(), s.sd(), s.n ? s.pct(0.0) : 0.0, s.max, c.even, c.repeated, c.skipped, c.unknown,
+             ContentStats::sd(c.judSum, c.judSq, c.judN), c.judMax, disp);
+}
+
 /* the log lines of a span: `head` names it */
-void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bool full) {
+void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bool full, const ContentStats &cs) {
     Busy now;
     rt64Counters(now);
     const double pics = double(std::max<uint64_t>(1, h.n + 1));
@@ -1029,6 +1188,7 @@ void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bo
                  (unsigned long long) h.over15, (unsigned long long) h.over2, b.game / pics, b.dl / pics,
                  b.submit / pics, b.wait / pics, b.gpuN ? b.gpu / b.gpuN : 0.0);
         causeLog(head, b, seconds);
+        contentLog(head, cs);
         return;
     }
     const double target = h.n ? h.targetSum / double(h.n) : 0;
@@ -1043,15 +1203,6 @@ void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bo
              "(max %.2f, %u pictures)\n",
              head, b.game / pics, b.dl / pics, b.submit / pics, b.wait / pics, b.presentWait / pics,
              b.gpuN ? b.gpu / b.gpuN : 0.0, b.gpuMax, b.gpuN);
-    int pw = 0, ph = 0;
-    if (g_window != nullptr) SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
-    float sx, sy;
-    {
-        std::scoped_lock<std::mutex> lock(g_app->sharedQueueResources->configurationMutex);
-        sx = g_app->sharedQueueResources->resolutionScale.x;
-        sy = g_app->sharedQueueResources->resolutionScale.y;
-    }
-    const bool tearing = !g_opt.vulkan && static_cast<plume::D3D12Interface *>(g_app->renderInterface.get())->allowTearing;
     char vrr[160] = "no frame statistics";
     if (g_ft.refN > 0) {
         const double m = g_ft.refSum / g_ft.refN, sd = std::sqrt(std::max(0.0, g_ft.refSq / g_ft.refN - m * m));
@@ -1060,13 +1211,9 @@ void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bo
                  g_ft.refLong * 20 > g_ft.refN ? "the refresh followed the presents (variable refresh seen)"
                                                : "fixed refresh");
     }
-    host_log("live: frame times (%s): display %u Hz, RT64 target %u/s (game %u/s), pacing %s, vsync %s, %s, "
-             "tearing %s; %s; window %dx%d, drawn at %.0fx%.0f, MSAA %ux; sync intervals 0:%u 1:%u 2+:%u\n",
-             head, displayHz(), unsigned(g_app->sharedQueueResources->targetRate),
-             unsigned(g_app->sharedQueueResources->viOriginalRate), pacingName(), g_opt.vsync ? "on" : "off",
-             g_opt.fullscreen ? "fullscreen" : "windowed", tearing ? "supported" : "not supported", vrr, pw, ph,
-             320.0f * sx, 240.0f * sy, g_app->userConfig.msaaSampleCount(), g_ft.syncCount[0], g_ft.syncCount[1],
-             g_ft.syncCount[2] + g_ft.syncCount[3] + g_ft.syncCount[4]);
+    /* (the segment's own settings: frameSettings, kept up to date while it ran; not the new ones that end it) */
+    host_log("live: frame times (%s): %s; %s; sync intervals 0:%u 1:%u 2+:%u\n", head, g_ft.settings.c_str(), vrr,
+             g_ft.syncCount[0], g_ft.syncCount[1], g_ft.syncCount[2] + g_ft.syncCount[3] + g_ft.syncCount[4]);
     if (g_ft.refN > 0)
         host_log("live: frame times (%s): on the display (DXGI frame statistics): pictures shown 1 refresh %u, 2 %u, "
                  "3 %u, 4+ %u; %u presents replaced before they were shown\n",
@@ -1079,20 +1226,47 @@ void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bo
     char h2[200];
     snprintf(h2, sizeof h2, "(%s)", head);
     causeLog(h2, b, seconds);
+    contentLog(h2, cs);
+}
+
+/* the settings the frame times depend on, as they are now (main thread): at a segment's start and every
+ * half second while it runs (g_ft.settings), so the segment's log block names its own settings and not
+ * the new ones the change that ends it applied a moment before */
+std::string frameSettings() {
+    int pw = 0, ph = 0;
+    if (g_window != nullptr) SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+    float sx, sy;
+    {
+        std::scoped_lock<std::mutex> lock(g_app->sharedQueueResources->configurationMutex);
+        sx = g_app->sharedQueueResources->resolutionScale.x;
+        sy = g_app->sharedQueueResources->resolutionScale.y;
+    }
+    const bool tearing = !g_opt.vulkan && static_cast<plume::D3D12Interface *>(g_app->renderInterface.get())->allowTearing;
+    char buf[400];
+    snprintf(buf, sizeof buf, "display %u Hz, RT64 target %u/s (game %u/s), pacing %s, vsync %s, %s, tearing %s, "
+             "window %dx%d, drawn at %.0fx%.0f, MSAA %ux",
+             g_ft.hz, unsigned(g_app->sharedQueueResources->targetRate),
+             unsigned(g_app->sharedQueueResources->viOriginalRate), pacingName(), g_opt.vsync ? "on" : "off",
+             g_opt.fullscreen ? "fullscreen" : "windowed", tearing ? "supported" : "not supported", pw, ph,
+             320.0f * sx, 240.0f * sy, g_app->userConfig.msaaSampleCount());
+    return buf;
 }
 
 /* a new settings segment (start-up, a video setting changed): the last one's block in the log */
 void frameSegment(const char *why) {
     if (g_app == nullptr) return;
     const double now = secondsSince(g_tStart);
+    const unsigned hz = displayHz();
     std::lock_guard<std::mutex> lock(g_ft.mutex);
     if (g_ft.segment > 0 && g_ft.seg.n > 0) {
         char head[160];
         snprintf(head, sizeof head, "segment %u, until %s", g_ft.segment, why);
-        frameLog(head, g_ft.seg, g_ft.segBusy, now - g_ft.segStart, true);
+        frameLog(head, g_ft.seg, g_ft.segBusy, now - g_ft.segStart, true, g_ft.segC);
     }
     g_ft.segment++;
-    g_ft.hz = displayHz();
+    g_ft.hz = hz;
+    g_ft.settings = frameSettings();
+    g_ft.segC = ContentStats();
     g_ft.seg.reset();
     g_ft.segBusy = Busy();
     rt64Counters(g_ft.segBusy);
@@ -1153,6 +1327,7 @@ void spikeAttribute(double nowMs) {
                 longest = s.w.retraceMs;
                 w.retraceMs = s.w.retraceMs, w.gameMs = s.w.gameMs, w.listsMs = s.w.listsMs;
                 w.orbitMs = s.w.orbitMs, w.submitMs = s.w.submitMs, w.queueFull = s.w.queueFull;
+                w.otherMs = s.w.otherMs;
             }
             w.gpuMs = std::max(w.gpuMs, s.w.gpuMs);
             w.renderMs = std::max(w.renderMs, s.w.renderMs);
@@ -1163,10 +1338,11 @@ void spikeAttribute(double nowMs) {
         g_ft.segBusy.causes[c]++;
         g_ft.winBusy.causes[c]++;
         if (g_ft.spikeLog != nullptr)
-            fprintf(g_ft.spikeLog, "%.3f,%.3f,%.3f,%d,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%u,%u,%d,%u,%u,%d\n", sp.t,
-                    sp.ms, sp.target, c, live::orbit::spikeCauseName(c), w.retraceMs, w.gameMs, w.listsMs, w.orbitMs,
-                    w.submitMs, w.gpuMs, w.renderMs, w.frameMs, w.shaders, w.textures, live::orbitActive() ? 1 : 0,
-                    g_ft.segment, plat_frames(), w.queueFull ? 1 : 0);
+            fprintf(g_ft.spikeLog, "%.3f,%.3f,%.3f,%d,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%u,%u,%d,%u,%u,%d,%.3f,%.4f\n",
+                    sp.t, sp.ms, sp.target, c, live::orbit::spikeCauseName(c), w.retraceMs, w.gameMs, w.listsMs,
+                    w.orbitMs, w.submitMs, w.gpuMs, w.renderMs, w.frameMs, w.shaders, w.textures,
+                    live::orbitActive() ? 1 : 0, g_ft.segment, plat_frames(), w.queueFull ? 1 : 0, sp.contentStep,
+                    double(sp.weight));
     }
     g_ft.spikes.resize(keep);
 }
@@ -1193,13 +1369,103 @@ void rt64Assets(size_t &shaders, size_t &ready, size_t &textures) {
  * viEnterMs: this retrace's start (ms since start); gameMs: the main thread since the last retrace
  * less reading the display lists (dlMs); submitMs: this retrace's updateScreen; waitMs: its pacing wait */
 bool g_queueFullTask;                /* a frame task since the last retrace found RT64's queue full (main thread) */
+
+/* A long retrace (the main thread's loop over kLongStepMs between two retraces, less its pacing wait):
+ * where the time went.  The game's step: the host's work inside it (plat_host.h host_prof: PI DMAs with the
+ * load-time byte swaps, audio tasks, gfx tasks with RT64 reading their display lists, save files written)
+ * and the rest, the game's own code (with its inflate); then RT64's updateScreen, and the host's work after
+ * the retrace (g_tail: events and controllers, with the once-a-second controller rescan, the orbit camera's
+ * step, screenshots).  Logged (the first 40, then every 20th). */
+constexpr double kLongStepMs = 50.0;
+struct Tail {
+    double ms = 0, scanMs = 0, eventsMs = 0;   /* the host's work after the retrace; its controller rescans, events */
+    unsigned scans = 0;
+} g_tail, g_tailRun;
+void longStepLog(double retraceMs, double gameMs, double dlMs, double submitMs, double orbitStepMs) {
+    static HostProf last;
+    static unsigned n;
+    const HostProf now = host_prof;
+    const HostProf d = {now.dma_ms - last.dma_ms, now.audio_ms - last.audio_ms, now.gfx_ms - last.gfx_ms,
+                        now.save_ms - last.save_ms, now.dma_n - last.dma_n, now.audio_n - last.audio_n,
+                        now.gfx_n - last.gfx_n, now.save_n - last.save_n, now.dma_bytes - last.dma_bytes};
+    last = now;
+    if (retraceMs < kLongStepMs || g_ft.suspended) return;
+    if (n++ >= 40 && n % 20 != 0) return;
+    const double step = gameMs + dlMs;
+    host_log("live: long retrace %.0f ms at frame %u (level %d, game mode %llX, vehicle %u): the game's step %.1f ms "
+             "(PI DMAs %u, %llu KB, %.1f ms; audio tasks %u %.1f ms; gfx tasks %u %.1f ms, RT64 reading display lists "
+             "%.1f; save files written %u %.1f ms; the game's own code with its inflate %.1f ms), RT64 submit %.1f "
+             "ms, after the retrace %.1f ms (events %.1f, controller rescans %u %.1f, orbit step %.1f) (#%u)\n",
+             retraceMs, plat_frames(), *(volatile int *) uintptr_t(0x802E8BDCu) /* levelno */,
+             *(volatile unsigned long long *) uintptr_t(0x80364A90u) /* gGameMode */,
+             unsigned(*(volatile uint8_t *) uintptr_t(0x80364456u)) /* gCurVehicle */, step, d.dma_n,
+             (unsigned long long) (d.dma_bytes / 1024), d.dma_ms, d.audio_n, d.audio_ms, d.gfx_n, d.gfx_ms, dlMs,
+             d.save_n, d.save_ms, std::max(0.0, step - d.dma_ms - d.audio_ms - d.gfx_ms - d.save_ms), submitMs,
+             g_tail.ms, g_tail.eventsMs, g_tail.scans, g_tail.scanMs, orbitStepMs, n);
+}
+
+/* The textures RT64 made (its texture map's creation frames), by size: what the steady "new textures" of
+ * the 10 s lines are.  Sampled every other retrace (RT64 evicts a texture unused for a few frames: the
+ * hash map's growth counts a texture each time it comes back), logged with the 10 s lines. */
+struct TexCensus {
+    uint64_t mark = 0;                                  /* the newest creation frame seen */
+    std::vector<std::pair<unsigned, unsigned>> sizes;   /* (w << 16 | h, count) this window */
+    unsigned made = 0, live = 0;
+} g_tex;
+void textureCensus(bool log) {
+    RT64::TextureCache *tc = g_app->textureCache.get();
+    if (tc == nullptr) return;
+    uint64_t mark = g_tex.mark;
+    {
+        std::lock_guard<std::mutex> lock(tc->textureMapMutex);
+        const RT64::TextureMap &m = tc->textureMap;
+        g_tex.live = 0;
+        for (size_t i = 0; i < m.textures.size() && i < m.creationFrames.size(); i++) {
+            if (m.textures[i] == nullptr) continue;
+            g_tex.live++;
+            if (m.creationFrames[i] <= g_tex.mark) continue;
+            mark = std::max(mark, m.creationFrames[i]);
+            g_tex.made++;
+            const unsigned key = unsigned(m.textures[i]->width) << 16 | (unsigned(m.textures[i]->height) & 0xFFFF);
+            auto it = std::find_if(g_tex.sizes.begin(), g_tex.sizes.end(), [&](const auto &s) { return s.first == key; });
+            if (it == g_tex.sizes.end()) g_tex.sizes.push_back({key, 1});
+            else it->second++;
+        }
+    }
+    g_tex.mark = mark;
+    if (!log) return;
+    if (g_tex.made > 0) {
+        auto &sz = g_tex.sizes;
+        std::sort(sz.begin(), sz.end(), [](const auto &a, const auto &b) { return a.second > b.second; });
+        std::string s;
+        for (size_t k = 0; k < sz.size() && k < 6; k++) {
+            char b[48];
+            snprintf(b, sizeof b, "%s%ux%u: %u", k ? ", " : "", sz[k].first >> 16, sz[k].first & 0xFFFF, sz[k].second);
+            s += b;
+        }
+        host_log("live: frame times (10 s): RT64 made %u textures (by size %s%s); %u in its cache now\n", g_tex.made,
+                 s.c_str(), sz.size() > 6 ? ", ..." : "", g_tex.live);
+    }
+    g_tex.made = 0;
+    g_tex.sizes.clear();
+}
+
 void frameTick(double viEnterMs, double gameMs, double dlMs, double submitMs, double waitMs) {
+    {
+        static unsigned texTick;
+        const bool winEnd = g_ft.winStart > 0 && secondsSince(g_tStart) - g_ft.winStart >= 10.0;
+        if (winEnd || ++texTick % 2 == 0) textureCensus(winEnd);
+    }
     const live::OrbitPerf orb = live::orbitFrameTake();
     const bool queueFull = g_queueFullTask;
     g_queueFullTask = false;
     size_t shaders, ready, textures;
     rt64Assets(shaders, ready, textures);
+    static unsigned settingsTick;
+    std::string settings;
+    if (++settingsTick % 30 == 0) settings = frameSettings();   /* (the segment's settings, frameSettings) */
     std::lock_guard<std::mutex> lock(g_ft.mutex);
+    if (!settings.empty() && g_ft.segment > 0) g_ft.settings.swap(settings);
     busyAdd(&Busy::game, gameMs);
     busyAdd(&Busy::submit, submitMs);
     busyAdd(&Busy::wait, waitMs);
@@ -1222,10 +1488,12 @@ void frameTick(double viEnterMs, double gameMs, double dlMs, double submitMs, do
     /* the retrace's loop: the game (less the orbit's work inside it), the lists, the orbit (its step after
      * the retrace before, its lists and frame setup), the retrace before's updateScreen */
     if (g_ft.lastViEnter >= 0) slot.w.retraceMs = std::max(0.0, viEnterMs - g_ft.lastViEnter - g_ft.lastWait);
+    longStepLog(slot.w.retraceMs, gameMs, dlMs, g_ft.lastSubmit, orb.stepMs);
     slot.w.orbitMs = orb.stepMs + orb.cellsMs + orb.taskMs;
     slot.w.gameMs = std::max(0.0, gameMs - orb.cellsMs - orb.taskMs);
     slot.w.listsMs = dlMs;
     slot.w.submitMs = g_ft.lastSubmit;
+    slot.w.otherMs = std::max(0.0, slot.w.retraceMs - slot.w.gameMs - slot.w.listsMs - slot.w.orbitMs - slot.w.submitMs);
     slot.w.queueFull = queueFull;
     if (shaders < g_ft.shaderSeen || ready < g_ft.shaderReadySeen) g_ft.shaderSeen = g_ft.shaderReadySeen = 0;   /* (cache made again: MSAA) */
     slot.w.shaders = unsigned(shaders - g_ft.shaderSeen);
@@ -1254,8 +1522,9 @@ void frameTick(double viEnterMs, double gameMs, double dlMs, double submitMs, do
     if (g_ft.winStart <= 0) {
         g_ft.winStart = now;
     } else if (now - g_ft.winStart >= 10.0) {
-        if (g_ft.win.n > 0) frameLog("(10 s)", g_ft.win, g_ft.winBusy, now - g_ft.winStart, false);
+        if (g_ft.win.n > 0) frameLog("(10 s)", g_ft.win, g_ft.winBusy, now - g_ft.winStart, false, g_ft.winC);
         g_ft.win.reset();
+        g_ft.winC = ContentStats();
         g_ft.winBusy = Busy();
         g_ft.winStart = now;
     }
@@ -1281,6 +1550,8 @@ void frameEnd() {
         std::lock_guard<std::mutex> lock(g_ft.mutex);
         if (g_ft.spikeLog != nullptr) fclose(g_ft.spikeLog);   /* (--spike-log) */
         g_ft.spikeLog = nullptr;
+        if (g_ft.pictureLog != nullptr) fclose(g_ft.pictureLog);   /* (--picture-log) */
+        g_ft.pictureLog = nullptr;
     }
     static bool done;
     if (g_app == nullptr || g_ft.segment == 0 || done) return;
@@ -1290,7 +1561,7 @@ void frameEnd() {
     if (g_ft.seg.n == 0) return;
     char head[64];
     snprintf(head, sizeof head, "segment %u, at exit", g_ft.segment);
-    frameLog(head, g_ft.seg, g_ft.segBusy, now - g_ft.segStart, true);
+    frameLog(head, g_ft.seg, g_ft.segBusy, now - g_ft.segStart, true, g_ft.segC);
 }
 
 struct Stats {
@@ -1782,7 +2053,10 @@ void pumpEvents() {
     /* once a second: controllers whose device events were missed */
     if (++g_lastScan >= 60) {
         g_lastScan = 0;
+        const double t0 = secondsSince(g_tStart);
         g_pads.scan();
+        g_tailRun.scanMs += (secondsSince(g_tStart) - t0) * 1e3;
+        g_tailRun.scans++;
     }
     pollInput();
 }
@@ -1945,6 +2219,7 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
         g_perf.cur.dlTasks++;
     }
     if (frameDl) perfWorkload(cursor);
+    if (frameDl) contentFrame(g_app->state->workloadId);   /* (the frame-time report's content times) */
     live::interpTagsAfterTask(frameDl);
     live::wideAfterTask(frameDl);
     live::orbitAfterTask(frameDl);
@@ -2007,6 +2282,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
     /* frame times: the main thread since it left the last retrace (the game's
      * step and the host's per-frame work, less reading the display lists) */
     const double viEnter = secondsSince(g_tStart);
+    g_viWhenMs = double(when) / 46875.0;   /* (virtual time: the content times of the frames after it) */
     const double sinceExit = g_ft.viExit >= 0 ? (viEnter - g_ft.viExit) * 1e3 : 0.0;
     const double dlMs = g_ft.dlInTick;
     double waitMs = 0;
@@ -2097,6 +2373,8 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
     }
     frameTick(viEnter * 1e3, std::max(0.0, sinceExit - dlMs), dlMs, (submitted - before) * 1e3, waitMs);
     perfTick(frames);
+    const double tailStart = secondsSince(g_tStart);   /* (long retraces: the host's work after the retrace) */
+    g_tailRun = Tail();
     g_app->state->presentDueTime = RT64::Timestamp();
     if (g_opt.paceLog != nullptr) {
         const double after = secondsSince(g_tStart);
@@ -2127,10 +2405,14 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         openMenu();
         runMenu(frames);
     }
+    const double eventsStart = secondsSince(g_tStart);
     pumpEvents();
+    g_tailRun.eventsMs = (secondsSince(g_tStart) - eventsStart) * 1e3;
     live::orbitVi(g_pads, g_focused ? SDL_GetKeyboardState(nullptr) : nullptr);
     if (live::menuIsOpen()) runMenu(0);
     g_ft.viExit = secondsSince(g_tStart);
+    g_tailRun.ms = (g_ft.viExit - tailStart) * 1e3;
+    g_tail = g_tailRun;
 }
 
 int liveInput(unsigned short *button, signed char *x, signed char *y) {
@@ -2509,8 +2791,17 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         g_ft.spikeLog = static_cast<FILE *>(host_fopen(s, "w"));
         if (g_ft.spikeLog == nullptr) host_fatal("--spike-log %s: can't write it", s);
         fprintf(g_ft.spikeLog, "t_ms,interval_ms,target_ms,cause,cause_name,retrace_ms,game_ms,lists_ms,orbit_ms,"
-                               "submit_ms,gpu_ms,render_ms,frame_ms,shaders,textures,orbit_active,segment,frame,queue_full\n");
+                               "submit_ms,gpu_ms,render_ms,frame_ms,shaders,textures,orbit_active,segment,frame,queue_full,"
+                               "content_step_ms,weight\n");
     }
+    else if (!strcmp(a, "--picture-log")) {
+        const char *s = next();
+        g_ft.pictureLog = static_cast<FILE *>(host_fopen(s, "w"));
+        if (g_ft.pictureLog == nullptr) host_fatal("--picture-log %s: can't write it", s);
+        fprintf(g_ft.pictureLog, "t_ms,interval_ms,target_ms,content_ms,weight,workload,picture,pictures,sync_interval,"
+                                 "suspended,ready_ms\n");
+    }
+    else if (!strcmp(a, "--view-log")) live::orbitSetViewLog(next());
     else if (!strcmp(a, "--config") || !strcmp(a, "--no-config")) {
         if (a[2] == 'c') next();   /* read before host_main (main) */
     } else if (!strcmp(a, "--saves")) {

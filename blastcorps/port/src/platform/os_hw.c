@@ -194,6 +194,7 @@ static u32 rom_offset(u32 devAddr) {
 s32 osPiStartDma(OSIoMesg *mb, s32 pri, s32 direction, u32 devAddr, void *vAddr, u32 nbytes,
                  OSMesgQueue *mq) {
     u32 off = rom_offset(devAddr);
+    const double t0 = host_ms();   /* (host_prof: bc.exe's long game steps) */
     mb->hdr.type = OS_MESG_TYPE_DMAREAD;
     mb->hdr.pri = (u8) pri;
     mb->hdr.retQueue = mq;
@@ -215,6 +216,9 @@ s32 osPiStartDma(OSIoMesg *mb, s32 pri, s32 direction, u32 devAddr, void *vAddr,
     } else if (host_verbose) {
         host_log("pi: write DMA to 0x%X ignored\n", (unsigned) devAddr);
     }
+    host_prof.dma_ms += host_ms() - t0;
+    host_prof.dma_n++;
+    host_prof.dma_bytes += nbytes;
     if (mq != NULL) osSendMesg(mq, (OSMesg) mb, OS_MESG_NOBLOCK);
     return 0;
 }
@@ -420,6 +424,7 @@ void osSpTaskStartGo(OSTask *t) {
     g_sp_yield = 0;
     if (t->t.type == M_AUDTASK) {
         static int log = -1;
+        double t0;
         plat_stats.aud_tasks++;
         /* BC_AUDIO_LOG=1: when each audio task starts (compare.py's emulator
          * log has the same per audio frame: its Z lines) */
@@ -427,19 +432,27 @@ void osSpTaskStartGo(OSTask *t) {
         if (log)
             host_log("audtask %u retrace %u +%u frame %u\n", (unsigned) plat_stats.aud_tasks, (unsigned) plat_vi_count,
                      (unsigned) (plat_now % PLAT_VI_PERIOD), (unsigned) plat_stats.frames);
+        t0 = host_ms();   /* (host_prof) */
         port_audio_task(osVirtualToPhysical(t->t.ucode_data), t->t.ucode_data_size,
                         osVirtualToPhysical(t->t.data_ptr), t->t.data_size);
+        host_prof.audio_ms += host_ms() - t0;
+        host_prof.audio_n++;
         complete(plat_cfg.aud_cycles, 0);
         return;
     }
     plat_stats.gfx_tasks++;
-    /* the units the lists hold, for the stale-byte emulation (swap.c) */
-    if ((u32) t->t.ucode != UCODE_CULL) port_mark_gfx_task(osVirtualToPhysical(t->t.data_ptr));
-    /* bc.exe: the renderer draws the task now; its completion still comes
-     * at the modelled virtual time below, as in bc_headless */
-    if (plat_cfg.live != NULL && (u32) t->t.ucode != UCODE_CULL)
-        plat_cfg.live->gfx_task(osVirtualToPhysical(t->t.ucode), osVirtualToPhysical(t->t.ucode_data),
-                                osVirtualToPhysical(t->t.data_ptr), t->t.data_size);
+    {
+        const double t0 = host_ms();   /* (host_prof: the units walk and bc.exe's renderer) */
+        /* the units the lists hold, for the stale-byte emulation (swap.c) */
+        if ((u32) t->t.ucode != UCODE_CULL) port_mark_gfx_task(osVirtualToPhysical(t->t.data_ptr));
+        /* bc.exe: the renderer draws the task now; its completion still comes
+         * at the modelled virtual time below, as in bc_headless */
+        if (plat_cfg.live != NULL && (u32) t->t.ucode != UCODE_CULL)
+            plat_cfg.live->gfx_task(osVirtualToPhysical(t->t.ucode), osVirtualToPhysical(t->t.ucode_data),
+                                    osVirtualToPhysical(t->t.data_ptr), t->t.data_size);
+        host_prof.gfx_ms += host_ms() - t0;
+        host_prof.gfx_n++;
+    }
     if ((u32) t->t.ucode == UCODE_CULL) {
         u64 v, m;
         plat_stats.cull_tasks++;
@@ -556,6 +569,8 @@ s32 osAiSetNextBuffer(void *buf, u32 size) {
      * can ask for a "negative" size when osAiGetLength reads junk, as it
      * does in mupen64plus before the first DMA; the hardware plays the low
      * bits) */
+    const double t0 = host_ms();   /* (host_prof: the output, bc.exe's sound device) */
+    s32 r = 0;
     size &= 0x3FFF8;
     ai_update();
     if (g_ai_len[0] == 0) {
@@ -564,11 +579,11 @@ s32 osAiSetNextBuffer(void *buf, u32 size) {
     } else if (g_ai_len[1] == 0) {
         g_ai_len[1] = size;
     } else {
-        port_audio_ai_buffer(osVirtualToPhysical(buf), size, g_ai_dacrate, (u32) osViClock, 0);
-        return -1;
+        r = -1;
     }
-    port_audio_ai_buffer(osVirtualToPhysical(buf), size, g_ai_dacrate, (u32) osViClock, 1);
-    return 0;
+    port_audio_ai_buffer(osVirtualToPhysical(buf), size, g_ai_dacrate, (u32) osViClock, r == 0);
+    host_prof.audio_ms += host_ms() - t0;
+    return r;
 }
 
 u32 osAiGetLength(void) {

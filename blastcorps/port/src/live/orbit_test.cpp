@@ -100,6 +100,57 @@ int main() {
         angles(e2 - g.target, y, p);
         check(near(y, 125, 1e-6), "extra yaw for a picture between steps");
     }
+    /* pictures between steps (Orbit::between): a constant turn moves the view evenly picture by picture,
+     * across steps too; the shorter arc over 0/360; engaging eases through the blend from the game's view */
+    {
+        Orbit o;
+        const Orbit::Game g = game();
+        Input in;
+        in.yaw = 2.0;   /* 120 degrees a second at 60 steps */
+        std::vector<Orbit> steps;
+        for (int i = 0; i < 6; i++) {
+            o.step(g, in, 1.0 / 60, lim, nullptr);
+            steps.push_back(o);
+        }
+        std::vector<double> yaws;   /* 4 pictures a step (240 a second) */
+        for (int i = 0; i + 1 < int(steps.size()); i++)
+            for (int k = 0; k < 4; k++) {
+                Vec3 e;
+                Orbit::between(steps[i], steps[i + 1], k / 4.0).eyeFor(g, 0, 0, lim, e);
+                double y, p;
+                angles(e - g.target, y, p);
+                yaws.push_back(y);
+            }
+        bool even = true;
+        for (size_t i = 1; i < yaws.size(); i++) even = even && near(wrap180(yaws[i] - yaws[i - 1]), 0.5, 1e-6);
+        check(even, "between steps: an even 0.5 degree turn per picture");
+        Orbit a = steps[0], b = steps[0];
+        Input t;
+        t.yaw = 350 - a.yaw();
+        a.step(g, t, 1.0 / 60, lim, nullptr);   /* yaw 350 */
+        b = a;
+        t.yaw = 20;
+        b.step(g, t, 1.0 / 60, lim, nullptr);   /* yaw 10 */
+        check(near(Orbit::between(a, b, 0.5).yaw(), 0.0, 1e-6) || near(Orbit::between(a, b, 0.5).yaw(), 360.0, 1e-6),
+              "between: the shorter arc over 0 / 360");
+        Orbit idle;
+        idle.step(g, Input(), 1.0 / 60, lim, nullptr);
+        Orbit engaged = idle;
+        Input go;
+        go.yaw = 10;
+        engaged.step(g, go, 1.0 / 60, lim, nullptr);
+        Vec3 e0, eh, e1;
+        Orbit::between(idle, engaged, 0.0).eyeFor(g, 0, 0, lim, e0);
+        Orbit::between(idle, engaged, 0.5).eyeFor(g, 0, 0, lim, eh);
+        Orbit::between(idle, engaged, 1.0).eyeFor(g, 0, 0, lim, e1);
+        double y0, yh, y1, p;
+        angles(e0 - g.target, y0, p);
+        angles(eh - g.target, yh, p);
+        angles(e1 - g.target, y1, p);
+        check(near(y0, 30, 1e-6) && near(y1, 40, 1e-6) && yh > 30 + 1e-3 && yh < 40 - 1e-3,
+              "between: engaging eases from the game's view to the orbit's");
+        check(nearV(e0, g.eye, 1e-9), "between at 0: the first state exactly");
+    }
     /* the pitch limits */
     {
         Orbit o;
@@ -451,6 +502,8 @@ int main() {
         w.gpuMs = 9;
         w.submitMs = 27;
         check(spikeCause(w) == SPIKE_MAIN_SUBMIT, "spike: a missed retrace, mostly RT64's submit");
+        w.otherMs = 28;
+        check(spikeCause(w) == SPIKE_MAIN_OTHER, "spike: a missed retrace, mostly the host's other work");
         bool named = true;
         for (int c = 0; c < SPIKE_CAUSES; c++) named = named && spikeCauseName(c)[0] != '?';
         check(named && spikeCauseName(SPIKE_CAUSES)[0] == '?', "spike: every cause has a name");

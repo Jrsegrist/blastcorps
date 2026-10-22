@@ -92,6 +92,8 @@
  *                       (menu_FFFFFFF.png) and close it again (testing)
  *     --menu-set S.K=V  in that menu, change a setting as a player would (applied
  *                       at once, written to bc.ini when the menu closes)
+ *     --low-test MASK   (testing) the host memory below 4 GB (plat_host.h host_low_reserve):
+ *                       1 crowd it before the start-up reservation, 2 after, 4 no reservation
  *     --no-msgbox       (headless_main.c) no dialog of any kind: errors, crash
  *                       reports, RT64/SDL boxes only logged; no ROM file dialog
  *
@@ -1882,6 +1884,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         o->mpk_path = nullptr;
     }
     else if (!strcmp(a, "--set")) next();   /* applied with the config file (main) */
+    else if (!strcmp(a, "--low-test")) next();   /* read first thing (main) */
     else if (!strcmp(a, "--window")) {
         const char *s = next();
         if (sscanf(s, "%ux%u", &g_opt.windowW, &g_opt.windowH) != 2 || g_opt.windowW < 160 || g_opt.windowH < 120)
@@ -2237,6 +2240,12 @@ int main(int, char **) {
     for (int i = 0; i < argc; i++) args.push_back(live::utf8(wargv[i]));
     for (std::string &s : args) argv.push_back(&s[0]);
     argv.push_back(nullptr);
+    /* first: the host memory below 4 GB RT64 reads through extended addresses
+     * (the widescreen ticker), before SDL, RT64 and the graphics driver take
+     * the address space (plat_host.h) */
+    for (int i = 1; i + 1 < argc; i++)
+        if (args[i] == "--low-test") host_low_test = num(args[i + 1].c_str());
+    host_low_reserve();
     host_crash_init(argc, argv.data(), "bc", BC_VERSION);   /* reads --no-msgbox, --crash-dir */
     std::set_terminate(terminateHandler);
     SDL_SetAssertionHandler(sdlAssert, nullptr);
@@ -2287,6 +2296,7 @@ int main(int, char **) {
         live::texDumpStop();   /* (the files still queued are written, then the index) */
         live::interpTagsSummary();
         live::wideSummary();
+        host_low_summary();
         live::orbitSummary();
     };
     host_opts_hook = optsHook;

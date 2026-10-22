@@ -288,17 +288,20 @@ bool g_iconsShadowsDone;
 const GbiOriginal *g_orig;           /* RT64's functions (the command hook's) */
 unsigned g_tickerFrames, g_tickerChars, g_tickerIcons, g_glyphDecoded, g_glyphMismatch;
 
+unsigned g_tickerNoMem;              /* frames the ticker was drawn 4:3 wide for want of that memory */
 bool areaInit() {
     if (g_area != nullptr) return true;
-    /* above RDRAM's 8 MB, below 4 GB: RT64 addresses it as base + (pointer - base) */
-    for (uintptr_t a = 0x90000000u; a < 0xF0000000u && g_area == nullptr; a += 0x01000000u)
-        g_area = static_cast<uint8_t *>(VirtualAlloc(reinterpret_cast<void *>(a), kAreaSize, MEM_RESERVE | MEM_COMMIT,
-                                                     PAGE_READWRITE));
-    if (g_area == nullptr) {
-        host_log("live: widescreen: no memory below 4 GB for the ticker: drawn 4:3 wide\n");
-        return false;
+    static bool failed;
+    if (!failed) {
+        /* above RDRAM's 8 MB, below 4 GB: RT64 addresses it as base + (pointer - base).
+         * From the reservation made at start-up (host_low_reserve: on some PCs the
+         * graphics driver fills that range later); asked for once */
+        g_area = static_cast<uint8_t *>(host_low_alloc(unsigned(kAreaSize), "the widescreen ticker"));
+        failed = g_area == nullptr;
+        if (failed) host_log("live: widescreen: no memory below 4 GB for the ticker: drawn 4:3 wide (frames counted at exit)\n");
     }
-    return true;
+    if (g_area == nullptr) g_tickerNoMem++;
+    return g_area != nullptr;
 }
 
 /* glyph id's I4 texture in the host area, decoded from the ROM once */
@@ -564,6 +567,8 @@ void wideSummary() {
         host_log("live: widescreen ticker: %u frames, %u characters and %u icon groups beyond 4:3; %u glyphs "
                  "decoded (%u differ from the game's copies)\n",
                  g_tickerFrames, g_tickerChars, g_tickerIcons, g_glyphDecoded, g_glyphMismatch);
+    if (g_tickerNoMem != 0)
+        host_log("live: widescreen ticker: drawn 4:3 wide in %u frames (no memory below 4 GB)\n", g_tickerNoMem);
     if (g_sideCmds != 0)
         host_log("live: widescreen HUD at the edges: %u side changes, %u text strings placed\n", g_sideCmds,
                  g_textStrings);

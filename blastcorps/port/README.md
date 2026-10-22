@@ -755,6 +755,24 @@ it without a fault.  The x64-asan preset is the tool for this now.
       (left to RT64's matching); untagged
       drawing (terrain, water, the backdrop, tyre trails, front end) keeps
       `G_EX_ID_AUTO`;
+    - wheels (`wheelPivot`): a vehicle part multiplied onto its parent
+      (`G_MTX_MUL`) can turn about an axle away from its model origin (the
+      Backlash's wheels: about 30 world units off), so its origin swings round
+      the axle between frames; RT64 moved the origin along a straight line
+      while turning the part, and the wheels left their hubs in the
+      in-between pictures (their dark tread showed beside the striped drums
+      at 60 and 120 fps).  The point that stays still relative to the parent
+      between two frames (the least-norm solution of c (Lprev - Lcur) = tcur -
+      tprev, the axle's own direction held out, accepted when exact and the
+      same as the frame before) becomes the transform's pivot (patch 0007
+      `TransformGroup::pivot`: RT64 moves the pivot's world position along the
+      line and turns about it; the game's frames are the matrices
+      themselves).  RT64 turns a part along the shortest arc, so one turning
+      over half a turn in a game frame would turn backwards in between: in
+      the 60 levels (1900 frames, the summary's turn histogram) vehicle parts
+      turn under 90 degrees a frame but for a few frames of 125-176 degrees
+      (levels 1, 19, 29, 36, 37, 46: still under half a turn).  2043 parts
+      got a pivot.  `--tag-test 32`: no pivots;
     - the game's camera snap counts as a cut when the camera really jumped
       (over 60 units or 15 degrees: the snap is also set every frame of the
       shuttle and map views, which move smoothly).
@@ -778,8 +796,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
     built once a retrace, drawn at every present); off, none of it runs, and
     it only reads clocks.
   - `present_pacing` (`--present-pacing`; menu "Frame pacing"): `timer`
-    (default, "Low latency") or `vsync` ("Smooth under load"); see "Present
-    pacing" under Pacing below.  Applies at once.
+    (default, "Low latency"), `vsync` ("Smooth under load"), `vrr` ("G-Sync /
+    FreeSync") or `auto`; see "Present pacing" and "Present scheduling" under
+    Pacing below.  Applies at once.
   - `texture_pack` (`--texture-pack`, which also enables it) and
     `texture_pack_enabled` (default 0): an RT64 texture pack (a folder with
     `rt64.json`, or an `.rtz`; RT64's TEXTURE-PACKS.md) through RT64's
@@ -1063,6 +1082,65 @@ it without a fault.  The x64-asan preset is the tool for this now.
     camera's host work, and the frame workloads' draw calls and triangles.
     `--pace-from F` (testing) paces only from game frame F, so a measured
     run gets to play sooner.
+- **Present scheduling** (RT64 patch `rt64/patches/0007-pacing-and-pivots.patch`,
+  `PresentQueue::scheduling`; `live_rt64.cpp` `applyPresentPacing`): when the
+  vsync pacing above is off, how the pictures between the game's are spaced.
+  RT64's own timer slept 1/target s from the last present call (every late
+  wake-up and every wait in the swap chain delayed all the pictures after it)
+  and, at a target equal to the display's rate with vsync on, beat against
+  the refreshes (a picture replaced before it was shown, the one before held
+  two refreshes).  Now, with `present_pacing = timer` (the default):
+  - vsync on, D3D12, a target that divides the display's rate (`framerate =
+    display`, 60 on 120 Hz): no timer; each picture is presented with a sync
+    interval of display / target and the latency-1 frame-latency wait lets one
+    picture queue: one picture per refresh;
+  - otherwise an even timer: each due time one period after the last due
+    time; a picture not ready by then is presented when it is and the timer
+    goes on from there (no burst to catch up).
+  `present_pacing = vrr` (G-Sync / FreeSync): the even timer at most 97 % of
+  the display's rate (`kVrrMargin`: 116 on 120 Hz, 139 on 144, 232 on 240;
+  `configToRT64` caps the target), presented with a sync interval of 1 when
+  vsync is on (a variable-refresh display refreshes when the picture comes)
+  or 0 with tearing allowed when it is off.  `present_pacing = auto`: vsync off
+  -> timer; vsync on -> vsync pacing at the game's own rate, timer (locked)
+  above it; Windows says nothing about G-Sync, so auto never picks vrr.  With
+  any scheduling but RT64's own, the workload queue's `frameReduction` (one
+  in-between picture fewer when it waited for the present thread) counts only
+  waits over half a picture, as the vsync pacing does.  `--present-legacy`
+  (testing): RT64's own timer.
+- **Frame times** (always measured; `live_rt64.cpp` `framePresented` /
+  `frameLog`): every swap-chain present (the patch's `presentedHook`) goes
+  into a histogram of present-to-present intervals (0.05 ms bins) against the
+  target (RT64's target rate with in-between pictures, else the game's rate);
+  the main thread's time per retrace is split into the game (and the host's
+  per-frame work), reading the display lists, RT64's `updateScreen` and the
+  pacing wait; the GPU time per rendered picture comes from RT64's timestamp
+  queries (`rendererGPUProfiler`); with D3D12 the DXGI frame statistics after
+  each present show whether the refreshes followed the presents (refreshes
+  over 1.2 times the nominal period: variable refresh seen).  bc.log gets
+  `live: frame times (10 s)` lines and, per settings segment (a video setting
+  changed, F11, `--pace-from`) and at exit, a block: presents, mean, sd,
+  p50/p95/p99/max, over 1.5x and 2x the target; CPU and GPU ms per picture;
+  display Hz, RT64's target, the pacing, vsync, fullscreen, tearing support,
+  refresh statistics, window and internal size, MSAA, sync intervals used;
+  RT64's in-between pictures not drawn (reduced, rendering late, cut), presents
+  skipped, timer restarts.  Intervals over 250 ms (loads) and the menu's
+  pictures are left out.  The F2 counter's detailed mode shows the last 240
+  intervals, the target and the stutters (over 1.5x) since it was turned on.
+- **Host memory below 4 GB** (`plat_host.c` `host_low_reserve` /
+  `host_low_alloc`): the widescreen ticker's vertices and glyphs live in host
+  memory RT64 reads through its extended RDRAM addresses (an address with bit
+  31 set is an offset from RDRAM's base, i.e. the host pointer: between RDRAM's
+  end and 4 GB).  1 MB there is reserved first thing in bc.exe's main, before
+  SDL, RT64 and the graphics driver, which on a PC with a big graphics card
+  (RTX 5080, 4K, MSAA 8x) had filled that range by the first ticker screen
+  (the ticker was then drawn 4:3 wide and the failure logged every frame).
+  At 0x81000000 (or 0x90000000, 0xA0000000, 0xC0000000), else the first free
+  range a VirtualQuery search finds.  A failure is logged once, and the frames
+  drawn 4:3 for want of it counted at exit.  `--low-test MASK` (testing): 1
+  crowds [0x80800000, 4 GB) before the reservation (a 1 MB hole left at
+  0xE7300000: the search finds it), 2 after it (as the driver does: the ticker
+  still works), 4 skips the reservation (with 2: the user's failure, once).
 - **The package** (CMake target `dist`, `dist/make_dist.py`; from WSL
   `make -C port dist` -> `port/build/dist/`): `BlastCorps-port-<hash>/` and
   its zip: bc.exe, SDL2.dll, dxcompiler.dll, dxil.dll, `README.txt` (from

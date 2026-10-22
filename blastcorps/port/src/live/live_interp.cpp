@@ -348,7 +348,8 @@ bool jumped(RT64::State *state, uint32_t ordinal, float *turnDeg, Track **track)
 /* (Spinning parts: RT64 turns a matrix along the shortest arc between the two
  * frames', so a part turning over half a turn in a game frame would turn
  * backwards in between; the turn statistics, --interp-log summary, show the
- * vehicles' parts turn at most about 65 degrees a frame: no such part.) */
+ * vehicles' parts turn under 90 degrees a frame but for a few frames of
+ * 125-176 in the 60 levels: none over half a turn.) */
 unsigned g_pivotsFound, g_pivotsUsed, g_pivotLogged;
 
 bool inv3(const double a[3][3], double r[3][3]) {

@@ -197,13 +197,7 @@ int main() {
         check(near(o.pitch(), -30, 1e-9), "tilted to the lowest tilt");
         check(eye.y >= l.clearance - 0.05, "the eye stays above the ground");
         check(o.rise() > 25.0, "tilted into the ground: the view rises over it");
-        /* tilt back up: lets out slowly, not at once */
-        in.pitch = 6.0;
-        o.step(g, in, 1.0 / 60, l, flat);
-        o.step(g, in, 1.0 / 60, l, flat);
-        o.eyeFor(g, 0, 0, l, eye);
-        const double d1 = length(eye - g.target);
-        check(d1 < 50.0, "lets out slowly");
+        check(o.distanceRatio() > 0.5, "... at once, not pulled in to the target meanwhile");
         run(o, g, Input(), 1.0, l, flat);
         run(o, g, Input(), 5.0, l, flat);   /* idle: recentres too, all the way out */
         o.eyeFor(g, 0, 0, l, eye);
@@ -223,10 +217,22 @@ int main() {
         gw.eye = gw.target + direction(90, 10) * 100.0;   /* +x side */
         in = Input();
         in.yaw = 1e-6;
-        run(o3, gw, in, 0.5, l, wall);
+        run(o3, gw, in, 2.0, l, wall);
         o3.eyeFor(gw, 0, 0, l, eye);
-        check(eye.x <= 30.0 + 1e-6 && eye.x > 25.0, "pulled in to just before a wall too high to see over");
-        check(near(o3.lift(), 0.0, 1e-9) && near(o3.rise(), 0.0, 1e-9), "no lift or rise in front of the wall");
+        check(eye.x <= 30.0 + 1e-6 && eye.x > 25.0, "kept just before a wall too high to see over");
+        check(near(o3.lift(), 0.0, 1e-9) && o3.rise() > 40.0 && length(eye - gw.target) > 50.0,
+              "... looking down past it from higher up rather than pulled in to the target (no lift)");
+        /* the rise that sees farthest only if clearly farther: a wall right behind the target
+         * (no rise helps much) still pulls in */
+        const HeightFn nearWall = [](double x, double, double) { return x > 3.0 ? 1e6 : 0.0; };
+        Orbit o5;
+        run(o5, gw, in, 0.5, l, nearWall);
+        check(o5.rise() < 1e-6 && o5.distanceRatio() < 0.2, "a wall right behind the target: pulled in, no rise "
+                                                             "(none sees clearly farther)");
+        /* the wall gone: lets out slowly, not at once */
+        o5.step(gw, in, 1.0 / 60, l, flat);
+        o5.step(gw, in, 1.0 / 60, l, flat);
+        check(o5.distanceRatio() < 0.5, "lets out slowly");
         /* a low wall 20 high at x 20..30: rises over it (clear 4 above it from x = 20:
          * tan p >= 19 / 20, p >= 43.5: to 45 degrees, 10 + 35) */
         const HeightFn lowWall = [](double x, double, double) { return x > 20.0 && x < 30.0 ? 20.0 : 0.0; };
@@ -235,6 +241,16 @@ int main() {
         o4.eyeFor(gw, 0, 0, l, eye);
         check(near(o4.rise(), 35.0, 0.5), "rises over a low wall");
         check(near(o4.distanceRatio(), 1.0, 0.01), "... at the full distance");
+        /* turned to face a low wall close behind: rises at once, never pulled in to the target meanwhile */
+        Orbit o6;
+        Orbit::Game gf = gw;
+        gf.eye = gf.target + direction(270, 10) * 100.0;   /* -x side: open */
+        in = Input();
+        in.yaw = 1e-6;
+        run(o6, gf, in, 1.0, l, lowWall);
+        in.yaw = 180.0;   /* one step round to the wall's side */
+        o6.step(gf, in, 1.0 / 60, l, lowWall);
+        check(o6.rise() > 30.0 && o6.distanceRatio() > 0.5, "turned to a low wall: rises at once, not pulled in");
     }
     /* the collision's triangle grid: the same heights as a test of every triangle */
     {
@@ -376,6 +392,68 @@ int main() {
         }
         check(seen2 > 1000 && bad == 0, "the exact test only passes boxes the plane test passes");
         check(lost2 == 0, "margins keep every box the exact view sees (big boxes too)");
+    }
+    /* the stress test's motion (--orbit-test sweep) */
+    {
+        double yMin = 1e9, yMax = -1e9, pMin = 1e9, pMax = -1e9, zMin = 1e9, zMax = -1e9;
+        bool inLimits = true, same = true;
+        for (int i = 0; i < 60 * 60; i++) {
+            const double t = i / 60.0;
+            const Sweep s = sweepAt(t, lim), s2 = sweepAt(t, lim);
+            same = same && s.yawRate == s2.yawRate && s.pitch == s2.pitch && s.zoom == s2.zoom;
+            yMin = std::min(yMin, s.yawRate), yMax = std::max(yMax, s.yawRate);
+            pMin = std::min(pMin, s.pitch), pMax = std::max(pMax, s.pitch);
+            zMin = std::min(zMin, s.zoom), zMax = std::max(zMax, s.zoom);
+            inLimits = inLimits && s.pitch >= lim.pitchMin && s.pitch <= lim.pitchMax && s.zoom >= lim.zoomMin - 1e-9 &&
+                       s.zoom <= lim.zoomMax + 1e-9 && std::isfinite(s.yawRate);
+        }
+        check(same && inLimits, "sweep: the same at every call, pitch and zoom within the limits");
+        check(yMin < -180 && yMax >= 320 && pMin < lim.pitchMin + 4 && pMax > lim.pitchMax - 7 &&
+                  zMin < lim.zoomMin * 1.05 && zMax > lim.zoomMax * 0.95,
+              "sweep: turns both ways with flicks, over the pitch and zoom ranges in a minute");
+        check(sweepAt(12.5, lim).yawRate == 320 && sweepAt(25.5, lim).yawRate == 320 && sweepAt(12.0, lim).yawRate != 320,
+              "sweep: a flick every 13 s");
+    }
+    /* the spike attribution's rules */
+    {
+        SpikeWindow w;
+        w.targetMs = 8.33;
+        w.frameMs = 33.3;
+        check(spikeCause(w) == SPIKE_PRESENT, "spike: nothing found -> present / other");
+        w.textures = 3;
+        check(spikeCause(w) == SPIKE_PRESENT, "spike: a few new textures are usual");
+        w.textures = 12;
+        check(spikeCause(w) == SPIKE_TEXTURES, "spike: a burst of new textures");
+        w.gpuMs = 6;
+        check(spikeCause(w) == SPIKE_TEXTURES, "spike: a picture under 3/4 of the target is no GPU spike");
+        w.gpuMs = 0;
+        w.shaders = 1;
+        check(spikeCause(w) == SPIKE_SHADERS, "spike: new shaders before new textures");
+        w.renderMs = 40;
+        check(spikeCause(w) == SPIKE_RENDER, "spike: the render thread over the game frame");
+        w.gpuMs = 9;
+        check(spikeCause(w) == SPIKE_GPU, "spike: a picture over the target on the GPU");
+        w.retraceMs = 24;   /* under 1.5 retraces: not missed */
+        w.orbitMs = 20;
+        check(spikeCause(w) == SPIKE_GPU, "spike: a retrace under 1.5 periods is not missed");
+        w.retraceMs = 30;
+        w.gameMs = 6, w.listsMs = 3, w.submitMs = 1;
+        check(spikeCause(w) == SPIKE_MAIN_ORBIT, "spike: a missed retrace, mostly the orbit camera");
+        w.gameMs = 25;
+        check(spikeCause(w) == SPIKE_MAIN_GAME, "spike: a missed retrace, mostly the game");
+        w.listsMs = 26;
+        check(spikeCause(w) == SPIKE_MAIN_LISTS, "spike: a missed retrace, mostly the display lists");
+        w.queueFull = true;
+        check(spikeCause(w) == SPIKE_GPU, "spike: ... with RT64's queue full and a slow picture: the GPU");
+        w.gpuMs = 5;
+        check(spikeCause(w) == SPIKE_RENDER, "spike: ... with RT64's queue full: the render thread");
+        w.queueFull = false;
+        w.gpuMs = 9;
+        w.submitMs = 27;
+        check(spikeCause(w) == SPIKE_MAIN_SUBMIT, "spike: a missed retrace, mostly RT64's submit");
+        bool named = true;
+        for (int c = 0; c < SPIKE_CAUSES; c++) named = named && spikeCauseName(c)[0] != '?';
+        check(named && spikeCauseName(SPIKE_CAUSES)[0] == '?', "spike: every cause has a name");
     }
     printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

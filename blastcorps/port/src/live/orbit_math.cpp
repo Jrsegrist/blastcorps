@@ -1,6 +1,7 @@
 /* The free orbit camera's math (see orbit_math.h). */
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 #include "orbit_math.h"
 
@@ -150,18 +151,33 @@ void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, c
         if (want < lim.riseBelow && rise_ < 1e-9 + lim.riseMax) {
             double y0, p0;
             angles(dir0, y0, p0);
+            /* the first rise that sees past it; else the one that sees farthest, if that is
+             * clearly farther (rather than pull in to the target: into the vehicle) */
+            double best = want + lim.riseGain, bestRise = 0;
             for (double r = lim.riseStep; p0 + r <= std::max(lim.pitchMax, p0) + 1e-9 && r <= lim.riseMax + 1e-9;
                  r += lim.riseStep) {
                 const double s = clearShare(g.target, direction(y0, p0 + r), dist, lim.clearance, height, lim.nearShare);
                 if (s >= lim.riseBelow) {
-                    wantRise = r;
+                    bestRise = r;
                     break;
                 }
+                if (s > best) best = s, bestRise = r;
             }
+            wantRise = bestRise;
         }
     }
-    if (wantRise > rise_) rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.riseTime)));
-    else rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.letOutTime)));
+    if (wantRise > rise_) {
+        /* easing up would meanwhile pull the eye in close to the target (into the vehicle): at once */
+        double y0, p0;
+        angles(dir0, y0, p0);
+        if (clearShare(g.target, direction(y0, std::min(89.0, p0 + rise_)), dist, lim.clearance, height,
+                       lim.nearShare) < lim.riseSnapBelow)
+            rise_ = wantRise;
+        else
+            rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.riseTime)));
+    } else {
+        rise_ += (wantRise - rise_) * (1.0 - std::exp(-dt / std::max(0.001, lim.letOutTime)));
+    }
     Vec3 dir = dir0;
     if (rise_ > 1e-6) {
         double y0, p0;
@@ -438,6 +454,42 @@ bool perspectiveRange(const double p[4][4], double &nearZ, double &farZ) {
     nearZ = b / (a - 1.0);
     farZ = b / (a + 1.0);
     return nearZ > 0 && farZ > nearZ;
+}
+
+Sweep sweepAt(double t, const Limits &lim) {
+    const double pi2 = 2.0 * kPi;
+    Sweep s;
+    s.yawRate = 150.0 * std::sin(pi2 * t / 9.0) + 60.0 * std::sin(pi2 * t / 2.3);
+    if (std::fmod(t, 13.0) >= 12.25) s.yawRate = 320.0;   /* a flick */
+    const double lo = lim.pitchMin + 2.0, hi = lim.pitchMax - 5.0;
+    s.pitch = hi > lo ? (lo + hi) * 0.5 + (hi - lo) * 0.5 * std::sin(pi2 * t / 7.0) : lim.pitchMin;
+    const double zl = std::max(1e-3, lim.zoomMin), zh = std::max(zl, lim.zoomMax);
+    s.zoom = zl * std::pow(zh / zl, 0.5 + 0.5 * std::sin(pi2 * t / 11.0));
+    return s;
+}
+
+const char *spikeCauseName(int cause) {
+    static const char *const kNames[SPIKE_CAUSES] = {
+        "main thread: game", "main thread: display lists", "main thread: orbit camera", "main thread: RT64 submit",
+        "GPU", "RT64 render thread", "new shaders", "new textures", "present / other"};
+    return cause >= 0 && cause < SPIKE_CAUSES ? kNames[cause] : "?";
+}
+
+int spikeCause(const SpikeWindow &w) {
+    if (w.retraceMs > 1.5 * w.periodMs) {
+        const double parts[4] = {w.gameMs, w.listsMs, w.orbitMs, w.submitMs};
+        int best = 0;
+        for (int i = 1; i < 4; i++)
+            if (parts[i] > parts[best]) best = i;
+        if (best == 1 && w.queueFull)
+            return w.targetMs > 0 && w.gpuMs > kSpikeGpuShare * w.targetMs ? SPIKE_GPU : SPIKE_RENDER;
+        return SPIKE_MAIN_GAME + best;
+    }
+    if (w.targetMs > 0 && w.gpuMs > kSpikeGpuShare * w.targetMs) return SPIKE_GPU;
+    if (w.frameMs > 0 && w.renderMs > w.frameMs) return SPIKE_RENDER;
+    if (w.shaders > 0) return SPIKE_SHADERS;
+    if (w.textures >= kSpikeTextures) return SPIKE_TEXTURES;
+    return SPIKE_PRESENT;
 }
 
 }  // namespace orbit

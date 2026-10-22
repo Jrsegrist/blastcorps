@@ -50,14 +50,26 @@ bool orbitSetCull(const std::string &mode);
  * comparisons; normally pictures use the newest orbit) */
 void orbitSetRepeatable(bool on);
 void orbitSummary();
-/* testing (--perf-log): the orbit's host work since the last call (ms: its
- * step with the collision queries, the drawing list) and the cells the
- * drawing list had beyond the game's own (summed over the lists made) */
+/* the orbit's host work (always measured while the orbit mode is on: a few
+ * clock reads a frame), ms: its step with the collision queries (readMs:
+ * reading the obstacles and the ground, part of stepMs), the drawing list,
+ * the frame task's setup (backdrop, billboards: taskMs) on the main thread;
+ * RT64's render thread in the view hook (viewMs, every picture).  Counts:
+ * drawing lists made (listsAll of them with every cell), the cells they had
+ * and the game's own (summed over the lists), collision height queries,
+ * obstacle / ground-cell grids made again (the triangles changed), pictures
+ * given the orbit's view, steps with the collision pulling the eye in under
+ * 30% of its distance (close to the vehicle). */
 struct OrbitPerf {
-    double stepMs = 0, cellsMs = 0, readMs = 0;   /* (readMs: reading the obstacles, part of stepMs) */
-    unsigned lists = 0, cells = 0, gameCells = 0, queries = 0;   /* (queries: collision height queries) */
+    double stepMs = 0, cellsMs = 0, readMs = 0, taskMs = 0, viewMs = 0;
+    unsigned lists = 0, cells = 0, gameCells = 0, queries = 0, listsAll = 0, obstacleBuilds = 0, groundBuilds = 0,
+             views = 0, steps = 0, closeSteps = 0;
+    OrbitPerf operator-(const OrbitPerf &o) const;
 };
+/* testing (--perf-log): since the last call */
 OrbitPerf orbitPerfTake();
+/* the frame-time report (live_rt64.cpp frameTick, each retrace): since the last call */
+OrbitPerf orbitFrameTake();
 
 }  // namespace live
 

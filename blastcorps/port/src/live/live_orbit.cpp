@@ -93,8 +93,8 @@ bool g_repeatable;        /* --orbit-repeatable */
 bool g_cullAll;           /* --orbit-cull all: draw every cell (testing; as before the view test) */
 std::atomic<unsigned> g_checkPictures, g_checkMissPictures, g_checkMissCells;   /* --orbit-log */
 unsigned g_gameCellsChecked, g_gameCellsOutside;                                 /* --orbit-log */
-OrbitPerf g_perf;         /* --perf-log: the host work since orbitPerfTake (main thread) */
-bool g_perfOn;
+OrbitPerf g_perf;         /* the host work since the start (main thread; orbitPerfTake, orbitFrameTake) */
+std::atomic<uint64_t> g_viewTicks, g_views;   /* RT64's render thread: time in viewHook (QPC ticks), calls */
 
 /* ---- the game's camera, per frame ------------------------------------------- */
 struct Cam {
@@ -209,9 +209,20 @@ void toFloat(const double m[4][4], interop::float4x4 &out) {
         for (int c = 0; c < 4; c++) out[r][c] = float(m[r][c]);
 }
 
+void viewHookTimed(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::float4x4 &proj,
+                   interop::float4x4 &prevView, interop::float4x4 &prevProj);
 /* RT64's render thread: every perspective projection of every picture */
 void viewHook(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::float4x4 &proj,
               interop::float4x4 &prevView, interop::float4x4 &prevProj) {
+    LARGE_INTEGER t0, t1;
+    QueryPerformanceCounter(&t0);
+    viewHookTimed(p, view, proj, prevView, prevProj);
+    QueryPerformanceCounter(&t1);
+    g_viewTicks += uint64_t(t1.QuadPart - t0.QuadPart);
+    g_views++;
+}
+void viewHookTimed(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::float4x4 &proj,
+                   interop::float4x4 &prevView, interop::float4x4 &prevProj) {
     (void) proj;
     (void) prevProj;
     Entry e;
@@ -306,6 +317,7 @@ void obstaclesRead() {
     forEachObstacle([&](const int32_t *v) { g_obstNew.insert(g_obstNew.end(), v, v + 9); });
     if (g_obstNew != g_obstRaw || g_obstacles.size() * 9 != g_obstNew.size()) {   /* (mostly unchanged) */
         g_obstRaw.swap(g_obstNew);
+        g_perf.obstacleBuilds++;
         g_obstacles.clear();
         for (size_t i = 0; i + 9 <= g_obstRaw.size(); i += 9) {
             const int32_t *v = &g_obstRaw[i];
@@ -376,6 +388,7 @@ void groundRefresh() {
             (n == 0 || memcmp(g.raw.data(), reinterpret_cast<const void *>(uintptr_t(a)), n) == 0))
             continue;
         g.a = a, g.end = end;
+        g_perf.groundBuilds++;
         g.raw.assign(reinterpret_cast<const uint8_t *>(uintptr_t(a)), reinterpret_cast<const uint8_t *>(uintptr_t(a)) + n);
         g.grid.clear();
         groundCellTris(a, end, [&](const Vec3 *p) { g.grid.add(p); });
@@ -485,8 +498,10 @@ double g_mouseX, g_mouseY, g_wheel;   /* since the last step */
 bool g_dragging;
 bool g_resetHeld;
 
-/* --orbit-test (g_test: above) */
+/* --orbit-test (g_test: above); sweep: the stress test (orbit::sweepAt, from the steps in play) */
 double g_testYaw, g_testPitch = 1e9, g_testZoom = 0;
+bool g_sweep;
+unsigned g_sweepSteps;
 
 void buildPadConfig() {
     g_padCfg = *g_cfg;
@@ -511,15 +526,14 @@ void buildPadConfig() {
     }
 }
 
-/* ---- host work (--perf-log; g_perf, g_perfOn: above) ------------------------------ */
+/* ---- host work (g_perf: above; the frame-time report, --perf-log) ----------------- */
 struct PerfTimer {
     double &acc;
     LARGE_INTEGER t0;
     explicit PerfTimer(double &a) : acc(a) {
-        if (g_perfOn) QueryPerformanceCounter(&t0);
+        QueryPerformanceCounter(&t0);
     }
     ~PerfTimer() {
-        if (!g_perfOn) return;
         LARGE_INTEGER t1;
         QueryPerformanceCounter(&t1);
         acc += double(t1.QuadPart - t0.QuadPart) * 1e3 / double(g_freq.QuadPart);
@@ -695,11 +709,10 @@ short *drawCells(short *game) {
     for (unsigned i = 0; i < n; i++)
         if (cs->drawn[i]) g_draw.list.push_back(short(i));
     g_draw.list.push_back(-1);
-    if (g_perfOn) {
-        g_perf.lists++;
-        g_perf.cells += unsigned(g_draw.list.size() - 1);
-        g_perf.gameCells += unsigned(g_draw.game.size() - 1);
-    }
+    g_perf.lists++;
+    g_perf.listsAll += all;
+    g_perf.cells += unsigned(g_draw.list.size() - 1);
+    g_perf.gameCells += unsigned(g_draw.game.size() - 1);
     g_draw.fresh = true;
     if (g_log && !all) g_draw.cells = cs;
     else g_draw.cells.reset();
@@ -973,9 +986,13 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
                 ground += n;
                 most = std::max(most, n);
             }
+        const uint32_t lvl = levelData();
+        const bool lvlOk = lvl >= 0x80000000u && lvl < 0x80800000u;
         host_log("live: orbit camera active (level %d, frame %u, vehicle %u; %u obstacle triangles, ground grid %dx%d "
-                 "with %u triangles, at most %u in a cell)\n",
-                 c.level, plat_frames(), unsigned(rd<uint8_t>(0x80364456u)), tris, cols, rows, ground, most);
+                 "with %u triangles, at most %u in a cell; drawing cells %ux%u of %dx%d units)\n",
+                 c.level, plat_frames(), unsigned(rd<uint8_t>(0x80364456u)), tris, cols, rows, ground, most,
+                 unsigned(rd<uint16_t>(0x803BE714u)), unsigned(rd<uint16_t>(0x803BE716u)),
+                 lvlOk ? int(rd<int16_t>(lvl + 4)) : 0, lvlOk ? int(rd<int16_t>(lvl + 6)) : 0);
     }
     static bool lastFoot;
     if (c.onFoot != lastFoot) {
@@ -1004,6 +1021,12 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     resetWas = reset;
     g_resetHeld = false;
     g_mouseX = g_mouseY = g_wheel = 0;
+    if (g_sweep) {   /* --orbit-test sweep: turning, tilting and zooming by itself */
+        const orbit::Sweep sw = orbit::sweepAt(g_sweepSteps++ * dt, g_lim);
+        g_testYaw = sw.yawRate;
+        g_testPitch = sw.pitch;
+        g_testZoom = sw.zoom;
+    }
     if (g_test) {   /* --orbit-test: turning by itself */
         in = orbit::Input();
         g_yawRate = g_testYaw;
@@ -1024,6 +1047,10 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
         if (g_log) g_orbit.step(g, in, dt, lim, groundHeightChecked);
         else g_orbit.step(g, in, dt, lim, groundHeight);
     }
+    if (g_orbit.engaged() || std::fabs(g_orbit.zoom() - 1.0) > 1e-6) {
+        g_perf.steps++;
+        g_perf.closeSteps += g_orbit.distanceRatio() < 0.3;
+    }
     {
         Vec3 eye;
         g_orbit.eyeFor(g, 0, 0, lim, eye);
@@ -1041,6 +1068,7 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
     g_bd = Backdrop();
     g_bb.on = false;
     if (g_cfg->cameraMode != 1 || !frameDl) return;
+    PerfTimer timer(g_perf.taskMs);
     dl &= 0x3FFFFFF;
     const unsigned dyn = (dl - (kDyn & 0x3FFFFFF)) / kDynSize;
     if (dyn > 1 || !g_built[dyn].valid) return;
@@ -1082,11 +1110,12 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
             const double ge = groundHeight(eye.x, eye.y, eye.z), te = g_lastTerrain, ob = g_lastObstacle;
             const double gt = groundHeight(c.target.x, c.target.y, c.target.z);
             host_log("live: orbit frame %u%s: target %.0f %.0f %.0f, game eye %.0f %.0f %.0f (heading %X pitch %d), "
-                     "orbit eye %.0f %.0f %.0f (heading %X pitch %d), yaw %.1f pitch %.1f zoom %.2f pull-in %.2f lift %.0f, "
+                     "orbit eye %.0f %.0f %.0f (heading %X pitch %d), yaw %.1f pitch %.1f zoom %.2f pull-in %.2f lift %.0f "
+                     "rise %.1f, "
                      "ground under eye %.0f (terrain %.0f, obstacles %.0f), under the target %.0f\n",
                      plat_frames(), c.onFoot ? " (on foot)" : "", c.target.x, c.target.y, c.target.z, c.eye.x, c.eye.y, c.eye.z, gh, gp, eye.x,
                      eye.y, eye.z, g_bd.heading, g_bd.pitch, g_orbit.yaw(), g_orbit.pitch(), g_orbit.zoom(),
-                     g_orbit.distanceRatio(), g_orbit.lift(), ge, te, ob, gt);
+                     g_orbit.distanceRatio(), g_orbit.lift(), g_orbit.rise(), ge, te, ob, gt);
         }
     }
 }
@@ -1112,6 +1141,10 @@ void orbitAfterTask(bool frameDl) {
 }
 
 bool orbitSetTest(const std::string &spec) {
+    if (spec == "sweep") {   /* the stress test: orbit::sweepAt */
+        g_test = g_sweep = true;
+        return true;
+    }
     double y = 0, p = 1e9, z = 0;
     const int n = sscanf(spec.c_str(), "%lf:%lf:%lf", &y, &p, &z);
     if (n < 1) return false;
@@ -1126,11 +1159,38 @@ void orbitSetLog(bool on) {
     g_log = on;
 }
 
-OrbitPerf orbitPerfTake() {
-    g_perfOn = true;
-    const OrbitPerf p = g_perf;
-    g_perf = OrbitPerf();
+OrbitPerf OrbitPerf::operator-(const OrbitPerf &o) const {
+    OrbitPerf d;
+    d.stepMs = stepMs - o.stepMs, d.cellsMs = cellsMs - o.cellsMs, d.readMs = readMs - o.readMs;
+    d.taskMs = taskMs - o.taskMs, d.viewMs = viewMs - o.viewMs;
+    d.lists = lists - o.lists, d.cells = cells - o.cells, d.gameCells = gameCells - o.gameCells;
+    d.queries = queries - o.queries, d.listsAll = listsAll - o.listsAll;
+    d.obstacleBuilds = obstacleBuilds - o.obstacleBuilds, d.groundBuilds = groundBuilds - o.groundBuilds;
+    d.views = views - o.views;
+    d.steps = steps - o.steps, d.closeSteps = closeSteps - o.closeSteps;
+    return d;
+}
+
+namespace {
+OrbitPerf perfTotals() {
+    OrbitPerf p = g_perf;
+    p.viewMs = double(g_viewTicks.load()) * 1e3 / double(g_freq.QuadPart ? g_freq.QuadPart : 1);
+    p.views = unsigned(g_views.load());
     return p;
+}
+OrbitPerf g_perfTaken, g_frameTaken;
+}  // namespace
+
+OrbitPerf orbitPerfTake() {
+    const OrbitPerf p = perfTotals(), d = p - g_perfTaken;
+    g_perfTaken = p;
+    return d;
+}
+
+OrbitPerf orbitFrameTake() {
+    const OrbitPerf p = perfTotals(), d = p - g_frameTaken;
+    g_frameTaken = p;
+    return d;
 }
 
 void orbitSummary() {

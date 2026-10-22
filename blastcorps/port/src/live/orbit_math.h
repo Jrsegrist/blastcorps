@@ -65,10 +65,17 @@ struct Limits {
     double liftTime = 0.3;        /* where pulled in as far as allowed and still too low: the eye is
                                      lifted above the ground (rises at once, settles in this time) */
     double riseBelow = 0.6;       /* blocked before this share of the distance: look for a steeper view
-                                     (up to riseMax degrees more, in riseStep steps) that sees past it */
-    double riseMax = 50.0;
+                                     (up to riseMax degrees more, in riseStep steps, at most pitchMax)
+                                     that sees past it; if none does, the one that sees farthest when
+                                     that is at least riseGain more of the distance (a camera pulled in
+                                     to the target ends up inside the vehicle: ugly, and pictures of
+                                     big close-up polygons cost the GPU up to 3x) */
+    double riseMax = 75.0;
     double riseStep = 5.0;
-    double riseTime = 0.2;        /* ... reached in about this time (and back with letOutTime) */
+    double riseGain = 0.15;
+    double riseTime = 0.2;        /* ... reached in about this time (and back with letOutTime), or at once
+                                     where the view as it is would be pulled in under riseSnapBelow */
+    double riseSnapBelow = 0.3;
     double pullInTime = 0.04;     /* time constants of the collision distance (s): in fast ... */
     double letOutTime = 0.5;      /* ... out slowly */
 };
@@ -199,6 +206,51 @@ private:
 /* the near and far distances of an N64 perspective projection (guPerspective,
  * row vectors); false if it isn't one */
 bool perspectiveRange(const double p[4][4], double &nearZ, double &farZ);
+
+/* The orbit stress test (--orbit-test sweep): the camera turned, tilted and
+ * zoomed by itself, the same at every run, `t` seconds of game time after the
+ * orbit became active: the yaw rate (degrees a second: both ways, up to about
+ * 210, and a 320 flick of 0.75 s every 13 s), an absolute pitch over most of
+ * the limits' range and a zoom over the whole range. */
+struct Sweep {
+    double yawRate = 0, pitch = 0, zoom = 1;
+};
+Sweep sweepAt(double t, const Limits &lim);
+
+/* The frame-time report's spike attribution (live_rt64.cpp): a present
+ * interval over 1.5 times the target, against what happened in the retraces
+ * before it.  The causes, the first that applies (a missed retrace mostly
+ * spent in the display lists with RT64's queue full is the render thread's
+ * or, with a picture over the target, the GPU's): */
+enum SpikeCause {
+    SPIKE_MAIN_GAME,      /* the main thread missed a retrace: mostly the game (and other host work) */
+    SPIKE_MAIN_LISTS,     /* ... mostly reading the display lists (processDisplayLists) */
+    SPIKE_MAIN_ORBIT,     /* ... mostly the orbit camera's host work */
+    SPIKE_MAIN_SUBMIT,    /* ... mostly RT64's updateScreen (waiting for the render thread) */
+    SPIKE_GPU,            /* a picture took the GPU over kSpikeGpuShare of the target (the present's own
+                             GPU work, not timed, comes on top) */
+    SPIKE_RENDER,         /* RT64's render thread took longer than the game frame (CPU) */
+    SPIKE_SHADERS,        /* new materials (shaders submitted: the ubershader draws them meanwhile) */
+    SPIKE_TEXTURES,       /* a burst of new textures (kSpikeTextures or more: a few each frame are usual) */
+    SPIKE_PRESENT,        /* none of these: the present / pacing side (or the OS) */
+    SPIKE_CAUSES
+};
+constexpr double kSpikeGpuShare = 0.75;
+constexpr unsigned kSpikeTextures = 8;
+const char *spikeCauseName(int cause);
+/* what the retraces around a spike had (their largest values / sums) */
+struct SpikeWindow {
+    double retraceMs = 0;            /* the longest interval between two retraces (the main thread's loop) */
+    double periodMs = 1000.0 / 60;   /* a retrace's period */
+    double gameMs = 0, listsMs = 0, orbitMs = 0, submitMs = 0;   /* that retrace's main-thread work */
+    double gpuMs = 0;                /* the longest picture on the GPU */
+    double renderMs = 0, frameMs = 0;   /* the longest RT64 workload (render thread); the game frame's period */
+    double targetMs = 0;             /* the present target */
+    unsigned shaders = 0, textures = 0;   /* new shaders submitted, textures added */
+    bool queueFull = false;          /* that retrace's frame task found RT64's workload queue full: reading
+                                        its display lists ended waiting for the render thread */
+};
+int spikeCause(const SpikeWindow &w);
 
 }  // namespace orbit
 }  // namespace live

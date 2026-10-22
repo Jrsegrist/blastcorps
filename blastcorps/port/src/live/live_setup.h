@@ -17,7 +17,9 @@ enum Action {
     A_A, A_B, A_Z, A_START, A_DUP, A_DDOWN, A_DLEFT, A_DRIGHT, A_L, A_R, A_CUP, A_CDOWN, A_CLEFT, A_CRIGHT,
     A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_MENU, A_FPS,
     /* the orbit camera ([camera] mode = orbit; live_orbit.cpp) */
-    A_CAM_LEFT, A_CAM_RIGHT, A_CAM_UP, A_CAM_DOWN, A_CAM_ZOOM_IN, A_CAM_ZOOM_OUT, A_CAM_RESET, A_COUNT
+    A_CAM_LEFT, A_CAM_RIGHT, A_CAM_UP, A_CAM_DOWN, A_CAM_ZOOM_IN, A_CAM_ZOOM_OUT, A_CAM_RESET,
+    A_CAM_ZOOM_HOLD,            /* held: look up / down zoom instead (in / out) */
+    A_COUNT
 };
 constexpr int kCameraActions = A_CAM_LEFT;      /* actions from this one on drive the orbit camera */
 constexpr int kButtons = A_STICK_UP;           /* actions before this are N64 buttons */
@@ -92,7 +94,10 @@ struct Config {
     int camSensX = 100, camSensY = 100;   /* percent */
     bool camInvertX = false, camInvertY = false;
     bool camRecentre = true;        /* ease back behind the player after the input is idle */
-    bool camRecentreOnFoot = true;  /* ... on foot even with camRecentre off */
+    bool camRecentreOnFoot = true;  /* ... for the characters the game steers relative to its camera, with
+                                       camRelativeSteering off, even with camRecentre off */
+    int camCollision = 0;           /* how obstacles move it: 0 smooth, 1 off, 2 strict (orbit::Collision) */
+    bool camRelativeSteering = true;   /* those characters steer relative to the orbit's view */
     double camRecentreDelay = 1.5;  /* seconds */
     double camZoomMin = 0.5, camZoomMax = 2.5;      /* times the game's own distance */
     double camPitchMin = -10, camPitchMax = 80;     /* degrees above the horizontal */

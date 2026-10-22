@@ -108,6 +108,7 @@ struct Cam {
     double cullView[4][4] = {};   /* ... and culling view (DynamicBuf.cullView: the eye pushed back) */
     Vec3 eye, target;
     bool snap = false, onFoot = false, play = false;
+    bool relChar = false;     /* a character the game steers relative to its camera (relativeCharacter) */
     unsigned long long mode = 0;
     int level = 0;
 };
@@ -131,6 +132,19 @@ bool playMode(unsigned long long mode) {
     return mode == 4;
 }
 
+/* The game steers the player relative to its camera (45BB0.c cont_update: the analog control method, mode 0,
+ * calls cont_stick_to_steer, which adds gCamHeading to the stick's angle) for the driver on foot (vehicle 0),
+ * Thunderfist (2), the J-Bomb (9) and the Cyclone Suit (16) - unless the player chose the other control method
+ * for it (gPlayerControlModes[playerNumber].controlModes, a bit per vehicle type).  Every other vehicle reads
+ * the stick as left / right steering and throttle (cont_process_stick), whatever the camera. */
+bool relativeCharacter() {
+    const unsigned v = rd<uint8_t>(0x80364456u);   /* gCurVehicle */
+    if (v != 0 && v != 2 && v != 9 && v != 16) return false;
+    const unsigned player = rd<uint8_t>(0x80364AE8u);   /* playerNumber */
+    if (player > 3) return false;
+    return (rd<uint32_t>(0x80364BE0u + player * 0x100u) & (1u << v)) == 0;   /* gPlayerControlModes */
+}
+
 void cameraHook(int snap) {
     const unsigned dyn = rd<uint8_t>(0x8035805Cu) & 1;   /* gBufferIndex */
     Cam &c = g_built[dyn];
@@ -146,6 +160,7 @@ void cameraHook(int snap) {
     c.mode = BC_MODE;
     c.level = BC_LEVEL;
     c.onFoot = rd<uint8_t>(0x80364456u) == 0;   /* gCurVehicle */
+    c.relChar = relativeCharacter();
     c.play = playMode(c.mode);
     c.frame = plat_frames();
     c.valid = std::isfinite(c.target.x) && std::isfinite(c.target.y) && std::isfinite(c.target.z);
@@ -455,7 +470,15 @@ void groundRefresh() {
  * kReach above y (a bridge deck or roof higher above isn't the ground there) */
 constexpr double kReach = 40.0;
 double g_lastTerrain, g_lastObstacle;   /* (--orbit-log) the two sources of the last query */
+double groundHeightOf(double x, double y, double z, bool obstacles);
 double groundHeight(double x, double y, double z) {
+    return groundHeightOf(x, y, z, true);
+}
+/* the terrain alone (collision = off: kept above it, through buildings) */
+double terrainHeight(double x, double y, double z) {
+    return groundHeightOf(x, y, z, false);
+}
+double groundHeightOf(double x, double y, double z, bool obstacles) {
     g_perf.queries++;
     double best = -1e31, h;
     g_lastTerrain = g_lastObstacle = -1e31;
@@ -486,6 +509,7 @@ double groundHeight(double x, double y, double z) {
     /* buildings and other obstacles: the 0x60-byte collision triangles
      * (77E20.c CollisionTri: s32 vertices at +0x28 in world / 4 units), as
      * obstaclesRead last read them */
+    if (!obstacles) return best;
     obstacle = true;
     g_obstacles.forEachAt(x, z, [&](const Vec3 *p) {
         double hh;
@@ -529,9 +553,9 @@ double groundHeightChecked(double x, double y, double z) {
 }
 
 /* ---- input ------------------------------------------------------------------ */
-double padValue(const Config &c, SDL_GameController *pad, const PadInput &in) {
-    if (in.button >= 0) return SDL_GameControllerGetButton(pad, SDL_GameControllerButton(in.button)) ? 1.0 : 0.0;
-    const int v = SDL_GameControllerGetAxis(pad, SDL_GameControllerAxis(in.axis));
+double padValue(const Config &c, const PadState *pad, const PadInput &in) {
+    if (in.button >= 0) return pad->button(in.button) ? 1.0 : 0.0;
+    const int v = pad->axis(in.axis);
     if (in.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || in.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
         return v > 8000 ? std::min(1.0, (v - 8000) / 24000.0) : 0.0;
     const double d = double(v) * in.dir;
@@ -544,7 +568,7 @@ double actionValue(const Config &c, const PadSet &pads, const Uint8 *keys, int a
     if (keys != nullptr)
         for (SDL_Scancode sc : c.keys[act])
             if (keys[sc]) v = 1.0;
-    for (SDL_GameController *pad : pads.active(c))
+    for (const PadState *pad : pads.active(c))
         for (const PadInput &in : c.pad[act]) v = std::max(v, padValue(c, pad, in));
     return v;
 }
@@ -553,8 +577,14 @@ double g_mouseX, g_mouseY, g_wheel;   /* since the last step */
 bool g_dragging;
 bool g_resetHeld;
 
-/* --orbit-test (g_test: above); sweep: the stress test (orbit::sweepAt, from the steps in play) */
-double g_testYaw, g_testPitch = 1e9, g_testZoom = 0;
+/* --orbit-test (g_test: above); sweep: the stress test (orbit::sweepAt, from the steps in play); hold:DEG: kept
+ * DEG from the game's camera */
+double g_testYaw, g_testPitch = 1e9, g_testZoom = 0, g_testHold = 1e9;
+orbit::CollisionStats g_cstats;   /* how calm the collision was (orbitSummary) */
+bool g_stepLog;                   /* --orbit-steplog */
+/* camera-relative steering (steerHook) */
+unsigned g_steerReads, g_steerTurned;
+double g_steerMaxTurn;
 bool g_sweep;
 unsigned g_sweepSteps;
 
@@ -820,6 +850,46 @@ void restoreVtx(int16_t *v) {
     memcpy(v, g_vtxSaved, sizeof g_vtxSaved);   /* RDRAM as the game left it */
 }
 
+/* ---- the sky between frames ----------------------------------------------------
+ * The backdrop is a 2D quad whose texture coordinates follow the camera's
+ * heading (2D810.c: half a texel per 1/4096 turn): drawn once a game frame,
+ * so with more pictures than game frames the sky stepped every game frame
+ * while the world (and the orbit's view) turned every picture, and the
+ * whole-unit heading added steps of half a texel (6 pixels at 4K).  In the
+ * orbit's view the quad gets (orbitBeforeTask) texture coordinates from the
+ * view's heading in fractions of a unit, unwrapped (continuous from frame to
+ * frame: a whole texture repeat, 4096 in the vertex values, taken off when
+ * they run far), and its draw an interpolation ID of its own with texture
+ * coordinates and vertices interpolated (RT64's matrix group, set just for
+ * its G_VTX and put back after it): RT64 then moves the sky picture by
+ * picture between the two frames, as it does the world.  A cut (or a new
+ * repeat taken off) gets a new ID: no blend from the frame before. */
+constexpr uint32_t kSkyId = 0x534B5900u;   /* "SKY" */
+struct SkyTrack {
+    bool have = false;
+    double heading = 0;       /* unwrapped (1/4096 turns) */
+    double anchor = 0;        /* vertex s values taken off (multiples of 4096) */
+    uint32_t epoch = 0;
+    unsigned tagged = 0, newIds = 0;
+} g_sky;
+
+void skyGroupBegin(RT64::State *state, RT64::TransformGroup &saved) {
+    RT64::RSP &rsp = *state->rsp;
+    saved = rsp.extended.modelMatrixIdStack[rsp.extended.modelMatrixIdStackSize - 1];
+    rsp.matrixId(kSkyId + (g_sky.epoch & 0xFF), false, false, false, G_EX_COMPONENT_INTERPOLATE,
+                 G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,
+                 G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
+                 G_EX_COMPONENT_SKIP, G_EX_ORDER_LINEAR, G_EX_ASPECT_AUTO, G_EX_EDIT_NONE, false, false);
+    rsp.modelViewProjChanged = true;   /* (its own transform for the quad) */
+    g_sky.tagged++;
+}
+void skyGroupEnd(RT64::State *state, const RT64::TransformGroup &saved) {
+    RT64::RSP &rsp = *state->rsp;
+    rsp.extended.modelMatrixIdStack[rsp.extended.modelMatrixIdStackSize - 1] = saved;
+    rsp.extended.modelMatrixIdStackChanged = true;
+    rsp.modelViewProjChanged = true;   /* (the next vertices get a transform of their own again) */
+}
+
 bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *originals) {
     if (!g_bd.on) return false;
     const uint32_t w0 = (*dl)->w0, w1 = (*dl)->w1;
@@ -843,7 +913,10 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
             return true;
         }
         int16_t *p = patchVtx(a, g_bd.vtx);
+        RT64::TransformGroup saved;
+        skyGroupBegin(state, saved);
         originals[op](state, dl);
+        skyGroupEnd(state, saved);
         restoreVtx(p);
         g_bdFrames++;
         return true;
@@ -862,7 +935,10 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
                 const uint32_t op = c->w0 >> 24, w1 = c->w1;
                 const RT64::WorkloadQueue &q = *state->ext.workloadQueue;
                 const uint32_t first = q.workloads[q.writeCursor].drawData.vertexCount();
+                RT64::TransformGroup saved;
+                if (op == 0x04) skyGroupBegin(state, saved);
                 originals[op](state, &c);
+                if (op == 0x04) skyGroupEnd(state, saved);
                 if (op == 0x04) wideAfterVertex(state, w1, first);   /* widescreen: as wide as the picture */
             }
             restoreVtx(p);
@@ -926,6 +1002,42 @@ void matrixHook(RT64::State *state, uint8_t params) {
     g_bb.turned++;
 }
 
+/* ---- camera-relative steering ([camera] relative_steering) --------------------
+ * The characters the game steers relative to its own camera (relativeCharacter)
+ * would go where the stick points in the game's view, not the orbit's: with the
+ * view turned round, up on the stick went towards the viewer.  Each controller
+ * read (plat_input_read, the file's or the player's) while the orbit shows a
+ * turned view in play, the stick is turned by the difference between the
+ * game's view and the orbit's (orbit::steerTurn), its length kept, before the
+ * game reads it.  Nothing else changes: no stick, the game's own view (orbit
+ * not engaged), the pause menu (gPaused), another vehicle or control method,
+ * the orbit off: the game gets the input as it was. */
+void steerHook(unsigned short *button, signed char *x, signed char *y) {
+    (void) button;
+    if (!g_active || g_cfg == nullptr || !g_cfg->camRelativeSteering) return;
+    if (*x == 0 && *y == 0) return;
+    const Cam &c = g_last;
+    if (!c.valid || !c.play || !g_orbit.engaged()) return;
+    if (BC_MODE != 4 || rd<uint8_t>(0x802E8BD0u) != 0 /* gPaused */ || !relativeCharacter()) return;
+    g_steerReads++;
+    double gy, gp, vy, vp;
+    orbit::angles(c.eye - c.target, gy, gp);
+    Vec3 eye;
+    g_orbit.eyeFor({c.eye, c.target}, 0, 0, g_lim, eye);
+    orbit::angles(eye - c.target, vy, vp);
+    const double turn = orbit::steerTurn(gy, vy);
+    if (std::fabs(turn) < 0.5) return;
+    int ox, oy;
+    orbit::rotateStick(*x, *y, turn, ox, oy);
+    if (g_log && (g_steerTurned % 60) == 0)
+        host_log("live: orbit steering: stick %d,%d -> %d,%d (game view %.1f, orbit view %.1f: turned %.1f; vehicle %u, "
+                 "frame %u)\n", *x, *y, ox, oy, gy, vy, turn, unsigned(rd<uint8_t>(0x80364456u)), plat_frames());
+    *x = (signed char) ox;
+    *y = (signed char) oy;
+    g_steerTurned++;
+    g_steerMaxTurn = std::max(g_steerMaxTurn, std::fabs(turn));
+}
+
 }  // namespace
 
 /* ---- the interface ---------------------------------------------------------- */
@@ -941,6 +1053,7 @@ void orbitApply() {
     const bool on = g_cfg->cameraMode == 1;
     host_camera_hook = on ? cameraHook : nullptr;
     host_draw_cells_hook = on ? drawCells : nullptr;
+    host_input_hook = on ? steerHook : nullptr;
     RT64::ViewHook = on ? viewHook : g_viewLog != nullptr ? gameViewLog : nullptr;
     interpSetCommandHook(on ? commandHook : nullptr, on ? matrixHook : nullptr);
     if (!on) {
@@ -956,6 +1069,7 @@ void orbitApply() {
     g_lim.zoomMax = g_cfg->camZoomMax;
     g_lim.recentre = g_cfg->camRecentre;
     g_lim.recentreDelay = g_cfg->camRecentreDelay;
+    g_lim.collision = g_cfg->camCollision;
     buildPadConfig();
     host_log("live: camera %s\n", on ? "orbit (free camera, render only)" : "original");
 }
@@ -1061,15 +1175,25 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     const double sy = cf.camSensY / 100.0 * (cf.camInvertY ? -1.0 : 1.0);
     auto curve = [](double v) { return v * std::fabs(v) * 0.6 + v * 0.4; };
     const double turn = curve(actionValue(cf, pads, keys, A_CAM_RIGHT) - actionValue(cf, pads, keys, A_CAM_LEFT));
-    const double look = curve(actionValue(cf, pads, keys, A_CAM_UP) - actionValue(cf, pads, keys, A_CAM_DOWN));
+    double look = curve(actionValue(cf, pads, keys, A_CAM_UP) - actionValue(cf, pads, keys, A_CAM_DOWN));
+    /* zoom: while camera_zoom_hold is held, look up / down zoom in / out (and the view doesn't tilt); the zoom
+     * buttons zoom while held; both at the same rate (about twice as far in 0.8 s) */
+    const bool zoomHold = actionValue(cf, pads, keys, A_CAM_ZOOM_HOLD) > 0.5;
+    double zoomRate = actionValue(cf, pads, keys, A_CAM_ZOOM_OUT) - actionValue(cf, pads, keys, A_CAM_ZOOM_IN);
+    if (zoomHold) {
+        zoomRate -= look;
+        look = 0;
+    }
     orbit::Input in;
     /* stick right: the view turns right (the eye goes to smaller yaw); look up: the eye goes down */
     g_yawRate = -turn * 150.0 * sx;
     g_pitchRate = -look * 90.0 * sy;
     in.yaw = g_yawRate * dt - g_mouseX * 0.25 * sx;
     in.pitch = g_pitchRate * dt + g_mouseY * 0.2 * sy;
-    in.zoom = (actionValue(cf, pads, keys, A_CAM_ZOOM_OUT) - actionValue(cf, pads, keys, A_CAM_ZOOM_IN)) * 1.2 * dt -
-              g_wheel * 0.15;
+    in.zoom = zoomRate * 1.2 * dt - g_wheel * 0.15;
+    if (g_log && in.zoom != 0.0)
+        host_log("live: orbit zoom input %.4f (log2; buttons %.2f, hold %d, wheel %.2f; step dt %.4f s, frame %u)\n",
+                 in.zoom, zoomRate, zoomHold ? 1 : 0, g_wheel, dt, plat_frames());
     const bool reset = actionValue(cf, pads, keys, A_CAM_RESET) > 0.5 || g_resetHeld;
     static bool resetWas;
     in.reset = reset && !resetWas;
@@ -1087,11 +1211,19 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
         g_yawRate = g_testYaw;
         g_pitchRate = 0;
         in.yaw = g_testYaw * dt;
+        if (g_testHold < 1e8) {   /* hold:DEG: the game's camera's yaw + DEG */
+            double gy, gp;
+            orbit::angles(c.eye - c.target, gy, gp);
+            in.yaw = orbit::wrap180(gy + g_testHold - (g_orbit.engaged() ? g_orbit.yaw() : gy)) + 1e-9;
+            g_yawRate = 0;
+        }
         if (g_testPitch < 1e8) in.pitch = (g_testPitch - g_orbit.pitch()) * std::min(1.0, dt * 4.0) + 1e-9;
         if (g_testZoom > 0) in.zoom = std::log2(g_testZoom / g_orbit.zoom());
     }
     orbit::Limits lim = g_lim;
-    lim.recentre = g_test ? false : (cf.camRecentre || (c.onFoot && cf.camRecentreOnFoot));
+    /* (the characters the game steers relative to its camera: with relative steering off, recentring keeps the
+     * stick from feeling rotated for long) */
+    lim.recentre = g_test ? false : (cf.camRecentre || (c.relChar && cf.camRecentreOnFoot && !cf.camRelativeSteering));
     orbit::Orbit::Game g{c.eye, c.target};
     {
         PerfTimer timer(g_perf.stepMs);
@@ -1099,12 +1231,19 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
             PerfTimer readTimer(g_perf.readMs);
             obstaclesRead();
         }
-        if (g_log) g_orbit.step(g, in, dt, lim, groundHeightChecked);
-        else g_orbit.step(g, in, dt, lim, groundHeight);
+        if (g_log) g_orbit.step(g, in, dt, lim, groundHeightChecked, terrainHeight);
+        else g_orbit.step(g, in, dt, lim, groundHeight, terrainHeight);
     }
     if (g_orbit.engaged() || std::fabs(g_orbit.zoom() - 1.0) > 1e-6) {
         g_perf.steps++;
         g_perf.closeSteps += g_orbit.distanceRatio() < 0.3;
+        g_cstats.add(g_orbit.distanceRatio(), g_orbit.rise(), g_orbit.eyeInside(), dt);
+        if (g_stepLog)   /* --orbit-steplog: every step's collision state */
+            host_log("live: orbit step frame %u: pull-in %.3f (to %.3f) rise %.1f (to %.1f) lift %.1f inside %d\n",
+                     plat_frames(), g_orbit.distanceRatio(), g_orbit.ratioTarget(), g_orbit.rise(), g_orbit.riseTarget(),
+                     g_orbit.lift(), g_orbit.eyeInside() ? 1 : 0);
+    } else {
+        g_cstats.restart();
     }
     {
         Vec3 eye;
@@ -1125,6 +1264,8 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
     g_bd = Backdrop();
     g_bb.on = false;
     if (g_cfg->cameraMode != 1 || !frameDl) return;
+    const bool skyWas = g_sky.have;   /* (the frame before had the orbit's sky: SkyTrack) */
+    g_sky.have = false;
     PerfTimer timer(g_perf.taskMs);
     dl &= 0x3FFFFFF;
     const unsigned dyn = (dl - (kDyn & 0x3FFFFFF)) / kDynSize;
@@ -1161,6 +1302,32 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
         static_assert(sizeof(RT64::DisplayList) == 8, "a Gfx command");
         g_bd.count = port_backdrop_gfx(g_bd.gfx, 64, kDyn + dyn * kDynSize, c.level, g_bd.heading, g_bd.pitch,
                                        g_bd.vtx);
+        /* the sky's texture across: from the view's heading in fractions of a unit, unwrapped (SkyTrack) */
+        if (g_bd.count > 0) {
+            double yaw, pd;
+            orbit::angles(eye - c.target, yaw, pd);
+            const double h = yaw * 4096.0 / 360.0;
+            g_sky.have = true;
+            if (!skyWas || cut) {
+                g_sky.heading = h;
+                g_sky.epoch++, g_sky.newIds++;
+            } else {
+                double d = std::fmod(h - g_sky.heading, 4096.0);
+                if (d >= 2048.0) d -= 4096.0;
+                if (d < -2048.0) d += 4096.0;
+                g_sky.heading += d;
+            }
+            const unsigned shift = rd<uint8_t>(0x802FA280u + uint32_t(c.level) * 0x18u + 0x14u) & 15;   /* [1].sShift */
+            const double scale = double(1u << shift);
+            double s0 = ((g_sky.heading - 2048.0) * 0.5 + 16.0) / scale * 32.0, s1 = 319.0 / scale * 32.0;
+            /* (the vertex values are s16: a whole number of texture repeats taken off when they run far) */
+            if (std::fabs(s0 - g_sky.anchor) > 16384.0) {
+                g_sky.anchor = std::floor(s0 / 4096.0 + 0.5) * 4096.0;
+                g_sky.epoch++, g_sky.newIds++;
+            }
+            s0 -= g_sky.anchor;
+            for (int i = 0; i < 4; i++) g_bd.vtx[i][1] = short(std::lround((i & 1) ? s0 + s1 : s0));
+        }
         if (g_log && plat_frames() % 30 == 0) {
             int gh, gp;
             headingPitch(c.eye, c.target, gh, gp);
@@ -1206,6 +1373,16 @@ bool orbitSetTest(const std::string &spec) {
         g_test = g_sweep = true;
         return true;
     }
+    if (spec.compare(0, 5, "hold:") == 0) {   /* hold:DEG[:PITCH]: DEG from the game's camera's yaw */
+        double h = 0, p = 1e9;
+        const int n = sscanf(spec.c_str() + 5, "%lf:%lf", &h, &p);
+        if (n < 1) return false;
+        g_test = true;
+        g_testYaw = 0;
+        g_testHold = h;
+        g_testPitch = n >= 2 ? p : 1e9;
+        return true;
+    }
     double y = 0, p = 1e9, z = 0;
     const int n = sscanf(spec.c_str(), "%lf:%lf:%lf", &y, &p, &z);
     if (n < 1) return false;
@@ -1218,6 +1395,10 @@ bool orbitSetTest(const std::string &spec) {
 
 void orbitSetLog(bool on) {
     g_log = on;
+}
+
+void orbitSetStepLog(bool on) {
+    g_stepLog = on;
 }
 
 OrbitPerf OrbitPerf::operator-(const OrbitPerf &o) const {
@@ -1260,8 +1441,24 @@ void orbitSummary() {
     host_log("live: orbit camera: %u pictures drawn with its view, %u cuts, backdrop turned with it in %u frames, "
              "%u billboards turned to it\n",
              g_hooked.load(), g_cuts, g_bdFrames, g_bb.turned);
+    host_log("live: orbit sky: %u backdrop draws moved picture by picture (interpolated; %u new IDs: cuts, engaging, "
+             "repeats taken off)\n",
+             g_sky.tagged, g_sky.newIds);
     host_log("live: orbit drawing lists: %u made (%s), %u with every cell\n", g_draw.made,
              g_cullAll ? "every cell: --orbit-cull all" : "the game's cells and the orbit view's", g_draw.all);
+    const orbit::CollisionStats &s = g_cstats;
+    const double min = s.seconds / 60.0;
+    host_log("live: orbit collision (%s): %.0f s with the orbit's own view; pull-in turning points %u (%.1f a minute), "
+             "rise turning points %u (%.1f a minute); fastest pull-in %.2f, let-out %.2f (share of the distance a "
+             "second), rise %.0f, lowering %.0f (degrees a second); %u steps pulled in under 0.6, %u with the eye "
+             "inside an obstacle (of %u)\n",
+             orbit::collisionName(g_lim.collision), s.seconds, s.ratioTurns, min > 0 ? s.ratioTurns / min : 0.0,
+             s.riseTurns, min > 0 ? s.riseTurns / min : 0.0, s.maxIn, s.maxOut, s.maxUp, s.maxDown, s.pulled, s.inside,
+             s.steps);
+    host_log("live: orbit steering (%s): %u controller reads of a camera-relative character with the stick held "
+             "in a turned orbit view, %u turned (at most %.0f degrees)\n",
+             g_cfg->camRelativeSteering ? "relative to the orbit's view" : "off: the game's camera", g_steerReads,
+             g_steerTurned, g_steerMaxTurn);
     if (g_log)
         host_log("live: orbit checks: %u pictures checked against their drawing list, %u saw cells not drawn (%u "
                  "cells); %u collision queries, %u differing from a test of every triangle; of the game's listed "

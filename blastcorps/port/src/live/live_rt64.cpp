@@ -497,12 +497,14 @@ void winSeqThread(unsigned frame, unsigned ms) {
 /* ---- input ------------------------------------------------------------------- */
 /* the controllers and the N64 pad: live_input.cpp.  bc.ini's controller.pad
  * picks which controller plays (default the first) or all of them. */
-live::PadSet g_pads;
+live::InputThread g_input;           /* SDL's controllers on their own thread (live_input.h) */
+live::PadSet g_pads;                 /* its latest sample, taken each retrace (pumpEvents) */
 unsigned short g_button;
 signed char g_stickX, g_stickY;
 live::InputGate g_gate;              /* after the settings menu (live_input.h) */
 bool g_focused = true;               /* the window has the keyboard focus */
-unsigned g_lastScan;                 /* retrace of the last controller rescan */
+unsigned g_lastScan;                 /* retraces since the controllers' last one-second line */
+live::InputThread::Stats g_padSecond;   /* the controllers' thread over that second */
 
 std::vector<std::string> padNames() {
     return g_pads.names();
@@ -1380,6 +1382,12 @@ constexpr double kLongStepMs = 50.0;
 struct Tail {
     double ms = 0, scanMs = 0, eventsMs = 0;   /* the host's work after the retrace; its controller rescans, events */
     unsigned scans = 0;
+    /* the events' time by kind: SDL's pump (the first SDL_PollEvent: the window's messages, and before the
+     * controllers' thread SDL's controller updates and device detection), the handlers of window, keyboard
+     * and text, mouse, controller and other events, then reading the pad state (pollInput) */
+    double pumpMs = 0, queueMs = 0, windowMs = 0, keyMs = 0, mouseMs = 0, padMs = 0, otherMs = 0, inputMs = 0;
+    unsigned events = 0;
+    double padThreadMs = 0;   /* the controllers' thread's longest update meanwhile (it doesn't hold the game up) */
 } g_tail, g_tailRun;
 void longStepLog(double retraceMs, double gameMs, double dlMs, double submitMs, double orbitStepMs) {
     static HostProf last;
@@ -1395,13 +1403,17 @@ void longStepLog(double retraceMs, double gameMs, double dlMs, double submitMs, 
     host_log("live: long retrace %.0f ms at frame %u (level %d, game mode %llX, vehicle %u): the game's step %.1f ms "
              "(PI DMAs %u, %llu KB, %.1f ms; audio tasks %u %.1f ms; gfx tasks %u %.1f ms, RT64 reading display lists "
              "%.1f; save files written %u %.1f ms; the game's own code with its inflate %.1f ms), RT64 submit %.1f "
-             "ms, after the retrace %.1f ms (events %.1f, controller rescans %u %.1f, orbit step %.1f) (#%u)\n",
+             "ms, after the retrace %.1f ms (events %.1f: SDL's pump %.1f, queue %.1f, %u events: window %.1f, keys "
+             "%.1f, mouse %.1f, controllers %.1f, other %.1f; pad state %.1f; controller rescans %u %.1f; orbit step "
+             "%.1f; the controllers' own thread's longest update %.1f ms) (#%u)\n",
              retraceMs, plat_frames(), *(volatile int *) uintptr_t(0x802E8BDCu) /* levelno */,
              *(volatile unsigned long long *) uintptr_t(0x80364A90u) /* gGameMode */,
              unsigned(*(volatile uint8_t *) uintptr_t(0x80364456u)) /* gCurVehicle */, step, d.dma_n,
              (unsigned long long) (d.dma_bytes / 1024), d.dma_ms, d.audio_n, d.audio_ms, d.gfx_n, d.gfx_ms, dlMs,
              d.save_n, d.save_ms, std::max(0.0, step - d.dma_ms - d.audio_ms - d.gfx_ms - d.save_ms), submitMs,
-             g_tail.ms, g_tail.eventsMs, g_tail.scans, g_tail.scanMs, orbitStepMs, n);
+             g_tail.ms, g_tail.eventsMs, g_tail.pumpMs, g_tail.queueMs, g_tail.events, g_tail.windowMs, g_tail.keyMs,
+             g_tail.mouseMs, g_tail.padMs, g_tail.otherMs, g_tail.inputMs, g_tail.scans, g_tail.scanMs, orbitStepMs,
+             g_tail.padThreadMs, n);
 }
 
 /* The textures RT64 made (its texture map's creation frames), by size: what the steady "new textures" of
@@ -1746,6 +1758,7 @@ void perfWrite() {
     if (g_app != nullptr) g_app->presentQueue->presentedHook = nullptr;
     if (g_app != nullptr) g_app->end();
     if (g_window != nullptr) SDL_DestroyWindow(g_window);
+    g_input.stop();
     SDL_Quit();
     host_exit(code);
 }
@@ -1983,13 +1996,70 @@ void openMenu() {
     live::menuOpen();
 }
 
+void handleEvent(SDL_Event e);
+/* the kind of an event, for the long-retrace line: 0 window, 1 keyboard / text, 2 mouse, 3 controller, 4 other */
+int eventKind(Uint32 t) {
+    if (t == SDL_WINDOWEVENT || t == SDL_SYSWMEVENT) return 0;
+    if (t >= SDL_KEYDOWN && t < SDL_MOUSEMOTION) return 1;
+    if (t >= SDL_MOUSEMOTION && t < SDL_JOYAXISMOTION) return 2;
+    if (t >= SDL_JOYAXISMOTION && t < SDL_FINGERDOWN) return 3;
+    return 4;
+}
+
 void pumpEvents() {
+    /* the controllers' newest state (their thread's; never waits for SDL's controller work) */
+    g_pads = g_input.latest();
     SDL_Event e;
-    while (SDL_PollEvent(&e)) {
+    double t = secondsSince(g_tStart);
+    for (bool first = true;; first = false) {
+        const bool got = SDL_PollEvent(&e) != 0;
+        const double t1 = secondsSince(g_tStart);
+        (first ? g_tailRun.pumpMs : g_tailRun.queueMs) += (t1 - t) * 1e3;
+        if (!got) break;
+        handleEvent(e);
+        t = secondsSince(g_tStart);
+        double *kinds[5] = {&g_tailRun.windowMs, &g_tailRun.keyMs, &g_tailRun.mouseMs, &g_tailRun.padMs,
+                            &g_tailRun.otherMs};
+        *kinds[eventKind(e.type)] += (t - t1) * 1e3;
+        g_tailRun.events++;
+    }
+    const double i0 = secondsSince(g_tStart);
+    pollInput();
+    g_tailRun.inputMs += (secondsSince(g_tStart) - i0) * 1e3;
+    /* the controllers' thread's updates: this retrace's longest (the long-retrace line), a line a second when
+     * some were slow */
+    const live::InputThread::Stats s = g_input.take();
+    g_tailRun.padThreadMs = s.maxMs;
+    g_padSecond.updates += s.updates, g_padSecond.slow += s.slow;
+    g_padSecond.maxMs = std::max(g_padSecond.maxMs, s.maxMs);
+    if (++g_lastScan >= 60) {
+        g_lastScan = 0;
+        if (g_padSecond.slow != 0)
+            host_log("live: controllers: %u of %u updates on their own thread took over %.0f ms (the longest %.0f ms: "
+                     "SDL's device detection; the game didn't wait) (frame %u)\n",
+                     g_padSecond.slow, g_padSecond.updates, live::InputThread::kSlowMs, g_padSecond.maxMs, plat_frames());
+        g_padSecond = live::InputThread::Stats();
+    }
+}
+
+void handleEvent(SDL_Event e) {
+    {
         if (e.type == SDL_QUIT) shutdown(0);
+        /* a button event the controllers' thread queued after the sample this retrace took: the sample gets it
+         * (the menu's combinations below read it) */
+        if (e.type == SDL_CONTROLLERBUTTONDOWN || e.type == SDL_CONTROLLERBUTTONUP)
+            for (live::PadState &p : g_pads.pads)
+                if (p.id == e.cbutton.which && e.cbutton.button < 32) {
+                    if (e.type == SDL_CONTROLLERBUTTONDOWN) p.buttons |= 1u << e.cbutton.button;
+                    else p.buttons &= ~(1u << e.cbutton.button);
+                }
         if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED && g_cfg.aspect < 0)
             updateCullWide();
-        if (e.type == SDL_CONTROLLERDEVICEADDED || e.type == SDL_CONTROLLERDEVICEREMOVED) g_pads.scan();
+        /* (the controllers' thread rescans them itself) */
+        if (e.type == SDL_CONTROLLERDEVICEADDED || e.type == SDL_CONTROLLERDEVICEREMOVED)
+            host_log("live: controller %s (SDL id %d; frame %u)\n",
+                     e.type == SDL_CONTROLLERDEVICEADDED ? "connected" : "disconnected", int(e.cdevice.which),
+                     plat_frames());
         if (e.type == SDL_WINDOWEVENT) windowEvent(e.window);
         /* a controller used while another window has the focus (e.g. the Xbox
          * button's Game Bar, a notification that took it): fullscreen, take
@@ -2002,7 +2072,7 @@ void pumpEvents() {
             /* waiting for a key or button to bind: everything goes to the menu */
             if (live::menuCapturing()) {
                 live::menuEvent(e);
-                continue;
+                return;
             }
             /* the menu's own keys: Esc or the menu key close it, as do the
              * controller's menu buttons; fullscreen still switches */
@@ -2010,22 +2080,22 @@ void pumpEvents() {
                 const SDL_Scancode sc = e.key.keysym.scancode;
                 if (sc == SDL_SCANCODE_ESCAPE || isKey(live::A_MENU, sc)) {
                     live::menuClose();
-                    continue;
+                    return;
                 }
                 if (sc == SDL_SCANCODE_F11 || (sc == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT) != 0)) {
                     setFullscreen(!g_opt.fullscreen);
                     g_cfg.fullscreen = g_opt.fullscreen;
-                    continue;
+                    return;
                 }
             }
             if (e.type == SDL_CONTROLLERBUTTONDOWN && menuCombo()) {
                 live::menuClose();
-                continue;
+                return;
             }
             live::menuEvent(e);
-            continue;
+            return;
         }
-        if (live::orbitEvent(e)) continue;   /* mouse look */
+        if (live::orbitEvent(e)) return;   /* mouse look */
         if (e.type == SDL_KEYDOWN && isKey(live::A_QUIT, e.key.keysym.scancode)) shutdown(0);
         if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pads.isActive(g_cfg, e.cbutton.which)) {
             for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
@@ -2050,15 +2120,6 @@ void pumpEvents() {
             }
         }
     }
-    /* once a second: controllers whose device events were missed */
-    if (++g_lastScan >= 60) {
-        g_lastScan = 0;
-        const double t0 = secondsSince(g_tStart);
-        g_pads.scan();
-        g_tailRun.scanMs += (secondsSince(g_tStart) - t0) * 1e3;
-        g_tailRun.scans++;
-    }
-    pollInput();
 }
 
 /* ---- HostLive ---------------------------------------------------------------- */
@@ -2838,6 +2899,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--display-hz")) g_interp.displayHz = std::max(1u, num(next()));
     else if (!strcmp(a, "--interp-log")) g_interp.log = true;
     else if (!strcmp(a, "--orbit-log")) live::orbitSetLog(true);
+    else if (!strcmp(a, "--orbit-steplog")) live::orbitSetStepLog(true);
     else if (!strcmp(a, "--orbit-repeatable")) live::orbitSetRepeatable(true);
     else if (!strcmp(a, "--orbit-cull")) {
         const char *s = next();
@@ -2930,9 +2992,19 @@ void prestart(HostOpts *o) {
      * player in fullscreen can't do (the keyboard stops too: it can't be
      * helped; a controller button takes the focus back, pumpEvents) */
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    /* the controllers run on their own thread (live_input.h InputThread): SDL_PollEvent must not update them
+     * (their device detection took up to 400 ms inside it on a PC with a Bluetooth pad) */
+    SDL_SetHint(SDL_HINT_AUTO_UPDATE_JOYSTICKS, "0");
     SDL_SetMainReady();
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) != 0)
-        host_fatal("Can't start SDL (video, controllers): %s", SDL_GetError());
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) host_fatal("Can't start SDL (video): %s", SDL_GetError());
+    {
+        std::string err;
+        if (!g_input.start(err)) host_fatal("Can't start SDL's game controllers: %s", err.c_str());
+        g_pads = g_input.latest();
+        host_log("live: controllers: SDL's game controller subsystem started on its own thread in %.0f ms (with "
+                 "its first device detection), %u found\n",
+                 g_input.take().initMs, unsigned(g_pads.pads.size()));
+    }
     /* the window at 320x240 times the scale, as large as fits the desktop */
     SDL_Rect usable;
     unsigned scale = g_opt.scale;
@@ -2950,7 +3022,6 @@ void prestart(HostOpts *o) {
     SDL_VERSION(&wm.version);
     if (!SDL_GetWindowWMInfo(g_window, &wm)) host_fatal("SDL_GetWindowWMInfo: %s", SDL_GetError());
     host_gui_window = wm.info.win.window;
-    g_pads.scan();
 
     RT64::Application::Core core = {};
     core.window = wm.info.win.window;

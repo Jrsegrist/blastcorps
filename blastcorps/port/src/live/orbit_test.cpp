@@ -5,6 +5,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -39,9 +40,9 @@ static Orbit::Game game(const Vec3 &target = {1000, 50, -400}) {
 }
 
 static void run(Orbit &o, const Orbit::Game &g, const Input &in, double seconds, const Limits &lim,
-                const HeightFn &h = nullptr) {
+                const HeightFn &h = nullptr, const HeightFn &terrain = nullptr) {
     const double dt = 1.0 / 60.0;
-    for (double t = 0; t < seconds - 1e-9; t += dt) o.step(g, in, dt, lim, h);
+    for (double t = 0; t < seconds - 1e-9; t += dt) o.step(g, in, dt, lim, h, terrain);
 }
 
 int main() {
@@ -226,11 +227,12 @@ int main() {
         run(o, g, Input(), 10.0, l2);
         check(o.engaged() && near(o.yaw(), turned, 1e-9), "recentre off: the camera stays where it was left");
     }
-    /* collision: flat ground at y = 0, the target 5 above it */
+    /* collision (strict: as before the smooth default): flat ground at y = 0, the target 5 above it */
     {
         const HeightFn flat = [](double, double, double) { return 0.0; };
         Limits l = lim;
         l.pitchMin = -30;
+        l.collision = COLLISION_STRICT;
         Orbit o;
         Orbit::Game g;
         g.target = {0, 5, 0};
@@ -302,6 +304,207 @@ int main() {
         in.yaw = 180.0;   /* one step round to the wall's side */
         o6.step(gf, in, 1.0 / 60, l, lowWall);
         check(o6.rise() > 30.0 && o6.distanceRatio() > 0.5, "turned to a low wall: rises at once, not pulled in");
+    }
+    /* the critically damped spring */
+    {
+        double x = 0, v = 0, maxX = 0;
+        bool rising = true;
+        std::vector<double> xs;
+        for (int i = 0; i < 120; i++) {
+            const double before = x;
+            Spring::step(x, v, 1.0, 0.5, 1.0 / 60);
+            rising = rising && x >= before;
+            maxX = std::max(maxX, x);
+            xs.push_back(x);
+        }
+        check(rising && maxX <= 1.0, "spring: rises monotonically, never past the target");
+        check(xs[29] > 0.4 && xs[29] < 0.8 && xs[119] > 0.99, "spring: about the smoothing time to get there");
+        double y = 0, w = 0;
+        for (int i = 0; i < 120; i++) Spring::step(y, w, 1.0, 0.5, 1.0 / 60);
+        check(y == x, "spring: deterministic");
+        double a = 1, av = 0;
+        Spring::step(a, av, 0.0, 0.05, 1.0 / 60);
+        check(a > 0.0 && a < 1.0, "spring: a fast one still moves over a few steps, not at once");
+        check(std::string(collisionName(COLLISION_SMOOTH)) == "smooth" && std::string(collisionName(COLLISION_OFF)) == "off" &&
+                  std::string(collisionName(COLLISION_STRICT)) == "strict",
+              "collision mode names");
+    }
+    /* smooth collision (the default): calm, ignores thin and brief obstructions, never stays inside */
+    {
+        Limits l = lim;
+        check(l.collision == COLLISION_SMOOTH, "collision: smooth is the default");
+        Orbit::Game gw;
+        gw.target = {0, 5, 0};
+        gw.eye = gw.target + direction(90, 10) * 100.0;   /* the eye on the +x side */
+        Input in;
+        in.yaw = 1e-6;   /* engaged, not turning */
+        const double dt = 1.0 / 60;
+        auto eyeOf = [&](const Orbit &o) {
+            Vec3 e;
+            o.eyeFor(gw, 0, 0, l, e);
+            return e;
+        };
+        /* a thin pole on the line of sight (x 45, 1 unit wide, very tall): ignored (it just occludes) */
+        const HeightFn pole = [](double x, double, double z) {
+            return std::fabs(x - 45.0) < 0.5 && std::fabs(z) < 0.5 ? 1e6 : 0.0;
+        };
+        Orbit o;
+        run(o, gw, in, 2.0, l, pole);
+        check(near(o.distanceRatio(), 1.0, 1e-9) && near(o.rise(), 0.0, 1e-9), "smooth: a thin pole doesn't move it");
+        Limits ls = l;
+        ls.collision = COLLISION_STRICT;
+        Orbit os;
+        run(os, gw, in, 2.0, ls, pole);
+        check(os.distanceRatio() < 0.99 || os.rise() > 1.0, "... (strict moves for it)");
+        /* a wide wall too high to see over (x > 30) that appears for a moment (0.1 s): nothing moves */
+        double now = 0;
+        bool wallOn = false;
+        /* (between the target and the eye at x ~98) */
+        const HeightFn farWall = [&](double x, double, double) { return wallOn && x > 70.0 && x < 90 ? 1e6 : 0.0; };
+        Orbit ob;
+        run(ob, gw, in, 0.5, l, farWall);
+        wallOn = true;
+        for (int i = 0; i < 6; i++) ob.step(gw, in, dt, l, farWall);
+        wallOn = false;
+        run(ob, gw, in, 1.0, l, farWall);
+        check(near(ob.distanceRatio(), 1.0, 1e-9) && near(ob.rise(), 0.0, 1e-9),
+              "smooth: a brief obstruction (0.1 s, under holdIn) just occludes");
+        /* the same far wall for good: after holdIn it rises over it or pulls in, smoothly (no step over 20 % of
+         * the distance or 15 degrees) */
+        wallOn = true;
+        Orbit oc;
+        run(oc, gw, in, 0.5, l, nullptr);
+        double maxJump = 0, maxRiseJump = 0, lastR = oc.distanceRatio(), lastU = oc.rise();
+        int moveStep = -1;
+        for (int i = 0; i < 180; i++) {
+            oc.step(gw, in, dt, l, farWall);
+            maxJump = std::max(maxJump, std::fabs(oc.distanceRatio() - lastR));
+            maxRiseJump = std::max(maxRiseJump, std::fabs(oc.rise() - lastU));
+            if (moveStep < 0 && (oc.distanceRatio() < 0.999 || oc.rise() > 0.01)) moveStep = i;
+            lastR = oc.distanceRatio(), lastU = oc.rise();
+        }
+        const Vec3 ec = eyeOf(oc);
+        check(moveStep >= int(l.holdIn * 60) - 1 && moveStep <= int(l.holdIn * 60) + 2,
+              "smooth: a lasting obstruction moves it after holdIn");
+        check(!farWall(ec.x, ec.y, ec.z) || ec.y > 1e5, "... out of the wall's way");
+        check(clearShare(gw.target, normalize(ec - gw.target), length(ec - gw.target), l.clearance, farWall, l.nearShare) >
+                  0.99,
+              "... seeing the target past it");
+        check(maxJump < 0.2 && maxRiseJump < 15.0, "... without jumps (springs)");
+        /* the wall gone: holds for holdOut, then back out over about the slow spring's time, never past */
+        wallOn = false;
+        const double r0 = oc.distanceRatio(), u0 = oc.rise();
+        run(oc, gw, in, l.holdOut - 0.1, l, farWall);
+        check(near(oc.distanceRatio(), r0, 1e-9) && near(oc.rise(), u0, 1e-9), "smooth: holds a while after it clears");
+        run(oc, gw, in, 0.6, l, farWall);
+        const double mid = oc.rise() + (1.0 - oc.distanceRatio()) * 100;
+        check(mid > 0.01, "... then goes back slowly");
+        run(oc, gw, in, 5.0, l, farWall);
+        check(near(oc.distanceRatio(), 1.0, 1e-3) && near(oc.rise(), 0.0, 0.05), "... all the way");
+        /* buildings passing by (the wall on for 0.3 s, off for 0.3 s, for 12 s): smooth moves once and stays;
+         * strict goes in and out every time */
+        auto passing = [&](const Limits &lm) {
+            Orbit p;
+            CollisionStats st;
+            run(p, gw, in, 0.5, lm, nullptr);
+            for (int i = 0; i < 12 * 60; i++) {
+                now = i * dt;
+                wallOn = std::fmod(now, 0.6) < 0.3;
+                p.step(gw, in, dt, lm, farWall);
+                st.add(p.distanceRatio(), p.rise(), p.eyeInside(), dt);
+            }
+            return st;
+        };
+        const CollisionStats calm = passing(l), jumpy = passing(ls);
+        check(calm.ratioTurns + calm.riseTurns <= 2, "smooth: passing buildings: at most one move in and one out");
+        check(jumpy.ratioTurns + jumpy.riseTurns >= 10, "... (strict: in and out every time)");
+        check(calm.maxIn < jumpy.maxIn || jumpy.maxIn == 0, "... and its fastest move is slower than strict's");
+        /* the eye inside an obstacle (a wall appearing around it): out within a few steps */
+        const HeightFn around = [&](double x, double, double) { return wallOn && x > 60.0 ? 1e6 : 0.0; };
+        Orbit oi;
+        wallOn = false;
+        run(oi, gw, in, 0.5, l, around);
+        wallOn = true;
+        int out = -1;
+        for (int i = 0; i < 60 && out < 0; i++) {
+            oi.step(gw, in, dt, l, around);
+            const Vec3 e = eyeOf(oi);
+            if (!(e.x > 60.0 && e.y < 1e5)) out = i;
+        }
+        check(out >= 0 && out <= 12, "smooth: the eye inside an obstacle gets out within 0.2 s");
+        /* the target itself under a roof (pushing into a building): nothing sees it, pulling in would only put
+         * the eye into the vehicle: the view stays (occluded) */
+        const HeightFn roof = [](double x, double, double z) {
+            return std::fabs(x) < 20.0 && std::fabs(z) < 20.0 ? 1e6 : 0.0;
+        };
+        Orbit orf;
+        run(orf, gw, in, 2.0, l, roof);
+        check(near(orf.distanceRatio(), 1.0, 1e-9) && near(orf.rise(), 0.0, 1e-9) && !orf.eyeInside(),
+              "smooth: the target under a roof: no pull-in into the vehicle");
+        /* off: never moves for obstacles; kept above the terrain */
+        Limits lo = l;
+        lo.collision = COLLISION_OFF;
+        Orbit oo;
+        wallOn = true;
+        const HeightFn terrain = [](double x, double, double) { return x > 50 ? 40.0 : 0.0; };   /* a hill */
+        run(oo, gw, in, 2.0, lo, farWall, terrain);
+        const Vec3 eo = eyeOf(oo);
+        check(near(oo.distanceRatio(), 1.0, 1e-9) && near(oo.rise(), 0.0, 1e-9), "off: never pulled in or risen");
+        check(eo.y >= 40.0 + lo.clearance - 1e-6, "off: kept above the terrain");
+        Orbit oo2;
+        run(oo2, gw, in, 2.0, lo, farWall);
+        check(near(oo2.lift(), 0.0, 1e-12), "off: no terrain given: not even lifted");
+    }
+    /* the collision statistics: turning points with a minimum move */
+    {
+        CollisionStats st;
+        const double v[] = {1.0, 0.9, 0.5, 0.52, 0.51, 0.9, 1.0, 0.99, 0.6};
+        for (double x : v) st.add(x, 0.0, false, 1.0 / 60);
+        check(st.ratioTurns == 2 && st.riseTurns == 0, "stats: two turning points (small wobbles don't count)");
+        check(near(st.maxIn, 0.4 * 60, 1e-9) && near(st.maxOut, 0.39 * 60, 1e-9), "stats: the fastest moves");
+        check(st.steps == 9 && st.pulled == 3, "stats: steps and steps pulled in under 0.6");
+    }
+    /* camera-relative steering: the stick turned, its length kept */
+    {
+        int x, y;
+        rotateStick(0, 80, 90, x, y);
+        check(x == 80 && y == 0, "stick: up turned 90 clockwise is right");
+        rotateStick(0, 80, 180, x, y);
+        check(x == 0 && y == -80, "stick: 180 is down");
+        rotateStick(80, 80, 45, x, y);
+        check(x == 113 && y == 0, "stick: a keyboard diagonal keeps its length (113)");
+        rotateStick(37, -61, 0, x, y);
+        check(x == 37 && y == -61, "stick: no turn, the same values");
+        rotateStick(-80, 0, -90, x, y);
+        check(x == 0 && y == -80, "stick: left turned 90 counterclockwise is down");
+        /* the model of a camera-relative game: stick (sx, sy) moves the character
+         * sy * forward + sx * right, forward away from the eye (yaw Y: eye - target) */
+        auto move = [](double sx, double sy, double Y) {
+            const double r = Y * 3.14159265358979 / 180.0;
+            const Vec3 fwd = {-std::sin(r), 0, -std::cos(r)}, right = {std::cos(r), 0, -std::sin(r)};
+            return fwd * sy + right * sx;
+        };
+        unsigned seed = 4242;
+        auto rnd = [&](double lo, double hi) {
+            seed = seed * 1103515245u + 12345u;
+            return lo + (hi - lo) * double((seed >> 8) & 0xFFFF) / 65535.0;
+        };
+        int bad = 0;
+        for (int i = 0; i < 2000; i++) {
+            const double gy = rnd(0, 360), vy = rnd(0, 360);
+            const int sx = int(rnd(-80, 80)), sy = int(rnd(-80, 80));
+            if (sx * sx + sy * sy < 400) continue;
+            int rx, ry;
+            rotateStick(sx, sy, steerTurn(gy, vy), rx, ry);
+            const Vec3 got = normalize(move(rx, ry, gy)), want = normalize(move(sx, sy, vy));
+            bad += dot(got, want) < std::cos(3.0 * 3.14159265358979 / 180.0);
+        }
+        check(bad == 0, "steering: the turned stick moves the character as the stick points in the orbit's view");
+        const Vec3 away = normalize(move(0, 80, 200.0));
+        int rx, ry;
+        rotateStick(0, 80, steerTurn(30.0, 200.0), rx, ry);
+        check(dot(normalize(move(rx, ry, 30.0)), away) > 0.999 && near(steerTurn(30, 30), 0, 1e-12),
+              "steering: up goes away from the orbit's eye; the same view: no turn");
     }
     /* the collision's triangle grid: the same heights as a test of every triangle */
     {

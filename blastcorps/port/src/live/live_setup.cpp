@@ -27,12 +27,14 @@ const char *const kActionNames[A_COUNT] = {
     "a", "b", "z", "start", "d_up", "d_down", "d_left", "d_right", "l", "r", "c_up", "c_down", "c_left", "c_right",
     "stick_up", "stick_down", "stick_left", "stick_right", "quit", "menu", "fps_counter",
     "camera_left", "camera_right", "camera_up", "camera_down", "camera_zoom_in", "camera_zoom_out", "camera_reset",
+    "camera_zoom_hold",
 };
 const char *const kActionLabels[A_COUNT] = {
     "A", "B", "Z", "Start", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "L", "R", "C up", "C down",
     "C left", "C right", "Stick up", "Stick down", "Stick left", "Stick right", "Quit the game", "Settings menu",
     "Frame-rate counter", "Orbit camera: turn left", "Orbit camera: turn right", "Orbit camera: look up",
     "Orbit camera: look down", "Orbit camera: zoom in", "Orbit camera: zoom out", "Orbit camera: reset",
+    "Orbit camera: hold to zoom with look up/down",
 };
 
 /* The defaults ARE this text: configDefaults parses it, and a missing
@@ -133,9 +135,17 @@ static const char kDefaultIni[] =
     "; seconds: 1 = yes (default), 0 = the camera stays where you left it (until reset).\r\n"
     "recentre = 1\r\n"
     "recentre_delay = 1.5\r\n"
-    "; On foot the game steers the driver relative to its own camera: 1 = recentre on foot\r\n"
-    "; even with recentre = 0 (default), 0 = no.\r\n"
+    "; The game steers the driver on foot, the J-Bomb, Thunderfist and the Cyclone Suit relative\r\n"
+    "; to its own camera. relative_steering = 1 (default): in orbit mode the stick is turned to\r\n"
+    "; match the orbit's view (up = away from you); 0 = the game's own camera directions.\r\n"
+    "relative_steering = 1\r\n"
+    "; With relative_steering = 0: 1 = ease back for those characters even with recentre = 0\r\n"
+    "; (default), 0 = no.\r\n"
     "recentre_on_foot = 1\r\n"
+    "; Buildings between the camera and you: smooth (default: the camera rises over them or\r\n"
+    "; moves in calmly, only for lasting, wide obstructions), strict (at once, every time) or\r\n"
+    "; off (never; you may see through them).\r\n"
+    "collision = smooth\r\n"
     "; Zoom limits, in times the game's own camera distance.\r\n"
     "zoom_min = 0.5\r\n"
     "zoom_max = 2.5\r\n"
@@ -180,6 +190,7 @@ static const char kDefaultIni[] =
     "camera_zoom_in = Keypad +\r\n"
     "camera_zoom_out = Keypad -\r\n"
     "camera_reset = Keypad 5\r\n"
+    "camera_zoom_hold =\r\n"
     "\r\n"
     "[controller]\r\n"
     "; The N64 controller from the first game controller (Xbox/XInput and others SDL knows).\r\n"
@@ -220,8 +231,13 @@ static const char kDefaultIni[] =
     "camera_right = rightx+\r\n"
     "camera_up = righty-\r\n"
     "camera_down = righty+\r\n"
-    "camera_zoom_in = y\r\n"
-    "camera_zoom_out = leftstick\r\n"
+    "; Zoom: hold camera_zoom_hold (Y) and push the right stick up (in) or down (out); or bind\r\n"
+    "; camera_zoom_in / camera_zoom_out to buttons that zoom while held. (Older versions zoomed\r\n"
+    "; out with a left stick click, easy to do by accident while steering: that old default is\r\n"
+    "; changed to this one when bc.ini is read.)\r\n"
+    "camera_zoom_in =\r\n"
+    "camera_zoom_out =\r\n"
+    "camera_zoom_hold = y\r\n"
     "camera_reset = rightstick\r\n";
 
 /* ---- strings and paths ----------------------------------------------------- */
@@ -479,7 +495,14 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             else if (key == "tilt_min") ok = num(-60.0, 60.0, c.camPitchMin);
             else if (key == "tilt_max") ok = num(0.0, 89.0, c.camPitchMax);
             else if (key == "mouse") ok = parseBool(v, c.camMouse);
-            else ok = false;
+            else if (key == "relative_steering") ok = parseBool(v, c.camRelativeSteering);
+            else if (key == "collision") {
+                std::string l = lower(v);
+                if (l == "smooth" || l == "on" || l == "1") c.camCollision = 0;
+                else if (l == "off" || l == "none" || l == "0") c.camCollision = 1;
+                else if (l == "strict" || l == "2") c.camCollision = 2;
+                else ok = false;
+            } else ok = false;
             if (c.camPitchMin > c.camPitchMax) std::swap(c.camPitchMin, c.camPitchMax);
         } else if (section == "audio") {
             if (key == "volume") ok = parseInt(v, 0, 100, c.volume);
@@ -562,6 +585,19 @@ bool configLoad(Config &c, const std::string &file) {
     std::string text;
     if (readText(file, text)) {
         parseText(c, text, file);
+        /* the old default zoom bindings (Y zooms in, a left stick click out: easy to click while steering
+         * hard): to the new default (hold Y and use the right stick), written back; bindings the player
+         * changed stay */
+        const Setting zin{"controller", "camera_zoom_in"}, zout{"controller", "camera_zoom_out"},
+            zhold{"controller", "camera_zoom_hold"};
+        if (text.find("camera_zoom_hold") == std::string::npos && configValue(c, zin) == "y" &&
+            configValue(c, zout) == "leftstick") {
+            c.pad[A_CAM_ZOOM_IN].clear();
+            c.pad[A_CAM_ZOOM_OUT].clear();
+            if (configSave(c, {zin, zout, zhold}))
+                host_log("live: %s: the old zoom buttons (Y in, left stick click out) changed to the new default: "
+                         "hold Y and push the right stick up or down\n", file.c_str());
+        }
         return true;
     }
     if (host_write_file(file.c_str(), kDefaultIni, unsigned(sizeof kDefaultIni - 1)) != 0) {
@@ -774,6 +810,8 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "tilt_min") return d(c.camPitchMin);
         if (k == "tilt_max") return d(c.camPitchMax);
         if (k == "mouse") return c.camMouse ? "1" : "0";
+        if (k == "relative_steering") return c.camRelativeSteering ? "1" : "0";
+        if (k == "collision") return c.camCollision == 1 ? "off" : c.camCollision == 2 ? "strict" : "smooth";
     } else if (s.section == "audio") {
         if (k == "volume") return std::to_string(c.volume);
         if (k == "mute") return c.mute ? "1" : "0";

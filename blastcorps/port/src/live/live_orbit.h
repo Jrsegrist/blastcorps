@@ -41,6 +41,7 @@ void orbitAfterTask(bool frameDl);
  * player input; --orbit-log logs every frame's cameras */
 bool orbitSetTest(const std::string &spec);
 void orbitSetLog(bool on);
+void orbitSetStepLog(bool on);   /* --orbit-steplog (testing): every step's collision state */
 /* testing: --orbit-cull all (the drawing paths get every cell of the level,
  * as before the orbit view's test) or view (the default: the game's cells and
  * those the orbit camera can see) */

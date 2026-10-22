@@ -11,6 +11,7 @@ namespace orbit {
 namespace {
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kDeg = kPi / 180.0;
+constexpr double kShort = 0.97;   /* smooth collision: pulled in to this share of the free part */
 }  // namespace
 
 Vec3 operator+(const Vec3 &a, const Vec3 &b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
@@ -78,6 +79,29 @@ double clearShare(const Vec3 &target, const Vec3 &dir, double dist, double clear
     return 1.0;
 }
 
+const char *collisionName(int mode) {
+    return mode == COLLISION_OFF ? "off" : mode == COLLISION_STRICT ? "strict" : "smooth";
+}
+
+void Spring::step(double &x, double &v, double target, double smoothTime, double dt) {
+    /* the exact-ish critically damped step (a Pade approximation of exp(-w dt);
+     * Game Programming Gems 4, 1.10), clamped so it never passes the target
+     * coming from rest */
+    if (!(dt > 0)) return;
+    const double w = 2.0 / std::max(1e-4, smoothTime);
+    const double k = w * dt;
+    const double e = 1.0 / (1.0 + k + 0.48 * k * k + 0.235 * k * k * k);
+    const double change = x - target;
+    const double temp = (v + w * change) * dt;
+    v = (v - w * temp) * e;
+    double nx = target + (change + temp) * e;
+    if ((change > 0) == (nx < target) && change != 0.0) {   /* passed it: stop there */
+        nx = target;
+        v = 0;
+    }
+    x = nx;
+}
+
 void Orbit::reset(bool zoomToo) {
     blend_ = 0.0;
     recentring_ = false;
@@ -85,10 +109,16 @@ void Orbit::reset(bool zoomToo) {
     ratio_ = 1.0;
     lift_ = 0.0;
     rise_ = 0.0;
+    ratioV_ = riseV_ = liftV_ = 0.0;
+    ratioT_ = 1.0;
+    riseT_ = 0.0;
+    pullIn_ = letOut_ = riseUp_ = riseDown_ = 0.0;
+    inside_ = false;
     if (zoomToo) zoom_ = 1.0;
 }
 
-void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, const HeightFn &height) {
+void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, const HeightFn &height,
+                 const HeightFn &terrain) {
     dt = std::max(0.0, std::min(dt, 0.25));
     const Vec3 off = g.eye - g.target;
     const double gameDist = length(off);
@@ -139,11 +169,204 @@ void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, c
 
     /* collision: only where the camera differs from the game's (the game's own
      * camera is never moved: zoom 1, not engaged) */
-    double want = 1.0, wantLift = 0.0, wantRise = 0.0;
     const bool collide = gameDist > 1e-6 && (blend_ > 0.0 || zoom_ > 1.0 + 1e-9);
     Vec3 dir0 = normalize(off);
     if (blend_ > 0.0) dir0 = normalize(lerp(dir0, direction(yaw_, pitch_), blend_));
     const double dist = gameDist * zoom_;
+    if (lim.collision == COLLISION_STRICT) stepStrict(g, dir0, dist, collide, dt, lim, height);
+    else if (lim.collision == COLLISION_OFF) stepOff(g, dir0, dist, collide, dt, lim, terrain);
+    else stepSmooth(g, dir0, dist, collide, dt, lim, height);
+}
+
+/* the eye at the share `ratio` of `dist` along `dir`, lifted by `lift`, inside an obstacle (below its top
+ * plus the clearance) */
+static bool insideAt(const Vec3 &target, const Vec3 &dir, double dist, double ratio, double lift, double clearance,
+                     const HeightFn &height) {
+    if (!height) return false;
+    Vec3 eye = target + dir * (dist * ratio);
+    eye.y += lift;
+    const double h = height(eye.x, eye.y, eye.z);
+    return h > -1e30 && eye.y < h + clearance - 1e-6;
+}
+
+void Orbit::stepOff(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
+                    const HeightFn &terrain) {
+    /* nothing moves it for obstacles: back out (if it was pulled in under another setting), kept above the
+     * terrain only */
+    ratioT_ = 1.0, riseT_ = 0.0;
+    pullIn_ = letOut_ = riseUp_ = riseDown_ = 0.0;
+    Spring::step(ratio_, ratioV_, 1.0, lim.springOut, dt);
+    Spring::step(rise_, riseV_, 0.0, lim.springOut, dt);
+    double wantLift = 0.0;
+    Vec3 dir = dir0;
+    if (rise_ > 1e-6) {
+        double y0, p0;
+        angles(dir0, y0, p0);
+        dir = direction(y0, std::min(89.0, p0 + rise_));
+    }
+    if (collide && terrain) {
+        const Vec3 eye = g.target + dir * (dist * ratio_);
+        const double h = terrain(eye.x, eye.y, eye.z);
+        if (h > -1e30) wantLift = std::max(0.0, h + lim.clearance - eye.y);
+    }
+    if (wantLift > lift_) lift_ = wantLift, liftV_ = 0.0;
+    else Spring::step(lift_, liftV_, wantLift, lim.springOut, dt);
+    inside_ = false;
+}
+
+void Orbit::stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
+                       const HeightFn &height) {
+    if (!collide || !height) {
+        ratioT_ = 1.0, riseT_ = 0.0;
+        pullIn_ = letOut_ = riseUp_ = riseDown_ = 0.0;
+        Spring::step(ratio_, ratioV_, 1.0, lim.springOut, dt);
+        Spring::step(rise_, riseV_, 0.0, lim.springOut, dt);
+        Spring::step(lift_, liftV_, 0.0, lim.springOut, dt);
+        inside_ = false;
+        return;
+    }
+    double y0, p0;
+    angles(dir0, y0, p0);
+    const double top = std::max(lim.pitchMax, p0);
+    auto dirAt = [&](double r) { return direction(y0, std::min(89.0, p0 + r)); };
+    const double minShare = std::max(lim.minShare, std::min(1.0, lim.minDistance / dist));
+    /* the view along d: the median of the line of sight and a ray each side (to points beside the eye) */
+    auto robust = [&](const Vec3 &d, double *centreOut) {
+        const double c = clearShare(g.target, d, dist, lim.clearance, height, lim.nearShare);
+        if (centreOut) *centreOut = c;
+        Vec3 side = cross(d, Vec3{0, 1, 0});
+        if (length(side) < 1e-6) side = {1, 0, 0};
+        side = normalize(side);
+        const double offs = std::max(1.0, std::min(6.0, lim.rayOffset * dist));
+        double s[3] = {c, 0, 0};
+        for (int k = 0; k < 2; k++) {
+            const Vec3 end = g.target + d * dist + side * (k ? offs : -offs);
+            const double len = length(end - g.target);
+            s[k + 1] = clearShare(g.target, normalize(end - g.target), len, lim.clearance, height, lim.nearShare);
+        }
+        std::sort(s, s + 3);
+        /* (the median ignores a thin obstruction on the line of sight; a clear line of sight between two
+         * obstacles beside it is clear) */
+        return std::max(c, s[1]);
+    };
+    /* the eye now (last step's spring positions) */
+    inside_ = insideAt(g.target, dirAt(rise_), dist, ratio_, lift_, lim.clearance, height);
+
+    /* the rise: up to the first steeper view that sees past the obstruction (else the one that sees farthest,
+     * if clearly farther) once it has lasted holdIn; down to the lowest that sees past it with the margin once
+     * that has lasted holdOut */
+    const double atTarget = robust(dirAt(riseT_), nullptr);
+    double up = riseT_;
+    if (atTarget < lim.riseBelow) {
+        double best = atTarget + lim.riseGain;
+        for (double r = riseT_ + lim.riseStep; p0 + r <= top + 1e-9 && r <= lim.riseMax + 1e-9; r += lim.riseStep) {
+            const double s = robust(dirAt(r), nullptr);
+            if (s >= lim.riseBelow) {
+                up = r;
+                break;
+            }
+            if (s > best) best = s, up = r;
+        }
+        /* nothing clearly better and the camera would end up pulled in close to the target (into the
+         * vehicle): as strict, the rise along the line of sight alone that sees farthest */
+        if (up <= riseT_ + 1e-9 && atTarget < lim.riseSnapBelow) {
+            double bestC = clearShare(g.target, dirAt(riseT_), dist, lim.clearance, height, lim.nearShare) + lim.riseGain;
+            for (double r = riseT_ + lim.riseStep; p0 + r <= top + 1e-9 && r <= lim.riseMax + 1e-9; r += lim.riseStep) {
+                const double s = clearShare(g.target, dirAt(r), dist, lim.clearance, height, lim.nearShare);
+                if (s >= lim.riseBelow) {
+                    up = r;
+                    break;
+                }
+                if (s > bestC) bestC = s, up = r;
+            }
+        }
+    }
+    if (up > riseT_ + 1e-9) {
+        riseUp_ += dt;
+        if (riseUp_ >= lim.holdIn - 1e-9 || inside_) riseT_ = up, riseUp_ = 0.0;
+    } else {
+        riseUp_ = 0.0;
+    }
+    double down = riseT_;
+    if (riseT_ > 1e-9 && up <= riseT_ + 1e-9) {
+        for (double r = 0.0; r < riseT_ - 1e-9; r += lim.riseStep) {
+            const double s = robust(dirAt(r), nullptr);
+            if (s >= std::min(1.0, lim.riseBelow + lim.hysteresis)) {
+                down = r;
+                break;
+            }
+        }
+    }
+    if (down < riseT_ - 1e-9) {
+        riseDown_ += dt;
+        if (riseDown_ >= lim.holdOut - 1e-9) riseT_ = down, riseDown_ = 0.0;
+    } else {
+        riseDown_ = 0.0;
+    }
+    Spring::step(rise_, riseV_, riseT_, riseT_ > rise_ ? (inside_ ? lim.springEye : lim.springIn) : lim.springOut, dt);
+
+    /* the distance along the risen view: pulled in to what the rays see once an obstruction has lasted holdIn,
+     * let out (with the margin) once the view has been clear for holdOut; the eye inside an obstacle: to the
+     * line of sight's free part at once (on the fast spring) */
+    /* (a little short of the obstacle: the springs then get the eye past its edge in a few steps, and the near
+     * plane doesn't cut into it) */
+    /* (measured along the view the rise is going to: a rise that sees past the obstruction needs no pull-in) */
+    const Vec3 dir = dirAt(rise_);
+    double centre = 1.0;
+    double s = robust(dirAt(riseT_), &centre);
+    /* blocked right at the target (the player pushing into a building, under a roof): pulling in wouldn't see
+     * it either, only put the eye into the vehicle: the view stays as it is (occluded) */
+    const bool buried = s <= lim.nearShare + 0.02;
+    if (s < 1.0) s *= kShort;
+    centre *= kShort;
+    s = std::max(minShare, s);
+    centre = std::max(minShare, centre);
+    if (s < ratioT_ - 1e-6 && !buried) {
+        pullIn_ += dt;
+        if (pullIn_ >= lim.holdIn - 1e-9) ratioT_ = s, pullIn_ = 0.0;
+    } else {
+        pullIn_ = 0.0;
+    }
+    if (s > ratioT_ + 1e-6 && (s >= ratioT_ + lim.hysteresis || s >= 1.0 - 1e-9)) {
+        letOut_ += dt;
+        if (letOut_ >= lim.holdOut - 1e-9) ratioT_ = s, letOut_ = 0.0;
+    } else {
+        letOut_ = 0.0;
+    }
+    const bool insideNow = insideAt(g.target, dir, dist, ratio_, 0.0, lim.clearance, height);
+    if (insideNow) {
+        /* out of it the shortest way along the line: to the obstacle's near side (from the eye towards the
+         * target, the first point outside), not to the first obstruction from the target */
+        double c = minShare;
+        const int n = 48;
+        for (int i = 1; i <= n; i++) {
+            const double r = ratio_ - (ratio_ - minShare) * double(i) / n;
+            if (!insideAt(g.target, dir, dist, r, 0.0, lim.clearance, height)) {
+                c = std::max(minShare, r - 0.02);
+                break;
+            }
+        }
+        ratioT_ = std::min(ratioT_, c);
+    }
+    Spring::step(ratio_, ratioV_, ratioT_, ratioT_ < ratio_ ? (insideNow ? lim.springEye : lim.springIn) : lim.springOut,
+                 dt);
+    ratio_ = std::max(0.0, std::min(1.0, ratio_));
+    /* still below the ground where it is (pulled in as far as allowed): lifted (fast), settling slowly */
+    double wantLift = 0.0;
+    {
+        const Vec3 eye = g.target + dir * (dist * ratio_);
+        const double h = height(eye.x, eye.y, eye.z);
+        if (h > -1e30) wantLift = std::max(0.0, h + lim.clearance - eye.y);
+    }
+    /* (under the ground: up at once, as strict - a few centimetres up is no zoom - and back down slowly) */
+    if (wantLift > lift_) lift_ = wantLift, liftV_ = 0.0;
+    else Spring::step(lift_, liftV_, wantLift, lim.springOut, dt);
+    inside_ = insideAt(g.target, dir, dist, ratio_, lift_, lim.clearance, height);
+}
+
+void Orbit::stepStrict(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
+                       const HeightFn &height) {
+    double want = 1.0, wantLift = 0.0, wantRise = 0.0;
     if (collide) {
         want = clearShare(g.target, dir0, dist, lim.clearance, height, lim.nearShare);
         /* blocked close to the target: rise over the obstacle (a steeper view
@@ -207,6 +430,60 @@ void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, c
     }
     if (wantLift > lift_) lift_ = wantLift;
     else lift_ += (wantLift - lift_) * (1.0 - std::exp(-dt / std::max(0.001, lim.liftTime)));
+    inside_ = collide && insideAt(g.target, dir, dist, ratio_, lift_, lim.clearance, height);
+}
+
+bool CollisionStats::Turns::add(double v, double step) {
+    if (dir == 0) {
+        if (std::fabs(v - extreme) >= step) dir = v > extreme ? 1 : -1, extreme = v;
+        return false;
+    }
+    if ((dir > 0 && v > extreme) || (dir < 0 && v < extreme)) {
+        extreme = v;
+        return false;
+    }
+    if (std::fabs(v - extreme) >= step) {
+        dir = -dir;
+        extreme = v;
+        return true;
+    }
+    return false;
+}
+
+void CollisionStats::add(double ratio, double rise, bool eyeInside, double dt) {
+    steps++;
+    seconds += dt;
+    inside += eyeInside;
+    pulled += ratio < 0.6;
+    if (!have_) {
+        have_ = true;
+        ratio_ = Turns(), rise_ = Turns();
+        ratio_.extreme = ratio, rise_.extreme = rise;
+        lastRatio_ = ratio, lastRise_ = rise;
+        return;
+    }
+    if (dt > 0) {
+        const double dr = (ratio - lastRatio_) / dt, du = (rise - lastRise_) / dt;
+        maxIn = std::max(maxIn, -dr), maxOut = std::max(maxOut, dr);
+        maxUp = std::max(maxUp, du), maxDown = std::max(maxDown, -du);
+    }
+    ratioTurns += ratio_.add(ratio, ratioStep);
+    riseTurns += rise_.add(rise, riseStep);
+    lastRatio_ = ratio, lastRise_ = rise;
+}
+
+void rotateStick(int x, int y, double deg, int &ox, int &oy) {
+    /* clockwise by deg: (x, y) -> (x cos + y sin, -x sin + y cos) */
+    const double a = deg * kDeg, c = std::cos(a), s = std::sin(a);
+    const double rx = x * c + y * s, ry = -x * s + y * c;
+    ox = std::max(-127, std::min(127, int(std::lround(rx))));
+    oy = std::max(-127, std::min(127, int(std::lround(ry))));
+}
+
+double steerTurn(double gameYaw, double viewYaw) {
+    /* a stick s read relative to a camera at yaw Y moves (x, z) = flipZ(rotate s counterclockwise by Y): the view
+     * at Y + d is the game's camera with s turned counterclockwise by d, i.e. clockwise by -d */
+    return wrap180(gameYaw - viewYaw);
 }
 
 void Orbit::eyeFor(const Game &g, double extraYaw, double extraPitch, const Limits &lim, Vec3 &eye) const {

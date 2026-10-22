@@ -1,5 +1,11 @@
 /* bc.exe's controller handling (see live_input.h). */
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 
 #include "live_input.h"
@@ -18,11 +24,10 @@ static SDL_JoystickID instanceOf(SDL_GameController *p) {
 
 void PadSet::scan() {
     for (size_t i = 0; i < pads.size();)
-        if (!SDL_GameControllerGetAttached(pads[i])) {
-            host_log("live: controller %u removed (%s, id %d; frame %u)\n", unsigned(i + 1),
-                     SDL_GameControllerName(pads[i]) ? SDL_GameControllerName(pads[i]) : "?", int(instanceOf(pads[i])),
-                     plat_frames());
-            SDL_GameControllerClose(pads[i]);
+        if (pads[i].handle == nullptr || !SDL_GameControllerGetAttached(pads[i].handle)) {
+            host_log("live: controller %u removed (%s, id %d; frame %u)\n", unsigned(i + 1), pads[i].name.c_str(),
+                     int(pads[i].id), plat_frames());
+            if (pads[i].handle != nullptr) SDL_GameControllerClose(pads[i].handle);
             pads.erase(pads.begin() + std::ptrdiff_t(i));
         } else {
             i++;
@@ -31,56 +36,188 @@ void PadSet::scan() {
         if (!SDL_IsGameController(i)) continue;
         const SDL_JoystickID id = SDL_JoystickGetDeviceInstanceID(i);
         bool have = false;
-        for (SDL_GameController *p : pads) have |= instanceOf(p) == id;
+        for (const PadState &p : pads) have |= p.id == id;
         if (have) continue;
         SDL_GameController *p = SDL_GameControllerOpen(i);
         if (p == nullptr) {
             host_log("live: controller (device %d) can't be opened: %s\n", i, SDL_GetError());
             continue;
         }
-        pads.push_back(p);
-        host_log("live: controller %u: %s (id %d; frame %u)\n", unsigned(pads.size()),
-                 SDL_GameControllerName(p) ? SDL_GameControllerName(p) : "?", int(id), plat_frames());
+        PadState s;
+        s.handle = p;
+        s.id = instanceOf(p);
+        s.name = SDL_GameControllerName(p) ? SDL_GameControllerName(p) : "?";
+        pads.push_back(s);
+        host_log("live: controller %u: %s (id %d; frame %u)\n", unsigned(pads.size()), s.name.c_str(), int(id),
+                 plat_frames());
+    }
+    sample();
+}
+
+void PadSet::sample() {
+    for (PadState &p : pads) {
+        if (p.handle == nullptr) continue;
+        for (int a = 0; a < SDL_CONTROLLER_AXIS_MAX; a++) p.axes[a] = SDL_GameControllerGetAxis(p.handle, SDL_GameControllerAxis(a));
+        uint32_t b = 0;
+        for (int k = 0; k < SDL_CONTROLLER_BUTTON_MAX && k < 32; k++)
+            if (SDL_GameControllerGetButton(p.handle, SDL_GameControllerButton(k))) b |= 1u << k;
+        p.buttons = b;
     }
 }
 
 void PadSet::closeAll() {
-    for (SDL_GameController *p : pads) SDL_GameControllerClose(p);
+    for (PadState &p : pads)
+        if (p.handle != nullptr) SDL_GameControllerClose(p.handle);
     pads.clear();
 }
 
-std::vector<SDL_GameController *> PadSet::active(const Config &c) const {
-    if (c.padIndex < 0) return pads;
-    if (size_t(c.padIndex) < pads.size()) return {pads[size_t(c.padIndex)]};
-    return {};
+PadSet PadSet::copy() const {
+    PadSet s = *this;
+    for (PadState &p : s.pads) p.handle = nullptr;
+    return s;
+}
+
+std::vector<const PadState *> PadSet::active(const Config &c) const {
+    std::vector<const PadState *> out;
+    if (c.padIndex < 0) {
+        for (const PadState &p : pads) out.push_back(&p);
+    } else if (size_t(c.padIndex) < pads.size()) {
+        out.push_back(&pads[size_t(c.padIndex)]);
+    }
+    return out;
 }
 
 bool PadSet::isActive(const Config &c, SDL_JoystickID which) const {
-    for (SDL_GameController *p : active(c))
-        if (instanceOf(p) == which) return true;
+    for (const PadState *p : active(c))
+        if (p->id == which) return true;
     return false;
 }
 
 std::vector<std::string> PadSet::names() const {
     std::vector<std::string> out;
-    for (SDL_GameController *p : pads) out.push_back(SDL_GameControllerName(p) ? SDL_GameControllerName(p) : "?");
+    for (const PadState &p : pads) out.push_back(p.name);
     return out;
+}
+
+/* ---- the controllers' thread ------------------------------------------------------- */
+bool InputThread::start(std::string &error) {
+    wake_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    quit_ = false;
+    thread_ = std::thread([this] { run(); });
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_.wait(lock, [this] { return ready_ || failed_; });
+    if (failed_) {
+        error = error_;
+        lock.unlock();
+        thread_.join();
+        return false;
+    }
+    return true;
+}
+
+void InputThread::stop() {
+    if (!thread_.joinable()) return;
+    quit_ = true;
+    SetEvent(static_cast<HANDLE>(wake_));
+    thread_.join();
+    CloseHandle(static_cast<HANDLE>(wake_));
+    wake_ = nullptr;
+}
+
+PadSet InputThread::latest() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return latest_;
+}
+
+unsigned InputThread::version() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return version_;
+}
+
+bool InputThread::waitNewer(unsigned v, int ms) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return cv_.wait_for(lock, std::chrono::milliseconds(ms), [&] { return version_ > v; });
+}
+
+InputThread::Stats InputThread::take() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Stats s = stats_;
+    stats_.updates = 0, stats_.maxMs = 0, stats_.slow = 0;
+    return s;
+}
+
+void InputThread::run() {
+    LARGE_INTEGER freq, t0, t1;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&t0);
+    SetThreadDescription(GetCurrentThread(), L"bc controllers");
+    PadSet pads;
+    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        failed_ = true;
+        error_ = SDL_GetError();
+        cv_.notify_all();
+        return;
+    }
+    pads.scan();
+    QueryPerformanceCounter(&t1);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        stats_.initMs = double(t1.QuadPart - t0.QuadPart) * 1e3 / double(freq.QuadPart);
+        latest_ = pads.copy();
+        version_++;
+        ready_ = true;
+        cv_.notify_all();
+    }
+    unsigned n = 0;
+    while (!quit_) {
+        /* about every millisecond, or at once when Windows has messages for SDL's device windows (Raw Input's
+         * reports and device changes) */
+        HANDLE h = static_cast<HANDLE>(wake_);
+        MsgWaitForMultipleObjects(1, &h, FALSE, 1, QS_ALLINPUT);
+        if (quit_) break;
+        QueryPerformanceCounter(&t0);
+        MSG msg;
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        SDL_JoystickUpdate();   /* the drivers' updates and device detection */
+        if (testHook) {
+            SDL_LockJoysticks();
+            testHook();
+            SDL_UnlockJoysticks();
+        }
+        if (++n % 16 == 0) pads.scan();   /* (devices that came or went: ~16 ms) */
+        else pads.sample();
+        QueryPerformanceCounter(&t1);
+        const double ms = double(t1.QuadPart - t0.QuadPart) * 1e3 / double(freq.QuadPart);
+        std::lock_guard<std::mutex> lock(mutex_);
+        latest_ = pads.copy();
+        version_++;
+        stats_.updates++;
+        stats_.maxMs = std::max(stats_.maxMs, ms);
+        stats_.slow += ms > kSlowMs;
+        cv_.notify_all();
+    }
+    pads.closeAll();
+    SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
 }
 
 /* ---- the N64 pad ------------------------------------------------------------------- */
 /* an axis as an N64 stick value (-80..80 at full tilt), 0 inside the dead
  * zone; the stick sensitivity scales it (100 %: the full N64 range) */
-static int axis(const Config &c, SDL_GameController *pad, int a, bool stick) {
-    int v = SDL_GameControllerGetAxis(pad, SDL_GameControllerAxis(a));
+static int axis(const Config &c, const PadState *pad, int a, bool stick) {
+    int v = pad->axis(a);
     if (v > -c.deadzone && v < c.deadzone) return 0;
     if (!stick || c.sensitivity == 100) return v * 80 / 32767;
     return int(double(v) * 80.0 * c.sensitivity / (100.0 * 32767.0));
 }
 
-static bool padActive(const Config &c, SDL_GameController *pad, const PadInput &in) {
-    if (in.button >= 0) return SDL_GameControllerGetButton(pad, SDL_GameControllerButton(in.button)) != 0;
+static bool padActive(const Config &c, const PadState *pad, const PadInput &in) {
+    if (in.button >= 0) return pad->button(in.button);
     if (in.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || in.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-        return SDL_GameControllerGetAxis(pad, SDL_GameControllerAxis(in.axis)) > 12000;
+        return pad->axis(in.axis) > 12000;
     return axis(c, pad, in.axis, false) * in.dir > 40;
 }
 
@@ -101,7 +238,7 @@ N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *k, bool altHeld
     if (keyDown(A_STICK_RIGHT)) x += 80;
     if (keyDown(A_STICK_UP)) y += 80;
     if (keyDown(A_STICK_DOWN)) y -= 80;
-    for (SDL_GameController *pad : pads.active(c)) {
+    for (const PadState *pad : pads.active(c)) {
         for (int i = 0; i < kButtons; i++)
             for (const PadInput &in : c.pad[i])
                 if (padActive(c, pad, in)) b |= kButtonBits[i];
@@ -121,9 +258,9 @@ N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *k, bool altHeld
 
 bool comboHeld(const Config &c, const PadSet &pads, const std::vector<int> &buttons) {
     if (buttons.empty()) return false;
-    for (SDL_GameController *pad : pads.active(c)) {
+    for (const PadState *pad : pads.active(c)) {
         bool all = true;
-        for (int b : buttons) all &= SDL_GameControllerGetButton(pad, SDL_GameControllerButton(b)) != 0;
+        for (int b : buttons) all &= pad->button(b);
         if (all) return true;
     }
     return false;

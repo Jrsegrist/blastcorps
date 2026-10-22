@@ -54,6 +54,7 @@ void port_fe_loaded(void) {
 void (*host_itag_hook)(unsigned addr, int kind, int index);
 void (*host_camera_hook)(int snap);
 short *(*host_draw_cells_hook)(short *game);
+void (*host_input_hook)(unsigned short *button, signed char *x, signed char *y);
 
 void port_itag(const void *gdl, int kind, int index) {
     /* PORT_ICUT_IF: every frame, at the end of the game's camera (index: the snap flag) */

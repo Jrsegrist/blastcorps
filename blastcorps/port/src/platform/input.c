@@ -91,8 +91,10 @@ void plat_input_read(u32 index, u16 *button, s8 *x, s8 *y) {
     *x = *y = 0;
     /* bc.exe without --input: the player's keyboard / gamepad */
     if (g_lines == NULL && plat_cfg.live != NULL && plat_cfg.live->input != NULL &&
-        plat_cfg.live->input(button, x, y))
+        plat_cfg.live->input(button, x, y)) {
+        if (host_input_hook != NULL) host_input_hook(button, (signed char *) x, (signed char *) y);
         return;
+    }
     while (lo < hi) {
         u32 mid = (lo + hi) / 2;
         if (g_lines[mid].index <= index) lo = mid + 1;
@@ -103,4 +105,6 @@ void plat_input_read(u32 index, u16 *button, s8 *x, s8 *y) {
         *x = g_lines[lo - 1].x;
         *y = g_lines[lo - 1].y;
     }
+    /* bc.exe's orbit camera: camera-relative steering (NULL otherwise) */
+    if (host_input_hook != NULL) host_input_hook(button, (signed char *) x, (signed char *) y);
 }

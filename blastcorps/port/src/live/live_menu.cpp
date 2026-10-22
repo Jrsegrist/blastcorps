@@ -479,19 +479,39 @@ void cameraTab(Config &c) {
          "own view behind you. Off: it stays where you left it until you reset it (Controls: \"Orbit camera: "
          "reset\", the right stick's click or the middle mouse button).");
     float f = float(c.camRecentreDelay);
-    ImGui::BeginDisabled(!c.camRecentre && !c.camRecentreOnFoot);
+    ImGui::BeginDisabled(!c.camRecentre && !(c.camRecentreOnFoot && !c.camRelativeSteering));
     if (ImGui::SliderFloat("Delay", &f, 0.0f, 10.0f, "%.1f s")) {
         c.camRecentreDelay = f;
         markChanged("camera", "recentre_delay");
     }
     ImGui::EndDisabled();
+    b = c.camRelativeSteering;
+    if (ImGui::Checkbox("Steer relative to this view", &b)) {
+        c.camRelativeSteering = b;
+        markChanged("camera", "relative_steering");
+    }
+    help("The game steers the driver on foot, the J-Bomb, Thunderfist and the Cyclone Suit relative to its own "
+         "camera. On (default): the stick is turned to match the orbit's view, so up always goes away from you. "
+         "Off: the game's own camera directions (with a turned view the stick then feels rotated). The vehicles "
+         "steer as always.");
+    ImGui::BeginDisabled(c.camRelativeSteering);
     b = c.camRecentreOnFoot;
-    if (ImGui::Checkbox("Always ease back on foot", &b)) {
+    if (ImGui::Checkbox("Ease back for those characters", &b)) {
         c.camRecentreOnFoot = b;
         markChanged("camera", "recentre_on_foot");
     }
-    help("On foot the game steers the driver relative to its own camera, so a turned view makes the stick feel "
-         "rotated; this eases the view back on foot even with the option above off.");
+    ImGui::EndDisabled();
+    help("With the option above off: ease the view back behind the driver on foot, the J-Bomb, Thunderfist and "
+         "the Cyclone Suit even with \"Ease back behind the player\" off, so the stick isn't rotated for long.");
+    int col = c.camCollision;
+    if (combo("Buildings in the way", &col, {"Smooth (default)", "Off", "Strict"})) {
+        c.camCollision = col;
+        markChanged("camera", "collision");
+    }
+    help("Smooth: the camera rises over or moves in front of a building that stays between it and you, calmly, "
+         "and goes back after a moment once the view is clear; poles, corners and buildings rushing past just "
+         "hide you for a moment. Strict: it moves at once, every time something is in the way. Off: it never "
+         "moves for buildings (you may see through them or lose sight of yourself).");
     float lo = float(c.camZoomMin), hi = float(c.camZoomMax);
     if (ImGui::SliderFloat("Closest zoom", &lo, 0.2f, 1.0f, "%.2fx")) {
         c.camZoomMin = lo;

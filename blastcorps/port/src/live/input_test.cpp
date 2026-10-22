@@ -11,6 +11,8 @@
  *   - bc.ini settings (live_setup.cpp): parsing, defaults, and saving a
  *     menu change and reading it back (files kept in memory).
  * Exit status 0 if every check passes. */
+#include <algorithm>
+#include <atomic>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -80,7 +82,7 @@ int attach() {
 const Sint16 kTriggerRest = -32768;
 
 SDL_Joystick *joyOf(live::PadSet &s, size_t i) {
-    SDL_Joystick *j = i < s.pads.size() ? SDL_GameControllerGetJoystick(s.pads[i]) : nullptr;
+    SDL_Joystick *j = i < s.pads.size() ? SDL_GameControllerGetJoystick(s.pads[i].handle) : nullptr;
     static SDL_Joystick *seen[16];
     bool known = false;
     for (SDL_Joystick *k : seen) known |= k == j;
@@ -96,11 +98,18 @@ SDL_Joystick *joyOf(live::PadSet &s, size_t i) {
     return j;
 }
 
+live::PadSet *g_sampled;   /* the set pump() samples after SDL's update */
+
 void pump() {
     SDL_Event e;
     SDL_PumpEvents();
     while (SDL_PollEvent(&e)) {
     }
+    if (g_sampled != nullptr) g_sampled->sample();
+}
+
+double nowMs() {
+    return double(SDL_GetPerformanceCounter()) * 1e3 / double(SDL_GetPerformanceFrequency());
 }
 
 }  // namespace
@@ -214,7 +223,39 @@ int main(int, char **) {
                   files()[fresh].find("present_pacing = timer\r\n") != std::string::npos,
               "new bc.ini: present_pacing = timer");
     }
+    /* the orbit camera's zoom bindings: the new default (hold Y + right stick), the old default (Y / left stick
+     * click) changed to it when read, a player's own kept; [camera] collision and relative_steering */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(f.pad[live::A_CAM_ZOOM_IN].empty() && f.pad[live::A_CAM_ZOOM_OUT].empty() &&
+                  live::configValue(f, {"controller", "camera_zoom_hold"}) == "y",
+              "zoom default: hold Y (no left stick click)");
+        files()["oldzoom.ini"] = "[controller]\r\na = a\r\ncamera_zoom_in = y\r\ncamera_zoom_out = leftstick\r\n";
+        live::Config g;
+        check(live::configLoad(g, "oldzoom.ini") && g.pad[live::A_CAM_ZOOM_IN].empty() &&
+                  g.pad[live::A_CAM_ZOOM_OUT].empty() && live::configValue(g, {"controller", "camera_zoom_hold"}) == "y",
+              "old default zoom bindings: changed to the new default");
+        const std::string &t = files()["oldzoom.ini"];
+        check(t.find("camera_zoom_out = \r\n") != std::string::npos && t.find("leftstick") == std::string::npos &&
+                  t.find("camera_zoom_hold = y") != std::string::npos && t.find("a = a") != std::string::npos,
+              "... and written back, the rest kept");
+        files()["ownzoom.ini"] = "[controller]\r\ncamera_zoom_in = y\r\ncamera_zoom_out = dpdown\r\n";
+        live::Config h;
+        check(live::configLoad(h, "ownzoom.ini") && live::configValue(h, {"controller", "camera_zoom_out"}) == "dpdown" &&
+                  live::configValue(h, {"controller", "camera_zoom_in"}) == "y",
+              "a player's own zoom bindings are kept");
+        check(f.camCollision == 0 && live::configValue(f, {"camera", "collision"}) == "smooth" && f.camRelativeSteering,
+              "camera defaults: collision smooth, relative steering on");
+        check(live::configSet(f, "camera.collision=off") && f.camCollision == 1 && live::configSet(f, "camera.collision=strict") &&
+                  f.camCollision == 2 && !live::configSet(f, "camera.collision=wobbly") && f.camCollision == 2,
+              "camera.collision off / strict, a wrong value rejected");
+        check(live::configSet(f, "camera.relative_steering=0") && !f.camRelativeSteering &&
+                  live::configValue(f, {"camera", "relative_steering"}) == "0",
+              "camera.relative_steering 0");
+    }
     live::PadSet pads;
+    g_sampled = &pads;
     const unsigned short A = live::kButtonBits[live::A_A], START = live::kButtonBits[live::A_START],
                          Z = live::kButtonBits[live::A_Z];
 
@@ -346,7 +387,71 @@ int main(int, char **) {
     check((live::readPad(c, pads, keys, false).button & START) != 0, "Enter is START");
 
     pads.closeAll();
+    g_sampled = nullptr;
     SDL_JoystickDetachVirtual(dev);
+    pump();
+
+    /* the controllers' own thread (bc.exe): it finds a controller plugged in, its buttons reach the copies
+     * the main thread reads, and a slow SDL update (device detection, with SDL's controller lock held) never
+     * holds up a reader */
+    {
+        live::InputThread th;
+        std::string err;
+        check(th.start(err), "controllers' thread: starts SDL's controllers");
+        check(th.latest().pads.empty(), "... none plugged in yet");
+        int d = attach();
+        bool found = false;
+        for (int i = 0; i < 100 && !found; i++) {
+            th.waitNewer(th.version(), 20);
+            found = th.latest().pads.size() == 1;
+        }
+        check(found, "... a controller plugged in is found (its own rescan)");
+        SDL_Joystick *vj = SDL_JoystickFromInstanceID(found ? th.latest().pads[0].id : -1);
+        if (vj != nullptr) {
+            SDL_JoystickSetVirtualAxis(vj, SDL_CONTROLLER_AXIS_TRIGGERLEFT, kTriggerRest);
+            SDL_JoystickSetVirtualAxis(vj, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, kTriggerRest);
+            SDL_JoystickSetVirtualButton(vj, SDL_CONTROLLER_BUTTON_A, 1);
+        }
+        bool pressed = false;
+        for (int i = 0; i < 50 && !pressed; i++) {
+            th.waitNewer(th.version(), 20);
+            live::PadSet s = th.latest();
+            pressed = live::readPad(c, s, nullptr, false).button == A && s.pads[0].handle == nullptr;
+        }
+        check(pressed, "... its A reaches the copies (plain data, no SDL handle)");
+        /* a 300 ms update (as SDL's DirectInput enumeration of a Bluetooth pad) */
+        std::atomic<bool> slow{true};
+        th.testHook = [&] {
+            if (slow.exchange(false)) SDL_Delay(300);
+        };
+        const double t0 = nowMs();
+        double worst = 0;
+        unsigned reads = 0;
+        while (nowMs() - t0 < 400) {
+            const double a = nowMs();
+            live::PadSet s = th.latest();
+            live::readPad(c, s, nullptr, false);
+            worst = std::max(worst, nowMs() - a);
+            reads++;
+            SDL_Delay(1);
+        }
+        const live::InputThread::Stats st = th.take();
+        printf("  controllers' thread: %u reads in 400 ms, the slowest %.3f ms; the thread's longest update %.0f ms\n",
+               reads, worst, st.maxMs);
+        check(st.maxMs >= 290 && st.slow >= 1, "... a slow update happened on the thread");
+        check(worst < 5.0 && reads > 100, "... and no read of the state waited for it");
+        th.testHook = nullptr;
+        if (vj != nullptr) SDL_JoystickSetVirtualButton(vj, SDL_CONTROLLER_BUTTON_A, 0);
+        SDL_JoystickDetachVirtual(d);
+        bool gone = false;
+        for (int i = 0; i < 100 && !gone; i++) {
+            th.waitNewer(th.version(), 20);
+            gone = th.latest().pads.empty();
+        }
+        check(gone, "... unplugged: gone from the copies");
+        th.stop();
+        check(!th.running(), "... stops");
+    }
     SDL_Quit();
     printf("bc_inputtest: %d passed, %d failed\n", g_pass, g_fail);
     return g_fail ? 1 : 0;

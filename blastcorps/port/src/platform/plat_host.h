@@ -229,6 +229,12 @@ int port_glyph_decode(unsigned id, unsigned char *dst, int max);
  * Returns `game` or a sorted, -1-terminated list containing it. */
 extern void (*host_camera_hook)(int snap);
 extern short *(*host_draw_cells_hook)(short *game);
+/* bc.exe's orbit camera's camera-relative steering ([camera] relative_steering;
+ * NULL otherwise): each controller read (plat_input_read: the --input file's
+ * or the player's), it may turn the stick before the game gets it.  It is
+ * the one hook that changes what the game sees, by design and only in orbit
+ * mode with the stick held (see live_orbit.cpp steerHook). */
+extern void (*host_input_hook)(unsigned short *button, signed char *x, signed char *y);
 
 /* platform entry (plat_core.c): boots the game and never returns */
 PORT_NORETURN void plat_start(const HostOpts *o);

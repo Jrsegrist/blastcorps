@@ -48,8 +48,38 @@ Vec3 direction(double yawDeg, double pitchDeg);
 /* yaw and pitch of a direction (any length > 0) */
 void angles(const Vec3 &dir, double &yawDeg, double &pitchDeg);
 
+/* How obstacles move the camera (bc.ini [camera] collision):
+ *  - smooth (the default): an obstacle between the camera and the target
+ *    has to block the median of three rays (the line of sight and one each
+ *    side: a pole, a lamp post or a building corner passing by doesn't) for
+ *    holdIn before the camera rises over it or pulls in, and the view has to
+ *    stay clear (by `hysteresis` more of the distance than now) for holdOut
+ *    before it goes back; it moves on critically damped springs (no
+ *    overshoot, no jerk), quickly in and up, slowly out and down.  Only the
+ *    eye itself inside an obstacle moves it at once (still on a spring, in
+ *    springEye).  Small or brief obstructions just occlude for a moment;
+ *  - strict: as before (pulled in or risen at once, every step);
+ *  - off: never moved for obstacles (only kept above the terrain). */
+enum Collision { COLLISION_SMOOTH = 0, COLLISION_OFF = 1, COLLISION_STRICT = 2 };
+const char *collisionName(int mode);
+
+/* A critically damped spring towards a target (smoothTime: about the time
+ * to get there; no overshoot from rest).  Deterministic: the same steps give
+ * the same values. */
+struct Spring {
+    static void step(double &x, double &v, double target, double smoothTime, double dt);
+};
+
 /* the limits and behaviour (bc.ini [camera]; live_setup.cpp) */
 struct Limits {
+    int collision = COLLISION_SMOOTH;
+    double holdIn = 0.15;         /* smooth: seconds an obstruction must last before the camera moves for it ... */
+    double holdOut = 0.8;         /* ... and the view must stay clear before it moves back */
+    double springIn = 0.15;       /* smooth: the springs' times in and up ... */
+    double springOut = 0.9;       /* ... out and down ... */
+    double springEye = 0.05;      /* ... and with the eye inside an obstacle */
+    double hysteresis = 0.08;     /* smooth: clear by this share of the distance more before letting out */
+    double rayOffset = 0.05;      /* smooth: the side rays this share of the distance beside the eye (1..6 units) */
     double pitchMin = -10.0;      /* degrees above the horizontal (negative: from below) */
     double pitchMax = 80.0;
     double zoomMin = 0.5;         /* times the game's own distance */
@@ -102,8 +132,10 @@ public:
 
     /* forget everything (a cut, a new level, orbit switched off): the game's camera, zoom kept unless `zoomToo` */
     void reset(bool zoomToo);
-    /* one step of dt seconds */
-    void step(const Game &g, const Input &in, double dt, const Limits &lim, const HeightFn &height);
+    /* one step of dt seconds; `terrain` (optional): the ground without the
+     * buildings, for collision = off (kept above it, nothing else) */
+    void step(const Game &g, const Input &in, double dt, const Limits &lim, const HeightFn &height,
+              const HeightFn &terrain = HeightFn());
 
     /* the camera for a picture: the target and the game's eye of that picture
      * (interpolated by the caller), `extraYaw`/`extraPitch` added (the input
@@ -128,7 +160,16 @@ public:
     double rise() const { return rise_; }             /* ... and rise over obstacles (degrees) */
     double idle() const { return idle_; }
 
+    /* the eye of the last step inside an obstacle (point test; smooth/strict) */
+    bool eyeInside() const { return inside_; }
+
 private:
+    void stepStrict(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
+                    const HeightFn &height);
+    void stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
+                    const HeightFn &height);
+    void stepOff(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
+                 const HeightFn &terrain);
     double yaw_ = 0, pitch_ = 0;  /* absolute, while engaged */
     double zoom_ = 1.0;
     double blend_ = 0.0;          /* 1: the orbit's direction, 0: the game's (eases to 0 after recentring) */
@@ -137,7 +178,45 @@ private:
     double ratio_ = 1.0;          /* collision: share of the wanted distance used */
     double lift_ = 0.0;           /* collision: the eye raised by this much */
     double rise_ = 0.0;           /* collision: the view steeper by this many degrees */
+    /* smooth: the springs' speeds, their targets, the hold timers */
+    double ratioV_ = 0, riseV_ = 0, liftV_ = 0;
+    double ratioT_ = 1.0, riseT_ = 0.0;
+    double pullIn_ = 0, letOut_ = 0, riseUp_ = 0, riseDown_ = 0;
+    bool inside_ = false;
 };
+
+/* How calm the collision is (the [camera] collision comparison, bc.exe's
+ * orbit summary): turning points of the pull-in (share of the distance) and
+ * of the rise (degrees) - a move of at least `ratioStep` / `riseStep` one
+ * way after the other - and the fastest moves (per second). */
+struct CollisionStats {
+    double ratioStep = 0.03, riseStep = 1.5;
+    double seconds = 0;
+    unsigned ratioTurns = 0, riseTurns = 0;
+    double maxIn = 0, maxOut = 0, maxUp = 0, maxDown = 0;   /* share / s, share / s, deg / s, deg / s */
+    unsigned steps = 0, inside = 0, pulled = 0;              /* steps; eye inside an obstacle; pulled under 0.6 */
+    void add(double ratio, double rise, bool eyeInside, double dt);
+    void restart() { have_ = false; }                        /* a cut: no move from the last value */
+
+private:
+    struct Turns {
+        int dir = 0;
+        double extreme = 0;
+        bool add(double v, double step);   /* true at a turning point */
+    };
+    bool have_ = false;
+    double lastRatio_ = 1, lastRise_ = 0;
+    Turns ratio_, rise_;
+};
+
+/* Camera-relative steering (bc.exe's [camera] relative_steering): the N64
+ * stick (x right, y up) turned by `deg` degrees clockwise (positive: up turns
+ * towards right), its length kept, rounded to whole values in -127..127. */
+void rotateStick(int x, int y, double deg, int &ox, int &oy);
+/* The turn (for rotateStick) that makes a game that reads the stick relative
+ * to its camera at yaw `gameYaw` (up: away from that eye, right: the view's
+ * right) move the way the stick points relative to a view at `viewYaw`. */
+double steerTurn(double gameYaw, double viewYaw);
 
 /* the largest share (0..1] of the segment target -> target + dir * dist whose
  * points from share `from` on all stay `clearance` above the ground; 1 if

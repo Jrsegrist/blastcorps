@@ -66,6 +66,20 @@ void *host_low_alloc(unsigned size, const char *who);
 void host_low_summary(void);
 extern unsigned host_low_test;
 
+/* The host's work inside the game's step, for bc.exe's report of long game
+ * steps (live_rt64.cpp): milliseconds and counts, summed since the start
+ * (main thread only; the platform layer adds to them).  host_ms: a clock in
+ * ms (QueryPerformanceCounter). */
+typedef struct {
+    double dma_ms, audio_ms, gfx_ms, save_ms;   /* PI DMAs (with the load-time swaps), audio tasks and the
+                                                   AI's output (bc.exe's sound device), gfx tasks (bc.exe's
+                                                   renderer), save files written */
+    unsigned dma_n, audio_n, gfx_n, save_n;
+    unsigned long long dma_bytes;
+} HostProf;
+extern HostProf host_prof;
+double host_ms(void);
+
 /* flush-to-zero for the current fiber (the game's osInitialize sets FPCSR FS) */
 void host_set_fpu_mode(void);
 

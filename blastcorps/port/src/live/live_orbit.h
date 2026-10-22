@@ -45,10 +45,14 @@ void orbitSetLog(bool on);
  * as before the orbit view's test) or view (the default: the game's cells and
  * those the orbit camera can see) */
 bool orbitSetCull(const std::string &mode);
-/* testing: --orbit-repeatable: each picture uses the orbit as it was when its
- * frame was made (no input since: the same pictures every run, for
- * comparisons; normally pictures use the newest orbit) */
+/* testing: --orbit-repeatable: kept for old scripts; each picture now always
+ * uses the orbit at its own time between two steps (the same pictures every
+ * run) */
 void orbitSetRepeatable(bool on);
+/* testing: --view-log FILE: every picture drawn with the orbit's view (CSV:
+ * when RT64's render thread drew it, its workload, frame and weight, the
+ * view's heading and pitch about the target, the orbit's yaw) */
+void orbitSetViewLog(const char *path);
 void orbitSummary();
 /* the orbit's host work (always measured while the orbit mode is on: a few
  * clock reads a frame), ms: its step with the collision queries (readMs:

@@ -12,6 +12,8 @@
 #         the display's rate, an even timer otherwise, VRR; counters for the
 #         frame-time report (src/live/live_rt64.cpp); pivots for the frame
 #         interpolation (wheels turning about their axles, live_interp.cpp)
+#   0008  what each presented picture shows (its workload and interpolation
+#         weight) for the frame-time report's content times
 # (0001/0002 served the retired mingw cross build.)
 set(BC_RT64_COMMIT 43373749dac9bbc1b653e6a02aed40a9e1783bed)
 set(BC_RT64_PATCH_NAMES
@@ -20,4 +22,5 @@ set(BC_RT64_PATCH_NAMES
     0005-vsync-pacing.patch
     0006-view-hook.patch
     0007-pacing-and-pivots.patch
+    0008-picture-content.patch
 )

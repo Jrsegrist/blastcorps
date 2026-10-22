@@ -230,6 +230,23 @@ void Orbit::eyeFor(const Game &g, double extraYaw, double extraPitch, const Limi
     eye.y += lift_;
 }
 
+Orbit Orbit::between(const Orbit &a, const Orbit &b, double t) {
+    if (!(t > 0.0)) return a;
+    if (t >= 1.0) return b;
+    Orbit r = b;
+    double ya = a.yaw_, pa = a.pitch_, yb = b.yaw_, pb = b.pitch_;
+    if (a.blend_ <= 0.0) ya = yb, pa = pb;
+    if (b.blend_ <= 0.0) yb = ya, pb = pa;
+    r.yaw_ = wrap360(ya + wrap180(yb - ya) * t);
+    r.pitch_ = pa + (pb - pa) * t;
+    r.blend_ = a.blend_ + (b.blend_ - a.blend_) * t;
+    r.zoom_ = a.zoom_ > 0.0 && b.zoom_ > 0.0 ? a.zoom_ * std::pow(b.zoom_ / a.zoom_, t) : b.zoom_;
+    r.ratio_ = a.ratio_ + (b.ratio_ - a.ratio_) * t;
+    r.lift_ = a.lift_ + (b.lift_ - a.lift_) * t;
+    r.rise_ = a.rise_ + (b.rise_ - a.rise_) * t;
+    return r;
+}
+
 void lookAt(const Vec3 &eye, const Vec3 &target, double m[4][4]) {
     /* camera space: x right, y up, z backward (the eye looks along -z) */
     Vec3 back = normalize(eye - target);
@@ -471,15 +488,15 @@ Sweep sweepAt(double t, const Limits &lim) {
 const char *spikeCauseName(int cause) {
     static const char *const kNames[SPIKE_CAUSES] = {
         "main thread: game", "main thread: display lists", "main thread: orbit camera", "main thread: RT64 submit",
-        "GPU", "RT64 render thread", "new shaders", "new textures", "present / other"};
+        "main thread: other", "GPU", "RT64 render thread", "new shaders", "new textures", "present / other"};
     return cause >= 0 && cause < SPIKE_CAUSES ? kNames[cause] : "?";
 }
 
 int spikeCause(const SpikeWindow &w) {
     if (w.retraceMs > 1.5 * w.periodMs) {
-        const double parts[4] = {w.gameMs, w.listsMs, w.orbitMs, w.submitMs};
+        const double parts[5] = {w.gameMs, w.listsMs, w.orbitMs, w.submitMs, w.otherMs};
         int best = 0;
-        for (int i = 1; i < 4; i++)
+        for (int i = 1; i < 5; i++)
             if (parts[i] > parts[best]) best = i;
         if (best == 1 && w.queueFull)
             return w.targetMs > 0 && w.gpuMs > kSpikeGpuShare * w.targetMs ? SPIKE_GPU : SPIKE_RENDER;

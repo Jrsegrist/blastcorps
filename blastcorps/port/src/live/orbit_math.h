@@ -110,6 +110,14 @@ public:
      * since the last step, for pictures between steps) */
     void eyeFor(const Game &g, double extraYaw, double extraPitch, const Limits &lim, Vec3 &eye) const;
 
+    /* the camera t (0..1) of the way from one step's state to the next's (a
+     * picture shown between the two steps): yaw along the shorter arc, pitch,
+     * the blend and the collision's pull-in, lift and rise linearly, the zoom
+     * geometrically; a state not engaged (its own yaw and pitch unused) takes
+     * the other's direction, so engaging and recentring ease through the blend
+     * alone.  The rest (idle time, recentring) is b's. */
+    static Orbit between(const Orbit &a, const Orbit &b, double t);
+
     bool engaged() const { return blend_ > 0.0; }
     double yaw() const { return yaw_; }
     double pitch() const { return pitch_; }
@@ -227,6 +235,8 @@ enum SpikeCause {
     SPIKE_MAIN_LISTS,     /* ... mostly reading the display lists (processDisplayLists) */
     SPIKE_MAIN_ORBIT,     /* ... mostly the orbit camera's host work */
     SPIKE_MAIN_SUBMIT,    /* ... mostly RT64's updateScreen (waiting for the render thread) */
+    SPIKE_MAIN_OTHER,     /* ... mostly the rest: the host's work after the retrace (events, the controllers'
+                             rescan, screenshots) or time the thread didn't run (the OS) */
     SPIKE_GPU,            /* a picture took the GPU over kSpikeGpuShare of the target (the present's own
                              GPU work, not timed, comes on top) */
     SPIKE_RENDER,         /* RT64's render thread took longer than the game frame (CPU) */
@@ -243,6 +253,7 @@ struct SpikeWindow {
     double retraceMs = 0;            /* the longest interval between two retraces (the main thread's loop) */
     double periodMs = 1000.0 / 60;   /* a retrace's period */
     double gameMs = 0, listsMs = 0, orbitMs = 0, submitMs = 0;   /* that retrace's main-thread work */
+    double otherMs = 0;              /* ... and the rest of it (SPIKE_MAIN_OTHER) */
     double gpuMs = 0;                /* the longest picture on the GPU */
     double renderMs = 0, frameMs = 0;   /* the longest RT64 workload (render thread); the game frame's period */
     double targetMs = 0;             /* the present target */

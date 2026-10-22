@@ -10,9 +10,11 @@
  *    projection of every picture it renders (in-between pictures of a higher
  *    frame rate too).  A projection whose view is the frame's game view gets
  *    the orbit camera's view instead: target and game eye interpolated with
- *    the picture's weight, the orbit's direction and distance, and the input
- *    since the last step.  The projection is the game's own (fov, aspect,
- *    widescreen).  The game never sees any of it;
+ *    the picture's weight, the orbit's direction and distance at the
+ *    picture's own time (between the two steps around it: Shared, the same
+ *    weight; the view turns evenly from picture to picture).  The projection
+ *    is the game's own (fov, aspect, widescreen).  The game never sees any of
+ *    it;
  *  - what the game culled: the level's geometry and the buildings whose cells
  *    the game's visibility walk didn't list would be missing from an orbit
  *    view.  The drawing paths (PORT_DRAW_CELLS, 5FD50.c, 77E20.c) get the
@@ -89,12 +91,13 @@ SDL_Window *g_window;
 Config g_padCfg;          /* the bindings without the camera's inputs (orbit active) */
 bool g_log;
 bool g_test;              /* --orbit-test */
-bool g_repeatable;        /* --orbit-repeatable */
+bool g_repeatable;        /* --orbit-repeatable (kept for old scripts: pictures are now always repeatable, viewHook) */
 bool g_cullAll;           /* --orbit-cull all: draw every cell (testing; as before the view test) */
 std::atomic<unsigned> g_checkPictures, g_checkMissPictures, g_checkMissCells;   /* --orbit-log */
 unsigned g_gameCellsChecked, g_gameCellsOutside;                                 /* --orbit-log */
 OrbitPerf g_perf;         /* the host work since the start (main thread; orbitPerfTake, orbitFrameTake) */
 std::atomic<uint64_t> g_viewTicks, g_views;   /* RT64's render thread: time in viewHook (QPC ticks), calls */
+FILE *g_viewLog;          /* --view-log (render thread writes) */
 
 /* ---- the game's camera, per frame ------------------------------------------- */
 struct Cam {
@@ -152,7 +155,7 @@ void cameraHook(int snap) {
 orbit::Orbit g_orbit;
 orbit::Limits g_lim;
 bool g_active;            /* orbit mode, in play, the game's camera known */
-double g_yawRate, g_pitchRate;   /* degrees a second now (for pictures between steps) */
+double g_yawRate, g_pitchRate;   /* degrees a second now (the step's input) */
 LARGE_INTEGER g_freq;
 
 /* the cells a frame's drawing list had, with their boxes (--orbit-log: each
@@ -174,26 +177,52 @@ struct Entry {
     Cam cur, prev;
     bool active = false;
     std::shared_ptr<const CellSet> cells;   /* --orbit-log */
-    orbit::Orbit orbit;                     /* --orbit-repeatable: the orbit when the frame was made */
-    orbit::Limits lim;
+    /* the orbit steps (Shared::steps) the frame and the frame before it were made after: a picture
+     * with weight w between them shows the orbit at prevStep + w (curStep - prevStep) (viewHook) */
+    uint64_t curStep = 0, prevStep = 0;
 };
 std::mutex g_mutex;       /* g_ring, g_shared */
 std::vector<Entry> g_ring;
-struct Shared {
+/* The orbit after each step (orbitVi, once a retrace: the game's virtual time).
+ * A picture's view is the orbit at the picture's own time, between the two
+ * steps around it (Orbit::between), as the game's camera and the world in it
+ * are interpolated by the picture's weight: the view moves on evenly from
+ * picture to picture at any frame rate, whenever RT64's render thread draws
+ * them (it draws a frame's in-between pictures together, ahead of their
+ * presents).  The input is read and the collision, rise and pull-in worked
+ * out once a step, as before; pictures between steps blend those results. */
+struct Snap {
+    uint64_t step = 0;
     orbit::Orbit orbit;
     orbit::Limits lim;
-    double yawRate = 0, pitchRate = 0;
-    LARGE_INTEGER stepTime = {};
+};
+constexpr size_t kSnaps = 64;   /* ~1 s of steps (an entry's frames are a few steps old at most) */
+struct Shared {
+    orbit::Orbit orbit;           /* the newest */
+    orbit::Limits lim;
+    uint64_t step = 0;            /* steps taken (the newest snapshot's) */
+    Snap snaps[kSnaps];           /* by step % kSnaps */
 } g_shared;
+
+/* (g_mutex held) the orbit at step position `pos` (steps, fractional): between the snapshots around it, the
+ * nearest one kept when it is out of range */
+void orbitAt(double pos, orbit::Orbit &o, orbit::Limits &lim) {
+    const Shared &s = g_shared;
+    if (s.step == 0) {
+        o = s.orbit, lim = s.lim;
+        return;
+    }
+    const uint64_t oldest = s.step >= kSnaps ? s.step - kSnaps + 1 : 1;
+    pos = std::max(double(oldest), std::min(double(s.step), pos));
+    const uint64_t a = uint64_t(std::floor(pos)), b = std::min(s.step, a + 1);
+    const Snap &sa = s.snaps[a % kSnaps], &sb = s.snaps[b % kSnaps];
+    o = orbit::Orbit::between(sa.orbit, sb.orbit, pos - double(a));
+    lim = sb.lim;
+}
 Cam g_prevDrawn;          /* the frame drawn before (main thread) */
+bool g_lastCut;           /* the last frame drawn was a cut (orbitBeforeTask) */
 std::atomic<unsigned> g_hooked;   /* pictures drawn with the orbit's view (render thread) */
 unsigned g_bdFrames;      /* frames whose backdrop followed the orbit */
-
-double secondsSince(const LARGE_INTEGER &t) {
-    LARGE_INTEGER now;
-    QueryPerformanceCounter(&now);
-    return double(now.QuadPart - t.QuadPart) / double(g_freq.QuadPart);
-}
 
 bool sameView(const interop::float4x4 &a, const double b[4][4]) {
     for (int r = 0; r < 4; r++)
@@ -226,7 +255,11 @@ void viewHookTimed(const RT64::ViewHookParams &p, interop::float4x4 &view, inter
     (void) proj;
     (void) prevProj;
     Entry e;
-    Shared s;
+    /* the orbit at the picture's time and at the time of the picture before it (RT64's previous
+     * view: its motion vectors), by the weights (Shared) */
+    orbit::Orbit oCur, oPrev;
+    orbit::Limits limCur, limPrev;
+    double posCur;
     {
         std::lock_guard<std::mutex> lock(g_mutex);
         const Entry *found = nullptr;
@@ -238,29 +271,34 @@ void viewHookTimed(const RT64::ViewHookParams &p, interop::float4x4 &view, inter
         if (found == nullptr || !found->active) return;
         if (!sameView(*p.gameView, found->cur.view)) return;   /* another projection (shadow, sub-view) */
         e = *found;
-        s = g_shared;
-    }
-    double extra = std::min(secondsSince(s.stepTime), 0.05);
-    if (g_repeatable) {   /* --orbit-repeatable: the orbit as it was when the frame was made (the same pictures every run) */
-        s.orbit = e.orbit;
-        s.lim = e.lim;
-        extra = 0;
+        const double span = double(e.curStep - e.prevStep);
+        posCur = double(e.prevStep) + double(p.curFrameWeight) * span;
+        orbitAt(posCur, oCur, limCur);
+        orbitAt(double(e.prevStep) + double(p.prevFrameWeight) * span, oPrev, limPrev);
     }
     Vec3 curEye, curTarget;
-    auto camFor = [&](float w, interop::float4x4 &out, bool cur) {
+    auto camFor = [&](float w, const orbit::Orbit &o, const orbit::Limits &lim, interop::float4x4 &out, bool cur) {
         orbit::Orbit::Game g;
         g.target = orbit::lerp(e.prev.target, e.cur.target, w);
         g.eye = orbit::lerp(e.prev.eye, e.cur.eye, w);
         Vec3 eye;
-        s.orbit.eyeFor(g, s.yawRate * extra, s.pitchRate * extra, s.lim, eye);
+        o.eyeFor(g, 0.0, 0.0, lim, eye);
         double m[4][4];
         orbit::lookAt(eye, g.target, m);
         toFloat(m, out);
         if (cur) curEye = eye, curTarget = g.target;
     };
-    camFor(p.curFrameWeight, view, true);
-    camFor(p.prevFrameWeight, prevView, false);
+    camFor(p.curFrameWeight, oCur, limCur, view, true);
+    camFor(p.prevFrameWeight, oPrev, limPrev, prevView, false);
     g_hooked++;
+    if (g_viewLog != nullptr) {   /* --view-log */
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        double yaw, pitch;
+        orbit::angles(curEye - curTarget, yaw, pitch);
+        fprintf(g_viewLog, "%.3f,%llu,%u,%.4f,%.4f,%.4f,%.4f,%.4f\n", double(now.QuadPart) * 1e3 / double(g_freq.QuadPart),
+                (unsigned long long) p.workloadId, e.cur.frame, double(p.curFrameWeight), yaw, pitch, oCur.yaw(), posCur);
+    }
     /* --orbit-log: every cell this picture's view can see must be in the
      * frame's drawing list */
     if (e.cells) {
@@ -286,6 +324,23 @@ void viewHookTimed(const RT64::ViewHookParams &p, interop::float4x4 &view, inter
             }
         }
     }
+}
+
+/* --view-log with the game's own camera (testing): every perspective projection's view as RT64
+ * interpolated it, unchanged (the first of each picture is the frame's) */
+void gameViewLog(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::float4x4 &, interop::float4x4 &,
+                 interop::float4x4 &) {
+    double m[4][4];
+    for (int r = 0; r < 4; r++)
+        for (int c = 0; c < 4; c++) m[r][c] = double(view[r][c]);
+    Vec3 eye, fwd;
+    if (!orbit::viewEye(m, eye, fwd)) return;
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    double yaw, pitch;
+    orbit::angles(fwd * -1.0, yaw, pitch);
+    fprintf(g_viewLog, "%.3f,%llu,%u,%.4f,%.4f,%.4f,%.4f,%.4f\n", double(now.QuadPart) * 1e3 / double(g_freq.QuadPart),
+            (unsigned long long) p.workloadId, p.transformsIndex, double(p.curFrameWeight), yaw, pitch, 0.0, 0.0);
 }
 
 /* ---- ground height (read-only copies of the game's tests) --------------------- */
@@ -886,7 +941,7 @@ void orbitApply() {
     const bool on = g_cfg->cameraMode == 1;
     host_camera_hook = on ? cameraHook : nullptr;
     host_draw_cells_hook = on ? drawCells : nullptr;
-    RT64::ViewHook = on ? viewHook : nullptr;
+    RT64::ViewHook = on ? viewHook : g_viewLog != nullptr ? gameViewLog : nullptr;
     interpSetCommandHook(on ? commandHook : nullptr, on ? matrixHook : nullptr);
     if (!on) {
         g_active = false;
@@ -1059,9 +1114,11 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     std::lock_guard<std::mutex> lock(g_mutex);
     g_shared.orbit = g_orbit;
     g_shared.lim = lim;
-    g_shared.yawRate = g_orbit.engaged() ? g_yawRate : 0.0;
-    g_shared.pitchRate = g_orbit.engaged() ? g_pitchRate : 0.0;
-    QueryPerformanceCounter(&g_shared.stepTime);
+    g_shared.step++;
+    Snap &snap = g_shared.snaps[g_shared.step % kSnaps];
+    snap.step = g_shared.step;
+    snap.orbit = g_orbit;
+    snap.lim = lim;
 }
 
 void orbitBeforeTask(uint32_t dl, bool frameDl) {
@@ -1082,6 +1139,7 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
         if (g_log) host_log("live: orbit camera reset by a cut (frame %u)\n", plat_frames());
     }
     g_prevDrawn = cut ? c : g_last;
+    g_lastCut = cut;
     g_last = c;
     if (g_active && c.play && (g_orbit.engaged() || std::fabs(g_orbit.zoom() - 1.0) > 1e-6)) {
         orbit::Orbit::Game g{c.eye, c.target};
@@ -1134,8 +1192,11 @@ void orbitAfterTask(bool frameDl) {
     if (g_log && g_draw.fresh) e.cells = g_draw.cells;   /* the list this frame's lists were made with */
     g_draw.fresh = false;
     std::lock_guard<std::mutex> lock(g_mutex);
-    e.orbit = g_shared.orbit;
-    e.lim = g_shared.lim;
+    /* the steps the frame and the one before were made after (a cut: no blend from the frame before) */
+    static uint64_t lastStep;
+    e.curStep = g_shared.step;
+    e.prevStep = g_lastCut || lastStep == 0 || lastStep > e.curStep ? e.curStep : lastStep;
+    lastStep = e.active ? e.curStep : 0;
     g_ring.push_back(e);
     if (g_ring.size() > 8) g_ring.erase(g_ring.begin());
 }
@@ -1194,6 +1255,7 @@ OrbitPerf orbitFrameTake() {
 }
 
 void orbitSummary() {
+    if (g_viewLog != nullptr) fflush(g_viewLog);   /* (RT64's render thread may still write: not closed) */
     if (g_cfg == nullptr || g_cfg->cameraMode != 1) return;
     host_log("live: orbit camera: %u pictures drawn with its view, %u cuts, backdrop turned with it in %u frames, "
              "%u billboards turned to it\n",
@@ -1210,6 +1272,12 @@ void orbitSummary() {
 
 void orbitSetRepeatable(bool on) {
     g_repeatable = on;
+}
+
+void orbitSetViewLog(const char *path) {
+    g_viewLog = static_cast<FILE *>(host_fopen(path, "w"));
+    if (g_viewLog == nullptr) host_fatal("--view-log %s: can't write it", path);
+    fprintf(g_viewLog, "render_ms,workload,frame,weight,view_yaw,view_pitch,orbit_yaw,step_pos\n");
 }
 
 bool orbitSetCull(const std::string &mode) {

@@ -976,9 +976,30 @@ it without a fault.  The x64-asan preset is the tool for this now.
       the tilt range, zooming over the zoom range, the same every run);
       `--orbit-log` logs
       both cameras every 30 frames and runs the checks above, `--orbit-cull
-      all` draws every cell, `--orbit-repeatable` makes each picture use the
-      orbit as it was when its frame was made (the same pictures every run,
-      for comparisons), `--perf-log` has the orbit's host work.
+      all` draws every cell, `--perf-log` has the orbit's host work,
+      `--view-log FILE` every picture's view (when it was drawn, its frame and
+      weight, the heading and pitch; with the game's own camera, every
+      projection's view as RT64 interpolated it); `--orbit-repeatable` is
+      kept for old scripts (pictures are always repeatable now, below).
+    - The view at each picture's own time: the orbit after every step (once a
+      retrace, the game's virtual time) is kept for 64 steps; a picture with
+      interpolation weight w between frames made after steps a and b shows
+      the orbit at step a + w (b - a), between the two steps around it
+      (`Orbit::between`: the yaw along the shorter arc, the zoom
+      geometrically, the pitch, blend and the collision's pull-in, lift and
+      rise linearly), as the game's camera and the world are interpolated by
+      the same weight.  Before, a picture took the newest step plus the
+      stick's rate times the time since it, read when RT64's render thread
+      drew the picture; RT64 draws a frame's in-between pictures together,
+      ahead of their presents, so the orbit view turned in 30 Hz steps while
+      the world was smooth (level 0, a constant 120 degrees a second, heading
+      step per picture: at 120 frames a second 2.73 / 0.41 / 0.47 / 0.44
+      degrees by the picture's place in the frame instead of 1.00, at 60
+      3.61 / 0.39 instead of 2.00; now 1.00 and 2.000, sd/mean 0.018 from
+      0.815 at 60).  The input, collision and rise are still worked out once
+      a step; mouse moves are spread over the pictures between steps.  The
+      view is as far behind the input as the game's own interpolated camera
+      (a picture shows the time between the frame before and its own).
     - Performance (the frame-time report below has the orbit's own lines):
       its host work is small: the step with the collision 0.25-0.35 ms a
       retrace, the drawing list 0.02 ms (one a game frame), the frame setup
@@ -1165,11 +1186,37 @@ it without a fault.  The x64-asan preset is the tool for this now.
   changed, F11, `--pace-from`) and at exit, a block: presents, mean, sd,
   p50/p95/p99/max, over 1.5x and 2x the target; CPU and GPU ms per picture;
   display Hz, RT64's target, the pacing, vsync, fullscreen, tearing support,
-  refresh statistics, window and internal size, MSAA, sync intervals used;
-  RT64's in-between pictures not drawn (reduced, rendering late, cut), presents
-  skipped, timer restarts.  Intervals over 250 ms (loads) and the menu's
-  pictures are left out.  The F2 counter's detailed mode shows the last 240
-  intervals, the target and the stutters (over 1.5x) since it was turned on.
+  window and internal size, MSAA (the segment's own settings, kept while it
+  ran: the change that ends a segment is applied before its block is
+  written), refresh statistics, sync intervals used; RT64's in-between
+  pictures not drawn (reduced, rendering late, cut), presents skipped, timer
+  restarts.  Intervals over 250 ms (loads) and the menu's pictures are left
+  out.  The F2 counter's detailed mode shows the last 240 intervals, the
+  target and the stutters (over 1.5x) since it was turned on.
+  - **Content times** (RT64 patch 0008): every present says which workload
+    the picture was rendered from and its interpolation weight; a picture
+    shows the virtual time of the frame before (the retrace its display list
+    came after) plus its weight of the way to its own frame's.  The `content`
+    line (10 s and per segment): the content steps per picture (mean, sd,
+    even = within 10 % of one period, repeated, skipped), the present calls'
+    intervals less the content steps (sd), and on the display (DXGI frame
+    statistics, consecutive pictures each seen at the refresh it came on) the
+    refresh intervals less the content steps: what the display really showed
+    against what it should have.  `--picture-log FILE` (testing) writes every
+    present with its interval, content time, weight and workload.
+  - **Long retraces** (over 50 ms): a line each (the first 40, then every
+    20th) with where the time went: the game's step split into PI DMAs (with
+    the load-time byte swaps), audio (tasks and the output), gfx tasks (RT64
+    reading the display lists), save files written and the rest, the game's
+    own code with its inflate (`plat_host.h` `host_prof`); RT64's submit; the
+    host's work after the retrace (events, the controllers' once-a-second
+    rescan, the orbit camera's step).
+  - **Textures**: every 10 s, the textures RT64 made, by size (its texture
+    map's creation frames, sampled every other retrace: RT64 evicts a texture
+    unused for a few frames, and the hash map's growth in `spikes by cause`
+    counts one each time it comes back).  Mid-level, about 20-50 a second,
+    mostly 32x32, evicted again within frames: small uploads, never a burst
+    of 8 in a retrace (no spike put down to them in the runs here).
   - **Spikes by cause**: each retrace keeps a record (the main thread's loop
     since the retrace before, less its pacing wait, split into the game, the
     display lists, the orbit camera and RT64's `updateScreen`; whether its
@@ -1179,7 +1226,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
     the target is put down, once the retraces around it are in, to the
     first cause that applies over its retraces (`orbit::spikeCause`, tested
     by `bc_cameratest`): a retrace over 1.5 periods late (by its largest
-    part; display-list time with the queue full is the render thread's, or
+    part, "other" being the rest of the loop: the host's work after the
+    retrace or time the thread didn't run; it used to fall to "game";
+    display-list time with the queue full is the render thread's, or
     the GPU's when a picture took over 3/4 of the target), a picture over
     3/4 of the target on the GPU (the present's own GPU work comes on top),
     an RT64 workload longer than the game frame, new shaders (RT64 draws a

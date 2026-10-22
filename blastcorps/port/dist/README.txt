@@ -128,6 +128,10 @@ went inside it; those pictures were also the slowest to draw.) People still face
 camera, the radar keeps the game's heading, and the screen doesn't shake in the
 orbit view. (Before this version, turning the orbit camera could slow the whole game
 down to about 20 frames a second on a laptop: its collision test was too slow. Fixed.)
+At a frame rate above the original (framerate 60, 120, display ...) the orbit camera
+now turns smoothly from picture to picture, like the rest of the picture; before, it
+moved only with the game's own frames (30 steps a second) and panning looked jerky at
+high frame rates.
 
 The frame-rate counter (F2, or fps_counter in the settings menu) shows in a corner
 how many pictures a second reach the display and how many frames a second the game
@@ -249,9 +253,12 @@ rate, the pacing in use and whether the display's refreshes followed the picture
 graph of the last 240 pictures and the stutters since it was turned on. Each stutter
 is also put down to a cause ("spikes by cause": the game's own work, the graphics
 card taking too long for a picture, the renderer, new shaders or textures being
-prepared, or the display side), and with the orbit camera on a second line shows
-its own work. If motion isn't smooth, send the lines starting with "live: frame
-times" from bc.log.
+prepared, other work of the program between pictures, or the display side), and with
+the orbit camera on a second line shows its own work. A "content" line checks what
+the pictures show: each one should be exactly one picture's time further on, and on
+the display each refresh should show that much more. A pause of over 50 ms gets a
+"long retrace" line saying where the time went. If motion isn't smooth, send the
+lines starting with "live: frame times" and "live: long retrace" from bc.log.
 
 Settings for integrated graphics (measured on a laptop's Ryzen 7 5700U with its
 Radeon graphics, 1920x1080 fullscreen at 60 Hz): framerate 60 with widescreen and

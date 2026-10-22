@@ -121,8 +121,10 @@ button) resets it. By default it eases back behind you a moment after you let go
 see: the game itself still uses its own camera, so everything plays out exactly as
 before. While it is on, the right stick turns the camera instead of being the C
 buttons (C left/right, the game's own 45-degree camera turns, stay on J and L); in
-menus the right stick is the C buttons as before. The view rises over low walls and
-moves in when buildings or hills are in the way. People still face the game's own
+menus the right stick is the C buttons as before. The view rises over walls and hills
+(looking down more steeply) and moves in only when that can't see past them. (Before
+this version it often moved right up to your vehicle first, so close that the view
+went inside it; those pictures were also the slowest to draw.) People still face the game's own
 camera, the radar keeps the game's heading, and the screen doesn't shake in the
 orbit view. (Before this version, turning the orbit camera could slow the whole game
 down to about 20 frames a second on a laptop: its collision test was too slow. Fixed.)
@@ -244,8 +246,12 @@ and at exit (and whenever a video setting changes) a full report: percentiles, t
 time the game, the renderer and the graphics card took per picture, the display's
 rate, the pacing in use and whether the display's refreshes followed the pictures
 (variable refresh seen). The frame-rate counter (F2, twice for "detailed") shows a
-graph of the last 240 pictures and the stutters since it was turned on. If motion
-isn't smooth, send the lines starting with "live: frame times" from bc.log.
+graph of the last 240 pictures and the stutters since it was turned on. Each stutter
+is also put down to a cause ("spikes by cause": the game's own work, the graphics
+card taking too long for a picture, the renderer, new shaders or textures being
+prepared, or the display side), and with the orbit camera on a second line shows
+its own work. If motion isn't smooth, send the lines starting with "live: frame
+times" from bc.log.
 
 Settings for integrated graphics (measured on a laptop's Ryzen 7 5700U with its
 Radeon graphics, 1920x1080 fullscreen at 60 Hz): framerate 60 with widescreen and

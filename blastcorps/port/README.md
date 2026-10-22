@@ -924,6 +924,22 @@ it without a fault.  The x64-asan preset is the tool for this now.
       buildings' each step when they changed, each ground cell's list when
       its bytes changed): 15-30 ms a second, the same answers
       (`--orbit-log` compares every query with a test of every triangle).
+      Blocked close to the target, the view first rises over the obstacle
+      (a steeper view, up to 75 degrees more, at most `tilt_max`: the first
+      that sees past it, else the one that sees farthest if that is at least
+      15 % of the distance more) and, where easing up would meanwhile pull
+      the eye in under 30 % of its distance, rises at once.  Before, it
+      pulled in to 15 % while the rise eased in (and when no rise up to 50
+      degrees saw past the obstacle): the eye ended up inside the player's
+      vehicle or a bridge, and those pictures of big close-up polygons took
+      the GPU up to 3 times as long (level 0, the camera low and turning:
+      GPU per picture up to 11-12 ms against 4 on average at MSAA 8x on the
+      integrated GPU here; 297-412 of 3100 steps pulled in under 30 %, now
+      0-27).  The stress test (`--orbit-test sweep`, 50 s, MSAA 8x, intervals
+      over 1.5x the target) at 120 frames a second: level 0 36 -> 3, level
+      15 178 -> 102, level 29 245 -> 100 (the game's camera: 1, 39, 228); at
+      60: 44 -> 8, 3 -> 2, 17 -> 13 (3, 3, 18); the slowest picture on the GPU
+      11.5 -> 8.6, 10.4 -> 8.9, 31.2 -> 18.4 ms.
     - Controls: `[controller] camera_left/right/up/down` (default the right
       stick), `camera_zoom_in` (Y), `camera_zoom_out` (left stick click),
       `camera_reset` (right stick click); `[keyboard]` keypad 4/6/8/2, + and -,
@@ -954,11 +970,29 @@ it without a fault.  The x64-asan preset is the tool for this now.
       the game's frames (it can't be added where the game didn't draw one);
       environment-mapped reflections use the game's view.
     - Testing: `--orbit-test YAWSPEED[:PITCH[:ZOOM]]` turns the camera by
-      itself (degrees a second, an absolute pitch, a zoom), `--orbit-log` logs
+      itself (degrees a second, an absolute pitch, a zoom); `--orbit-test
+      sweep` is the stress test (`orbit::sweepAt`: turning both ways up to
+      about 210 degrees a second with a 320 flick every 13 s, tilting over
+      the tilt range, zooming over the zoom range, the same every run);
+      `--orbit-log` logs
       both cameras every 30 frames and runs the checks above, `--orbit-cull
       all` draws every cell, `--orbit-repeatable` makes each picture use the
       orbit as it was when its frame was made (the same pictures every run,
       for comparisons), `--perf-log` has the orbit's host work.
+    - Performance (the frame-time report below has the orbit's own lines):
+      its host work is small: the step with the collision 0.25-0.35 ms a
+      retrace, the drawing list 0.02 ms (one a game frame), the frame setup
+      (backdrop, billboards) 0.003 ms, RT64's render thread 0.002 ms a
+      picture in the view hook; in the stress test on levels 0, 15 and 29 at
+      60, 120 and 240 frames a second it never made a retrace late.  What
+      the orbit view costs is GPU time: the same scene seen low and across
+      the level takes more per picture than the game's steep view (level 0
+      at MSAA 8x: 4.2 against 3.7 ms on average), and close-ups took up to
+      3 times as long (the collision above).  Drawing fewer cells doesn't
+      help: every cell (`--orbit-cull all`) costs 2 % more, cells farther
+      than 1500-3000 units left out (tried) nothing measurable; MSAA 8x
+      costs 1.8 times MSAA off.  The orbit view brings no materials of its
+      own in play (the same new shaders as the game's camera).
   - Controls (`[keyboard]`, `[controller]`): the menu's Controls tab remaps
     every binding (click it, press the key, controller button, stick or
     trigger; Backspace clears; the menu's own controller buttons are a
@@ -1136,6 +1170,29 @@ it without a fault.  The x64-asan preset is the tool for this now.
   skipped, timer restarts.  Intervals over 250 ms (loads) and the menu's
   pictures are left out.  The F2 counter's detailed mode shows the last 240
   intervals, the target and the stutters (over 1.5x) since it was turned on.
+  - **Spikes by cause**: each retrace keeps a record (the main thread's loop
+    since the retrace before, less its pacing wait, split into the game, the
+    display lists, the orbit camera and RT64's `updateScreen`; whether its
+    frame task found RT64's workload queue full; the longest picture on the
+    GPU and the longest RT64 workload finished since; the shaders RT64 was
+    given to compile and the textures it added).  Every interval over 1.5x
+    the target is put down, once the retraces around it are in, to the
+    first cause that applies over its retraces (`orbit::spikeCause`, tested
+    by `bc_cameratest`): a retrace over 1.5 periods late (by its largest
+    part; display-list time with the queue full is the render thread's, or
+    the GPU's when a picture took over 3/4 of the target), a picture over
+    3/4 of the target on the GPU (the present's own GPU work comes on top),
+    an RT64 workload longer than the game frame, new shaders (RT64 draws a
+    new material with its ubershader until the shader is compiled on its
+    idle-priority threads: 1.8 times the GPU time, `--ubershaders-only`),
+    a burst of 8 or more new textures, else the present side.  The 10 s
+    lines and each segment's block get `spikes by cause` (with the
+    retraces missed, the longest RT64 workload, new shaders and textures)
+    and, with the orbit camera on, its work per retrace (step, collision
+    queries, drawing lists made and with every cell, frame setup, the view
+    hook per picture, grids made again, steps pulled in close to the
+    player).  `--spike-log FILE` (testing) writes every spike with its
+    window as CSV.
 - **Host memory below 4 GB** (`plat_host.c` `host_low_reserve` /
   `host_low_alloc`): the widescreen ticker's vertices and glyphs live in host
   memory RT64 reads through its extended RDRAM addresses (an address with bit

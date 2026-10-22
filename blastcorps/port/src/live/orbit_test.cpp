@@ -377,6 +377,68 @@ int main() {
         check(seen2 > 1000 && bad == 0, "the exact test only passes boxes the plane test passes");
         check(lost2 == 0, "margins keep every box the exact view sees (big boxes too)");
     }
+    /* the stress test's motion (--orbit-test sweep) */
+    {
+        double yMin = 1e9, yMax = -1e9, pMin = 1e9, pMax = -1e9, zMin = 1e9, zMax = -1e9;
+        bool inLimits = true, same = true;
+        for (int i = 0; i < 60 * 60; i++) {
+            const double t = i / 60.0;
+            const Sweep s = sweepAt(t, lim), s2 = sweepAt(t, lim);
+            same = same && s.yawRate == s2.yawRate && s.pitch == s2.pitch && s.zoom == s2.zoom;
+            yMin = std::min(yMin, s.yawRate), yMax = std::max(yMax, s.yawRate);
+            pMin = std::min(pMin, s.pitch), pMax = std::max(pMax, s.pitch);
+            zMin = std::min(zMin, s.zoom), zMax = std::max(zMax, s.zoom);
+            inLimits = inLimits && s.pitch >= lim.pitchMin && s.pitch <= lim.pitchMax && s.zoom >= lim.zoomMin - 1e-9 &&
+                       s.zoom <= lim.zoomMax + 1e-9 && std::isfinite(s.yawRate);
+        }
+        check(same && inLimits, "sweep: the same at every call, pitch and zoom within the limits");
+        check(yMin < -180 && yMax >= 320 && pMin < lim.pitchMin + 4 && pMax > lim.pitchMax - 7 &&
+                  zMin < lim.zoomMin * 1.05 && zMax > lim.zoomMax * 0.95,
+              "sweep: turns both ways with flicks, over the pitch and zoom ranges in a minute");
+        check(sweepAt(12.5, lim).yawRate == 320 && sweepAt(25.5, lim).yawRate == 320 && sweepAt(12.0, lim).yawRate != 320,
+              "sweep: a flick every 13 s");
+    }
+    /* the spike attribution's rules */
+    {
+        SpikeWindow w;
+        w.targetMs = 8.33;
+        w.frameMs = 33.3;
+        check(spikeCause(w) == SPIKE_PRESENT, "spike: nothing found -> present / other");
+        w.textures = 3;
+        check(spikeCause(w) == SPIKE_PRESENT, "spike: a few new textures are usual");
+        w.textures = 12;
+        check(spikeCause(w) == SPIKE_TEXTURES, "spike: a burst of new textures");
+        w.gpuMs = 6;
+        check(spikeCause(w) == SPIKE_TEXTURES, "spike: a picture under 3/4 of the target is no GPU spike");
+        w.gpuMs = 0;
+        w.shaders = 1;
+        check(spikeCause(w) == SPIKE_SHADERS, "spike: new shaders before new textures");
+        w.renderMs = 40;
+        check(spikeCause(w) == SPIKE_RENDER, "spike: the render thread over the game frame");
+        w.gpuMs = 9;
+        check(spikeCause(w) == SPIKE_GPU, "spike: a picture over the target on the GPU");
+        w.retraceMs = 24;   /* under 1.5 retraces: not missed */
+        w.orbitMs = 20;
+        check(spikeCause(w) == SPIKE_GPU, "spike: a retrace under 1.5 periods is not missed");
+        w.retraceMs = 30;
+        w.gameMs = 6, w.listsMs = 3, w.submitMs = 1;
+        check(spikeCause(w) == SPIKE_MAIN_ORBIT, "spike: a missed retrace, mostly the orbit camera");
+        w.gameMs = 25;
+        check(spikeCause(w) == SPIKE_MAIN_GAME, "spike: a missed retrace, mostly the game");
+        w.listsMs = 26;
+        check(spikeCause(w) == SPIKE_MAIN_LISTS, "spike: a missed retrace, mostly the display lists");
+        w.queueFull = true;
+        check(spikeCause(w) == SPIKE_GPU, "spike: ... with RT64's queue full and a slow picture: the GPU");
+        w.gpuMs = 5;
+        check(spikeCause(w) == SPIKE_RENDER, "spike: ... with RT64's queue full: the render thread");
+        w.queueFull = false;
+        w.gpuMs = 9;
+        w.submitMs = 27;
+        check(spikeCause(w) == SPIKE_MAIN_SUBMIT, "spike: a missed retrace, mostly RT64's submit");
+        bool named = true;
+        for (int c = 0; c < SPIKE_CAUSES; c++) named = named && spikeCauseName(c)[0] != '?';
+        check(named && spikeCauseName(SPIKE_CAUSES)[0] == '?', "spike: every cause has a name");
+    }
     printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

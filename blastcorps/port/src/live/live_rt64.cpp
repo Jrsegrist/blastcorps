@@ -45,7 +45,9 @@
  *     --perf-log FILE   (testing) twice a second: game frames, RT64's pictures and their GPU
  *                       time, render-thread and processDisplayLists time, pacing waits, the
  *                       orbit camera's host work, draw calls and triangles, CSV
- *     --pace-from F     (testing) real-time pacing only from game frame F (as fast as it
+ *     --spike-log FILE  (testing) every present interval over 1.5x the target with what the
+ *                       retraces around it had and the cause it was put down to, CSV
+ *     --pace-from F    (testing) real-time pacing only from game frame F (as fast as it
  *                       goes before: measured runs get to play sooner)
  *     --present-pacing P  timer (default: RT64's own present timer, the lowest latency) or
  *                       vsync (with vsync on, pictures go to the display on its refreshes,
@@ -53,6 +55,8 @@
  *                       short for --set video.present_pacing=P (bc.ini, the settings menu);
  *                       also vrr (G-Sync / FreeSync) and auto (applyPresentPacing)
  *     --present-legacy  (testing) RT64's own present timer, as before port patch 0007
+ *     --ubershaders-only  (testing) RT64 draws everything with its ubershader (as it draws a
+ *                       new material until its own shader is compiled): its GPU cost
  *   Frame times (present-to-present intervals, CPU and GPU time per picture, the
  *   display's state) go to the log every 10 s and at exit (frameLog).
  *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
@@ -70,15 +74,15 @@
  *     --camera M        original (default) or orbit: the free orbit camera (live_orbit.cpp;
  *                       render only, the game runs as with its own camera)
  *     --orbit-test Y[:P[:Z]]  (testing) the orbit camera turns by itself: Y degrees a second,
- *                       pitch P degrees, zoom Z
+ *                       pitch P degrees, zoom Z; sweep: the stress test (turning both ways
+ *                       and flicks, tilting, zooming: orbit_math.h sweepAt)
  *     --orbit-log       log both cameras every 30 frames (and the collision's heights); check
  *                       every picture's view against its drawing list and every collision
  *                       query against a test of every triangle (summary at exit)
  *     --orbit-cull M    (testing) all: the drawing paths get every cell (as before the orbit
  *                       view's test), view: the game's cells and the orbit view's (default)
  *     --orbit-repeatable  (testing) pictures use the orbit as it was when their frame was made
- *                       (the same pictures every run, for comparisons)
- *     --interp-log      log every frame's camera motion (the interpolation cut test) and
+ *                       (the same pictures every run, for comparisons) *     --interp-log      log every frame's camera motion (the interpolation cut test) and
  *                       tagged objects that jumped
  *     --tag-test MASK   (testing) tagged interpolation experiments: 1 no vertex blending, 2 HUD
  *                       matched like the rest, 4 no decomposition, 8 ORDER_AUTO, 16 every ID auto,
@@ -151,10 +155,13 @@
 #include "rhi/rt64_render_hooks.h"
 #include "plume_d3d12.h"
 
+#include "render/rt64_raster_shader_cache.h"
+
 #include "live_input.h"
 #include "live_interp.h"
 #include "live_menu.h"
 #include "live_orbit.h"
+#include "orbit_math.h"
 #include "live_wide.h"
 #include "live_setup.h"
 #include "live_texdump.h"
@@ -850,6 +857,20 @@ struct Busy {
     double game = 0, dl = 0, submit = 0, wait = 0, gpu = 0, gpuMax = 0, presentWait = 0;
     unsigned gpuN = 0, retraces = 0;
     uint32_t rendered = 0, reduced = 0, late = 0, cut = 0, skipped = 0, resyncs = 0;   /* RT64's counters at the start */
+    /* the spikes (intervals over 1.5x the target) by cause (spikeAttribute), the orbit camera's work, new
+     * shaders (submitted / compiled) and textures, the longest retrace's main-thread work and RT64 workload */
+    unsigned causes[live::orbit::SPIKE_CAUSES] = {};
+    live::OrbitPerf orbit;
+    double orbitMax = 0, retraceMax = 0, renderMax = 0;
+    unsigned shaders = 0, shadersReady = 0, textures = 0, missed = 0;   /* (missed: retraces over 1.5 periods) */
+};
+/* the retraces' records for the spike attribution (main thread) */
+struct Slot {
+    double t = 0;                        /* the retrace (ms since start) */
+    live::orbit::SpikeWindow w;          /* its values (maxima filled per spike) */
+};
+struct PendingSpike {
+    double t, ms, target;                /* present time (ms since start), interval, target */
 };
 struct FrameTimes {
     std::mutex mutex;                    /* present thread -> main thread */
@@ -878,6 +899,15 @@ struct FrameTimes {
     double viExit = -1;                  /* the main thread left liveVi (s) */
     double dlInTick = 0;                 /* processDisplayLists time since then */
     unsigned hz = 0;                     /* the display's rate (main thread, at each segment) */
+    /* spike attribution: spikes the present thread saw (attributed by the main thread once the retraces
+     * around them are in), the last retraces */
+    std::vector<PendingSpike> spikes;
+    Slot slots[64];
+    unsigned slotPos = 0, slotN = 0;
+    double lastViEnter = -1, lastWait = 0, lastSubmit = 0;
+    uint32_t wlIdx = 0;
+    size_t shaderSeen = 0, shaderReadySeen = 0, textureSeen = 0;
+    FILE *spikeLog = nullptr;            /* --spike-log FILE (testing) */
 } g_ft;
 
 void counterPresentAt(double t);
@@ -905,7 +935,10 @@ void framePresented(const RT64::PresentQueue::PresentedInfo &p) {
             g_ft.ring[g_ft.ringPos] = float(ms);
             g_ft.ringPos = (g_ft.ringPos + 1) % 240;
             g_ft.ringN = std::min(240u, g_ft.ringN + 1);
-            if (ms > 1.5 * target) g_ft.stutters++;
+            if (ms > 1.5 * target) {
+                g_ft.stutters++;
+                if (g_ft.spikes.size() < 4096) g_ft.spikes.push_back({t, ms, target});
+            }
         }
     }
     g_ft.last = t;
@@ -956,6 +989,33 @@ void rt64Counters(Busy &b) {
 
 const char *pacingName();
 
+/* the spikes' causes and the orbit camera's work of a span (frameLog) */
+void causeLog(const char *head, const Busy &b, double seconds) {
+    using namespace live::orbit;
+    const unsigned *c = b.causes;
+    unsigned n = 0;
+    for (int i = 0; i < SPIKE_CAUSES; i++) n += c[i];
+    host_log("live: frame times %s: spikes by cause %u: main thread (game %u, display lists %u, orbit camera %u, "
+             "RT64 submit %u), GPU %u, RT64 render thread %u, new shaders %u, new textures %u, present/other %u; "
+             "retraces missed %u (longest %.1f ms), longest RT64 workload %.1f ms; RT64 given %u new shaders "
+             "(%u compiled), %u new textures\n",
+             head, n, c[SPIKE_MAIN_GAME], c[SPIKE_MAIN_LISTS], c[SPIKE_MAIN_ORBIT], c[SPIKE_MAIN_SUBMIT], c[SPIKE_GPU],
+             c[SPIKE_RENDER], c[SPIKE_SHADERS], c[SPIKE_TEXTURES], c[SPIKE_PRESENT], b.missed, b.retraceMax,
+             b.renderMax, b.shaders, b.shadersReady, b.textures);
+    const live::OrbitPerf &o = b.orbit;
+    if (o.views == 0 && o.lists == 0 && o.stepMs <= 0) return;
+    (void) seconds;
+    const double r = double(std::max(1u, b.retraces));
+    host_log("live: frame times %s: orbit camera ms per retrace: step %.3f (collision queries %.0f), drawing lists "
+             "%.3f (%u made, %u with every cell, %.1f cells, the game's %.1f), frame setup %.3f; longest retrace's "
+             "%.2f; view hook %.4f ms per picture (%u pictures); grids made again: obstacles %u, ground cells %u; "
+             "pulled in close to the player %u of %u steps\n",
+             head, o.stepMs / r, o.queries / r, o.cellsMs / r, o.lists, o.listsAll,
+             o.lists ? double(o.cells) / o.lists : 0.0, o.lists ? double(o.gameCells) / o.lists : 0.0, o.taskMs / r,
+             b.orbitMax, o.views ? o.viewMs / o.views : 0.0, o.views, o.obstacleBuilds, o.groundBuilds, o.closeSteps,
+             o.steps);
+}
+
 /* the log lines of a span: `head` names it */
 void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bool full) {
     Busy now;
@@ -968,6 +1028,7 @@ void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bo
                  head, (unsigned long long) h.n, seconds, h.mean(), h.sd(), h.pct(0.99), h.max,
                  (unsigned long long) h.over15, (unsigned long long) h.over2, b.game / pics, b.dl / pics,
                  b.submit / pics, b.wait / pics, b.gpuN ? b.gpu / b.gpuN : 0.0);
+        causeLog(head, b, seconds);
         return;
     }
     const double target = h.n ? h.targetSum / double(h.n) : 0;
@@ -1015,6 +1076,9 @@ void frameLog(const char *head, const Hist &h, const Busy &b, double seconds, bo
              "timer restarted %u times (a picture over a period late)\n",
              head, now.rendered - b.rendered, now.reduced - b.reduced, now.late - b.late, now.cut - b.cut,
              now.skipped - b.skipped, now.resyncs - b.resyncs);
+    char h2[200];
+    snprintf(h2, sizeof h2, "(%s)", head);
+    causeLog(h2, b, seconds);
 }
 
 /* a new settings segment (start-up, a video setting changed): the last one's block in the log */
@@ -1046,19 +1110,146 @@ void busyAdd(double Busy::*f, double ms) {
     g_ft.winBusy.*f += ms;
 }
 
-/* each retrace (main thread), after updateScreen: the GPU's times, the 10 s line */
-void frameTick(double gameMs, double submitMs, double waitMs) {
+/* ---- spike attribution ------------------------------------------------------
+ * Each retrace (frameTick) keeps a record: the main thread's loop since the
+ * retrace before (less its pacing wait) split into the game, reading the
+ * display lists, the orbit camera's host work and RT64's updateScreen; the
+ * longest picture on the GPU and the longest RT64 workload (render thread)
+ * that finished since; the shaders RT64 was given to compile (new materials:
+ * drawn with its ubershader until compiled) and the textures it added.  A
+ * spike (a present interval over 1.5x the target) is put down, once the
+ * retraces around it are in, to the first cause that applies over the
+ * retraces of its interval (orbit::spikeCause): a missed retrace (by its
+ * largest part), the GPU, the render thread, new shaders, new textures, else
+ * the present side.  Counts per 10 s and per segment; --spike-log FILE has
+ * every spike (testing).  Clock and counter reads only. */
+void addOrbit(live::OrbitPerf &a, const live::OrbitPerf &d) {
+    a.stepMs += d.stepMs, a.cellsMs += d.cellsMs, a.readMs += d.readMs, a.taskMs += d.taskMs, a.viewMs += d.viewMs;
+    a.lists += d.lists, a.cells += d.cells, a.gameCells += d.gameCells, a.queries += d.queries;
+    a.listsAll += d.listsAll, a.obstacleBuilds += d.obstacleBuilds, a.groundBuilds += d.groundBuilds;
+    a.views += d.views;
+    a.steps += d.steps, a.closeSteps += d.closeSteps;
+}
+
+/* (g_ft.mutex held) the spikes whose retraces are in */
+void spikeAttribute(double nowMs) {
+    size_t keep = 0;
+    const uint32_t gameRate = g_app->sharedQueueResources->viOriginalRate;
+    for (size_t k = 0; k < g_ft.spikes.size(); k++) {
+        const PendingSpike sp = g_ft.spikes[k];
+        if (sp.t > nowMs - 60.0) {
+            g_ft.spikes[keep++] = sp;
+            continue;
+        }
+        live::orbit::SpikeWindow w;
+        w.targetMs = sp.target;
+        w.frameMs = gameRate > 0 ? 1000.0 / gameRate : 1000.0 / 30.0;
+        const double from = sp.t - sp.ms - w.periodMs, to = sp.t + 2.0;
+        double longest = -1;
+        for (unsigned i = 0; i < g_ft.slotN; i++) {
+            const Slot &s = g_ft.slots[i];
+            if (s.t < from || s.t > to) continue;
+            if (s.w.retraceMs > longest) {   /* the main thread's split: its longest retrace's */
+                longest = s.w.retraceMs;
+                w.retraceMs = s.w.retraceMs, w.gameMs = s.w.gameMs, w.listsMs = s.w.listsMs;
+                w.orbitMs = s.w.orbitMs, w.submitMs = s.w.submitMs, w.queueFull = s.w.queueFull;
+            }
+            w.gpuMs = std::max(w.gpuMs, s.w.gpuMs);
+            w.renderMs = std::max(w.renderMs, s.w.renderMs);
+            w.shaders += s.w.shaders;
+            w.textures += s.w.textures;
+        }
+        const int c = live::orbit::spikeCause(w);
+        g_ft.segBusy.causes[c]++;
+        g_ft.winBusy.causes[c]++;
+        if (g_ft.spikeLog != nullptr)
+            fprintf(g_ft.spikeLog, "%.3f,%.3f,%.3f,%d,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%u,%u,%d,%u,%u,%d\n", sp.t,
+                    sp.ms, sp.target, c, live::orbit::spikeCauseName(c), w.retraceMs, w.gameMs, w.listsMs, w.orbitMs,
+                    w.submitMs, w.gpuMs, w.renderMs, w.frameMs, w.shaders, w.textures, live::orbitActive() ? 1 : 0,
+                    g_ft.segment, plat_frames(), w.queueFull ? 1 : 0);
+    }
+    g_ft.spikes.resize(keep);
+}
+
+/* RT64's shader and texture counts now: shaders submitted (new materials) and compiled, textures */
+void rt64Assets(size_t &shaders, size_t &ready, size_t &textures) {
+    RT64::RasterShaderCache *sc = g_app->rasterShaderCache.get();
+    shaders = ready = textures = 0;
+    if (sc != nullptr) {
+        {
+            std::lock_guard<std::mutex> lock(sc->submissionMutex);
+            shaders = sc->shaderHashes.size();
+        }
+        ready = sc->shaderCount();
+    }
+    RT64::TextureCache *tc = g_app->textureCache.get();
+    if (tc != nullptr) {
+        std::lock_guard<std::mutex> lock(tc->textureMapMutex);
+        textures = tc->textureMap.hashMap.size();
+    }
+}
+
+/* each retrace (main thread), after updateScreen: the GPU's times, the spikes, the 10 s line.
+ * viEnterMs: this retrace's start (ms since start); gameMs: the main thread since the last retrace
+ * less reading the display lists (dlMs); submitMs: this retrace's updateScreen; waitMs: its pacing wait */
+bool g_queueFullTask;                /* a frame task since the last retrace found RT64's queue full (main thread) */
+void frameTick(double viEnterMs, double gameMs, double dlMs, double submitMs, double waitMs) {
+    const live::OrbitPerf orb = live::orbitFrameTake();
+    const bool queueFull = g_queueFullTask;
+    g_queueFullTask = false;
+    size_t shaders, ready, textures;
+    rt64Assets(shaders, ready, textures);
     std::lock_guard<std::mutex> lock(g_ft.mutex);
     busyAdd(&Busy::game, gameMs);
     busyAdd(&Busy::submit, submitMs);
     busyAdd(&Busy::wait, waitMs);
+    Slot slot;
+    slot.t = viEnterMs;
     const RT64::ProfilingTimer &p = g_app->workloadQueue->rendererGPUProfiler;
     const uint32_t idx = p.index();
     for (uint32_t i = g_ft.gpuIdx; i != idx; i = uint32_t((i + 1) % p.size())) {
         const double ms = p.data()[i];
+        slot.w.gpuMs = std::max(slot.w.gpuMs, ms);
         for (Busy *b : {&g_ft.segBusy, &g_ft.winBusy}) b->gpu += ms, b->gpuMax = std::max(b->gpuMax, ms), b->gpuN++;
     }
     g_ft.gpuIdx = idx;
+    /* RT64's workloads (render thread) finished since (its profiler's history, read without its lock) */
+    const RT64::ProfilingTimer &wp = g_app->workloadQueue->workloadProfiler;
+    const uint32_t widx = wp.index();
+    for (uint32_t i = g_ft.wlIdx; i != widx; i = uint32_t((i + 1) % wp.size()))
+        slot.w.renderMs = std::max(slot.w.renderMs, wp.data()[i]);
+    g_ft.wlIdx = widx;
+    /* the retrace's loop: the game (less the orbit's work inside it), the lists, the orbit (its step after
+     * the retrace before, its lists and frame setup), the retrace before's updateScreen */
+    if (g_ft.lastViEnter >= 0) slot.w.retraceMs = std::max(0.0, viEnterMs - g_ft.lastViEnter - g_ft.lastWait);
+    slot.w.orbitMs = orb.stepMs + orb.cellsMs + orb.taskMs;
+    slot.w.gameMs = std::max(0.0, gameMs - orb.cellsMs - orb.taskMs);
+    slot.w.listsMs = dlMs;
+    slot.w.submitMs = g_ft.lastSubmit;
+    slot.w.queueFull = queueFull;
+    if (shaders < g_ft.shaderSeen || ready < g_ft.shaderReadySeen) g_ft.shaderSeen = g_ft.shaderReadySeen = 0;   /* (cache made again: MSAA) */
+    slot.w.shaders = unsigned(shaders - g_ft.shaderSeen);
+    const unsigned newReady = unsigned(ready - g_ft.shaderReadySeen);
+    slot.w.textures = textures > g_ft.textureSeen ? unsigned(textures - g_ft.textureSeen) : 0;
+    g_ft.shaderSeen = shaders, g_ft.shaderReadySeen = ready, g_ft.textureSeen = textures;
+    g_ft.lastViEnter = viEnterMs;
+    g_ft.lastWait = waitMs;
+    g_ft.lastSubmit = submitMs;
+    for (Busy *b : {&g_ft.segBusy, &g_ft.winBusy}) {
+        addOrbit(b->orbit, orb);
+        b->retraces++;
+        b->orbitMax = std::max(b->orbitMax, slot.w.orbitMs);
+        b->retraceMax = std::max(b->retraceMax, slot.w.retraceMs);
+        b->renderMax = std::max(b->renderMax, slot.w.renderMs);
+        b->shaders += slot.w.shaders;
+        b->shadersReady += newReady;
+        b->textures += slot.w.textures;
+        b->missed += slot.w.retraceMs > 1.5 * slot.w.periodMs && slot.w.retraceMs < 250.0;
+    }
+    g_ft.slots[g_ft.slotPos] = slot;
+    g_ft.slotPos = (g_ft.slotPos + 1) % 64;
+    g_ft.slotN = std::min(64u, g_ft.slotN + 1);
+    spikeAttribute(viEnterMs);
     const double now = secondsSince(g_tStart);
     if (g_ft.winStart <= 0) {
         g_ft.winStart = now;
@@ -1086,6 +1277,11 @@ void counterStutterReset() {
 
 /* at exit */
 void frameEnd() {
+    {
+        std::lock_guard<std::mutex> lock(g_ft.mutex);
+        if (g_ft.spikeLog != nullptr) fclose(g_ft.spikeLog);   /* (--spike-log) */
+        g_ft.spikeLog = nullptr;
+    }
     static bool done;
     if (g_app == nullptr || g_ft.segment == 0 || done) return;
     done = true;
@@ -1253,12 +1449,14 @@ void perfWrite() {
     if (f == nullptr) return;
     fprintf(f, "t_s,span_s,frame_end,frames,renders,gpu_ms_sum,gpu_ms_max,workloads_rt64,wl_ms_sum,wl_ms_max,dl_ms,dl_tasks,"
                "wait_ms,frame_workloads,calls,tris,orbit_step_ms,orbit_cells_ms,orbit_lists,orbit_cells,game_cells,"
-               "orbit_read_ms,orbit_queries\n");
+               "orbit_read_ms,orbit_queries,orbit_task_ms,orbit_view_ms,orbit_views,orbit_lists_all\n");
     for (const PerfWin &w : g_perf.wins)
-        fprintf(f, "%.3f,%.3f,%u,%u,%u,%.3f,%.3f,%u,%.3f,%.3f,%.3f,%u,%.3f,%u,%.0f,%.0f,%.3f,%.3f,%u,%u,%u,%.3f,%u\n", w.t,
+        fprintf(f, "%.3f,%.3f,%u,%u,%u,%.3f,%.3f,%u,%.3f,%.3f,%.3f,%u,%.3f,%u,%.0f,%.0f,%.3f,%.3f,%u,%u,%u,%.3f,%u,%.3f,%.3f,%u,"
+                   "%u\n", w.t,
                 w.span, w.frameEnd, w.frames, w.gpuN, w.gpuSum, w.gpuMax, w.wlN, w.wlSum, w.wlMax, w.dlMs, w.dlTasks, w.waitMs,
                 w.workloads, w.calls, w.tris, w.orbit.stepMs, w.orbit.cellsMs, w.orbit.lists, w.orbit.cells,
-                w.orbit.gameCells, w.orbit.readMs, w.orbit.queries);
+                w.orbit.gameCells, w.orbit.readMs, w.orbit.queries, w.orbit.taskMs, w.orbit.viewMs, w.orbit.views,
+                w.orbit.listsAll);
     fclose(f);
     host_log("live: perf log: %u windows -> %s\n", unsigned(g_perf.wins.size()), path);
 }
@@ -1728,6 +1926,11 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     live::wideBeforeTask();
     LARGE_INTEGER t0, t1;
     const int cursor = g_app->workloadQueue->writeCursor;
+    if (frameDl) {   /* spike attribution: the queue full now: the task ends waiting for the render thread */
+        RT64::WorkloadQueue &q = *g_app->workloadQueue;
+        std::lock_guard<std::mutex> lock(q.cursorMutex);
+        if ((q.writeCursor + 1) % int(q.workloads.size()) == q.barrierCursor) g_queueFullTask = true;
+    }
     QueryPerformanceCounter(&t0);
     g_app->processDisplayLists(rdramBase(), dataPtr & 0x3FFFFFF, 0, true);
     {
@@ -1791,6 +1994,7 @@ void runMenu(unsigned shotFrame) {
         g_ft.suspended = false;
         g_ft.last = -1;
         g_ft.shownCount = 0;
+        g_ft.lastViEnter = -1;   /* (the menu's time is no missed retrace) */
     }
     if (g_quitRequested) shutdown(0);
     g_t0.QuadPart = 0;   /* pacing: start over from the next retrace */
@@ -1891,7 +2095,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         std::lock_guard<std::mutex> lock(g_ft.mutex);
         busyAdd(&Busy::dl, dlMs);
     }
-    frameTick(std::max(0.0, sinceExit - dlMs), (submitted - before) * 1e3, waitMs);
+    frameTick(viEnter * 1e3, std::max(0.0, sinceExit - dlMs), dlMs, (submitted - before) * 1e3, waitMs);
     perfTick(frames);
     g_app->state->presentDueTime = RT64::Timestamp();
     if (g_opt.paceLog != nullptr) {
@@ -1964,6 +2168,7 @@ unsigned msaaSupported() {
 
 /* present pacing (applyPresentPacing) */
 bool g_presentLegacy;                /* --present-legacy (testing): RT64's timer as before patch 0007 */
+bool g_ubershadersOnly;              /* --ubershaders-only (testing) */
 int g_pacing;                        /* the effective pacing: 0 timer, 1 vsync, 2 vrr */
 constexpr double kVrrMargin = 0.97;  /* vrr: at most this fraction of the display's rate (3 % under, the usual cap) */
 unsigned effectiveDisplayHz() {
@@ -2299,6 +2504,13 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--pace-log")) g_opt.paceLog = next();
     else if (!strcmp(a, "--flip-log")) g_flip.path = next();
     else if (!strcmp(a, "--perf-log")) g_perf.path = next();
+    else if (!strcmp(a, "--spike-log")) {
+        const char *s = next();
+        g_ft.spikeLog = static_cast<FILE *>(host_fopen(s, "w"));
+        if (g_ft.spikeLog == nullptr) host_fatal("--spike-log %s: can't write it", s);
+        fprintf(g_ft.spikeLog, "t_ms,interval_ms,target_ms,cause,cause_name,retrace_ms,game_ms,lists_ms,orbit_ms,"
+                               "submit_ms,gpu_ms,render_ms,frame_ms,shaders,textures,orbit_active,segment,frame,queue_full\n");
+    }
     else if (!strcmp(a, "--config") || !strcmp(a, "--no-config")) {
         if (a[2] == 'c') next();   /* read before host_main (main) */
     } else if (!strcmp(a, "--saves")) {
@@ -2314,6 +2526,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--set")) next();   /* applied with the config file (main) */
     else if (!strcmp(a, "--low-test")) next();   /* read first thing (main) */
     else if (!strcmp(a, "--present-legacy")) g_presentLegacy = true;
+    else if (!strcmp(a, "--ubershaders-only")) g_ubershadersOnly = true;
     else if (!strcmp(a, "--window")) {
         const char *s = next();
         if (sscanf(s, "%ux%u", &g_opt.windowW, &g_opt.windowH) != 2 || g_opt.windowW < 160 || g_opt.windowH < 120)
@@ -2341,7 +2554,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     }
     else if (!strcmp(a, "--orbit-test")) {
         const char *s = next();
-        if (!live::orbitSetTest(s)) host_fatal("--orbit-test %s: YAWSPEED[:PITCH[:ZOOM]], e.g. 60:25:1.5", s);
+        if (!live::orbitSetTest(s)) host_fatal("--orbit-test %s: YAWSPEED[:PITCH[:ZOOM]], e.g. 60:25:1.5, or sweep", s);
     }
     else if (!strcmp(a, "--tag-test")) live::interpTagsSetTest(num(next()));
     else if (!strcmp(a, "--wseq")) {
@@ -2498,6 +2711,10 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
     applyPresentPacing();
+    if (g_ubershadersOnly) {   /* (testing) every draw with RT64's ubershader: what new materials cost the GPU */
+        g_app->workloadQueue->ubershadersOnly = true;
+        host_log("live: --ubershaders-only: every draw with RT64's ubershader\n");
+    }
     /* frame times: every present (and --flip-log's records) */
     if (!g_opt.vulkan) g_ft.dxgi = static_cast<plume::D3D12SwapChain *>(g_app->swapChain.get())->d3d;
     g_app->presentQueue->presentedHook = framePresented;

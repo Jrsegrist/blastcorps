@@ -342,6 +342,112 @@ int host_entry_hook(unsigned fn) {
 }
 #endif
 
+/* ---- host memory RT64 reads through its extended RDRAM addresses (plat_host.h) ----
+ * Between RDRAM's end and 4 GB.  On the PC with a big graphics card the
+ * driver had filled that range by the time the first ticker screen came up
+ * (the widescreen ticker then asked for memory there every frame, and logged
+ * each failure), so it is taken once, first thing at start-up. */
+#define LOW_START 0x80800000ull   /* RDRAM's end (0x80000000 + 8 MB) */
+#define LOW_END 0x100000000ull
+#define LOW_SIZE 0x100000u        /* 1 MB (the ticker takes 256 KB) */
+#define LOW_HOLE 0xE7300000ull    /* --low-test 1: the 1 MB left free */
+unsigned host_low_test;
+static unsigned char *g_low;
+static unsigned g_low_used, g_low_fails, g_low_tried, g_low_crowded;
+static const char *g_low_how = "";
+
+/* exactly at a, or NULL */
+static void *low_at(unsigned long long a, unsigned size) {
+    void *p = VirtualAlloc((void *) (ULONG_PTR) a, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (p != NULL && (unsigned long long) (ULONG_PTR) p != a) {
+        VirtualFree(p, 0, MEM_RELEASE);
+        p = NULL;
+    }
+    return p;
+}
+
+/* `size` bytes in [LOW_START, LOW_END): a few chosen addresses, else the
+ * first free range that fits (64 KB granularity) */
+static unsigned char *low_find(unsigned size) {
+    static const unsigned long long pref[] = {0x81000000ull, 0x90000000ull, 0xA0000000ull, 0xC0000000ull};
+    unsigned long long a;
+    MEMORY_BASIC_INFORMATION m;
+    unsigned i;
+    void *p;
+    for (i = 0; i < sizeof pref / sizeof pref[0]; i++)
+        if ((p = low_at(pref[i], size)) != NULL) {
+            g_low_how = "a chosen address";
+            return p;
+        }
+    for (a = LOW_START; a < LOW_END && VirtualQuery((void *) (ULONG_PTR) a, &m, sizeof m) == sizeof m;) {
+        unsigned long long end = (unsigned long long) (ULONG_PTR) m.BaseAddress + m.RegionSize;
+        if (m.State == MEM_FREE) {
+            unsigned long long s = (a + 0xFFFF) & ~0xFFFFull;
+            if (end > LOW_END) end = LOW_END;
+            if (s + size <= end && (p = low_at(s, size)) != NULL) {
+                g_low_how = "a free range found by a search";
+                return p;
+            }
+        }
+        if (end <= a) break;
+        a = end;
+    }
+    return NULL;
+}
+
+/* (testing) reserve every free 1 MB in [LOW_START, LOW_END), but `hole` */
+static void low_crowd(unsigned long long hole) {
+    unsigned long long a;
+    MEMORY_BASIC_INFORMATION m;
+    for (a = LOW_START; a < LOW_END; a += 0x100000ull) {
+        if (a == hole) continue;
+        if (VirtualQuery((void *) (ULONG_PTR) a, &m, sizeof m) == sizeof m && m.State == MEM_FREE &&
+            VirtualAlloc((void *) (ULONG_PTR) a, 0x100000, MEM_RESERVE, PAGE_NOACCESS) != NULL)
+            g_low_crowded++;
+    }
+}
+
+int host_low_reserve(void) {
+    if (host_low_test & 1) low_crowd(LOW_HOLE);
+    if (!(host_low_test & 4) && g_low == NULL) {
+        g_low_tried = 1;
+        g_low = low_find(LOW_SIZE);
+    }
+    if (host_low_test & 2) low_crowd(~0ull);
+    if (host_low_test)
+        host_log("low memory test %u: %u MB of [0x80800000, 4 GB) reserved by the test%s\n", host_low_test,
+                 g_low_crowded, (host_low_test & 4) ? "; no reservation at start-up" : "");
+    return g_low != NULL ? 0 : -1;
+}
+
+void *host_low_alloc(unsigned size, const char *who) {
+    unsigned char *p;
+    size = (size + 15) & ~15u;
+    if (g_low == NULL && !g_low_tried) {   /* not reserved at start-up (--low-test 4): now */
+        g_low_tried = 1;
+        g_low = low_find(LOW_SIZE);
+        if (g_low != NULL) g_low_how = "at its first use";
+    }
+    if (g_low == NULL || size > LOW_SIZE - g_low_used) {
+        if (g_low_fails++ == 0)
+            host_log("live: no host memory below 4 GB for %s (%u bytes; %s): logged once\n", who, size,
+                     g_low == NULL ? "none could be reserved" : "the reservation is full");
+        return NULL;
+    }
+    p = g_low + g_low_used;
+    g_low_used += size;
+    return p;
+}
+
+void host_low_summary(void) {
+    if (g_low != NULL)
+        host_log("live: low memory: %u KB at 0x%08llX (%s%s), %u KB used, %u requests refused\n", LOW_SIZE / 1024,
+                 (unsigned long long) (ULONG_PTR) g_low, g_low_how,
+                 g_low_tried && !(host_low_test & 4) ? ", at start-up" : "", g_low_used / 1024, g_low_fails);
+    else if (g_low_tried)
+        host_log("live: low memory: none below 4 GB could be reserved; %u requests refused\n", g_low_fails);
+}
+
 void host_set_fpu_mode(void) {
     /* MXCSR: FTZ (bit 15) like the VR4300's FPCSR FS; all exceptions masked
      * (default).  Rounding: nearest (default), as FPCSR RM_RN. */

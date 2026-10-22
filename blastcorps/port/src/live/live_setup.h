@@ -46,6 +46,12 @@ struct Config {
                                        lowest latency; the default), true = vsync (port patch 0005:
                                        pictures handed to the display on its refreshes, even when
                                        the PC is busy, about half a refresh more latency) */
+    int pacingOther = 0;            /* with vsyncPacing false: 0 timer (the default; at a frame rate
+                                       that divides the display's, with vsync on, the pictures are
+                                       locked to its refreshes: port patch 0007), 2 vrr (an even
+                                       timer a little under the display's rate, for G-Sync /
+                                       FreeSync displays), 3 auto (picks one from the display:
+                                       live_rt64.cpp applyPresentPacing) */
     int volume = 100;
     bool mute = false;
     /* optional enhancements (all off by default: the defaults are what the

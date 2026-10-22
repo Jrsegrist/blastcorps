@@ -64,8 +64,8 @@ it. The settings menu writes it too; you can also edit it with Notepad while the
 game is closed. It holds:
   [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
-               fullscreen, vsync, present_pacing (timer, the default, or vsync:
-               see "Frame rate and smoothness"); optional enhancements (off by
+               fullscreen, vsync, present_pacing (timer, the default, vsync, vrr
+               or auto: see "Frame rate and smoothness"); optional enhancements (off by
                default):
                resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
                msaa (0, 2, 4, 8), filtering (aa, linear, nearest),
@@ -217,17 +217,35 @@ N64 field.
 
 Frame pacing (present_pacing in bc.ini, "Frame pacing" in the settings menu's Video
 tab; it applies at once) decides how the pictures are handed to the display (the
-choice matters only with vsync on and the Direct3D 12 graphics API):
-  timer  "Low latency", the default: the renderer's own timer. The quickest
-         response, and on a PC that isn't busy with other work just as even:
-         measured on a 60 Hz display, every picture one refresh at framerate 60
-         (596 of 596) and every N64 field on time at framerate original.
+choice matters only with the Direct3D 12 graphics API):
+  timer  "Low latency", the default. With vsync on and a frame rate that divides
+         the display's (framerate = display, or 60 on a 120 Hz display), one
+         picture per refresh (per two refreshes ...), locked to the display;
+         otherwise an even timer. The quickest response.
   vsync  "Smooth under load": each picture waits for the display refresh it is
          due at, so motion stays even while other programs keep the PC busy, at
          the cost of about 5-10 ms more delay (half to one refresh at 60 Hz).
          The game falls back to the timer for a few seconds if the PC can't
-         keep up at all.
+         keep up at all. Needs vsync on.
+  vrr    "G-Sync / FreeSync": for a variable-refresh display (G-Sync or FreeSync
+         turned on in the graphics driver). Pictures come at an even pace a little
+         under the display's highest rate (116 a second on 120 Hz, 139 on 144 Hz),
+         so the display never has to wait for its next fixed refresh. On a
+         display without variable refresh this gives a small stutter every
+         second or so: use timer there.
+  auto   picks one from the display and the settings (vsync off: timer; vsync on:
+         vsync at the game's own frame rate, timer above it). Windows doesn't say
+         whether G-Sync is on, so auto never picks vrr.
 Try vsync if motion looks uneven while something else runs in the background.
+
+Frame times: bc.log gets a line every 10 seconds with the time between the pictures
+shown (mean, spread, slowest) and how many came over 1.5x or 2x late ("stutters"),
+and at exit (and whenever a video setting changes) a full report: percentiles, the
+time the game, the renderer and the graphics card took per picture, the display's
+rate, the pacing in use and whether the display's refreshes followed the pictures
+(variable refresh seen). The frame-rate counter (F2, twice for "detailed") shows a
+graph of the last 240 pictures and the stutters since it was turned on. If motion
+isn't smooth, send the lines starting with "live: frame times" from bc.log.
 
 Settings for integrated graphics (measured on a laptop's Ryzen 7 5700U with its
 Radeon graphics, 1920x1080 fullscreen at 60 Hz): framerate 60 with widescreen and
@@ -238,6 +256,9 @@ resolution.
 
 On 120/144 Hz and other high-refresh displays the speed is the same; a field then stays up for a whole number of
 refreshes (2 or 3 in turn at 144 Hz), a slight unevenness the eye barely sees.
+With framerate = display on a 120 Hz display (4 pictures per game picture) the
+timer pacing shows one picture per refresh; on a G-Sync / FreeSync display try
+present_pacing = vrr too and compare the frame-time lines in bc.log.
 When a level starts, the first second can stutter briefly while the graphics
 driver prepares new shaders; the game then catches up and runs smoothly.
 

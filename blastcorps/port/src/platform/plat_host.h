@@ -50,6 +50,22 @@ void *host_realloc(void *p, unsigned size);
  * (or already), -1 if its first instruction can't be relocated */
 int host_entry_hook(unsigned fn);
 
+/* Host memory RT64 can read through its extended RDRAM addresses: an address
+ * with bit 31 set is an offset from RDRAM's base (0x80000000 here), i.e. the
+ * host pointer itself, so it must lie between RDRAM's end and 4 GB (bc.exe's
+ * widescreen ticker, live_wide.cpp).  host_low_reserve takes it once, first
+ * thing in bc.exe's main: before SDL, RT64 and the graphics driver, which on
+ * some PCs fill that whole range (0 if done).  host_low_alloc hands out pieces
+ * of it (16-byte aligned, zeroed; NULL when it can't: logged once, counted);
+ * host_low_summary logs the use at exit.  host_low_test (testing, bc.exe
+ * --low-test MASK): 1 crowd the range before the reservation (one 1 MB hole
+ * left), 2 crowd it after (as the drivers do), 4 no reservation at start-up
+ * (taken at the first use, as before). */
+int host_low_reserve(void);
+void *host_low_alloc(unsigned size, const char *who);
+void host_low_summary(void);
+extern unsigned host_low_test;
+
 /* flush-to-zero for the current fiber (the game's osInitialize sets FPCSR FS) */
 void host_set_fpu_mode(void);
 

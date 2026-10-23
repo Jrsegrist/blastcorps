@@ -147,7 +147,7 @@ def main():
             if st:
                 nsite += 1
                 kind, ov, nv = st
-                if not M.ok(ov, nv) and kind != "imm16" and not (ov < 0x01000000):
+                if not M.ok(ov, nv) and kind not in ("imm16", "hir") and not (ov < 0x01000000):
                     fail("%s %08X: raw reference %s %08X now %08X, the map says %08X" % (seg, na, kind, ov, nv, M.map(ov)))
                 continue
             if rel:
@@ -230,7 +230,7 @@ def main():
         return None
 
     for (seg, na), (kind, ov, nv) in sites.items():
-        if ov < 0x01000000 and rmap(ov) != nv:
+        if ov < 0x01000000 and kind != "hir" and rmap(ov) != nv:
             fail("%s %08X: ROM offset %06X now %06X, the ROM map says %s" % (seg, na, ov, nv, rmap(ov)))
     nrom = 0
     for x in rom_ref:

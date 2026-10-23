@@ -66,19 +66,31 @@ def run(rom, hd_elf, prefix, frames, timeout=900):
     env["SHIFT_LEVEL_BP"] = "%x" % fr["hd_setup_level"][0]
     env["SHIFT_DUMP_AT"] = ",".join(frames)
     env["SHIFT_DUMP_PREFIX"] = prefix
+    # the front end's code, dead at a level start (the level's heap goes
+    # there); the levels read some of it before writing it (spec_shiftrun.py).
+    # SHIFT_FILL_PARTS=text,data / none for experiments (zeroing the whole
+    # window stops the game: its .bss is still in use, probably the pak queues)
+    fe =Elf(os.path.join(os.path.dirname(hd_elf), "hd_front_end.elf")).sections
+    fill = {"text": fe[".hd_front_end"], "data": fe[".hd_front_end_data"], "bss": fe[".hd_front_end_bss"]}
+    parts = [p for p in os.environ.get("SHIFT_FILL_PARTS", "text").split(",") if p]   # "" or "none": no fill
+    parts = [p for p in parts if p != "none"]
+    env["SHIFT_FILL"] = ",".join("%x-%x" % (fill[p]["addr"], fill[p]["addr"] + fill[p]["size"]) for p in parts)
     # SDL's offscreen driver gives glide64mk2 a GL context without a window;
     # with "dummy" the video plugin can't start and the game stops at the
     # first level (it waits for the RDP)
     env.setdefault("SDL_VIDEODRIVER", "offscreen")
     env["M64SAVEDIR"] = prefix + ".saves"
     os.makedirs(os.path.dirname(os.path.abspath(prefix)), exist_ok=True)
+    names = ["%s.L%sF%s.bin" % ((prefix,) + tuple(f.split(":"))) for f in frames]
+    for n in names:                 # never compare an earlier run's dumps
+        if os.path.exists(n):
+            os.remove(n)
     with open(prefix + ".log", "w") as log:
         try:
             r = subprocess.run([sys.executable, M64TRACE, rom, SPEC, prefix + ".txt"], env=env,
                                stdout=log, stderr=subprocess.STDOUT, timeout=timeout)
         except subprocess.TimeoutExpired:
             die("%s: emulator run timed out (see %s.log)" % (rom, prefix))
-    names = ["%s.L%sF%s.bin" % ((prefix,) + tuple(f.split(":"))) for f in frames]
     missing = [f for f, n in zip(frames, names) if not os.path.exists(n)]
     if missing:
         die("%s: no RAM dump at level:frame %s (rc %d; see %s.log)" % (rom, missing, r.returncode, prefix))
@@ -106,7 +118,8 @@ def main():
     a.add_argument("--objs", default="build_shift")
     a.add_argument("--work", default="build_shift/test")
     a.add_argument("--pads", default=os.path.join(HERE, "pads_test.json"))
-    a.add_argument("--frames", default="1:200,1:800,2:300", help="LEVEL:FRAME,...: game frames after a level start")
+    a.add_argument("--frames", default="1:200,1:800," + ",".join("%d:400" % lv for lv in range(2, 10)),
+                   help="LEVEL:FRAME,...: game frames after a level start (the attract demos play 9 levels)")
     a.add_argument("--noise-cpo", default="1,3,4", help="CountPerOp values of the timing-noise runs")
     a.add_argument("--sha1", default="../blastcorps.us.v11.sha1")
     a.add_argument("--no-emu", action="store_true")

@@ -22,8 +22,17 @@ Environment (hex addresses in the ROM being run):
   SHIFT_FRAME_BP   cont_update              SHIFT_LEVEL_BP      hd_setup_level
   SHIFT_DUMP_AT    LEVEL:FRAME,...  (e.g. 1:300,2:300: frame 300 of the first and second level)
   SHIFT_DUMP_PREFIX out/run                 [SHIFT_VIS] [SHIFT_STEP]
+  SHIFT_FILL       lo-hi,...  zeroed at every level start (hd_setup_level's entry)
 writes out/run.L1F300.bin, ... (8 MB RDRAM images, big-endian) and stops after
 the last one.
+
+SHIFT_FILL: the levels put their vehicles' save-buffer pairs (gJbombMtxA/B, ...)
+on the heap, where the front end's code was, and copy them before filling
+them (veh_sync_buffers): the game then reads the dead front-end code as data.
+A shifted ROM's front-end code differs (it calls hd_code at other addresses),
+so the run would differ for that reason alone; shifttest.py zeroes the front
+end's code (0x801E7000 to the end of its .text) at every level start, in
+every run.
 """
 import array
 import ctypes as C
@@ -47,6 +56,7 @@ FRAME_BP = int(os.environ["SHIFT_FRAME_BP"], 16)
 LEVEL_BP = int(os.environ["SHIFT_LEVEL_BP"], 16)
 AT = sorted(tuple(int(y) for y in x.split(":")) for x in os.environ.get("SHIFT_DUMP_AT", "1:100").split(","))
 PREFIX = os.environ.get("SHIFT_DUMP_PREFIX", "shiftrun")
+FILL = _ranges("SHIFT_FILL")
 STEP = int(os.environ.get("SHIFT_STEP", "40000"))
 VIS = int(os.environ.get("SHIFT_VIS", "40000"))
 BPS = {COUNT_RET: ("count", [], []), TIME_RET: ("time", [], []), FRAME_BP: ("frame", [], []),
@@ -116,6 +126,8 @@ def ONHIT(pc, g, read):
     if pc == LEVEL_BP:
         _state["level"] += 1
         _state["frame"] = 0
+        for lo, hi in FILL:      # the dead front-end code some levels read as data (see SHIFT_FILL)
+            C.memset(C.c_void_p(_core.DebugMemGetPointer(1) + (lo & 0x7FFFFF)), 0, hi - lo)
         sys.stderr.write("shiftrun: level start %d (game frame %d)\n" % (_state["level"], _state["total"]))
         sys.stderr.flush()
         if (_state["level"], 0) in AT:      # frame 0: the entry of hd_setup_level

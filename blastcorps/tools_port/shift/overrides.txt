@@ -35,3 +35,7 @@ lowbits hd_code gPlayerZ 8
 #   lvl_add_object: lvl_build_coll_tri's id (byte 0x50 of every building's collision
 #   triangle) is v0, still &gObjectsEnd (0x54)
 lowbits hd_code gObjectsEnd 8
+#   block_spawn_all -> coll_add_dyn_tris: byte 0x57 of each block's triangles is
+#   (u8) &gBlockSlots[i], byte 0x4F (u8) of the old gDynTrisEnd (a gDynTris address,
+#   in gObjectsEnd's unit) (8A080.c)
+lowbits hd_code gBlockSlots 8

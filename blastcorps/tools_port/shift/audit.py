@@ -99,6 +99,8 @@ def main():
         for u in segs[seg].ref["units"]:
             units_desc[u.label] = u.desc
     for st in sites:
+        if st.kind == "hir":        # a relocated lui (only checked): its raw low halves are counted
+            continue
         desc = units_desc.get(st.unit, st.unit)
         what = ("bin word" if st.note == "bin" else "C data word") if st.kind == "w32" else \
                ("ROM offset in code" if st.space == "rom" else "hand-asm address (lui/lo)")
@@ -109,7 +111,7 @@ def main():
     for (seg, what), n in sorted(kinds.items()):
         say("   %-13s %-40s %5d" % (seg, what, n))
     say("   %d in all; shiftable build: patched through the address map after the link (shiftbuild.py "
-        "apply_sites), checked by shiftcheck.py" % len(sites))
+        "apply_sites), checked by shiftcheck.py" % sum(kinds.values()))
     if args.details:
         for (seg, what, desc), lst in sorted(by_unit.items()):
             src = re.sub(r"^build/|\.o\(.*$", "", desc)
@@ -123,19 +125,40 @@ def main():
 
     # 3. C sources
     say("3. Raw address constants in the C sources (outside comments)")
-    pat = re.compile(r"\b0x(80[0-3][0-9A-Fa-f]{5}|00[3-7][0-9A-Fa-f]{5})\b")
-    cnt = 0
+    # addresses in the segments' part of RAM, and ROM offsets that start a ROM unit
+    pat = re.compile(r"\b0x([0-9A-Fa-f]{8})\b")
+    rom_starts = set(u.start for u in rom_units if u.start >= 0x1000)
+
+    def interesting(v):
+        return 0x801E7000 <= v <= 0x80400000 or v in rom_starts
+    cnt = collections.Counter()
     for f in sorted(glob.glob("src.%s/**/*.c" % SL.VERSION, recursive=True)):
         txt = open(f, errors="replace").read()
         txt = re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), txt, flags=re.S)
+        stack = []      # for each open #if: is this branch NON_MATCHING/PORT_HOST-only?
         for i, line in enumerate(txt.split("\n"), 1):
             line = line.split("//")[0]
+            s = line.strip()
+            if re.match(r"#\s*if(n?def)?\b", s):
+                nm = bool(re.match(r"#\s*ifdef\s+(NON_MATCHING|PORT_HOST)\b|#\s*if\s+defined\(?(NON_MATCHING|PORT_HOST)", s))
+                stack.append([nm, bool(re.match(r"#\s*ifndef\s+(NON_MATCHING|PORT_HOST)\b", s))])
+                continue
+            if re.match(r"#\s*else\b", s) and stack:
+                stack[-1] = [stack[-1][1], stack[-1][0]]
+                continue
+            if re.match(r"#\s*endif\b", s) and stack:
+                stack.pop()
+                continue
+            only_nm = any(x[0] for x in stack)
             for m in pat.finditer(line):
-                cnt += 1
-                if args.details:
-                    say("     %s:%d  %s" % (f, i, line.strip()[:110]))
-    say("   %d (pins: 0x801E7000 front-end base and its 0x37D00-byte window, 0x8021ED00 load buffer, "
-        "0x80400000 end of RAM, debug prints)" % cnt)
+                if not interesting(int(m.group(1), 16)):
+                    continue
+                cnt["NON_MATCHING / port only" if only_nm else "matching build"] += 1
+                if args.details and not only_nm:
+                    say("     %s:%d  %s" % (f, i, s[:110]))
+    say("   %s" % ", ".join("%d in the %s" % (n, k) for k, n in sorted(cnt.items())))
+    say("   the matching build's are pins (the front end's base 0x801E7000 and its 0x37D00-byte window,")
+    say("   the load buffer 0x8021ED00, the end of RAM 0x80400000) or debug prints; kept")
     say()
 
     # 4. linker scripts

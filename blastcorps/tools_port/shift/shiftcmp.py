@@ -177,7 +177,7 @@ KINDS = ("eq", "trans", "derived", "left", "stale", "timing", "async", "diff")
 # managers (ul_*.c .bss), the audio manager (22EE0) and sched.c (2C560).  What
 # they hold at a given game frame depends on where the other threads happen to
 # be, not on the game.
-ASYNC_SYMBOLS = re.compile(r"^g\w*(Stack|Thread|MesgQueue|MesgBuf|Mesgs?)$|^gAudioHeapBuf$|^gRspTasks$|^gScheduler$")
+ASYNC_SYMBOLS = re.compile(r"^g\w*(Stack|Thread|Queue|MesgBuf|Mesgs?)$|^gAudioHeapBuf$|^gRspTasks$|^gScheduler$")
 ASYNC_UNITS = re.compile(r"/ul_\w+\.c\.o\(\.bss\)|/22EE0\.c\.o\(\.bss\)|/2C560\.c\.o\(\.bss\)")
 
 
@@ -193,6 +193,17 @@ def async_ranges(elf_path):
             nxt = next((w for w, _ in pts[i + 1:] if w > v), v + 4)
             out.append((v, nxt))
     return out
+
+
+def unwritten(starts, oa, ob, a, b):
+    """Every byte of the word that differs still holds, in each run, its value
+    at the level's start (a level can write part of a word over the front
+    end's leftover data: a u16 or three bytes)."""
+    ba, bb = struct.pack(">I", a), struct.pack(">I", b)
+    for k in range(4):
+        if ba[k] != bb[k] and (starts[0][oa + k] != ba[k] or starts[1][ob + k] != bb[k]):
+            return False
+    return True
 
 
 class Stats:
@@ -220,7 +231,7 @@ class Stats:
                 c["trans"] += 1
             elif left is not None and left.explains(ra + off, a, b):
                 c["left"] += 1
-            elif starts is not None and ws.unpack_from(starts[0], oa)[0] == a and ws.unpack_from(starts[1], ob)[0] == b:
+            elif starts is not None and unwritten(starts, oa, ob, a, b):
                 c["stale"] += 1
             elif tr.derived(a, b):
                 c["derived"] += 1
@@ -330,6 +341,15 @@ def main():
         i = bisect.bisect_right(ar_lo, addr) - 1
         return i >= 0 and addr < ar[i][1]
 
+    # the front end's message queues stay in use in the levels (the pak thread:
+    # gPakRequestQueue, gPakReplyMesgs), over the level's heap: at the ref
+    # address in one run, at the moved address in the other
+    fe_ar = (async_ranges(os.path.join(args.ref_elfs, "hd_front_end.elf")) +
+             async_ranges(os.path.join(args.new_elfs, "hd_front_end.elf")))
+
+    def in_fe_async(addr):          # only asked for words that differ
+        return any(lo <= addr < hi for lo, hi in fe_ar)
+
     S = Stats()
     for lab, r in sorted(ram_ref.items(), key=lambda kv: kv[1][3]):
         seg = r[0]
@@ -361,7 +381,7 @@ def main():
             lo, hi = min(max(lo, rlo), rhi), max(min(hi, rhi), rlo)
             if lo > pos:
                 S.compare(ref, new, pos, pos, lo - pos, tr, "fixed %08X..%08X %s" % (pos, lo, what), noise, left,
-                          starts)
+                          starts, is_async=in_fe_async if rlo == 0x801E7000 and not fe_resident else None)
             pos = max(pos, hi)
     tot = dict((k, 0) for k in KINDS)
     nbytes = 0

@@ -5,6 +5,9 @@ address but has no relocation, so the linker can't move it.
   * hi / lo, hio / loo
          a hand-asm lui and its low halves (lo: addiu / load / store offset,
          signed; loo: ori, unsigned) that build an address
+  * hir  a relocated lui (%hi(sym)) whose register raw low halves also use
+         for other objects: the lo sites are patched, the lui is left to the
+         linker and checked
   * imm16
          a 16-bit immediate that is a ROM offset (the texture table's 0x4CE0)
 
@@ -75,8 +78,11 @@ def scan_text(words, base, relocd, funcs, is_target):
         op = w >> 26
         rs, rt = (w >> 21) & 31, (w >> 16) & 31
         handled = False
-        if op == 0x0F and a not in relocd:              # raw lui
-            rec = [a, (w & 0xFFFF) << 16, [], None]
+        if op == 0x0F:
+            # a raw lui, or a relocated one: hand asm reuses a %hi(sym) for
+            # other objects in the same 64 KB page with raw offsets
+            # (veh_copy_slot0: `sb $v0, -0x2C10($at)` after %hi(gSlotAirborne1))
+            rec = [a, (w & 0xFFFF) << 16, [], None, a in relocd]
             state[rt] = rec
             out.append(rec)
             continue
@@ -108,9 +114,14 @@ def scan_text(words, base, relocd, funcs, is_target):
             if d is not None:
                 state.pop(d, None)
     res = []
-    for lui, hi, uses, ori in out:
+    for lui, hi, uses, ori, rel in out:
         good = [u for u in uses if is_target(u[2])]
-        if good:
+        if rel:
+            # hir: the linker sets the lui; the raw low halves are patched
+            # and must agree with it (apply_sites checks)
+            if good:
+                res.append((lui, "hir", hi, good))
+        elif good:
             res.append((lui, "hio" if ori else "hi", good[0][2], good))
         elif not uses and is_target(hi):
             res.append((lui, "hi", hi, []))       # lone lui: needs an override

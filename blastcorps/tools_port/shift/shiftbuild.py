@@ -50,6 +50,7 @@ OBJCOPY = "mips-linux-gnu-objcopy"
 AS = "mips-linux-gnu-as"
 SEGS = ["init", "hd_code", "hd_front_end"]
 TEXTSEC = {s: SEGMENTS[s]["text"] for s in SEGS}
+ROM_ADDS = []           # RomUnits added to the ROM (their rom_NAME symbols go into every symbol file)
 # rarezip names / timestamps of the four compressed images (Makefile)
 GZ = {"hd_code_text": (".hd_code", "hd_code_text.raw", 855919890),
       "hd_code_data": (".hd_code_data", "hd_code_data.raw", 855919891),
@@ -201,7 +202,7 @@ def scan(segs, rom_units, site_over):
                 words = struct.unpack(">%dI" % (u.size // 4), data[:u.size & ~3])
                 for lui, kind, value, uses in relocscan.scan_text(words, u.start, relocd, funcs,
                                                                    lambda v: ram_target(v) or rom_target(v)):
-                    space = "ram" if value >= 0x80000000 else "rom"
+                    space = "ram" if (uses[0][2] if uses else value) >= 0x80000000 else "rom"
                     sites.append(relocscan.Site(seg, lui, kind, value, space, u.label,
                                                 " ".join("%08X" % x[0] for x in uses)))
                     for ua, uk, uv in uses:
@@ -333,6 +334,11 @@ def gen_symfile(seg, segs, maps, rom, sym_over, path):
                 lines.append("PROVIDE(%s = %s);" % (name, expr))
             else:
                 lines.append("%s = %s;" % (name, expr))
+    lines.append("/* files added to the ROM (--pads rom.add) */")
+    for u in ROM_ADDS:
+        if u.new_start is not None:
+            lines.append("rom_%s = 0x%08X;" % (u.name, u.new_start))
+            lines.append("rom_%s_end = 0x%08X;" % (u.name, u.new_start + len(u.data)))
     open(path, "w").write("\n".join(lines) + "\n")
     return stats
 
@@ -407,6 +413,11 @@ def apply_sites(seg, segs, sites, maps, rom, site_over, report):
             die("%s: raw reference at %08X is in %s, which changed size; can't patch it" % (seg, st.addr, lab))
         off = s.elf.file_offset(new_addr)
         w = SL.be32(buf, off)
+        if st.kind == "hir":            # the linker's %hi: check its raw low halves against it (below)
+            luis[st.addr] = ("hi", w & 0xFFFF)
+            report.append("%s %08X -> %08X %-5s %08X -> %08X %s %s" % (seg, st.addr, new_addr, st.kind, st.value,
+                                                                      (w & 0xFFFF) << 16, st.unit, st.note))
+            continue
         t = target_value(st, segs, maps, rom, site_over)
         if st.kind == "w32":
             nw = t
@@ -509,10 +520,16 @@ def main():
         u.align = 16
         rom_pads.append((int(before, 16), u))
     for a in rcfg.get("add", []):
+        # a new ROM file: the bytes of "path", or "size" bytes of a test pattern; the
+        # symbols rom_NAME / rom_NAME_end in every segment give its place
         u = RL.RomUnit(None, "bin", a["name"])
-        u.data = bytes((i * 7 + 3) & 0xFF for i in range(a["size"]))
+        if a.get("path"):
+            u.data = open(a["path"], "rb").read()
+        else:
+            u.data = bytes((i * 7 + 3) & 0xFF for i in range(a["size"]))
         u.align = 16
         rom_adds.append((int(a["before"], 16), u))
+    ROM_ADDS[:] = [u for _, u in rom_adds]
     drops = set(int(x, 16) for x in rcfg.get("drop", []))
 
     rom = RL.RomMapper(rom_units)

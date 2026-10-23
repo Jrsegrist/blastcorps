@@ -130,3 +130,166 @@ unsigned plat_frames(void) {
 u64 port_save_be64(u64 v) {
     return ((u64) bswap32((u32) v) << 32) | bswap32((u32) (v >> 32));
 }
+
+/* ---- the debug cheats and their saves (plat_host.h host_cheats_*) ------------------
+ *
+ * gDebugCheats (hd_code data, 0x802FA268) is set once at boot by parse_cmdline (26570.c) when the debug
+ * command line has -c or -C, and only read after that: every frame by hd_game_frame (the C-right
+ * level-end cheat), by fe_promo_draw (A skips the promotion), academy_save_markers (Z) and the boot
+ * screen's chime.  Nothing caches it, so writing it between game steps turns the cheats on or off at
+ * once; that is all host_cheats_set does to the game.
+ *
+ * A cheated finish is saved as a real one.  With plat_cfg.cheats_save (bc.exe's [game] cheats_save =
+ * separate, the default there), once the cheats have been on in a run the save files are
+ * <name>.cheats.<ext> next to the real ones for the rest of the run, and the real files are not written
+ * again:
+ *   - on at boot (-c / -C on the debug command line): the cheats files are used from the start; one that
+ *     doesn't exist yet is first copied from the real file (a missing real file: both start blank, and
+ *     only the cheats file gets created);
+ *   - turned on in a running game: the switch waits until the front end's save thread is not loaded
+ *     (frontEndPresent 0: in a level, the attract demo, or before the front end first loads), so a save
+ *     the thread is part-way through (a sequence of commands, 01C40.c) finishes in the real file.  The
+ *     cheats can only change what is saved in a level (the C-right finish, Z's academy marker), and the
+ *     level unloads the save thread first (hd_setup_level), so nothing cheated reaches the real file.
+ *     The cheats files are then written whole from the images in memory, i.e. the real saves as they are
+ *     now (an older cheats file is replaced);
+ *   - turned off again: the cheats files stay in use until the game closes (the game's memory holds
+ *     cheated progress).
+ * The images in memory (os_si.c g_eeprom, pif.c g_mpk) don't change: the game sees exactly the same save
+ * data either way; only the files written differ. */
+#define G_DEBUG_CHEATS (*(volatile s32 *) 0x802FA268)   /* gDebugCheats */
+#define G_FE_PRESENT (*(volatile u8 *) 0x80370C50)      /* frontEndPresent */
+
+static int g_cheats_used;        /* the cheats were on in this run */
+static int g_cheats_state;       /* 0 the normal files, 1 the switch waits for the save thread to go, 2 switched */
+static char *g_cheats_eep, *g_cheats_mpk;   /* the cheats files' names (NULL: no such save) */
+
+static unsigned cstrlen(const char *s) {
+    unsigned n = 0;
+    while (s[n]) n++;
+    return n;
+}
+
+/* "dir\blastcorps.eep" -> "dir\blastcorps.cheats.eep" ("x" -> "x.cheats"); kept for the run */
+static char *cheats_name(const char *p) {
+    unsigned n = cstrlen(p), dot = n, i, k = 0;
+    char *s;
+    for (i = n; i > 0; i--) {
+        if (p[i - 1] == '/' || p[i - 1] == '\\') break;
+        if (p[i - 1] == '.') {
+            dot = i - 1;
+            break;
+        }
+    }
+    s = host_realloc(NULL, n + 8);
+    for (i = 0; i < dot; i++) s[k++] = p[i];
+    for (i = 0; ".cheats"[i]; i++) s[k++] = ".cheats"[i];
+    for (i = dot; i < n; i++) s[k++] = p[i];
+    s[k] = 0;
+    return s;
+}
+
+/* parse_cmdline's reading of the debug command line (the 63 bytes osPiRawReadIo hands it): the words up
+ * to the first that doesn't start with '-'; -c or -C turns the cheats on */
+int host_cmdline_cheats(const char *s) {
+    unsigned i = 0;
+    if (s == NULL) return 0;
+    while (i < 63 && s[i]) {
+        while (i < 63 && s[i] == ' ') i++;
+        if (i >= 63 || s[i] == 0) break;
+        if (s[i] != '-') break;
+        if (i + 1 < 63 && (s[i + 1] == 'c' || s[i + 1] == 'C')) return 1;
+        while (i < 63 && s[i] && s[i] != ' ') i++;
+    }
+    return 0;
+}
+
+/* boot (plat_start, before the save images are read): the cheats on at boot use the cheats files */
+void plat_cheats_boot(void) {
+    const char **paths[2];
+    char **names[2];
+    int k;
+    if (plat_cfg.eeprom_path != NULL) g_cheats_eep = cheats_name(plat_cfg.eeprom_path);
+    if (plat_cfg.mpk_path != NULL) g_cheats_mpk = cheats_name(plat_cfg.mpk_path);
+    if (!host_cmdline_cheats(plat_cfg.cmdline)) return;
+    g_cheats_used = 1;
+    if (!plat_cfg.cheats_save) {
+        host_log("cheats: debug cheats on at boot (debug command line \"%s\"); saves: the normal files\n",
+                 plat_cfg.cmdline);
+        return;
+    }
+    paths[0] = &plat_cfg.eeprom_path, paths[1] = &plat_cfg.mpk_path;
+    names[0] = &g_cheats_eep, names[1] = &g_cheats_mpk;
+    for (k = 0; k < 2; k++) {
+        unsigned size = 0;
+        void *p;
+        if (*paths[k] == NULL) continue;
+        p = host_read_file(*names[k], &size);   /* (the buffers here are kept: once a run) */
+        if (p != NULL) {
+            host_log("cheats: %s: continued\n", *names[k]);
+        } else if ((p = host_read_file(*paths[k], &size)) != NULL) {
+            if (host_write_file(*names[k], p, size) != 0) host_log("cheats: can't write %s\n", *names[k]);
+            else host_log("cheats: %s: copied from %s\n", *names[k], *paths[k]);
+        } else {
+            host_log("cheats: %s: starts blank (no %s)\n", *names[k], *paths[k]);
+        }
+        *paths[k] = *names[k];
+    }
+    g_cheats_state = 2;
+    host_log("cheats: debug cheats on at boot (debug command line \"%s\"); saves: the cheats files (EEPROM %s, "
+             "Controller Pak %s)\n", plat_cfg.cmdline, g_cheats_eep ? g_cheats_eep : "(none)",
+             plat_cfg.mpk_path ? g_cheats_mpk : "(none)");
+}
+
+/* the switch to the cheats files, if it is due and safe now */
+static void cheats_switch(void) {
+    if (!plat_cfg.cheats_save || !g_cheats_used || g_cheats_state == 2) return;
+    if (G_FE_PRESENT != 0) {
+        if (g_cheats_state == 0)
+            host_log("cheats: saves go to the cheats files from the next level (the front end's save thread is "
+                     "loaded now; frame %u)\n", (unsigned) plat_stats.frames);
+        g_cheats_state = 1;
+        return;
+    }
+    if (plat_cfg.eeprom_path != NULL) plat_cfg.eeprom_path = g_cheats_eep;
+    if (plat_cfg.mpk_path != NULL) plat_cfg.mpk_path = g_cheats_mpk;
+    plat_si_rewrite();   /* the cheats files: the images in memory (the real saves as they are now) */
+    plat_pak_rewrite();
+    g_cheats_state = 2;
+    host_log("cheats: saves now go to the cheats files (EEPROM %s, Controller Pak %s), written from the saves in "
+             "memory; the real files are not written again in this run (frame %u)\n",
+             plat_cfg.eeprom_path ? plat_cfg.eeprom_path : "(none)", plat_cfg.mpk_path ? plat_cfg.mpk_path : "(none)",
+             (unsigned) plat_stats.frames);
+}
+
+void host_cheats_set(int on) {
+    G_DEBUG_CHEATS = on ? 1 : 0;
+    host_log("cheats: debug cheats %s (frame %u)\n", on ? "on" : "off", (unsigned) plat_stats.frames);
+    if (on) g_cheats_used = 1;
+    cheats_switch();
+}
+
+int host_cheats_on(void) {
+    return G_DEBUG_CHEATS != 0;
+}
+
+void host_cheats_set_save(int separate) {
+    plat_cfg.cheats_save = separate;
+    cheats_switch();   /* (cheats used with the normal files, now separate: from now on) */
+}
+
+int host_cheats_saves(void) {
+    return g_cheats_state;
+}
+
+const char *host_cheats_save_name(void) {
+    return g_cheats_eep != NULL && plat_cfg.eeprom_path != NULL ? g_cheats_eep
+           : g_cheats_mpk != NULL && plat_cfg.mpk_path != NULL  ? g_cheats_mpk
+                                                                : NULL;
+}
+
+/* each frame (plat_on_frame): bc_headless --cheats-on F, and a switch that waits */
+void plat_cheats_frame(u32 f) {
+    if (plat_cfg.cheats_on_frame != 0 && f == plat_cfg.cheats_on_frame) host_cheats_set(1);
+    if (g_cheats_state == 1) cheats_switch();
+}

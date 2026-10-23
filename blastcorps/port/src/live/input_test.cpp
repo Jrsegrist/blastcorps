@@ -174,6 +174,67 @@ int main(int, char **) {
                   live::configValue(f, {"controller", "fps_counter"}) == "back+y", "fps counter buttons back+y");
         check(f.menuPad.size() == 2, "menu buttons untouched");
     }
+    /* [game] debug_cheats and cheats_save: defaults, values, bad values, the new file's text, an older file
+     * without them (no migration: nothing rewritten), the menu's change saved; the debug_cheats key */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(!f.debugCheats && f.cheatsSaveSeparate && live::configValue(f, {"game", "debug_cheats"}) == "0" &&
+                  live::configValue(f, {"game", "cheats_save"}) == "separate",
+              "debug cheats default: off, cheats_save separate");
+        check(live::configSet(f, "game.debug_cheats=1") && f.debugCheats &&
+                  live::configValue(f, {"game", "debug_cheats"}) == "1" && live::configSet(f, "game.debug_cheats=off") &&
+                  !f.debugCheats && live::configSet(f, "game.debug_cheats=yes") && f.debugCheats,
+              "game.debug_cheats 1 / off / yes");
+        check(!live::configSet(f, "game.debug_cheats=maybe") && f.debugCheats, "game.debug_cheats 'maybe' rejected");
+        check(live::configSet(f, "game.cheats_save=normal") && !f.cheatsSaveSeparate &&
+                  live::configValue(f, {"game", "cheats_save"}) == "normal" &&
+                  live::configSet(f, "game.cheats_save=Separate") && f.cheatsSaveSeparate,
+              "game.cheats_save normal / Separate");
+        check(!live::configSet(f, "game.cheats_save=elsewhere") && f.cheatsSaveSeparate &&
+                  !live::configSet(f, "game.cheats_save=1") && f.cheatsSaveSeparate,
+              "game.cheats_save 'elsewhere' and '1' rejected");
+        check(f.keys[live::A_CHEATS].size() == 1 && f.keys[live::A_CHEATS][0] == SDL_SCANCODE_F3 && f.cheatsPad.empty() &&
+                  live::configValue(f, {"keyboard", "debug_cheats"}) == "F3" &&
+                  live::configValue(f, {"controller", "debug_cheats"}).empty(),
+              "debug_cheats key F3, no controller buttons");
+        check(live::configSet(f, "controller.debug_cheats=back+x") && f.cheatsPad.size() == 2 &&
+                  live::configValue(f, {"controller", "debug_cheats"}) == "back+x" && f.fpsPad.empty() &&
+                  f.menuPad.size() == 2,
+              "debug_cheats buttons back+x (the menu's and the counter's untouched)");
+        check(!live::configSet(f, "controller.debug_cheats=back+nothing"), "debug_cheats buttons: a bad name rejected");
+
+        live::Config n;
+        check(live::configLoad(n, "cheats_new.ini") && !n.debugCheats && n.cheatsSaveSeparate, "new bc.ini: cheats off");
+        const std::string &t = files()["cheats_new.ini"];
+        check(t.find("; In a level: C-right completes it, C-up + C-right fails it, Z + C-right is a perfect\r\n") !=
+                      std::string::npos &&
+                  t.find("\r\ndebug_cheats = 0\r\n") != std::string::npos &&
+                  t.find("\r\ncheats_save = separate\r\n") != std::string::npos &&
+                  t.find("\r\ndebug_cheats = F3\r\n") != std::string::npos &&
+                  t.find("controller_pak = 0\r\n; The game's own debug cheats") != std::string::npos,
+              "new bc.ini: the buttons in the comment, debug_cheats = 0, cheats_save = separate, the F3 key");
+
+        const std::string before = "[game]\r\nrom = x.z64\r\nsettings_version = 2\r\n\r\n[keyboard]\r\nc_up = F3\r\n";
+        files()["cheats_old.ini"] = before;
+        live::Config o;
+        check(live::configLoad(o, "cheats_old.ini") && o.warnings.empty() && !o.debugCheats && o.cheatsSaveSeparate &&
+                  files()["cheats_old.ini"] == before,
+              "bc.ini without the keys (version 2): the defaults, no warning, nothing rewritten");
+        check(o.keys[live::A_CHEATS].empty() && o.keys[live::A_CUP].size() == 1 && o.keys[live::A_CUP][0] == SDL_SCANCODE_F3,
+              "... its F3 is c_up's: the debug_cheats key is left unbound");
+        o.debugCheats = true;   /* the menu's change */
+        check(live::configSave(o, {{"game", "debug_cheats"}}) &&
+                  files()["cheats_old.ini"] == "[game]\r\nrom = x.z64\r\nsettings_version = 2\r\ndebug_cheats = 1\r\n\r\n"
+                                              "[keyboard]\r\nc_up = F3\r\n",
+              "menu change saved at the end of [game]");
+        live::Config r;
+        check(live::configLoad(r, "cheats_old.ini") && r.debugCheats && r.warnings.empty(), "read back: on");
+        files()["cheats_bad.ini"] = "[game]\r\ndebug_cheats = 2\r\ncheats_save = nowhere\r\n";
+        live::Config b;
+        check(live::configLoad(b, "cheats_bad.ini") && b.warnings.size() == 2 && !b.debugCheats && b.cheatsSaveSeparate,
+              "bad values: two warnings, the defaults used");
+    }
     /* video.present_pacing: timer (the default) or vsync; bc.ini without the key
      * (one from before it existed) gives timer; the menu's change is saved and
      * read back */

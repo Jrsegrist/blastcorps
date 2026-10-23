@@ -251,7 +251,9 @@ static void cull_log(const u32 *dl, u32 size, u32 v) {
 /* One 32-bit PI read.  Inside the ROM: the big-endian word, as lw gives it.
  * The game's only use (hd_boot) reads 16 words at 0xFFB000, past the
  * ROM, as a debug command-line *string*: there the words are returned so
- * that their bytes in host memory spell plat_cfg.cmdline (empty: zeros). */
+ * that their bytes in host memory spell plat_cfg.cmdline (empty: zeros), at
+ * most 63 bytes of it so that the 64-byte buffer always ends in a zero
+ * (parse_cmdline reads up to one). */
 s32 osPiRawReadIo(u32 devAddr, u32 *data) {
     u32 off = rom_offset(devAddr);
     if (off + 4 <= plat_rom_size) {
@@ -265,7 +267,7 @@ s32 osPiRawReadIo(u32 devAddr, u32 *data) {
             u32 len = 0;
             while (s[len]) len++;
             for (i = 0; i < 4; i++)
-                if (base + i < len) b[i] = (u8) s[base + i];
+                if (base + i < len && base + i < 63) b[i] = (u8) s[base + i];
         }
         PORT_MEMCPY(data, b, 4);
     }

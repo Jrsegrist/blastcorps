@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <commdlg.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -25,14 +26,14 @@ const unsigned short kButtonBits[kButtons] = {
 };
 const char *const kActionNames[A_COUNT] = {
     "a", "b", "z", "start", "d_up", "d_down", "d_left", "d_right", "l", "r", "c_up", "c_down", "c_left", "c_right",
-    "stick_up", "stick_down", "stick_left", "stick_right", "quit", "menu", "fps_counter",
+    "stick_up", "stick_down", "stick_left", "stick_right", "quit", "menu", "fps_counter", "debug_cheats",
     "camera_left", "camera_right", "camera_up", "camera_down", "camera_zoom_in", "camera_zoom_out", "camera_reset",
     "camera_zoom_hold",
 };
 const char *const kActionLabels[A_COUNT] = {
     "A", "B", "Z", "Start", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "L", "R", "C up", "C down",
     "C left", "C right", "Stick up", "Stick down", "Stick left", "Stick right", "Quit the game", "Settings menu",
-    "Frame-rate counter", "Orbit camera: turn left", "Orbit camera: turn right", "Orbit camera: look up",
+    "Frame-rate counter", "Debug cheats on/off", "Orbit camera: turn left", "Orbit camera: turn right", "Orbit camera: look up",
     "Orbit camera: look down", "Orbit camera: zoom in", "Orbit camera: zoom out", "Orbit camera: reset",
     "Orbit camera: hold to zoom with look up/down",
 };
@@ -54,6 +55,15 @@ static const char kDefaultIni[] =
     "; A Controller Pak plugged into controller 1: 1 = yes, 0 = no. With a pak the game keeps\r\n"
     "; its progress on the pak instead of the cartridge's EEPROM, as on the N64.\r\n"
     "controller_pak = 0\r\n"
+    "; The game's own debug cheats (from the development cartridge): 1 = on, 0 = off (default).\r\n"
+    "; In a level: C-right completes it, C-up + C-right fails it, Z + C-right is a perfect\r\n"
+    "; finish (every building, RDU and person). Also: A skips the promotion animation, Z in the\r\n"
+    "; academy gives the marker. The debug_cheats key (F3) switches them while you play.\r\n"
+    "debug_cheats = 0\r\n"
+    "; Where the game saves once the cheats were on: separate (default: blastcorps.cheats.eep\r\n"
+    "; and .mpk next to the real saves, for the rest of that run; the real saves are not\r\n"
+    "; touched) or normal (the real saves: cheated finishes count as real ones).\r\n"
+    "cheats_save = separate\r\n"
     "; The defaults this file was made with (don't change it): when a newer version changes a\r\n"
     "; default, a setting still at the old default gets the new one, once.\r\n"
     "settings_version = 2\r\n"
@@ -191,6 +201,8 @@ static const char kDefaultIni[] =
     "menu = F1\r\n"
     "; fps_counter switches the frame-rate counter (off, on, detailed).\r\n"
     "fps_counter = F2\r\n"
+    "; debug_cheats switches the game's debug cheats ([game] debug_cheats) for this run.\r\n"
+    "debug_cheats = F3\r\n"
     "; The orbit camera ([camera] mode = orbit).\r\n"
     "camera_left = Keypad 4\r\n"
     "camera_right = Keypad 6\r\n"
@@ -243,6 +255,8 @@ static const char kDefaultIni[] =
     "menu = back+start\r\n"
     "; Buttons that, held together, switch the frame-rate counter (e.g. back+y; empty: none).\r\n"
     "fps_counter =\r\n"
+    "; ... that switch the debug cheats (empty: none).\r\n"
+    "debug_cheats =\r\n"
     "; The orbit camera ([camera] mode = orbit). While it is on in play, these inputs drive\r\n"
     "; the camera and not the N64 buttons bound to the same inputs (the C buttons above).\r\n"
     "camera_left = rightx-\r\n"
@@ -392,6 +406,13 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             if (key == "rom") c.rom = v;
             else if (key == "saves") c.saves = v;
             else if (key == "controller_pak") ok = parseBool(v, c.pak);
+            else if (key == "debug_cheats") ok = parseBool(v, c.debugCheats);
+            else if (key == "cheats_save") {
+                std::string l = lower(v);
+                if (l == "separate") c.cheatsSaveSeparate = true;
+                else if (l == "normal") c.cheatsSaveSeparate = false;
+                else ok = false;
+            }
             else if (key == "settings_version") ok = parseInt(v, 1, 1000, c.settingsVersion);
             else ok = false;
         } else if (section == "video") {
@@ -562,7 +583,7 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 std::string l = lower(v);
                 if (l == "any" || l == "all") c.padIndex = -1;
                 else ok = parseInt(l, 1, 16, n) && (c.padIndex = n - 1, true);
-            } else if (section == "controller" && (key == "menu" || key == "fps_counter")) {
+            } else if (section == "controller" && (key == "menu" || key == "fps_counter" || key == "debug_cheats")) {
                 std::vector<int> combo;
                 size_t p = 0;
                 while (ok && p <= v.size()) {
@@ -575,7 +596,7 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                     if (b == SDL_CONTROLLER_BUTTON_INVALID) ok = false;
                     else combo.push_back(b);
                 }
-                if (ok) (key == "menu" ? c.menuPad : c.fpsPad) = combo;
+                if (ok) (key == "menu" ? c.menuPad : key == "fps_counter" ? c.fpsPad : c.cheatsPad) = combo;
             } else if (act < 0) {
                 ok = false;
             } else if (section == "keyboard") {
@@ -654,6 +675,19 @@ bool configLoad(Config &c, const std::string &file) {
         c.settingsVersion = 1;   /* (a file without the line: made before it existed) */
         parseText(c, text, file);
         configMigrate(c, file);
+        /* the debug cheats' key (F3 by default, new in this version): not when the player's file already uses
+         * the key for something else (kept for that; the menu can bind another) */
+        for (int a = 0; a < A_COUNT; a++) {
+            if (a == A_CHEATS) continue;
+            for (SDL_Scancode k : c.keys[a]) {
+                auto &ck = c.keys[A_CHEATS];
+                auto it = std::find(ck.begin(), ck.end(), k);
+                if (it == ck.end()) continue;
+                ck.erase(it);
+                host_log("live: %s: %s is bound to %s, so it doesn't switch the debug cheats\n", file.c_str(),
+                         SDL_GetScancodeName(k), kActionNames[a]);
+            }
+        }
         /* the old default zoom bindings (Y zooms in, a left stick click out: easy to click while steering
          * hard): to the new default (hold Y and use the right stick), written back; bindings the player
          * changed stay */
@@ -839,6 +873,8 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "rom") return c.rom;
         if (k == "saves") return c.saves;
         if (k == "controller_pak") return c.pak ? "1" : "0";
+        if (k == "debug_cheats") return c.debugCheats ? "1" : "0";
+        if (k == "cheats_save") return c.cheatsSaveSeparate ? "separate" : "normal";
         if (k == "settings_version") return std::to_string(c.settingsVersion);
     } else if (s.section == "video") {
         if (k == "api") return c.vulkan ? "vulkan" : "d3d12";
@@ -894,6 +930,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "deadzone") return std::to_string(c.deadzone);
         if (k == "menu") return menuPadNames(c.menuPad);
         if (k == "fps_counter") return menuPadNames(c.fpsPad);
+        if (k == "debug_cheats") return menuPadNames(c.cheatsPad);
         if (k == "sensitivity") return std::to_string(c.sensitivity);
         if (k == "pad") return c.padIndex < 0 ? "any" : std::to_string(c.padIndex + 1);
         if (k == "analog_throttle") return c.analogThrottle ? "1" : "0";

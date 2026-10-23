@@ -147,6 +147,11 @@ void plat_pak_init(void) {
     g_pak = 1;
 }
 
+/* the whole image to the file now (save.c: the debug cheats' saves start a new file) */
+void plat_pak_rewrite(void) {
+    if (g_mpk != NULL && plat_cfg.mpk_path != NULL) mpk_flush(0, MPK_SIZE);
+}
+
 int plat_pak_present(void) {
     return g_pak;
 }

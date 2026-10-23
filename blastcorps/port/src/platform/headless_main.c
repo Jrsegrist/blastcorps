@@ -27,7 +27,13 @@
  *     --gettime-cost N   CPU counts charged per osGetTime/osGetCount (0)
  *     --boot-count N     virtual time (counts since power-on) when hd_code
  *                        starts (0); retraces stay on multiples of 781250
- *     --cmdline STR      the debug command line at PI 0xFFB000 (default none)
+ *     --cmdline STR      the debug command line at PI 0xFFB000 (default none;
+ *                        at most 63 bytes): "-c" turns on the debug cheats
+ *     --cheats-on F      turn the debug cheats on when frame F is sent, as
+ *                        bc.exe's setting or hotkey does in a running game
+ *     --cheats-save M    normal (default) or separate: once the cheats were on,
+ *                        the saves go to <eeprom>.cheats.eep / <mpk>.cheats.mpk
+ *                        (bc.exe's [game] cheats_save; save.c)
  *     --mpk FILE         Controller Pak 1 image (mupen64plus .mpk format: four
  *                        32 KB paks, controller 1's first; created if missing)
  *     --print            print the game's debug messages (debug_printf)
@@ -76,6 +82,7 @@ static void usage(const char *bad) {
                     "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE] [--load-log]\n"
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
                     "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR]\n"
+                    "       [--cheats-on F] [--cheats-save normal|separate]\n"
                     "       [--mpk FILE] [--print] [--wav FILE] [--wav-all] [--no-audio] [--audio-capture FILE[:N]]\n"
                     "       [--cull-wide K]\n"
                     "       [--poke F:ADDR:SIZE:VALUE,..] [--watch F:ADDR[:N]] [--no-msgbox] [--crash-dir DIR]\n"
@@ -154,6 +161,13 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
         else if (!strcmp(a, "--gettime-cost")) o.count_per_gettime = num(ARG());
         else if (!strcmp(a, "--boot-count")) o.boot_count = num(ARG());
         else if (!strcmp(a, "--cmdline")) o.cmdline = ARG();
+        else if (!strcmp(a, "--cheats-on")) o.cheats_on_frame = num(ARG());
+        else if (!strcmp(a, "--cheats-save")) {
+            const char *s = ARG();
+            if (!strcmp(s, "separate")) o.cheats_save = 1;
+            else if (!strcmp(s, "normal")) o.cheats_save = 0;
+            else usage(s);
+        }
         else if (!strcmp(a, "--print")) o.game_print = g_game_print = 1;
         else if (!strcmp(a, "--mpk")) o.mpk_path = ARG();
         else if (!strcmp(a, "--wav")) o.wav_path = ARG();

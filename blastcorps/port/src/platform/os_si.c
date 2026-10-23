@@ -48,6 +48,12 @@ void plat_si_flush(void) {
     }
 }
 
+/* the whole image to the file now (save.c: the debug cheats' saves start a new file) */
+void plat_si_rewrite(void) {
+    g_eeprom_dirty = 1;
+    plat_si_flush();
+}
+
 static void si_done(void) {
     plat_post_event(OS_EVENT_SI);
 }

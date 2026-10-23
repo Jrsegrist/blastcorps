@@ -439,6 +439,33 @@ void audioTab(Config &c) {
     }
 }
 
+/* the Game tab: the game's own debug cheats ([game] debug_cheats, cheats_save) */
+void gameTab(Config &c) {
+    ImGui::SeparatorText("Debug cheats");
+    bool b = c.debugCheats;
+    if (ImGui::Checkbox("Debug cheats", &b)) {
+        c.debugCheats = b;
+        markChanged("game", "debug_cheats");
+    }
+    help("The game's own cheats from Rare's development cartridges (its command line's -c). In a level: C-right "
+         "completes it, C-up + C-right fails it, Z + C-right is a perfect finish (every building, RDU and person). "
+         "Also: A skips the promotion animation, Z in the academy gives the marker. They switch at once; the "
+         "debug_cheats key (Controls; F3 by default) switches them while you play, for this run.");
+    ImGui::TextDisabled("C-right: complete   C-up + C-right: fail   Z + C-right: perfect");
+    int s = c.cheatsSaveSeparate ? 0 : 1;
+    if (combo("Saves with the cheats", &s, {"A separate save (default)", "The normal save"})) {
+        c.cheatsSaveSeparate = s == 0;
+        markChanged("game", "cheats_save");
+    }
+    help("A cheated finish is saved like a real one. A separate save (default): once the cheats were on, the game "
+         "saves to blastcorps.cheats.eep (and .mpk) next to your saves until it closes, starting from your save as "
+         "it is then; your real save isn't written. The normal save: cheated finishes go into your real save.");
+    if (g_env.cheatsStatus) {
+        const std::string st = g_env.cheatsStatus();
+        if (!st.empty()) ImGui::TextWrapped("%s", st.c_str());
+    }
+}
+
 void cameraTab(Config &c) {
     int m = c.cameraMode;
     if (combo("Camera", &m, {"Original (default)", "Orbit (free camera)"})) {
@@ -564,6 +591,11 @@ bool padBindable(int a) {
     return a != A_STICK_UP && a != A_STICK_DOWN && a != A_STICK_LEFT && a != A_STICK_RIGHT;
 }
 
+/* the actions a controller drives with a button combination (held together) */
+std::vector<int> *padCombo(Config &c, int a) {
+    return a == A_MENU ? &c.menuPad : a == A_FPS ? &c.fpsPad : a == A_CHEATS ? &c.cheatsPad : nullptr;
+}
+
 int g_navCooldown;   /* menu frames without ImGui's gamepad navigation (the button just bound is still held) */
 
 void finishCapture() {
@@ -581,8 +613,7 @@ void captureEvent(const SDL_Event &e) {
         if (sc == SDL_SCANCODE_ESCAPE) return finishCapture();
         if (sc == SDL_SCANCODE_BACKSPACE || sc == SDL_SCANCODE_DELETE) {   /* clear */
             if (g_cap.pad) {
-                if (a == A_MENU) c.menuPad.clear();
-                else if (a == A_FPS) c.fpsPad.clear();
+                if (padCombo(c, a) != nullptr) padCombo(c, a)->clear();
                 else c.pad[a].clear();
                 markChanged("controller", kActionNames[a]);
             } else {
@@ -599,12 +630,12 @@ void captureEvent(const SDL_Event &e) {
         return;
     }
     if (!g_cap.pad) return;
-    if (a == A_MENU || a == A_FPS) {   /* a combination: every button held until the first is let go */
+    if (padCombo(c, a) != nullptr) {   /* a combination: every button held until the first is let go */
         if (e.type == SDL_CONTROLLERBUTTONDOWN &&
             std::find(g_cap.combo.begin(), g_cap.combo.end(), int(e.cbutton.button)) == g_cap.combo.end())
             g_cap.combo.push_back(e.cbutton.button);
         if (e.type == SDL_CONTROLLERBUTTONUP && !g_cap.combo.empty()) {
-            (a == A_MENU ? c.menuPad : c.fpsPad) = g_cap.combo;
+            *padCombo(c, a) = g_cap.combo;
             markChanged("controller", kActionNames[a]);
             finishCapture();
         }
@@ -633,14 +664,16 @@ void resetControls(Config &c) {
     for (int a = 0; a < A_COUNT; a++) {
         c.keys[a] = d.keys[a];
         markChanged("keyboard", kActionNames[a]);
-        if (padBindable(a) && a != A_MENU && a != A_FPS) {
+        if (padBindable(a) && padCombo(c, a) == nullptr) {
             c.pad[a] = d.pad[a];
             markChanged("controller", kActionNames[a]);
         }
     }
     c.menuPad = d.menuPad;
     c.fpsPad = d.fpsPad;
+    c.cheatsPad = d.cheatsPad;
     markChanged("controller", "fps_counter");
+    markChanged("controller", "debug_cheats");
     c.padStick = d.padStick;
     c.deadzone = d.deadzone;
     c.sensitivity = d.sensitivity;
@@ -655,7 +688,7 @@ void resetControls(Config &c) {
 void controlsTab(Config &c) {
     if (g_cap.action >= 0) {
         ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), g_cap.pad
-                               ? (g_cap.action == A_MENU || g_cap.action == A_FPS
+                               ? (padCombo(c, g_cap.action) != nullptr
                                       ? "Hold the controller buttons for \"%s\" together, then let go"
                                                          : "Press a controller button, or push a stick or trigger, for \"%s\"")
                                : "Press a key for \"%s\"",
@@ -686,8 +719,7 @@ void controlsTab(Config &c) {
             if (ImGui::Button((k.empty() ? "-" : k).append("##k").c_str(), ImVec2(-FLT_MIN, 0.0f))) g_cap = {a, false, 0, {}};
             ImGui::TableNextColumn();
             if (padBindable(a)) {
-                std::string p = a == A_MENU ? menuPadNames(c.menuPad)
-                                : a == A_FPS ? menuPadNames(c.fpsPad) : padNames(c.pad[a]);
+                std::string p = padCombo(c, a) != nullptr ? menuPadNames(*padCombo(c, a)) : padNames(c.pad[a]);
                 if (g_cap.action == a && g_cap.pad) p = "...";
                 if (ImGui::Button((p.empty() ? "-" : p).append("##p").c_str(), ImVec2(-FLT_MIN, 0.0f))) g_cap = {a, true, 0, {}};
             } else {
@@ -803,8 +835,57 @@ void drawCounter() {
     ImGui::End();
 }
 
+/* the overlay's other items: a marker that stays (the debug cheats are on) and a short note */
+std::string g_marker, g_note;
+double g_noteUntil;   /* seconds (SDL's clock) */
+
+double nowSeconds() {
+    return double(SDL_GetTicks64()) / 1000.0;
+}
+
+bool noteShown() {
+    return !g_note.empty() && nowSeconds() < g_noteUntil;
+}
+
+void drawOverlay(bool notes) {
+    ImGuiIO &io = ImGui::GetIO();
+    const float pad = std::max(6.0f, g_fontPx * 0.4f);
+    const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs |
+                                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                                   ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
+                                   ImGuiWindowFlags_NoMove;
+    if (!g_marker.empty()) {
+        /* bottom right (top right when the counter is there): small, half transparent */
+        const bool top = g_counter.mode != 0 && g_counter.corner == 3;
+        ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - pad, top ? pad : io.DisplaySize.y - pad), ImGuiCond_Always,
+                                ImVec2(1.0f, top ? 0.0f : 1.0f));
+        ImGui::SetNextWindowBgAlpha(0.3f);
+        if (ImGui::Begin("##marker", nullptr, flags)) {
+            ImGui::SetWindowFontScale(0.7f);
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.25f, 0.85f), "%s", g_marker.c_str());
+        }
+        ImGui::End();
+    }
+    if (notes && noteShown()) {
+        /* top middle; fades out over its last half second */
+        const double left = g_noteUntil - nowSeconds();
+        const float alpha = float(std::min(1.0, left / 0.5));
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+        ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.12f), ImGuiCond_Always,
+                                ImVec2(0.5f, 0.0f));
+        ImGui::SetNextWindowBgAlpha(0.6f);
+        if (ImGui::Begin("##note", nullptr, flags)) {
+            ImGui::SetWindowFontScale(0.85f);
+            ImGui::TextUnformatted(g_note.c_str());
+        }
+        ImGui::End();
+        ImGui::PopStyleVar();
+    }
+}
+
 void build() {
     drawCounter();
+    drawOverlay(false);   /* (no note over the menu) */
     Config &c = *g_env.cfg;
     ImGuiIO &io = ImGui::GetIO();
     const ImVec2 size(std::min(io.DisplaySize.x * 0.9f, g_fontPx * 42.0f), std::min(io.DisplaySize.y * 0.9f, g_fontPx * 30.0f));
@@ -838,6 +919,10 @@ void build() {
             }
             if (ImGui::BeginTabItem("Textures", nullptr, flags(4))) {
                 texturesTab(c);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Game", nullptr, flags(5))) {
+                gameTab(c);
                 ImGui::EndTabItem();
             }
             g_selectTab = -1;
@@ -943,14 +1028,34 @@ void newFrame(bool mouse) {
 
 void counterSet(const CounterStats &s) {
     g_counter = s;
-    if (s.mode == 0 && !g_open) g_visible = false;
+    if (s.mode == 0 && !g_open && g_marker.empty() && !noteShown()) g_visible = false;
+}
+
+void overlayMarker(const std::string &text) {
+    g_marker = text;
+}
+
+void overlayNote(const std::string &text, double seconds) {
+    g_note = text;
+    g_noteUntil = nowSeconds() + seconds;
+}
+
+bool overlayWanted() {
+    return !g_marker.empty() || !g_note.empty();
 }
 
 void counterFrame() {
-    if (g_open || g_counter.mode == 0 || !ensureInspector()) return;
+    if (g_open) return;
+    if (!g_note.empty() && !noteShown()) g_note.clear();   /* (its time is up) */
+    if (g_counter.mode == 0 && g_marker.empty() && g_note.empty()) {
+        g_visible = false;
+        return;
+    }
+    if (!ensureInspector()) return;
     std::lock_guard<std::mutex> lock(g_inspector->frameMutex);
     newFrame(false);
     drawCounter();
+    drawOverlay(true);
     ImGui::Render();
     g_visible = true;
 }

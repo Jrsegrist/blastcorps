@@ -107,9 +107,14 @@ void plat_fe_snapshot(void);
 /* SI devices */
 void plat_si_init(void);
 void plat_si_flush(void);
+void plat_si_rewrite(void);          /* the whole EEPROM image to the file now */
 /* Controller Pak (pif.c) */
 void plat_pak_init(void);
 int plat_pak_present(void);
+void plat_pak_rewrite(void);         /* the whole .mpk image to the file now */
+/* the debug cheats' saves (save.c): at boot (before plat_si_init), each frame */
+void plat_cheats_boot(void);
+void plat_cheats_frame(u32 f);
 
 /* game symbols the platform reads (absolute, at their N64 addresses) */
 extern u32 osViClock;

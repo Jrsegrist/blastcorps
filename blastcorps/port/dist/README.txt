@@ -42,6 +42,7 @@ Controls (default; change them in the settings menu or bc.ini)
   D-pad          T F G H             D-pad
 
   F1            settings menu (also Back+Start on a game controller)
+  F3            the game's debug cheats on/off (see "Debug cheats")
   Alt+Enter, F11  fullscreen on/off
   M             sound off/on;   - and =  volume down/up
   Esc           quit (in the settings menu: back to the game)
@@ -64,6 +65,8 @@ bc.ini is created next to bc.exe on the first start, with every setting explaine
 it. The settings menu writes it too; you can also edit it with Notepad while the
 game is closed. It holds:
   [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1),
+               debug_cheats (0, the default, or 1) and cheats_save (separate, the
+               default, or normal): see "Debug cheats",
                settings_version (leave it: see "Changed defaults" below)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
                fullscreen, vsync, present_pacing (timer, the default, vsync, vrr
@@ -198,6 +201,36 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --interpolation auto  bc.exe --fps-counter on
   bc.exe --camera orbit        bc.exe --present-pacing vsync
   bc.exe --dump-textures texture_dump
+  bc.exe --set game.debug_cheats=1   (the debug cheats, this run only)
+  bc.exe --cmdline -c          (the game's own debug command line; -c: the cheats)
+
+
+Debug cheats
+------------
+Rare's development cartridges had a debug command line; its -c switch turns on the
+game's own cheats. Turn them on with debug_cheats = 1 in bc.ini, in the settings
+menu (F1 > Game > Debug cheats), or with F3 while you play (F3 lasts for this run;
+bind another key or controller buttons in Controls). While they are on, a small
+"DEBUG CHEATS" marker shows in a corner, and switching them shows a short note.
+In a level:
+  C-right           completes the level
+  C-up + C-right    fails it
+  Z + C-right       a perfect finish (every building, RDU and person counted)
+Also: A skips the promotion animation, and Z in the academy gives the marker.
+
+Your save is protected: a cheated finish would be saved as a real one, so once the
+cheats were on the game saves to saves\blastcorps.cheats.eep (and
+blastcorps.cheats.mpk with a Controller Pak) until it closes, and leaves your real
+save alone. That file starts as a copy of your save. With the cheats on from the
+start, the game continues the cheats save of last time. Turned on during a game,
+the switch happens at once in a level, or in the menus when the next level starts
+(the menus may be saving just then; the cheats only change anything in a level),
+and the cheats save starts again from your save as it is at that moment.
+Turning the cheats off doesn't switch back: the game's memory holds the cheated
+progress, so it keeps saving to the cheats file until you close it. Next time you
+start without the cheats, you play from your real save. To keep cheated progress in
+your real save instead, set cheats_save = normal (F1 > Game > "Saves with the
+cheats").
 
 
 Texture packs

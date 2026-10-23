@@ -159,6 +159,11 @@ typedef struct HostOpts {
     int audio_off;             /* --no-audio: audio tasks are not run (no output) */
     unsigned (*pokes)[4];      /* --poke: {frame, address, size, value}: RAM writes when a frame is sent */
     unsigned n_pokes;
+    int cheats_save;           /* the debug cheats' saves (save.c): 1 = once the cheats were on in this run,
+                                  the save files are <name>.cheats.<ext> (bc.exe's [game] cheats_save =
+                                  separate; --cheats-save separate), 0 = the normal files (bc_headless's default) */
+    unsigned cheats_on_frame;  /* --cheats-on F: turn the debug cheats on when frame F is sent, as bc.exe's
+                                  setting does in a running game (0 = never) */
     const struct HostLive *live; /* renderer, window, live input (bc.exe); NULL in bc_headless */
 } HostOpts;
 
@@ -243,6 +248,22 @@ extern void (*host_input_hook)(unsigned short *button, signed char *x, signed ch
 extern void (*host_throttle_input_hook)(unsigned short *button, signed char *x, signed char *y, int trigger);
 extern void (*host_throttle_hook)(int rawY, unsigned short *button, signed char *y);
 extern int host_live_trigger;
+
+/* The game's debug cheats (save.c): gDebugCheats, which the debug command line's -c / -C sets at boot
+ * (C-right completes a level, C-up + C-right fails it, Z + C-right is a perfect finish).
+ * host_cheats_set: on or off in a running game (bc.exe's setting and hotkey; main thread, between game
+ * steps: the game reads it each time).  host_cheats_on: gDebugCheats now.  host_cmdline_cheats: does
+ * this debug command line turn them on (parse_cmdline's reading).  With HostOpts.cheats_save
+ * (host_cheats_set_save), once they were on the saves go to the cheats files (save.c explains when);
+ * host_cheats_saves: 0 the normal files, 1 waiting for the front end's save thread to go (the next
+ * level), 2 the cheats files; host_cheats_save_name: the EEPROM's cheats file (else the pak's), or NULL
+ * when the run keeps no saves. */
+void host_cheats_set(int on);
+int host_cheats_on(void);
+int host_cmdline_cheats(const char *cmdline);
+void host_cheats_set_save(int separate);
+int host_cheats_saves(void);
+const char *host_cheats_save_name(void);
 
 /* platform entry (plat_core.c): boots the game and never returns */
 PORT_NORETURN void plat_start(const HostOpts *o);

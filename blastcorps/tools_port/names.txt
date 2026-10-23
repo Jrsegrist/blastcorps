@@ -2452,6 +2452,12 @@ func_802025D0 = fe_veh_set_heading_tex_anims   # Backlash/Ramdozer heading-drive
 func_80220360 = gzip_unzip                     # boot "kiunzip": header, inflate, advance the in/out pointers
 func_802206D0 = gzip_clear_bufs                # gzip's clear_bufs: zeroes outcnt, inptr and 3 counters
 func_80220714 = init_debug_printf              # init's emptied printf: homes a0-a3, returns
+func_80220730 = init_boot                      # after entry: OS set-up, PI-DMA hd_code, inflate it, clear .bss, front-end range at 0x803FFFF8, j hd_boot
+func_80220998 = init_unzip                     # saves s-regs, keeps src/dst in gInitUnzipSrc/Dst, calls gzip_unzip
+func_80220A50 = init_lzss_decode               # an unused copy of hd_code's lzss_decode (flag bit: literal, else offset/length)
+func_80220B5C = init_lzss_read_bits            # its bit reader (most significant first), like lzss_read_bits
+D_80224A30 = gInitUnzipSrc                     # init_unzip's source pointer (by address to gzip_unzip; also entry's first sp)
+D_80224A34 = gInitUnzipDst                     # init_unzip's destination pointer
 func_80222400 = __osSetHWIntrRoutine           # libultra: __osHwIntTable[i] = {handler, sp}, ints off
 # hd.c (00000.c)
 func_8024A348 = hud_update_value_popups        # queues "$value" popups of destroyed objects, fades them

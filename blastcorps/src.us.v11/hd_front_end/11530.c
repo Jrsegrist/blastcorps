@@ -24,7 +24,7 @@
 
 #define MIN2(a, b) ((a) < (b) ? (a) : (b))
 #define MAX2(a, b) ((a) < (b) ? (b) : (a))
-#define JTEXT(addr) ((u16 * N64P) (addr))
+#define JTEXT(addr) ((u16 * N64P) HD_JTEXT_ADDR(addr))
 
 GlobeLevel gGlobeLevels[60] = {
     { 0x64, 1, N64_DPTR("SIMIAN ACRES"), JTEXT(0x80303700), 0, 0.0f, 0.0f, { -1 }, { 0x1C, 0x13, 0x03, 0x37, 0x32, -1 } },

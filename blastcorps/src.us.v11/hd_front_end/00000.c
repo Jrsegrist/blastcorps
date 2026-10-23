@@ -107,12 +107,21 @@ s32 fe_digger_init(void) {
     s32 sel;
     s32 slot[19];
 
+#if VERSION_US_V10
+    x = 0;
+    level = &gLevelInfo[levelno];
+    gDiggerSel = 0;
+    unused = 0xE73C;
+    gDiggerCount = 0;
+#else
     gDiggerSel = 0;
     x = 0;
     level = &gLevelInfo[levelno];
     gDiggerCount = 0;
     unused = 0xE73C;
+    /* US 1.1: remembered, so backing out with B restores it (fe_digger_frame) */
     gDiggerPrevVehicle = gDiggerVehicle;
+#endif
     anim_tex_init();
     for (i = 0; i < VEH_COUNT; i++) {
         slot[i] = -1;
@@ -147,7 +156,11 @@ s32 fe_digger_init(void) {
         case MODE_WORLD:
             break;
         default:
+#if VERSION_US_V10
+            DIGGER_ASSERT(1==0, 135);
+#else
             DIGGER_ASSERT(1==0, 139);
+#endif
             break;
     }
     debug_printf("default %d auto %d\n", mid, sel);
@@ -205,7 +218,10 @@ void fe_digger_frame(void) {
             snd_play(gSfxBank, SFX_SELECT, 0);
         } else if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000)) {
             snd_play(gSfxBank, SFX_BACK, 0);
+#if !VERSION_US_V10
+            /* US 1.1: B puts back the vehicle the level had; US 1.0 kept the one browsed to */
             gDiggerVehicle = gDiggerPrevVehicle;
+#endif
             switch (gPrevGameMode) {
                 case MODE_LEVEL_STATUS:
                 case MODE_RESULTS:

@@ -55,6 +55,13 @@ typedef struct {
     /* 0x16 */ s16 unk16;
 } BoxDef48D00;
 extern BoxDef48D00 D_802FDB98_boxes[];
+/* &D_802FDB98_boxes[0].radius as the raw address the matching code spells it
+ * with (the table sits 0xB0 lower in US 1.0, after its shorter .text) */
+#if VERSION_US_V10
+#define TNT_RADIUS_ADDR 0x802FDAFC
+#else
+#define TNT_RADIUS_ADDR 0x802FDBAC
+#endif
 
 extern s32 gTntCount;
 extern s32 gTntPrevPlayerX;
@@ -520,7 +527,7 @@ void tnt_ride_vehicle(u8 arg0) {
                           *(s32 *) (&gTntCrates + i * 0x48 + 4),
                           *(s32 *) (&gTntCrates + i * 0x48 + 8));
 
-            if (coll_probe_objects(*(s16 *) (0x802FDBAC + *(&gTntCrates + i * 0x48 + 0xE) * 0x18), local) != 0) {
+            if (coll_probe_objects(*(s16 *) (TNT_RADIUS_ADDR + *(&gTntCrates + i * 0x48 + 0xE) * 0x18), local) != 0) {
                 tnt_explode((u8) i);
             }
         }
@@ -553,7 +560,7 @@ void tnt_test_point(s32 arg0, s32 arg1, s32 arg2) {
         if (D_8039B070_entries[i].unk18 != 0) {
             dist = util_dist3d(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
                                  D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
-            if (dist <= (*(s16 *) (0x802FDBAC + D_8039B070_entries[i].unk0E * 0x18) >> 5)) {
+            if (dist <= (*(s16 *) (TNT_RADIUS_ADDR + D_8039B070_entries[i].unk0E * 0x18) >> 5)) {
                 gCollHit = 1;
             }
         }

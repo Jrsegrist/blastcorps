@@ -2,8 +2,17 @@ BASENAME  = blastcorps
 VERSION  := us.v10
 
 BUILD_DIR = build
+# us.v11 splits into asm/ and assets/, another version into asm/<version>/
+# and assets/<version>/ (its blastcorps.<version>.yaml says asm_path and
+# asset_path); see docs/versions.md
+ifeq ($(VERSION),us.v11)
 ASM_DIRS  = asm
-BIN_DIRS  = assets
+ASSET_DIR = assets
+else
+ASM_DIRS  = asm/$(VERSION)
+ASSET_DIR = assets/$(VERSION)
+endif
+BIN_DIRS  = $(ASSET_DIR)
 
 TOOLS_DIR := tools
 
@@ -49,7 +58,7 @@ check: .baserom.$(VERSION).ok
 verify: $(TARGET).z64
 	@echo "$$(cat $(BASENAME).$(VERSION).sha1)  $(TARGET).z64" | sha1sum --check
 
-extract: check assets/init.$(VERSION).bin
+extract: check $(ASSET_DIR)/init.$(VERSION).bin
 
 clean:
 	rm -rf asm
@@ -63,19 +72,19 @@ decompress: $(BLASTCORP_EXTRACTED)
 ### Recipes
 
 # decompression
-assets/%.$(VERSION).ext: assets/%.$(VERSION).bin
+$(ASSET_DIR)/%.$(VERSION).ext: $(ASSET_DIR)/%.$(VERSION).bin
 	$(GZIP) -d -S ".bin" $< -c > $@
 
-blastcorps/hd_code.$(VERSION).bin: assets/hd_code_text.$(VERSION).ext assets/hd_code_data.$(VERSION).ext
-	cat assets/hd_code_text.$(VERSION).ext assets/hd_code_data.$(VERSION).ext > $@
+blastcorps/hd_code.$(VERSION).bin: $(ASSET_DIR)/hd_code_text.$(VERSION).ext $(ASSET_DIR)/hd_code_data.$(VERSION).ext
+	cat $(ASSET_DIR)/hd_code_text.$(VERSION).ext $(ASSET_DIR)/hd_code_data.$(VERSION).ext > $@
 
-blastcorps/hd_front_end.$(VERSION).bin: assets/hd_front_end_text.$(VERSION).ext assets/hd_front_end_data.$(VERSION).ext
-	cat assets/hd_front_end_text.$(VERSION).ext assets/hd_front_end_data.$(VERSION).ext > $@
+blastcorps/hd_front_end.$(VERSION).bin: $(ASSET_DIR)/hd_front_end_text.$(VERSION).ext $(ASSET_DIR)/hd_front_end_data.$(VERSION).ext
+	cat $(ASSET_DIR)/hd_front_end_text.$(VERSION).ext $(ASSET_DIR)/hd_front_end_data.$(VERSION).ext > $@
 
-blastcorps/init.$(VERSION).bin: assets/init.$(VERSION).bin
-	cp assets/init.$(VERSION).bin $@
+blastcorps/init.$(VERSION).bin: $(ASSET_DIR)/init.$(VERSION).bin
+	cp $(ASSET_DIR)/init.$(VERSION).bin $@
 
-assets/init.$(VERSION).bin:
+$(ASSET_DIR)/init.$(VERSION).bin:
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py $(BASENAME).$(VERSION).yaml
 
 .baserom.$(VERSION).ok: baserom.$(VERSION).z64

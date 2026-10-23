@@ -58,7 +58,15 @@ typedef struct {
     s16 unk18;
 } MenuHeader;
 
+#if VERSION_US_V10
+/* US 1.0 took the item count from the menu header (hdr->unk10), which on a
+ * timed mission includes the blank last item; US 1.1 keeps its own count of
+ * the time rows, so the highlight loops no longer touch that extra item. */
+#define BEST_ITEM_COUNT (((u16 *) gYoshiWindows)[0x278 / 2])
+#else
 extern u32 gBestItemCount;        /* number of best-time menu items */
+#define BEST_ITEM_COUNT gBestItemCount
+#endif
 extern u8 gBestItemPlayer[];       /* player of each item */
 extern u8 gBestRowSlot[];       /* level of each row */
 #ifndef NON_MATCHING
@@ -164,7 +172,9 @@ void fe_best_build_menu(void) {
         hdr->unk10 = n * 4;
     }
     hdr->unk18 = 2;
+#if !VERSION_US_V10
     gBestItemCount = n * 4;
+#endif
     fe_best_color_items();
     fe_load_vehicle_icons();
 }
@@ -218,8 +228,13 @@ s32 fe_best_player_listed(u8 pn) {
     u32 n;
     u32 i;
 
+#if VERSION_US_V10
+    n = BEST_ITEM_COUNT;
     i = 0;
-    n = gBestItemCount;
+#else
+    i = 0;
+    n = BEST_ITEM_COUNT;
+#endif
     for (; i < n && gBestItemPlayer[i] != pn; i++) {
     }
     return i != n;
@@ -229,9 +244,13 @@ s32 fe_best_player_listed(u8 pn) {
  * highlight and colour the items by player */
 void fe_best_color_items(void) {
     MenuItem *p;
+#if VERSION_US_V10
+    s32 i;
+#else
     u32 i;
+#endif
 
-    for (i = 0; i < gBestItemCount; i++) {
+    for (i = 0; i < BEST_ITEM_COUNT; i++) {
         p = &gYoshiHeapItems[i];
         if (gBestItemPlayer[i] == playerNumber) {
             p->flags |= 4;
@@ -253,7 +272,11 @@ void fe_best_color_items(void) {
 void fe_best_clear_times(u8 pn) {
     s32 i;
 
+#if VERSION_US_V10
+    BT_ASSERT(frontEndPresent, 276);
+#else
     BT_ASSERT(frontEndPresent, 279);
+#endif
     if (!((players[pn].medal[levelno] > 0 && players[pn].medal[levelno] < 6) ? 1 : 0)) {
         for (i = 0; i < 16; i++) {
             gBestTimes[pn][gVehicleTimeSlot[i]] = 0;

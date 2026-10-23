@@ -3,9 +3,16 @@ VERSION  := us.v10
 # NON_MATCHING=1 builds functionally-equivalent C rewrites (#ifdef NON_MATCHING)
 # into build_nm/ with no checksum; see tools_port/README.md.
 NON_MATCHING ?= 0
+# SHIFT=1 builds the same sources into build_shift/ and links a whole ROM in
+# which code, data and ROM files can grow, shrink and move (docs/shiftable.md):
+#   make VERSION=us.v11 SHIFT=1            -> build_shift/blastcorps.shift.us.v11.z64
+#   make VERSION=us.v11 SHIFT=1 shift-test
+SHIFT ?= 0
 
 ifeq ($(NON_MATCHING),1)
 BUILD_DIR = build_nm
+else ifeq ($(SHIFT),1)
+BUILD_DIR = build_shift
 else
 BUILD_DIR = build
 endif
@@ -196,6 +203,8 @@ default: all
 ifeq ($(NON_MATCHING),1)
 all: init hd_code hd_front_end
 	@echo "NON_MATCHING build done (no checksum): $(INIT_TARGET).elf $(HD_CODE_TARGET).elf $(HD_FRONT_END_TARGET).elf"
+else ifeq ($(SHIFT),1)
+all: shiftrom
 else
 all: verify_init verify_hd_code verify_hd_front_end
 endif
@@ -338,6 +347,34 @@ nmrom: hd_code hd_front_end $(NM_ROM_ELF) $(NM_ROM_FE_ELF)
 		--fe-time $(HD_FRONT_END_TEXT_TIMESTAMP) $(HD_FRONT_END_DATA_TIMESTAMP) \
 		--src-dir $(HD_CODE_SRC_DIR) --sha1 ../blastcorps.$(VERSION).sha1 -o $(NM_ROM)
 .PHONY: nmrom
+endif
+
+ifeq ($(SHIFT),1)
+ifeq ($(NON_MATCHING),1)
+$(error SHIFT=1 builds the matching sources; NON_MATCHING=1 SHIFT=1 is not supported yet)
+endif
+# The shiftable ROM (docs/shiftable.md): tools_port/shift/shiftbuild.py links
+# build_shift's objects with generated linker scripts (every input section a
+# unit that can move), patches the raw references the matching layout has
+# (tools_port/shift/relocscan.py, overrides.txt), compresses hd_code and the
+# front end again and lays out the whole ROM from blastcorps.$(VERSION).assets.yaml
+# with the files of BASEROM. The matching build (build/) is the reference for
+# where everything was: it is built first. Unchanged sources give BASEROM.
+BASEROM ?= ../baserom.$(VERSION).z64
+SHIFT_ROM ?= $(BUILD_DIR)/blastcorps.shift.$(VERSION).z64
+SHIFT_PADS ?=
+shift-reference:
+	$(MAKE) VERSION=$(VERSION) SHIFT=0 NON_MATCHING=0
+shiftrom: shift-reference dirs $(INIT_O_FILES) $(HD_CODE_O_FILES) $(HD_FRONT_END_O_FILES)
+	$(PYTHON) tools_port/shift/shiftbuild.py --ref build --objs $(BUILD_DIR) --out $(BUILD_DIR)/rom \
+		--baserom $(BASEROM) $(if $(SHIFT_PADS),--pads $(SHIFT_PADS)) -o $(SHIFT_ROM)
+# the shift test: the unshifted ROM must be the original; a ROM with every
+# segment padded (tools_port/shift/pads_test.json) must pass shiftcheck.py and
+# run the attract demos like it in mupen64plus (RAM compared object by object)
+shift-test: shift-reference dirs $(INIT_O_FILES) $(HD_CODE_O_FILES) $(HD_FRONT_END_O_FILES)
+	$(PYTHON) tools_port/shift/shifttest.py all --baserom $(BASEROM) --ref build --objs $(BUILD_DIR) \
+		--work $(BUILD_DIR)/test --sha1 ../blastcorps.$(VERSION).sha1
+.PHONY: shiftrom shift-test shift-reference
 endif
 
 ifndef PERMUTER

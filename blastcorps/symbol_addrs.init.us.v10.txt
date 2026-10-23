@@ -76,9 +76,9 @@ gDepthBuffer = 0x8021ED00; // type:data
 
 // names from us.v11's undefined_syms_auto / undefined_funcs_auto (splat-detected)
 D_80220730 = 0x80220730;
-D_80224A30 = 0x80224A30;
+gInitUnzipSrc = 0x80224A30;
 D_80222850 = 0x80222850;
-D_80224A34 = 0x80224A34;
+gInitUnzipDst = 0x80224A34;
 D_80224A40 = 0x80224A40;
 D_80222860 = 0x80222860;
 D_80222864 = 0x80222864;

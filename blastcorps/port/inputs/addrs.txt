@@ -357,6 +357,8 @@ bytes_out 80222A0C 0
 insize 80222A18 0
 inptr 80222A1C 0
 outcnt 80222A20 0
+gInitUnzipSrc 80224A30 0
+gInitUnzipDst 80224A34 0
 __osHwIntTable 80224D00 0
 gAtanTable 802ACFD0 2050
 gAtanTableTail 802AD7C0 0

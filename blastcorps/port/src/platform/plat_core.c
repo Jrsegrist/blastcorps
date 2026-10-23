@@ -563,7 +563,7 @@ void plat_start(const HostOpts *o) {
     if (o->trace_path && host_trace_open(o->trace_path) != 0) host_fatal("can't write %s", o->trace_path);
 
     /* what init.us.v11 leaves behind besides the inflated images: the front
-     * end's compressed ROM range at the top of RDRAM (func_80220730) */
+     * end's compressed ROM range at the top of RDRAM (init_boot) */
     *(u32 *) 0x803FFFF8 = 0x7E3AD0;
     *(u32 *) 0x803FFFFC = 0x7F9BE0;
 

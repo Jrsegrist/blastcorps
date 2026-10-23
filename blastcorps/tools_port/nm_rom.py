@@ -16,7 +16,7 @@ Layout (see tools_port/README.md, "Test ROM"):
     (`j <NM address>; nop`) on every function entry that is safe to redirect,
     followed by the NM .hd_code_data (same address and size as the original,
     its code pointers relocated to the NM text).  It is DMAed over 0x802447C0.
-  * init's boot tail (func_80220730, init+0x1AE0..0x1BF8: a register
+  * init's boot tail (init_boot, init+0x1AE0..0x1BF8: a register
     save/restore around the no-op debug stub init_debug_printf) is replaced by an
     inline loader: write back + invalidate the D-cache, PI-DMA image A and
     image B, invalidate the I-cache, `a0 = gp`, jump to the NM entry

@@ -54,8 +54,8 @@ the end of this file for what US 1.0 would need).
   us.v11's by `tools_port/vermap.py` and committed:
   `make VERSION=us.v10 -C blastcorps port-version` (needs both ROMs and the
   us.v11 matching build's ELFs in `build/`). Names are us.v11's everywhere
-  (`func_802A2D68` is at us.v11's address and named after it in both
-  versions); only the addresses differ. Run it after changing a us.v11 yaml
+  (a function still called `func_<address>` keeps its us.v11 address in
+  the name in both versions); only the addresses differ. Run it after changing a us.v11 yaml
   or symbol file, then `extract` the other version again. `rename.py`
   renames inside the generated files too, so a rename needs no
   regeneration.

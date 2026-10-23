@@ -34,6 +34,7 @@ struct MenuEnv {
     std::function<void()> reloadPack;                      /* load the texture pack again from its files */
     std::function<std::string()> dumpStatus;               /* the texture dump's counts ("" = off) */
     std::function<unsigned()> msaaSupported;               /* MSAA sample counts possible (mask: 2, 4, 8) */
+    std::function<std::string()> cheatsStatus;             /* the debug cheats and where the game saves now */
 };
 
 void menuSetup(const MenuEnv &env);   /* once RT64 runs */
@@ -70,8 +71,16 @@ struct CounterStats {
 };
 void counterSet(const CounterStats &s);
 /* main thread, about 60 times a second while the menu is closed and the
- * counter on: its ImGui frame */
+ * counter on (or overlayWanted): its ImGui frame */
 void counterFrame();
+/* The same overlay's other items (main thread): a small marker that stays in a
+ * bottom corner ("" = none; the debug cheats are on), and a short note at the
+ * top for `seconds` (a setting switched by its key).  Like the counter they
+ * are drawn over the picture by RT64's present thread, never into the game's
+ * frame. */
+void overlayMarker(const std::string &text);
+void overlayNote(const std::string &text, double seconds = 3.0);
+bool overlayWanted();   /* a marker or a note is up */
 
 }  // namespace live
 

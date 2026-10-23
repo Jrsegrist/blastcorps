@@ -525,6 +525,7 @@ void plat_on_frame(void) {
         else *(u32 *) p[1] = p[3];
         if (!plat_cfg.quiet) host_log("poke: frame %u: %08X = %X (%u bytes)\n", (unsigned) f, p[1], p[3], p[2]);
     }
+    plat_cheats_frame(f);   /* --cheats-on, the debug cheats' saves (save.c) */
     if (plat_cfg.frames && f >= plat_cfg.frames) {
         host_log("stopping: %u frames reached\n", (unsigned) f);
         print_stats();
@@ -570,6 +571,7 @@ void plat_start(const HostOpts *o) {
     if (o->live != NULL && o->live->boot != NULL) o->live->boot();
     port_audio_init(o);
     plat_fe_snapshot();
+    plat_cheats_boot();   /* the debug cheats on at boot: their save files (save.c) */
     plat_si_init();
     plat_input_init(o->input_path);
     plat_clock_init(o->gettime_path, o->frame_done_path);

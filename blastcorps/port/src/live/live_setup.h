@@ -16,6 +16,7 @@ namespace live {
 enum Action {
     A_A, A_B, A_Z, A_START, A_DUP, A_DDOWN, A_DLEFT, A_DRIGHT, A_L, A_R, A_CUP, A_CDOWN, A_CLEFT, A_CRIGHT,
     A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_MENU, A_FPS,
+    A_CHEATS,                   /* the game's debug cheats on / off ([game] debug_cheats, for this run) */
     /* the orbit camera ([camera] mode = orbit; live_orbit.cpp) */
     A_CAM_LEFT, A_CAM_RIGHT, A_CAM_UP, A_CAM_DOWN, A_CAM_ZOOM_IN, A_CAM_ZOOM_OUT, A_CAM_RESET,
     A_CAM_ZOOM_HOLD,            /* held: look up / down zoom instead (in / out) */
@@ -45,6 +46,11 @@ struct Config {
     std::string rom;                /* as written in the file */
     std::string saves;              /* folder ("" = don't keep saves) */
     bool pak = false;
+    bool debugCheats = false;       /* [game] debug_cheats: the game's own debug cheats (gDebugCheats, the dev
+                                       cart's command line -c): C-right completes a level, C-up + C-right fails
+                                       it, Z + C-right is a perfect finish */
+    bool cheatsSaveSeparate = true; /* [game] cheats_save: separate (the default: once the cheats were on in a
+                                       run, the saves go to blastcorps.cheats.eep / .mpk) or normal */
     int settingsVersion = kSettingsVersion;   /* [game] settings_version: the defaults the file was made with
                                                  (a file without it: 1); configLoad migrates older ones */
     bool vulkan = false;
@@ -92,6 +98,7 @@ struct Config {
     std::vector<PadInput> pad[A_COUNT];
     std::vector<int> menuPad;       /* controller buttons that, held together, open the menu */
     std::vector<int> fpsPad;        /* ... that switch the frame-rate counter (default none) */
+    std::vector<int> cheatsPad;     /* ... that switch the debug cheats (default none) */
     int padStick = 0;               /* 0 left stick, 1 right stick, -1 none */
     int deadzone = 7000;
     int sensitivity = 100;          /* analog stick, percent of the full N64 range */

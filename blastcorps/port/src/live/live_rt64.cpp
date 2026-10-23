@@ -61,6 +61,10 @@
  *   display's state) go to the log every 10 s and at exit (frameLog).
  *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
  *                       --set audio.volume=50
+ *     --cmdline STR     (headless_main.c) the game's debug command line, as in
+ *                       bc_headless: "-c" turns on the debug cheats (so does
+ *                       --set game.debug_cheats=1, which puts -c there);
+ *                       --cheats-save normal|separate, --cheats-on F as there
  *     --resolution R    internal resolution: window (default), 1 (320x240), 2, 3, 4 ...
  *     --msaa N          multisample anti-aliasing: 0 (default), 2, 4, 8
  *     --filtering F     the picture's scaling: aa (default), linear, nearest
@@ -767,7 +771,10 @@ void counterApply() {
 
 /* each retrace (main thread) */
 void counterTick(unsigned frames) {
-    if (!g_counter.on) return;
+    if (!g_counter.on) {
+        if (live::overlayWanted()) live::counterFrame();   /* the overlay's marker / note (the debug cheats) */
+        return;
+    }
     const double now = secondsSince(g_tStart);
     if (g_counter.lastUpdate < 0) {
         g_counter.lastUpdate = now;
@@ -813,6 +820,61 @@ void counterCycle() {
     g_cfg.fpsCounter = (g_cfg.fpsCounter + 1) % 3;
     host_log("live: frame-rate counter %s\n", live::fpsCounterName(g_cfg.fpsCounter).c_str());
     counterApply();
+}
+
+/* ---- the game's debug cheats ([game] debug_cheats, the debug_cheats key) -------------
+ * On at boot, bc.exe puts -c on the game's debug command line (exactly as --cmdline -c); in a running game
+ * host_cheats_set writes gDebugCheats, which the game reads every time (save.c).  A marker in the
+ * overlay says they are on; switching them shows a note; both are drawn over the picture (live_menu.cpp),
+ * never into the game's frame.  The saves: save.c ([game] cheats_save). */
+std::string fileName(const char *p) {
+    std::string s = p != nullptr ? p : "";
+    const size_t slash = s.find_last_of("\\/");
+    return slash == std::string::npos ? s : s.substr(slash + 1);
+}
+
+/* where the game saves now, for people ("" when the run keeps no saves) */
+std::string cheatsSaveText() {
+    const char *name = host_cheats_save_name();
+    if (name == nullptr) return "";
+    const int st = host_cheats_saves();
+    if (st == 2) return "Saving to " + fileName(name) + " until the game closes (your real save is untouched).";
+    if (st == 1) return "Saving to " + fileName(name) + " from the next level on (your real save is untouched).";
+    if (g_cfg.debugCheats && !g_cfg.cheatsSaveSeparate) return "Cheated finishes are saved to your real save.";
+    return "";
+}
+
+void cheatsMarker() {
+    live::overlayMarker(g_cfg.debugCheats ? "DEBUG CHEATS" : "");
+}
+
+/* g_cfg.debugCheats changed (the menu, the key): to the game, the marker, a note (not over the open menu:
+ * its Game tab says the same) */
+void cheatsApply() {
+    if (g_cfg.debugCheats != (host_cheats_on() != 0)) host_cheats_set(g_cfg.debugCheats ? 1 : 0);
+    cheatsMarker();
+    std::string note = g_cfg.debugCheats ? "Debug cheats ON\nC-right: complete   C-up + C-right: fail   Z + C-right: perfect"
+                                         : "Debug cheats OFF";
+    const std::string where = cheatsSaveText();
+    if (!where.empty()) note += "\n" + where;
+    if (!live::menuIsOpen()) live::overlayNote(note, 4.0);
+    host_log("live: debug cheats %s (frame %u)%s%s\n", g_cfg.debugCheats ? "on" : "off", plat_frames(),
+             where.empty() ? "" : ": ", where.c_str());
+}
+
+/* each retrace: the game's own state (--cheats-on turns them on from the platform) */
+void cheatsPoll() {
+    const bool on = host_cheats_on() != 0;
+    if (on != g_cfg.debugCheats) {
+        g_cfg.debugCheats = on;
+        cheatsMarker();
+    }
+}
+
+/* the debug_cheats key / controller buttons: for this run (the menu saves it) */
+void cheatsToggle() {
+    g_cfg.debugCheats = !g_cfg.debugCheats;
+    cheatsApply();
 }
 
 unsigned displayHz() {
@@ -2105,6 +2167,7 @@ void handleEvent(SDL_Event e) {
                 if (in.button == e.cbutton.button) shutdown(0);
             if (menuCombo()) openMenu();
             else if (live::comboHeld(g_cfg, g_pads, g_cfg.fpsPad)) counterCycle();
+            else if (live::comboHeld(g_cfg, g_pads, g_cfg.cheatsPad)) cheatsToggle();
         }
         if (e.type == SDL_KEYDOWN && !e.key.repeat) {
             const SDL_Scancode sc = e.key.keysym.scancode;
@@ -2114,6 +2177,8 @@ void handleEvent(SDL_Event e) {
                 openMenu();
             } else if (isKey(live::A_FPS, sc)) {
                 counterCycle();
+            } else if (isKey(live::A_CHEATS, sc)) {
+                cheatsToggle();
             } else if (e.key.keysym.scancode == SDL_SCANCODE_M) {
                 g_opt.mute = !g_opt.mute;
                 host_log("live: sound %s\n", g_opt.mute ? "off" : "on");
@@ -2417,6 +2482,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
             waitMs = (t - waitFrom) * 1e3;
         }
     }
+    cheatsPoll();
     counterTick(frames);
     /* the presents this retrace queues are due at its paced time (port patch
      * 0005: the vsync pacing holds pictures by these times, so a retrace the
@@ -2776,6 +2842,12 @@ void settingChanged(const live::Setting &s) {
             applyPresentPacing();
         }
         /* api: the next start */
+    } else if (s.section == "game" && s.key == "debug_cheats") {
+        cheatsApply();
+    } else if (s.section == "game" && s.key == "cheats_save") {
+        host_cheats_set_save(g_cfg.cheatsSaveSeparate ? 1 : 0);
+        if (!g_cfg.cheatsSaveSeparate && host_cheats_saves() == 2)
+            host_log("live: cheats_save = normal: this run keeps saving to the cheats files (it already switched)\n");
     } else if (s.section == "audio") {
         g_opt.volume = g_cfg.volume;
         g_opt.mute = g_cfg.mute;
@@ -2975,6 +3047,21 @@ void prestart(HostOpts *o) {
     host_log("live: Blast Corps port %s, ROM %s\n", BC_VERSION, o->rom_path);
     host_log("live: saves: EEPROM %s, Controller Pak %s\n", o->eeprom_path ? o->eeprom_path : "(not kept)",
              o->mpk_path ? o->mpk_path : "(none)");
+    /* the debug cheats at boot: [game] debug_cheats = 1 puts -c on the game's debug command line (the same as
+     * --cmdline -c); a --cmdline that already turns them on counts as the setting on (for this run) */
+    {
+        static std::string cmd;
+        const bool given = host_cmdline_cheats(o->cmdline) != 0;
+        if (g_cfg.debugCheats && !given) {
+            cmd = o->cmdline != nullptr && o->cmdline[0] != 0 ? "-c " + std::string(o->cmdline) : "-c";
+            o->cmdline = cmd.c_str();
+        }
+        if (given) g_cfg.debugCheats = true;
+        g_cfg.cheatsSaveSeparate = o->cheats_save != 0;   /* (bc.ini's, or --cheats-save) */
+        host_log("live: debug cheats %s at boot%s, cheats_save = %s; debug command line \"%s\"\n",
+                 g_cfg.debugCheats ? "on" : "off", given ? " (--cmdline)" : "",
+                 g_cfg.cheatsSaveSeparate ? "separate" : "normal", o->cmdline != nullptr ? o->cmdline : "");
+    }
     makeSaveDirs(o);
     if (!g_cfg.warnings.empty()) {
         std::string msg = "Some settings were not understood and their defaults are used:\n\n";
@@ -3100,6 +3187,7 @@ void prestart(HostOpts *o) {
         if (g_cfg.texturePackOn && !g_cfg.texturePack.empty()) applyTexturePack();
     };
     menu.dumpStatus = [] { return live::texDumpOn() ? live::texDumpStatus() : std::string(); };
+    menu.cheatsStatus = cheatsSaveText;
     live::menuSetup(menu);
     live::interpTagsSetup(g_app);
     live::interpTagsSetLog(g_interp.log);
@@ -3107,6 +3195,7 @@ void prestart(HostOpts *o) {
     live::orbitSetup(g_app, &g_cfg, g_window);
     live::throttleSetup(&g_cfg, g_throttleLog);
     if (g_cfg.fpsCounter != 0) counterApply();
+    cheatsMarker();
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
     SDL_GetWindowSize(g_window, &ww, &wh);
@@ -3167,6 +3256,7 @@ void optsHook(HostOpts *o) {
     g_opt.vsync = g_cfg.vsync;
     g_opt.volume = g_cfg.volume;
     g_opt.mute = g_cfg.mute;
+    o->cheats_save = g_cfg.cheatsSaveSeparate ? 1 : 0;   /* (--cheats-save on the command line overrides it) */
     if (!g_cfg.file.empty() && !g_cfg.saves.empty()) {
         const std::string dir = live::absPath(g_cfg, g_cfg.saves);
         g_eepromPath = dir + "\\blastcorps.eep";

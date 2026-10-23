@@ -303,7 +303,8 @@ compiled natively) on the platform layer in `src/platform/`, with no
 graphics or audio output. Options are listed in
 `src/platform/headless_main.c` (`--frames N`, `--dump F1,F2`, `--dump-every N`,
 `--trace FILE`, `--input FILE`, `--gettime FILE`, `--frame-done FILE`,
-`--eeprom FILE`, `--mpk FILE`, `--print`, `--cmdline STR`, `--gfx-cycles N`,
+`--eeprom FILE`, `--mpk FILE`, `--print`, `--cmdline STR` (at most 63 bytes),
+`--cheats-on F`, `--cheats-save normal|separate`, `--gfx-cycles N`,
 `--boot-count N`, `--syms FILE`, `-v`...). A frame is one frame-ending gfx
 task (the scheduler task with flag 0x40); dumps are the 8 MB of RDRAM in host
 byte order, taken when the main thread sends that task to the scheduler.
@@ -325,7 +326,8 @@ Platform model (`src/platform/`):
 | RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); cull_rsp_test's cull test answered by a CPU model of its ucode (below); audio tasks run at once on the microcode interpreter (src/audio/, "Audio" below), SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; each accepted buffer goes to the output (`--wav FILE`; bc.exe's speakers), which never feeds back into the timing. |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
-| debug output | headless_main.c | `--print`: the game's debug printf (debug_printf, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
+| debug output | headless_main.c | `--print`: the game's debug printf (debug_printf, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right completes the level, C-up + C-right fails it, Z + C-right is a perfect finish). |
+| debug cheats | save.c | `host_cheats_set` writes gDebugCheats (0x802FA268) between game steps (bc.exe's setting and key; `--cheats-on F` at frame F); the game reads it every time, parse_cmdline sets it only at boot. `--cheats-save separate` (bc.exe's default, `[game] cheats_save`): once the cheats were on, the save files are `<name>.cheats.<ext>` for the rest of the run (below). |
 
 Host-order rules the game C follows under `PORT_HOST` (include/game/port.h):
 `PORT_HALF(i)` for u16 views of 32-bit words (the N64 Mtx's elements; the
@@ -533,7 +535,8 @@ it without a fault.  The x64-asan preset is the tool for this now.
   (the NON_MATCHING test ROM).
 - **bc.ini** next to the exe (`--config FILE` for another), created on the
   first start from the commented defaults (the text in live_setup.cpp is
-  the defaults): `[game]` rom, saves, controller_pak; `[video]` api, scale,
+  the defaults): `[game]` rom, saves, controller_pak, debug_cheats,
+  cheats_save; `[video]` api, scale,
   fullscreen, vsync; `[audio]` volume, mute; `[keyboard]`/`[controller]` one
   line per N64 button (SDL key names / SDL game-controller names, axes as
   `rightx+`), the analog stick's source and dead zone, quit.  Lines it
@@ -544,6 +547,40 @@ it without a fault.  The x64-asan preset is the tool for this now.
   `--no-pak`, `--eeprom`/`--mpk` override.  With a pak the game keeps its
   progress on the pak and never touches the EEPROM (checked: level completion
   with a pak = 0 EEPROM accesses), so the default is no pak.
+- **Debug cheats** (`[game] debug_cheats = 0|1`, the menu's Game tab, the
+  `debug_cheats` key F3 / `[controller] debug_cheats` buttons for the run):
+  the game's own cheats (gDebugCheats, the dev cart's `-c`): in a level
+  C-right completes it, C-up + C-right fails it, Z + C-right is a perfect
+  finish; A skips the promotion animation, Z gives the academy marker.  On at
+  boot, bc.exe puts `-c` on the debug command line (exactly `--cmdline -c`;
+  bc.exe takes bc_headless's `--cmdline STR`, and one with `-c`/`-C` counts as
+  the setting on); switched in a running game, `host_cheats_set` (save.c)
+  writes gDebugCheats, which every reader reads each time (hd_game_frame each
+  frame, fe_promo_draw, academy_save_markers, the boot screen's chime), so
+  that is safe at any retrace.  A "DEBUG CHEATS" marker (bottom right; top
+  right when the counter is there) and a 4 s note when switched are drawn by
+  the menu's overlay (never into the game's frame); bc.log logs the state at
+  boot and every switch.  The other switches of parse_cmdline aren't exposed:
+  `-C` also sets gDebugStepGameState (academy_advance_state then steps the
+  rank one state per save, regardless of points: it changes saved progress);
+  `-l` (gDebugRamEeprom) saves to a RAM copy of the EEPROM instead of the
+  chip (lost at exit) and makes the D-pad, L and R tune the globe's light; `-d` (gDebugFlagD)
+  starts the main thread once instead of twice; `-v -s -j -m` set flags
+  nothing reads.  **Saves** (`[game] cheats_save = separate`, the default, or
+  `normal`; save.c): once the cheats were on in a run, the EEPROM / pak files
+  are `blastcorps.cheats.eep` / `.mpk` until bc.exe closes, and the real ones
+  aren't written again.  On at boot: the cheats files from the start (a
+  missing one is first copied from the real file).  Switched on in a running
+  game: the switch waits until frontEndPresent is 0 (a level, the attract
+  demo, before the front end loads; the level unloads the save thread first),
+  so a save sequence the thread is part-way through ends in the real file;
+  the cheats files are then written whole from the images in memory (the
+  real saves as they are then).  Off again: the cheats files stay (the game's
+  memory holds cheated progress).  The images the game reads never change:
+  only the files written differ.  No settings_version bump: both keys are
+  new, so no old default needs migrating; a file without them gets the
+  defaults (off, separate) and is not rewritten.  An older bc.ini whose own
+  bindings use F3 keeps it there (the cheats key is then unbound).
 - **`--no-config`**: no bc.ini, the built-in defaults, no save files unless
   `--eeprom`/`--mpk`/`--saves`: bc.exe then runs exactly like bc_headless
   with the same options.  Tests and comparisons should pass it (with a ROM

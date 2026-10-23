@@ -264,6 +264,10 @@ With `gDebugCheats` in a level (`hd_game_frame`):
 
 Also: Z gives the academy marker, A skips the promotion animation.
 
+Nothing caches `gDebugCheats`: parse_cmdline sets it once at boot and the
+readers above check it every time, so the port's bc.exe switches it in a
+running game (`[game] debug_cheats`, F3; port/README.md "Debug cheats").
+
 ## Per-frame order (`hd_game_frame`)
 
 1. The debug cheat check.

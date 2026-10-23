@@ -9,7 +9,7 @@ numbers are `levelno` (0-59); this doc names no level contents (ROM data).
 
 Related docs: [destruction.md](destruction.md) (the tally and money come from
 the object system), [carrier.md](carrier.md) (mission success and failure).
-The save formats are in the engine docs (frontend.md).
+The save formats are in the engine docs ([frontend.md](frontend.md)).
 
 ## Where the code is
 
@@ -230,7 +230,7 @@ From state 11 the missions are played as `MISSION_TIMED`.
 - `gBestTimes[player][16]`: the current level's times per vehicle slot, loaded
   per level. `PlayerInfo.bestVehicle[level]` picks the slot of the best.
 - EEPROM stores each time with a check word `time ^ 0x55AA`; Pak files and the
-  player records carry CRCs (frontend.md). These are the only integrity
+  player records carry CRCs ([frontend.md](frontend.md)). These are the only integrity
   checks found.
 - The best-times screen (10850.c) lists each vehicle slot the player has
   unlocked, four rows per slot.

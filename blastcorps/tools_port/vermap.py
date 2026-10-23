@@ -156,7 +156,9 @@ class SegMap:
         self.tmap, self.tops = seq_map(ref.m, oth.m)
         self.dmap, self.dops = seq_map(ref.dm, oth.dm)
         self.moved_data = self.find_moved_data()
-        self.funcs = self.classify(get_funcs(elf, ref.vram, ref.vram + ref.text))
+        # (elf: the ref matching build's ELF, or a list of (address, name))
+        funcs = elf if isinstance(elf, list) else get_funcs(elf, ref.vram, ref.vram + ref.text)
+        self.funcs = self.classify(funcs)
         self.fstarts = [f['ref'] for f in self.funcs]
 
     def find_moved_data(self):
@@ -603,7 +605,9 @@ def port_yaml(mp, seg, src, dst, ref_ver, other_ver, build_dir, asm_dir, asset_d
         line = line.replace(ref_ver, other_ver) if 'src_path' not in line else line
         out.append(line)
         if line.startswith('options:') and not hdr_done:
-            out.append('  # generated from %s by tools_port/vermap.py: do not edit' % os.path.basename(src))
+            out.append('  # generated from %s by tools_port/vermap.py: do not edit (the comments,' %
+                       os.path.basename(src))
+            out.append("  # and the offsets in the file names, are %s's)" % ref_ver)
             out.append('  build_path: %s' % build_dir)
             out.append('  asm_path: %s' % asm_dir)
             out.append('  asset_path: %s' % asset_dir)

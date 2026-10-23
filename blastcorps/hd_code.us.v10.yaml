@@ -1,5 +1,6 @@
 options:
-  # generated from hd_code.us.v11.yaml by tools_port/vermap.py: do not edit
+  # generated from hd_code.us.v11.yaml by tools_port/vermap.py: do not edit (the comments,
+  # and the offsets in the file names, are us.v11's)
   build_path: build/us.v10
   asm_path: asm/us.v10
   asset_path: assets/us.v10

@@ -5,13 +5,17 @@
  * recording: one line per controller read (osContStartReadData; the game
  * reads once per game frame), "BUTTONS STICK_X STICK_Y" (decimal or 0x hex,
  * sticks signed).  "@N BUTTONS X Y" places a line at read N; a value holds
- * until the next line, so sparse files work.  '#' starts a comment. */
+ * until the next line, so sparse files work.  '#' starts a comment.  An
+ * optional 4th value is an analog trigger's pressure, 0..255 (bc.exe's
+ * analog throttle, [controller] analog_throttle: host_throttle_input_hook);
+ * without it, or with the throttle off, it changes nothing. */
 #include "plat.h"
 
 typedef struct {
     u32 index;
     u16 button;
     s8 x, y;
+    s16 trigger;   /* -1: none */
 } InputLine;
 
 static InputLine *g_lines;
@@ -55,7 +59,7 @@ void plat_input_init(const char *path) {
     while (p < end) {
         char *eol = p;
         const char *q;
-        s32 b, x, y, n;
+        s32 b, x, y, n, t;
         while (eol < end && *eol != '\n') eol++;
         *eol = 0;
         q = p;
@@ -68,6 +72,8 @@ void plat_input_init(const char *path) {
             x = y = 0;
             parse_num(&q, &x);
             parse_num(&q, &y);
+            if (!parse_num(&q, &t)) t = -1;
+            else if (t < 0 || t > 255) host_fatal("--input file %s: trigger value %d is not 0..255", path, (int) t);
             if (g_n == g_cap) {
                 g_cap = g_cap ? g_cap * 2 : 1024;
                 g_lines = host_realloc(g_lines, g_cap * sizeof(InputLine));
@@ -76,6 +82,7 @@ void plat_input_init(const char *path) {
             g_lines[g_n].button = (u16) b;
             g_lines[g_n].x = (s8) x;
             g_lines[g_n].y = (s8) y;
+            g_lines[g_n].trigger = (s16) t;
             g_n++;
             idx++;
         }
@@ -87,11 +94,15 @@ void plat_input_init(const char *path) {
 void plat_input_read(u32 index, u16 *button, s8 *x, s8 *y) {
     /* last line at or before index (lines are in file order; indices rise) */
     u32 lo = 0, hi = g_n;
+    int trigger = -1;
     *button = 0;
     *x = *y = 0;
     /* bc.exe without --input: the player's keyboard / gamepad */
     if (g_lines == NULL && plat_cfg.live != NULL && plat_cfg.live->input != NULL &&
         plat_cfg.live->input(button, x, y)) {
+        /* bc.exe's analog throttle (NULL otherwise) */
+        if (host_throttle_input_hook != NULL)
+            host_throttle_input_hook(button, (signed char *) x, (signed char *) y, host_live_trigger);
         if (host_input_hook != NULL) host_input_hook(button, (signed char *) x, (signed char *) y);
         return;
     }
@@ -104,7 +115,9 @@ void plat_input_read(u32 index, u16 *button, s8 *x, s8 *y) {
         *button = g_lines[lo - 1].button;
         *x = g_lines[lo - 1].x;
         *y = g_lines[lo - 1].y;
+        trigger = g_lines[lo - 1].trigger;
     }
+    if (host_throttle_input_hook != NULL) host_throttle_input_hook(button, (signed char *) x, (signed char *) y, trigger);
     /* bc.exe's orbit camera: camera-relative steering (NULL otherwise) */
     if (host_input_hook != NULL) host_input_hook(button, (signed char *) x, (signed char *) y);
 }

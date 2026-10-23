@@ -235,6 +235,14 @@ extern short *(*host_draw_cells_hook)(short *game);
  * the one hook that changes what the game sees, by design and only in orbit
  * mode with the stick held (see live_orbit.cpp steerHook). */
 extern void (*host_input_hook)(unsigned short *button, signed char *x, signed char *y);
+/* bc.exe's analog throttle ([controller] analog_throttle; NULL otherwise).  host_throttle_input_hook: each
+ * controller read (plat_input_read, before host_input_hook), the throttle trigger's pressure `trigger`
+ * (0..255; -1: none: the --input line's 4th value, or host_live_trigger, the player's, set by bc.exe's
+ * input) goes into the pad (the A button and the raw stick y: live_throttle.cpp).  host_throttle_hook:
+ * PORT_THROTTLE in the game's pad processing. */
+extern void (*host_throttle_input_hook)(unsigned short *button, signed char *x, signed char *y, int trigger);
+extern void (*host_throttle_hook)(int rawY, unsigned short *button, signed char *y);
+extern int host_live_trigger;
 
 /* platform entry (plat_core.c): boots the game and never returns */
 PORT_NORETURN void plat_start(const HostOpts *o);

@@ -162,13 +162,14 @@ void videoTab(Config &c) {
         help("Low latency: pictures go to the display as soon as they are due; with vertical sync and a frame rate "
              "that divides the display's (60 or 120 on a 120 Hz display) one per refresh. Smooth under load: each "
              "picture waits for its own display refresh, so motion stays even while other programs load the PC, for "
-             "about 5-10 ms more delay. G-Sync / FreeSync: for a variable-refresh display; an even pace a little "
-             "under its highest rate, each picture shown as it comes. Auto picks one from the display. "
+             "about 5-10 ms more delay. G-Sync / FreeSync (experimental): an even pace a little under the display's "
+             "highest rate, each picture shown as it comes; measured on a G-Sync display it was less even than Low "
+             "latency, which is the one to use there too. Auto picks one from the display (never G-Sync / FreeSync). "
              "Needs Direct3D 12.");
         ImGui::TextDisabled("%s", !d3d12 ? "Frame pacing needs Direct3D 12."
                             : p == 1 && !c.vsync ? "Smooth under load needs vertical sync."
                             : p == 1 ? "Even under load, about 5-10 ms more delay."
-                            : p == 2 ? "For G-Sync / FreeSync displays only (else a stutter now and then)."
+                            : p == 2 ? "Experimental: on G-Sync displays too, Low latency is smoother."
                             : p == 3 ? "Picked from the display (the log names it)."
                                      : "Lowest delay; even unless the PC is busy.");
     }
@@ -470,14 +471,23 @@ void cameraTab(Config &c) {
         c.camInvertY = b;
         markChanged("camera", "invert_y");
     }
+    b = c.camFollow;
+    if (ImGui::Checkbox("Turn with the vehicle", &b)) {
+        c.camFollow = b;
+        markChanged("camera", "follow");
+    }
+    help("On (default): the angle you set is kept relative to the game's own camera, which follows your vehicle: "
+         "set the view to the side and it stays at the side as you drive and turn, like a chase camera. Off: the "
+         "view stays fixed in the world (the same compass direction): driving a circle, it swings round you.");
     b = c.camRecentre;
     if (ImGui::Checkbox("Ease back behind the player", &b)) {
         c.camRecentre = b;
         markChanged("camera", "recentre");
     }
     help("On: after you let go of the camera controls for the delay below, the camera eases back to the game's "
-         "own view behind you. Off: it stays where you left it until you reset it (Controls: \"Orbit camera: "
-         "reset\", the right stick's click or the middle mouse button).");
+         "own view behind you. Off (default): the view and the zoom stay where you left them, getting in and out, "
+         "pausing and in menus too, until you reset them (Controls: \"Orbit camera: reset\", the right stick's "
+         "click or the middle mouse button) or start a level (the zoom is kept).");
     float f = float(c.camRecentreDelay);
     ImGui::BeginDisabled(!c.camRecentre && !(c.camRecentreOnFoot && !c.camRelativeSteering));
     if (ImGui::SliderFloat("Delay", &f, 0.0f, 10.0f, "%.1f s")) {
@@ -504,14 +514,14 @@ void cameraTab(Config &c) {
     help("With the option above off: ease the view back behind the driver on foot, the J-Bomb, Thunderfist and "
          "the Cyclone Suit even with \"Ease back behind the player\" off, so the stick isn't rotated for long.");
     int col = c.camCollision;
-    if (combo("Buildings in the way", &col, {"Smooth (default)", "Off", "Strict"})) {
+    if (combo("Buildings in the way", &col, {"Smooth", "Off (default)", "Strict"})) {
         c.camCollision = col;
         markChanged("camera", "collision");
     }
-    help("Smooth: the camera rises over or moves in front of a building that stays between it and you, calmly, "
-         "and goes back after a moment once the view is clear; poles, corners and buildings rushing past just "
-         "hide you for a moment. Strict: it moves at once, every time something is in the way. Off: it never "
-         "moves for buildings (you may see through them or lose sight of yourself).");
+    help("Off (default): the camera never moves for buildings: it stays at your zoom and angle (you may see "
+         "through a building or lose sight of yourself behind one); it is still kept above the ground. Smooth: "
+         "it rises over or moves in front of a building that stays between it and you, calmly, and goes back "
+         "after a moment once the view is clear. Strict: it moves at once, every time something is in the way.");
     float lo = float(c.camZoomMin), hi = float(c.camZoomMax);
     if (ImGui::SliderFloat("Closest zoom", &lo, 0.2f, 1.0f, "%.2fx")) {
         c.camZoomMin = lo;
@@ -635,7 +645,11 @@ void resetControls(Config &c) {
     c.deadzone = d.deadzone;
     c.sensitivity = d.sensitivity;
     c.padIndex = d.padIndex;
-    for (const char *k : {"menu", "stick", "deadzone", "sensitivity", "pad"}) markChanged("controller", k);
+    c.throttlePad = d.throttlePad;
+    c.throttleDeadzone = d.throttleDeadzone;
+    c.throttleCurve = d.throttleCurve;
+    for (const char *k : {"menu", "stick", "deadzone", "sensitivity", "pad", "throttle", "throttle_deadzone", "throttle_curve"})
+        markChanged("controller", k);
 }
 
 void controlsTab(Config &c) {
@@ -711,6 +725,39 @@ void controlsTab(Config &c) {
         markChanged("controller", "pad");
     }
     help("Which game controller plays (the game has one player). The first one found is the default.");
+    ImGui::SeparatorText("Analog throttle");
+    {
+        bool b = c.analogThrottle;
+        if (ImGui::Checkbox("Drive with the trigger's pressure", &b)) {
+            c.analogThrottle = b;
+            markChanged("controller", "analog_throttle");
+        }
+        help("On: the throttle trigger drives your vehicle by how far you press it: half way holds about half the "
+             "top speed, fully pressed is exactly the A button. It then presses no other N64 button (with the "
+             "default bindings the left trigger stays Z: brake, get out). The A button and the keyboard still "
+             "drive at full throttle. Off (default): the trigger is a button as bound above.");
+        ImGui::BeginDisabled(!c.analogThrottle);
+        int t = c.throttlePad.size() == 1 && c.throttlePad[0].axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT ? 1 : 0;
+        if (combo("Throttle", &t, {"Right trigger (default)", "Left trigger"})) {
+            PadInput in;
+            in.axis = t == 1 ? SDL_CONTROLLER_AXIS_TRIGGERLEFT : SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
+            in.dir = 1;
+            c.throttlePad = {in};
+            markChanged("controller", "throttle");
+        }
+        int tdz = c.throttleDeadzone;
+        if (ImGui::SliderInt("Trigger dead zone", &tdz, 0, 12000)) {
+            c.throttleDeadzone = tdz;
+            markChanged("controller", "throttle_deadzone");
+        }
+        float curve = float(c.throttleCurve);
+        if (ImGui::SliderFloat("Trigger response", &curve, 0.5f, 3.0f, "%.2f")) {
+            c.throttleCurve = curve;
+            markChanged("controller", "throttle_curve");
+        }
+        help("1: linear. Above 1: finer control at light pressure (2: half way is a quarter of the top speed).");
+        ImGui::EndDisabled();
+    }
     if (ImGui::Button("Default controls")) resetControls(c);
 }
 

@@ -940,9 +940,49 @@ it without a fault.  The x64-asan preset is the tool for this now.
       15 178 -> 102, level 29 245 -> 100 (the game's camera: 1, 39, 228); at
       60: 44 -> 8, 3 -> 2, 17 -> 13 (3, 3, 18); the slowest picture on the GPU
       11.5 -> 8.6, 10.4 -> 8.9, 31.2 -> 18.4 ms.
+    - The kept view (settings version 2): `[camera] recentre` defaults to 0
+      and nothing but `camera_reset` (and a new level: MODE_LEVEL_START or
+      another level number, the zoom kept; switching the orbit off) changes
+      the player's yaw, tilt or zoom: not the game's camera cuts (gCamSnap:
+      respawns, the map view; mode changes), not getting in or out, not the
+      pause, map view, message windows and other modes outside play (the
+      orbit is inactive there and its state is kept), not the collision (it
+      changes only its own pull-in / rise / lift).  Before (76dd727), the
+      recentre ease (default on, 1.5 s) brought the view back behind the
+      player after every turn, each cut and every return to play (game mode
+      != 4) reset the yaw and tilt, and the smooth collision's pull-in
+      changed the distance near buildings (what looked like a forced zoom);
+      the zoom value itself was only reset by `camera_reset`, whose default
+      (the right stick's click) a hard push on the camera stick can press:
+      a click while the camera stick is pushed over half way is now ignored
+      (counted in the summary).  The frame (`[camera] follow`,
+      `orbit::Limits::follow`, default 1): the kept yaw and tilt are offsets
+      from the game camera's (which chases the vehicle's heading with its
+      own lag; on foot it doesn't turn with the driver), so driving a full
+      circle the view stays at the player's angle to the vehicle, like a
+      chase camera with an offset; follow = 0 keeps world angles (the old
+      behaviour without recentring: driving a circle, the view swings round
+      to the front).  The tilt offset is limited by `tilt_min/max` where the
+      view is made, the offset kept.  `--orbit-test set:YAW[:PITCH[:ZOOM]]`
+      puts the view there once (then no camera input): level 0 through the
+      intro walk, getting in, getting out, the map view (Start) and back, the
+      offset stayed 90.0, the zoom 1.60 (5 cuts, no reset).
     - Collision comfort (`[camera] collision`, `orbit::Collision`, default
-      `smooth`; `strict` is the behaviour above, `off` never moves for
-      obstacles, only lifts the eye above the terrain grid): the view along
+      `off` since settings version 2 (before: `smooth`); `strict` is the
+      behaviour above, `off` never moves for obstacles, only keeps the eye
+      above the terrain grid: `clearance` over the highest terrain of a ring
+      around the eye (`offRing`, 10 % of the distance, 2-12 units) and of
+      where it is going (its last step's move 3-18 steps on), reached on the
+      `springIn` spring, and never under the terrain right under it
+      (`floorClear` 1 unit, at once).  Measured (3600 frames, off / smooth;
+      "snaps": a step where the lift moved the picture's eye up over 3 units
+      out of a much slower step): sweep L0 3/0, L3 0/2, L19 0/1, L29 4/3;
+      `hold:120:15` 0/1, 0/1, 0/0, 0/0.  The eye inside a building (off;
+      the height query's buildings, roofs up to 40 units above the eye):
+      sweep L0 219 of 5106 steps (4 %), L3 131/2364 (6 %), L19 4/4862, L29
+      76/2284 (3 %); hold:120 L0 24/5106, L3 180/2364 (8 %), L19 0, L29 0.
+      A near-plane nudge or fading the building in the way would need the
+      renderer (an RT64 patch) and wasn't done.  The view along
       the line of sight and a ray each side (`rayOffset` of the distance
       beside the eye; the larger of the line of sight's and the three rays'
       median: a pole on the line of sight is ignored, a clear line of sight
@@ -990,6 +1030,46 @@ it without a fault.  The x64-asan preset is the tool for this now.
       camera) and scripted input: level 0 on foot, held 90 degrees round,
       stick up: the driver walks 2 degrees off "away from the orbit's eye"
       (94 with relative steering off).
+    - Analog throttle (`[controller] analog_throttle`, default 0; `throttle`
+      = righttrigger, `throttle_deadzone`, `throttle_curve`; live_input.h,
+      live_throttle.cpp).  How the game drives (45BB0.c cont_update, 62740.c
+      veh_throttle): no vehicle reads A itself; in the digital control method
+      (mode 0) `cont_process_stick(0, 0)` zeroes the stick's y and makes A
+      +80 / B -80 (`cont_buttons_to_stick`), and the "SPEED ON 3D STICK"
+      method (mode 1, `gPlayerControlModes` bit) keeps the stick's y (A / B
+      still +-80).  `veh_throttle` (every throttle vehicle: Sideswipe 1,
+      Skyfall 3, Ramdozer 4, Backlash 5, train 7, American Dream 8, Ballista
+      10, barges 11/17/18, police 13, A-Team 14, Starski 15) adds the
+      vehicle's band acceleration times traction each frame while the speed
+      is under bands[13] * gPadStickY / 80, B brakes by `delta` then reverses
+      up to bands[0] * y / -80, Z (`gHeldZ`) brakes to 0 (and at 0 gets out).
+      So the stick's y is already an analog top speed; the acceleration
+      below it doesn't change.  The driver on foot, Thunderfist, the J-Bomb
+      and the Cyclone Suit steer and move by the stick (360 mode: the
+      stick's length is their speed), the Crane's A/B move its arm: the
+      trigger is the A button for them (from 96/255), and everywhere outside
+      play.  The hook: each read (plat_input_read: the player's pad, or an
+      `--input` line's optional 4th value 0..255) the trigger's pressure goes
+      into the raw pad (`throttleEncode`): digital method, A and the raw y =
+      80 t (the game ignores the raw y there); analog method, y = max(stick,
+      80 t).  `PORT_THROTTLE` (45BB0.c, after `cont_process_stick(0, 0)`,
+      NON_MATCHING/PORT_HOST) puts the raw y in place of A's 80 for a read
+      this code encoded (in replays after a level, if the level's play had
+      encoded reads; never in the attract demos).  The raw pad is what
+      `rec_record` keeps, so the level's replay gets the pressure back.  The
+      trigger bound to the throttle presses no other N64 button (Z stays on
+      the left trigger).  Fidelity (`--throttle-log`: every read's speed,
+      gLastSpeed, and position, gCamAtX/Y/Z): with the trigger fully pressed
+      the run equals the A button's, released equals nothing pressed (levels
+      0, 1, 5: identical speed and position at every read); with the option
+      off nothing is encoded (traces equal main).  Measured (top speed in
+      the game's units, `orbit5_thr` runs, held 700 reads from the start):
+      Backlash (level 1) 79 / 118 / 173 / 228 at 25 / 50 / 75 / 100 %,
+      Skyfall (level 5) 78 / 145 / 195 / 258, Ramdozer (level 0) - / 141 /
+      195 / 258 (at 25 % it met a building first); the gain in the first
+      frames is the same at every pressure until the lower top speed is
+      reached.  Side effects of a partial y the game has in its own analog
+      method too: the Ballista's hop needs y >= 60, a camera height uses y.
     - The sky: the backdrop's texture follows the heading in whole 1/4096
       turns and only once a game frame; in the orbit view its vertices get
       the view's heading in fractions, unwrapped, and its G_VTX an
@@ -1011,9 +1091,10 @@ it without a fault.  The x64-asan preset is the tool for this now.
       00000.c cam_turn_heading, and C-up/C-down do nothing in play; they stay on
       the keyboard's J/L/I/K, and the right stick is the C buttons again in
       menus).
-    - Settings: `sensitivity_x/y` (percent), `invert_x/y`, `recentre` (ease
-      back behind the player after `recentre_delay` seconds without camera
-      input; 0: the camera keeps its world direction until reset),
+    - Settings: `sensitivity_x/y` (percent), `invert_x/y`, `follow` (the
+      kept view relative to the game's camera, default 1, or the world),
+      `recentre` (ease back behind the player after `recentre_delay` seconds
+      without camera input; default 0: the view stays until reset),
       `relative_steering`, `recentre_on_foot` (with relative steering off:
       ease back for the camera-relative characters anyway), `collision`,
       `zoom_min/max` (times the game's distance), `tilt_min/max` (degrees),

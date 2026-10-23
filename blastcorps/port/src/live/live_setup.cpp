@@ -54,6 +54,9 @@ static const char kDefaultIni[] =
     "; A Controller Pak plugged into controller 1: 1 = yes, 0 = no. With a pak the game keeps\r\n"
     "; its progress on the pak instead of the cartridge's EEPROM, as on the N64.\r\n"
     "controller_pak = 0\r\n"
+    "; The defaults this file was made with (don't change it): when a newer version changes a\r\n"
+    "; default, a setting still at the old default gets the new one, once.\r\n"
+    "settings_version = 2\r\n"
     "\r\n"
     "[video]\r\n"
     "; Graphics API: d3d12 or vulkan.\r\n"
@@ -67,7 +70,8 @@ static const char kDefaultIni[] =
     "; Frame pacing with vsync: timer (the default: the renderer's own timer, the lowest\r\n"
     "; latency, even on a PC that isn't busy) or vsync (pictures handed to the display on its\r\n"
     "; refreshes: stays even while the PC is busy with other work, about 5-10 ms more latency),\r\n"
-    "; vrr (for G-Sync / FreeSync displays: an even pace a little under the display's rate) or\r\n"
+    "; vrr (experimental, an even pace a little under the display's rate: on G-Sync / FreeSync\r\n"
+    "; displays timer is smoother too) or\r\n"
     "; auto (picks one from the display).\r\n"
     "present_pacing = timer\r\n"
     "; The settings below are optional enhancements; their defaults show the game as before.\r\n"
@@ -131,9 +135,14 @@ static const char kDefaultIni[] =
     "; Invert the turning: 1 = yes.\r\n"
     "invert_x = 0\r\n"
     "invert_y = 0\r\n"
+    "; The view you set (turn, tilt): 1 = kept relative to the game's own camera, which follows\r\n"
+    "; your vehicle (default: it turns with the vehicle, your angle kept, like a chase camera),\r\n"
+    "; 0 = fixed in the world (a compass direction: driving a circle, it swings round you).\r\n"
+    "follow = 1\r\n"
     "; Ease back behind the player when the camera input has been idle for recentre_delay\r\n"
-    "; seconds: 1 = yes (default), 0 = the camera stays where you left it (until reset).\r\n"
-    "recentre = 1\r\n"
+    "; seconds: 1 = yes, 0 = the camera and its zoom stay where you left them (default; the\r\n"
+    "; camera_reset button, or a new level, puts them back).\r\n"
+    "recentre = 0\r\n"
     "recentre_delay = 1.5\r\n"
     "; The game steers the driver on foot, the J-Bomb, Thunderfist and the Cyclone Suit relative\r\n"
     "; to its own camera. relative_steering = 1 (default): in orbit mode the stick is turned to\r\n"
@@ -142,10 +151,10 @@ static const char kDefaultIni[] =
     "; With relative_steering = 0: 1 = ease back for those characters even with recentre = 0\r\n"
     "; (default), 0 = no.\r\n"
     "recentre_on_foot = 1\r\n"
-    "; Buildings between the camera and you: smooth (default: the camera rises over them or\r\n"
-    "; moves in calmly, only for lasting, wide obstructions), strict (at once, every time) or\r\n"
-    "; off (never; you may see through them).\r\n"
-    "collision = smooth\r\n"
+    "; Buildings between the camera and you: off (default: the camera never moves for them, you\r\n"
+    "; may see through them; it is still kept above the ground), smooth (it rises over them or\r\n"
+    "; moves in calmly, only for lasting, wide obstructions) or strict (at once, every time).\r\n"
+    "collision = off\r\n"
     "; Zoom limits, in times the game's own camera distance.\r\n"
     "zoom_min = 0.5\r\n"
     "zoom_max = 2.5\r\n"
@@ -221,6 +230,15 @@ static const char kDefaultIni[] =
     "; Which game controller plays: 1 = the first one found (default), 2 = the second ...,\r\n"
     "; or any = all of them together.\r\n"
     "pad = 1\r\n"
+    "; Analog throttle: 1 = the throttle input below drives your vehicle with its pressure\r\n"
+    "; (half way: about half the top speed; fully pressed: exactly the A button), and it\r\n"
+    "; presses no other N64 button (with the default z binding the left trigger stays Z:\r\n"
+    "; brake, get out). The A button still drives at full throttle. 0 = off (default).\r\n"
+    "analog_throttle = 0\r\n"
+    "throttle = righttrigger\r\n"
+    "; The trigger's dead zone (0-32767) and response (1 = linear; 2 = finer at light pressure).\r\n"
+    "throttle_deadzone = 1500\r\n"
+    "throttle_curve = 1\r\n"
     "; Buttons that, held together, open the settings menu (joined with +).\r\n"
     "menu = back+start\r\n"
     "; Buttons that, held together, switch the frame-rate counter (e.g. back+y; empty: none).\r\n"
@@ -374,6 +392,7 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             if (key == "rom") c.rom = v;
             else if (key == "saves") c.saves = v;
             else if (key == "controller_pak") ok = parseBool(v, c.pak);
+            else if (key == "settings_version") ok = parseInt(v, 1, 1000, c.settingsVersion);
             else ok = false;
         } else if (section == "video") {
             if (key == "api") {
@@ -487,6 +506,7 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             else if (key == "sensitivity_y") ok = parseInt(v, 10, 500, c.camSensY);
             else if (key == "invert_x") ok = parseBool(v, c.camInvertX);
             else if (key == "invert_y") ok = parseBool(v, c.camInvertY);
+            else if (key == "follow") ok = parseBool(v, c.camFollow);
             else if (key == "recentre" || key == "recenter") ok = parseBool(v, c.camRecentre);
             else if (key == "recentre_on_foot" || key == "recenter_on_foot") ok = parseBool(v, c.camRecentreOnFoot);
             else if (key == "recentre_delay" || key == "recenter_delay") ok = num(0.0, 30.0, c.camRecentreDelay);
@@ -520,6 +540,22 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 else ok = false;
             } else if (section == "controller" && key == "deadzone") {
                 ok = parseInt(v, 0, 32767, c.deadzone);
+            } else if (section == "controller" && key == "analog_throttle") {
+                ok = parseBool(v, c.analogThrottle);
+            } else if (section == "controller" && key == "throttle") {
+                c.throttlePad.clear();
+                for (const std::string &item : splitList(v)) {
+                    PadInput in;
+                    if (parsePad(item, in)) c.throttlePad.push_back(in);
+                    else warn("unknown controller input \"" + item + "\" for throttle");
+                }
+            } else if (section == "controller" && key == "throttle_deadzone") {
+                ok = parseInt(v, 0, 32000, c.throttleDeadzone);
+            } else if (section == "controller" && key == "throttle_curve") {
+                char *end;
+                const double d = strtod(v.c_str(), &end);
+                ok = !v.empty() && *end == 0 && d >= 0.25 && d <= 4.0;
+                if (ok) c.throttleCurve = d;
             } else if (section == "controller" && key == "sensitivity") {
                 ok = parseInt(v, 10, 400, c.sensitivity);
             } else if (section == "controller" && key == "pad") {
@@ -579,12 +615,45 @@ void configDefaults(Config &c) {
     c.warnings.clear();
 }
 
+/* A file of an older settings version (configLoad): the settings whose default changed since get the new
+ * default where they still have the old one (the player likely never chose it); a value the player set to
+ * something else stays.  The version is written with them, so this happens once: a value set back to the
+ * old default afterwards stays too. */
+void configMigrate(Config &c, const std::string &file) {
+    if (c.settingsVersion >= kSettingsVersion) return;
+    std::vector<Setting> save;
+    std::string changed;
+    if (c.settingsVersion < 2) {
+        /* version 2: the orbit camera stays where the player put it (recentre 1 -> 0) and buildings no
+         * longer move it (collision smooth -> off) */
+        if (c.camRecentre) {
+            c.camRecentre = false;
+            save.push_back({"camera", "recentre"});
+            changed += " recentre 1 -> 0;";
+        }
+        if (c.camCollision == 0) {
+            c.camCollision = 1;
+            save.push_back({"camera", "collision"});
+            changed += " collision smooth -> off;";
+        }
+    }
+    const int from = c.settingsVersion;
+    c.settingsVersion = kSettingsVersion;
+    save.push_back({"game", "settings_version"});
+    const bool ok = configSave(c, save);
+    host_log("live: %s: settings version %d -> %d:%s%s\n", file.c_str(), from, kSettingsVersion,
+             changed.empty() ? " no setting at an old default" : changed.c_str(),
+             ok ? " (written back)" : " (couldn't write the file: used for this run only)");
+}
+
 bool configLoad(Config &c, const std::string &file) {
     configDefaults(c);
     c.file = file;
     std::string text;
     if (readText(file, text)) {
+        c.settingsVersion = 1;   /* (a file without the line: made before it existed) */
         parseText(c, text, file);
+        configMigrate(c, file);
         /* the old default zoom bindings (Y zooms in, a left stick click out: easy to click while steering
          * hard): to the new default (hold Y and use the right stick), written back; bindings the player
          * changed stay */
@@ -770,6 +839,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "rom") return c.rom;
         if (k == "saves") return c.saves;
         if (k == "controller_pak") return c.pak ? "1" : "0";
+        if (k == "settings_version") return std::to_string(c.settingsVersion);
     } else if (s.section == "video") {
         if (k == "api") return c.vulkan ? "vulkan" : "d3d12";
         if (k == "scale") return std::to_string(c.scale);
@@ -802,6 +872,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "sensitivity_y") return std::to_string(c.camSensY);
         if (k == "invert_x") return c.camInvertX ? "1" : "0";
         if (k == "invert_y") return c.camInvertY ? "1" : "0";
+        if (k == "follow") return c.camFollow ? "1" : "0";
         if (k == "recentre") return c.camRecentre ? "1" : "0";
         if (k == "recentre_on_foot") return c.camRecentreOnFoot ? "1" : "0";
         if (k == "recentre_delay") return d(c.camRecentreDelay);
@@ -825,6 +896,14 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "fps_counter") return menuPadNames(c.fpsPad);
         if (k == "sensitivity") return std::to_string(c.sensitivity);
         if (k == "pad") return c.padIndex < 0 ? "any" : std::to_string(c.padIndex + 1);
+        if (k == "analog_throttle") return c.analogThrottle ? "1" : "0";
+        if (k == "throttle") return padNames(c.throttlePad);
+        if (k == "throttle_deadzone") return std::to_string(c.throttleDeadzone);
+        if (k == "throttle_curve") {
+            char buf[32];
+            snprintf(buf, sizeof buf, "%g", c.throttleCurve);
+            return buf;
+        }
         for (int i = 0; i < A_COUNT; i++)
             if (k == kActionNames[i]) return padNames(c.pad[i]);
     }

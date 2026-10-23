@@ -107,6 +107,9 @@ void cont_update(void) {
     OSContPad *pad = &gContPad;
     s32 unused;
     s32 mode;
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+    s8 portRawY;
+#endif
 
     if (((u32) gPlayFrames) != 0) {
         if (pakBusy == 0 && gContReadPending != 0) {
@@ -212,7 +215,11 @@ void cont_update(void) {
                                 break;
                             default:
                                 gSteerTurnAround = 0;
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+                                portRawY = pad->stick_y;   /* (before it is zeroed: the analog throttle) */
+#endif
                                 cont_process_stick(0, 0, &pad->button, &pad->stick_x, &pad->stick_y);
+                                PORT_THROTTLE(portRawY, &pad->button, &pad->stick_y);
                                 break;
                         }
                         break;

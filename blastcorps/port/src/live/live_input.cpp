@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 
 #include "live_input.h"
@@ -221,6 +222,59 @@ static bool padActive(const Config &c, const PadState *pad, const PadInput &in) 
     return axis(c, pad, in.axis, false) * in.dir > 40;
 }
 
+/* ---- the analog throttle (live_input.h) ------------------------------------------------ */
+int triggerAmount(int v, int deadzone, double curve) {
+    deadzone = std::max(0, std::min(32000, deadzone));
+    if (v <= deadzone) return 0;
+    double t = std::min(1.0, double(v - deadzone) / double(32767 - deadzone));
+    if (curve > 0 && curve != 1.0) t = std::pow(t, curve);
+    return std::max(1, std::min(255, int(std::lround(t * 255.0))));
+}
+
+bool throttleVehicle(int v) {
+    switch (v) {
+        case 1: case 3: case 4: case 5: case 7: case 8: case 10: case 11: case 13: case 14: case 15: case 17: case 18:
+            return true;
+        default:   /* the driver on foot, Thunderfist, the Crane, the J-Bomb, the Cyclone Suit; others */
+            return false;
+    }
+}
+
+static int throttleY(int trigger) {   /* 0..255 -> 0..80, 1 at the least pressure */
+    return trigger <= 0 ? 0 : std::max(1, std::min(80, (trigger * 80 + 127) / 255));
+}
+
+void throttleEncode(const ThrottleState &s, unsigned short &button, int &y, int trigger) {
+    if (trigger < 0) return;
+    const unsigned short kA = 0x8000;
+    if (!s.play || !throttleVehicle(s.vehicle)) {   /* the A button */
+        if (trigger >= kTriggerPress) button |= kA;
+        return;
+    }
+    if (s.stickSpeed) {   /* the game's analog method: the larger of the stick and the trigger */
+        if (button & kA) return;
+        const int t = throttleY(trigger);
+        if (t >= 80) button |= kA;   /* (full: the A button itself) */
+        else y = std::max(y, t);
+        return;
+    }
+    /* digital method: the raw y (unused by the game here) carries the pressure; the A button full */
+    if (button & kA) {
+        y = 80;
+    } else if (trigger > 0) {
+        button |= kA;
+        y = throttleY(trigger);
+    } else {
+        y = 0;
+    }
+}
+
+int throttleGameY(int rawY, unsigned short button, int y) {
+    /* (y 80: the game's A; the raw y 80 or 0: full or not ours) */
+    if ((button & 0x8000) && y == 80 && rawY >= 1 && rawY < 80) return rawY;
+    return y;
+}
+
 N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *k, bool altHeld) {
     /* Alt+Enter switches fullscreen: that Enter isn't a game key */
     const bool altEnter = k != nullptr && altHeld && k[SDL_SCANCODE_RETURN];
@@ -238,10 +292,28 @@ N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *k, bool altHeld
     if (keyDown(A_STICK_RIGHT)) x += 80;
     if (keyDown(A_STICK_UP)) y += 80;
     if (keyDown(A_STICK_DOWN)) y -= 80;
+    const bool analog = c.analogThrottle && !c.throttlePad.empty();
+    auto isThrottle = [&](const PadInput &in) {
+        for (const PadInput &t : c.throttlePad)
+            if (t.button == in.button && t.axis == in.axis && t.dir == in.dir) return true;
+        return false;
+    };
+    int trigger = analog ? 0 : -1;
     for (const PadState *pad : pads.active(c)) {
         for (int i = 0; i < kButtons; i++)
             for (const PadInput &in : c.pad[i])
-                if (padActive(c, pad, in)) b |= kButtonBits[i];
+                if (!(analog && isThrottle(in)) && padActive(c, pad, in)) b |= kButtonBits[i];
+        if (analog)
+            for (const PadInput &in : c.throttlePad) {
+                int v = 0;
+                if (in.button >= 0) v = pad->button(in.button) ? 255 : 0;
+                else if (in.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || in.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+                    v = triggerAmount(pad->axis(in.axis), c.throttleDeadzone, c.throttleCurve);
+                else
+                    v = triggerAmount(std::max(0, pad->axis(in.axis) * in.dir), std::max(c.throttleDeadzone, c.deadzone),
+                                      c.throttleCurve);
+                trigger = std::max(trigger, v);
+            }
         if (c.padStick >= 0) {
             const bool right = c.padStick == 1;
             int lx = axis(c, pad, right ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX, true);
@@ -253,6 +325,7 @@ N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *k, bool altHeld
     p.button = (unsigned short) b;
     p.x = std::max(-80, std::min(80, x));
     p.y = std::max(-80, std::min(80, y));
+    p.trigger = trigger;
     return p;
 }
 
@@ -281,6 +354,7 @@ std::string buttonNames(unsigned short b) {
 void InputGate::close(const N64Pad &now) {
     buttons = now.button;
     stick = now.x != 0 || now.y != 0;
+    trigger = now.trigger > 0;
     polls = 0;
     if (closed())
         host_log("live: input gate closed: held %s%s (frame %u)\n", buttonNames(buttons).c_str(),
@@ -291,15 +365,17 @@ void InputGate::apply(N64Pad &p) {
     if (!closed()) return;
     buttons &= p.button;                /* a let-go button passes from now on */
     if (stick && p.x == 0 && p.y == 0) stick = false;
+    if (trigger && p.trigger <= 0) trigger = false;
     if (++polls >= kMaxPolls && closed()) {
-        host_log("live: input gate opened after %u reads with %s%s still held (frame %u)\n", polls,
-                 buttonNames(buttons).c_str(), stick ? ", stick" : "", plat_frames());
+        host_log("live: input gate opened after %u reads with %s%s%s still held (frame %u)\n", polls,
+                 buttonNames(buttons).c_str(), stick ? ", stick" : "", trigger ? ", throttle" : "", plat_frames());
         buttons = 0;
-        stick = false;
+        stick = trigger = false;
         return;
     }
     p.button &= (unsigned short) ~buttons;
     if (stick) p.x = p.y = 0;
+    if (trigger) p.trigger = 0;
     if (!closed()) host_log("live: input gate opened (everything let go after %u reads, frame %u)\n", polls, plat_frames());
 }
 

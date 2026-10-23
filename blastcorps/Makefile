@@ -20,7 +20,27 @@ endif
 TOOLS_DIR := ../tools
 ASM_PROCESSOR_DIR := $(TOOLS_DIR)/asm-processor
 
-SRC_DIR = src.$(VERSION)
+# Versions (docs/versions.md). Every version builds the one source tree,
+# src.us.v11 (us.v11 is the reference version; code that differs is under
+# #if VERSION_US_V10 etc.). us.v11 keeps the original paths (asm/, assets/,
+# build/); another version extracts and builds in its own subdirectories
+# (asm/us.v10/, assets/us.v10/, build/us.v10/), from its own yamls, symbol
+# files and linker scripts, generated from us.v11's by tools_port/vermap.py
+# (make VERSION=us.v10 port-version).
+SRC_DIR = src.us.v11
+REF_VERSION := us.v11
+VERSION_DEFINE := VERSION_$(shell echo $(VERSION) | tr a-z. A-Z_)
+ifeq ($(VERSION),$(REF_VERSION))
+ASM_DIR := asm
+ASSET_DIR := assets
+else
+ASM_DIR := asm/$(VERSION)
+ASSET_DIR := assets/$(VERSION)
+ifneq ($(NON_MATCHING)$(SHIFT),00)
+$(error NON_MATCHING=1 and SHIFT=1 are us.v11 only so far (docs/versions.md))
+endif
+BUILD_DIR = build/$(VERSION)
+endif
 
 # timestamps
 ifeq ($(VERSION),us.v10)
@@ -37,8 +57,8 @@ HD_FRONT_END_DATA_TIMESTAMP = 855919891
 endif
 
 # init
-INIT_ASM_DIRS  = asm/init
-INIT_BIN_DIRS  = assets/init
+INIT_ASM_DIRS  = $(ASM_DIR)/init
+INIT_BIN_DIRS  = $(ASSET_DIR)/init
 INIT_SRC_DIR   = $(SRC_DIR)/init
 INIT_SRC_DIRS  = $(INIT_SRC_DIR)
 
@@ -51,8 +71,8 @@ INIT_O_FILES := $(foreach file,$(INIT_S_FILES),$(BUILD_DIR)/$(file).o) \
                 $(foreach file,$(INIT_BIN_FILES),$(BUILD_DIR)/$(file).o)
 
 #asm/hd_code asm/hd_front_end
-HD_CODE_ASM_DIRS  = asm/hd_code
-HD_CODE_BIN_DIRS  = assets/hd_code
+HD_CODE_ASM_DIRS  = $(ASM_DIR)/hd_code
+HD_CODE_BIN_DIRS  = $(ASSET_DIR)/hd_code
 HD_CODE_SRC_DIR   = $(SRC_DIR)/hd_code
 HD_CODE_SRC_DIRS  = $(HD_CODE_SRC_DIR)
 
@@ -66,8 +86,8 @@ HD_CODE_O_FILES := $(foreach file,$(HD_CODE_S_FILES),$(BUILD_DIR)/$(file).o) \
 
 # hd_front_end: the front end overlay (title, menus, level select, saves),
 # inflated once to 0x801E7000 by hd_code hd_load_front_end
-HD_FRONT_END_ASM_DIRS  = asm/hd_front_end
-HD_FRONT_END_BIN_DIRS  = assets/hd_front_end
+HD_FRONT_END_ASM_DIRS  = $(ASM_DIR)/hd_front_end
+HD_FRONT_END_BIN_DIRS  = $(ASSET_DIR)/hd_front_end
 HD_FRONT_END_SRC_DIR   = $(SRC_DIR)/hd_front_end
 HD_FRONT_END_SRC_DIRS  = $(HD_FRONT_END_SRC_DIR)
 
@@ -115,7 +135,7 @@ INCLUDE_CFLAGS := -I . -I include -I include/2.0I -I include/2.0I/PR
 ASFLAGS = -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include
 
 CFLAGS := -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul
-CFLAGS += -D_LANGUAGE_C -D_FINALROM
+CFLAGS += -D_LANGUAGE_C -D_FINALROM -D$(VERSION_DEFINE)=1
 # ignore compiler warnings about anonymous structs
 CFLAGS += -woff 649,838
 CFLAGS += $(INCLUDE_CFLAGS)
@@ -174,7 +194,7 @@ LATE_RODATA_HD_FRONT_END := 0E7B0 196F0 11530
 # emits branch-likely instructions (beql/bnel/...) when optimizing at -O2,
 # and none of the -O1 matches contain any.
 O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 93DF0 996B0 9C930 9DB80 926F0 92E50 92F30 95070
-$(foreach f,$(O2_FILES_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O2
+$(foreach f,$(O2_FILES_HD_CODE),$(BUILD_DIR)/$(SRC_DIR)/hd_code/$(f).c.o): OPT_FLAGS := -O2
 
 # libultra/libaudio objects (src/hd_code/ul_*.c) are one-line wrappers that
 # #include the matching source from decompals/ultralib (lib/ultralib, a
@@ -187,13 +207,13 @@ UL_CFLAGS := -G 0 -nostdinc -Xcpluscomm -non_shared -Wab,-r4300_mul -woff 516,64
   -DNDEBUG -D_FINALROM -DF3DEX_GBI -I $(UL_DIR) -I $(UL_DIR)/include -I $(UL_DIR)/include/compiler/ido -I $(UL_DIR)/include/PR
 UL_O3_HD_CODE := ul_auxbus ul_bnkf ul_cents2ratio ul_copy ul_cosf ul_coss ul_cseq ul_cspgetstate ul_cspgettempo ul_csplayer ul_cspplay ul_cspsetbank ul_cspsetseq ul_cspsettempo ul_cspsetvol ul_cspstop ul_drvrnew ul_env ul_event ul_filter ul_heapalloc ul_heapinit ul_ldiv ul_load ul_lookat ul_lookatref ul_mainbus ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul_ortho ul_perspective ul_resample ul_reverb ul_rotate ul_save ul_scale ul_seq ul_seqplayer ul_sinf ul_sins ul_sl ul_string ul_synaddplayer ul_synallocfx ul_synallocvoice ul_synfreevoice ul_synsetfxmix ul_synsetpan ul_synsetpitch ul_synsetpriority ul_synsetvol ul_synstartvoice ul_synstartvoiceparam ul_synstopvoice ul_synthesizer ul_translate
 UL_MIPS3_HD_CODE := ul_ll ul_llcvt
-$(BUILD_DIR)/src.$(VERSION)/hd_code/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
-$(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O3
-$(foreach f,$(UL_MIPS3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): MIPSISET := -mips3 -32
-$(BUILD_DIR)/src.$(VERSION)/init/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
-$(BUILD_DIR)/src.$(VERSION)/init/ul_ll.c.o: MIPSISET := -mips3 -32
+$(BUILD_DIR)/$(SRC_DIR)/hd_code/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
+$(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/$(SRC_DIR)/hd_code/$(f).c.o): OPT_FLAGS := -O3
+$(foreach f,$(UL_MIPS3_HD_CODE),$(BUILD_DIR)/$(SRC_DIR)/hd_code/$(f).c.o): MIPSISET := -mips3 -32
+$(BUILD_DIR)/$(SRC_DIR)/init/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
+$(BUILD_DIR)/$(SRC_DIR)/init/ul_ll.c.o: MIPSISET := -mips3 -32
 # the front end's own libultra copy (Controller Pak io/ objects, -O1)
-$(BUILD_DIR)/src.$(VERSION)/hd_front_end/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
+$(BUILD_DIR)/$(SRC_DIR)/hd_front_end/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 
 
 ### Targets
@@ -239,8 +259,30 @@ extract:
 	$(PYTHON) tools_port/segsyms.py symbol_addrs.hd_code.$(VERSION).txt $(FE_SEGSYMS_FLAGS) > undefined_syms_hd_code_auto.hd_front_end.$(VERSION).txt
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_front_end.$(VERSION).yaml
 	# files with their own .rodata: move float/double/jtbl rodata to .late_rodata
-	$(PYTHON) $(TOOLS_DIR)/late_rodata.py $(addprefix asm/nonmatchings/hd_code/,$(LATE_RODATA_HD_CODE))
-	$(PYTHON) $(TOOLS_DIR)/late_rodata.py $(addprefix asm/nonmatchings/hd_front_end/,$(LATE_RODATA_HD_FRONT_END))
+	$(LATE_RODATA) $(addprefix $(ASM_DIR)/nonmatchings/hd_code/,$(LATE_RODATA_HD_CODE))
+	$(LATE_RODATA) $(addprefix $(ASM_DIR)/nonmatchings/hd_front_end/,$(LATE_RODATA_HD_FRONT_END))
+	# (splat writes no auto file when it has nothing to put in it; the links expect them)
+	@touch $(INIT_UNDEF_FILES) $(HD_CODE_UNDEF_FILES) $(HD_FRONT_END_UNDEF_FILES)
+
+ifeq ($(VERSION),$(REF_VERSION))
+LATE_RODATA = $(PYTHON) $(TOOLS_DIR)/late_rodata.py
+else
+LATE_RODATA = $(PYTHON) tools_port/late_rodata_ver.py $(TOOLS_DIR) $(VERSION)
+endif
+
+# Another version's yamls, symbol_addrs, undefined_syms and .bss linker
+# scripts, generated from us.v11's (tools_port/vermap.py; needs both
+# baseroms in .. and the us.v11 matching build's ELFs in build/). Run it after
+# changing a us.v11 yaml or symbol file, then `make VERSION=$(VERSION) extract`.
+port-version:
+ifeq ($(VERSION),$(REF_VERSION))
+	$(error port-version makes another version's files from $(REF_VERSION)'s: pass e.g. VERSION=us.v10)
+endif
+	$(PYTHON) tools_port/vermap.py port-all --ref $(REF_VERSION) --other $(VERSION)
+# which functions are identical, shifted or changed between us.v11 and VERSION
+version-report:
+	$(PYTHON) tools_port/vermap.py report -v --ref $(REF_VERSION) --other $(VERSION)
+.PHONY: port-version version-report
 
 # preprocessed context for mips_to_c (tools/m2c.sh); not version-specific
 ctx.i: ctx.c
@@ -286,7 +328,7 @@ $(INIT_LD_SCRIPT): init.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 $(HD_FRONT_END_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@ --relocate .hd_front_end=$(NM_FE_TEXT_VRAM) --pin-data .hd_front_end_data \
 		--extra-vram $(NM_FE_EXTRA_VRAM) --extra-name .nm_extra_fe \
-		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_front_end/*.o'
+		--extra-glob '$(BUILD_DIR)/$(SRC_DIR)/hd_front_end/*.o'
 $(HD_FRONT_END_BSS_LD_SCRIPT): hd_front_end_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
@@ -298,12 +340,12 @@ $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | 
 NM_PIN_HD_CODE := 0x802ACFD0:0x802=69000 0x802AD880:0x884=69930 0x802C2190:0x1EE0=7F8B0 \
                   0x802C48A0:0x1A0=7FB50 0x802D30D0:0xF50=8DDB0
 NM_PIN_HD_CODE_FLAGS = $(foreach p,$(NM_PIN_HD_CODE),--pin-object \
-	$(word 1,$(subst =, ,$(p)))=src.$(VERSION)/hd_code/$(word 2,$(subst =, ,$(p))).c.o)
+	$(word 1,$(subst =, ,$(p)))=$(SRC_DIR)/hd_code/$(word 2,$(subst =, ,$(p))).c.o)
 # (their LMAs fall inside the relocated text's: keep them out of the flat .bin)
 OBJCOPYFLAGS += -R '.nm_pin_*'
 $(HD_CODE_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py Makefile | dirs
 	$(NM_LDSCRIPT) $< $@ --relocate .hd_code=$(NM_TEXT_VRAM) --pin-data .hd_code_data \
-		--extra-vram $(NM_EXTRA_VRAM) --extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o' \
+		--extra-vram $(NM_EXTRA_VRAM) --extra-glob '$(BUILD_DIR)/$(SRC_DIR)/hd_code/*.o' \
 		$(NM_PIN_HD_CODE_FLAGS)
 
 # Bootable test ROM running the NON_MATCHING hd_code (tools_port/nm_rom.py,
@@ -319,7 +361,7 @@ NM_ROM = $(BUILD_DIR)/blastcorps.nm.$(VERSION).z64
 $(NM_ROM_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py Makefile | dirs
 	$(NM_LDSCRIPT) $< $@ --relocate .hd_code=$(NM_ROM_TEXT_VRAM) --pin-data .hd_code_data \
 		--extra-vram '((ADDR(.hd_code) + SIZEOF(.hd_code) + 0xF) & ~0xF)' \
-		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o' $(NM_PIN_HD_CODE_FLAGS)
+		--extra-glob '$(BUILD_DIR)/$(SRC_DIR)/hd_code/*.o' $(NM_PIN_HD_CODE_FLAGS)
 $(NM_ROM_ELF): $(HD_CODE_O_FILES) $(NM_ROM_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
 	@$(LD) -T $(HD_CODE_BSS_LD_SCRIPT) -T $(NM_ROM_LD_SCRIPT) -Map $(@:.elf=.map) \
 		$(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@
@@ -334,7 +376,7 @@ $(BUILD_DIR)/%.hd_front_end.rom.$(VERSION).txt: %.hd_front_end.$(VERSION).txt to
 $(NM_ROM_FE_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@ --relocate .hd_front_end=$(NM_ROM_FE_TEXT_VRAM) --pin-data .hd_front_end_data \
 		--extra-vram '((ADDR(.hd_front_end) + SIZEOF(.hd_front_end) + 0xF) & ~0xF)' --extra-name .nm_extra_fe \
-		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_front_end/*.o'
+		--extra-glob '$(BUILD_DIR)/$(SRC_DIR)/hd_front_end/*.o'
 $(NM_ROM_FE_ELF): $(HD_FRONT_END_O_FILES) $(NM_ROM_FE_LD_SCRIPT) $(HD_FRONT_END_BSS_LD_SCRIPT) $(NM_ROM_FE_UNDEF_FILES)
 	@$(LD) -T $(HD_FRONT_END_BSS_LD_SCRIPT) -T $(NM_ROM_FE_LD_SCRIPT) -Map $(@:.elf=.map) \
 		$(addprefix -T ,$(NM_ROM_FE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@
@@ -377,23 +419,35 @@ shift-test: shift-reference dirs $(INIT_O_FILES) $(HD_CODE_O_FILES) $(HD_FRONT_E
 .PHONY: shiftrom shift-test shift-reference
 endif
 
+ifeq ($(ASM_DIR),asm)
+ASM_SRC = $<
+ASM_PREP = @:
+else
+# the sources' pragmas name asm/nonmatchings/...: this version's asm instead
+ASM_SRC = $(BUILD_DIR)/$<.asm.c
+ASM_PREP = sed 's@GLOBAL_ASM("asm/@GLOBAL_ASM("$(ASM_DIR)/@' $< > $(ASM_SRC)
+endif
+
 ifndef PERMUTER
 $(GLOBAL_ASM_INIT_O_FILES): $(BUILD_DIR)/%.c.o: %.c
-	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< > $(BUILD_DIR)/$<
+	$(ASM_PREP)
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $(ASM_SRC) > $(BUILD_DIR)/$<
 	$(CC) -c -32 $(CFLAGS) $(OPT_FLAGS) $(MIPSISET) -o $@ $(BUILD_DIR)/$<
-	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< --post-process $@ \
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $(ASM_SRC) --post-process $@ \
 		--assembler "$(AS) $(ASFLAGS)" --asm-prelude $(ASM_PROCESSOR_DIR)/prelude.s
 
 $(GLOBAL_ASM_HD_CODE_O_FILES): $(BUILD_DIR)/%.c.o: %.c
-	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< > $(BUILD_DIR)/$<
+	$(ASM_PREP)
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $(ASM_SRC) > $(BUILD_DIR)/$<
 	$(CC) -c -32 $(CFLAGS) $(OPT_FLAGS) $(MIPSISET) -o $@ $(BUILD_DIR)/$<
-	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< --post-process $@ \
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $(ASM_SRC) --post-process $@ \
 		--assembler "$(AS) $(ASFLAGS)" --asm-prelude $(ASM_PROCESSOR_DIR)/prelude.s
 
 $(GLOBAL_ASM_HD_FRONT_END_O_FILES): $(BUILD_DIR)/%.c.o: %.c
-	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< > $(BUILD_DIR)/$<
+	$(ASM_PREP)
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $(ASM_SRC) > $(BUILD_DIR)/$<
 	$(CC) -c -32 $(CFLAGS) $(OPT_FLAGS) $(MIPSISET) -o $@ $(BUILD_DIR)/$<
-	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< --post-process $@ \
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $(ASM_SRC) --post-process $@ \
 		--assembler "$(AS) $(ASFLAGS)" --asm-prelude $(ASM_PROCESSOR_DIR)/prelude.s
 endif
 

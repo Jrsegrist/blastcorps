@@ -47,7 +47,7 @@ Discarded input sections
  .mdebug        0x00000000     0x1f28 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
- .mdebug        0x00000000      0xf34 build_nm/src.us.v11/hd_front_end/10850.c.o
+ .mdebug        0x00000000      0xf40 build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
  .mdebug        0x00000000     0x13b4 build_nm/src.us.v11/hd_front_end/17990.c.o

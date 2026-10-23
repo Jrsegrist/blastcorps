@@ -208,6 +208,10 @@ jobs:
         working-directory: blastcorps
         run: python tools_port/tests/test_eqcheck.py
 
+      - name: version map self-tests (tools_port/tests/test_vermap.py, synthetic code)
+        working-directory: blastcorps
+        run: python tools_port/tests/test_vermap.py
+
       - name: rename map (tools_port/tests/test_rename.py, rename.py --check)
         working-directory: blastcorps
         run: |

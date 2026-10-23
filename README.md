@@ -80,6 +80,14 @@ make VERSION=us.v11 -C blastcorps compress
 make VERSION=us.v11
 ```
 
+## Other versions (US 1.0)
+
+US 1.0 builds from the same sources: the same steps with `VERSION=us.v10`
+(and `baserom.us.v10.z64`) give `build/blastcorps.us.v10.z64: OK` and the
+three OK lines of `build/us.v10/`. [docs/versions.md](docs/versions.md) has
+the layout (per-version asm/assets/build directories, generated symbol
+files, `#if VERSION_US_V10`) and what differs between US 1.0 and US 1.1.
+
 ## Decompiling a function
 
 [`tools/mips_to_c`](tools/mips_to_c) (upstream: [matt-kempster/m2c](https://github.com/matt-kempster/m2c)) generates

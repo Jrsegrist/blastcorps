@@ -203,7 +203,7 @@ int main(int, char **) {
         g.vsyncPacing = true;   /* the menu's choice */
         check(live::configSave(g, {{"video", "present_pacing"}}), "menu change saved");
         const std::string &t = files()[old];
-        check(t == "[game]\r\nrom = x.z64\r\n\r\n[video]\r\napi = d3d12\r\nvsync = 1\r\n"
+        check(t == "[game]\r\nrom = x.z64\r\nsettings_version = 2\r\n\r\n[video]\r\napi = d3d12\r\nvsync = 1\r\n"
                    "framerate = 60\r\npresent_pacing = vsync\r\n\r\n[audio]\r\nvolume = 80\r\n",
               "saved at the end of [video] (before its blank line), the rest kept");
         live::Config h;
@@ -245,14 +245,140 @@ int main(int, char **) {
         check(live::configLoad(h, "ownzoom.ini") && live::configValue(h, {"controller", "camera_zoom_out"}) == "dpdown" &&
                   live::configValue(h, {"controller", "camera_zoom_in"}) == "y",
               "a player's own zoom bindings are kept");
-        check(f.camCollision == 0 && live::configValue(f, {"camera", "collision"}) == "smooth" && f.camRelativeSteering,
-              "camera defaults: collision smooth, relative steering on");
+        check(f.camCollision == 1 && live::configValue(f, {"camera", "collision"}) == "off" && f.camRelativeSteering &&
+                  !f.camRecentre && f.camFollow,
+              "camera defaults: collision off, relative steering on, no recentring, the view following");
         check(live::configSet(f, "camera.collision=off") && f.camCollision == 1 && live::configSet(f, "camera.collision=strict") &&
                   f.camCollision == 2 && !live::configSet(f, "camera.collision=wobbly") && f.camCollision == 2,
               "camera.collision off / strict, a wrong value rejected");
         check(live::configSet(f, "camera.relative_steering=0") && !f.camRelativeSteering &&
                   live::configValue(f, {"camera", "relative_steering"}) == "0",
               "camera.relative_steering 0");
+    }
+    /* the settings version: an older bc.ini still at the old defaults (recentre 1, collision smooth) gets the new
+     * ones, once; a player's own values stay; a new file has the version */
+    {
+        live::Config n;
+        check(live::configLoad(n, "fresh5.ini") && n.settingsVersion == live::kSettingsVersion &&
+                  files()["fresh5.ini"].find("settings_version = 2\r\n") != std::string::npos && !n.camRecentre &&
+                  n.camCollision == 1,
+              "new bc.ini: settings_version 2, recentre 0, collision off");
+        /* 76dd727's file: the old defaults written out */
+        files()["v1.ini"] = "[game]\r\nrom = x.z64\r\n\r\n[camera]\r\nmode = orbit\r\nrecentre = 1\r\nrecentre_delay = 1.5\r\n"
+                            "relative_steering = 1\r\nrecentre_on_foot = 1\r\ncollision = smooth\r\n\r\n[controller]\r\n"
+                            "z = lefttrigger, righttrigger\r\n";
+        live::Config g;
+        check(live::configLoad(g, "v1.ini") && g.warnings.empty() && !g.camRecentre && g.camCollision == 1 &&
+                  g.settingsVersion == 2 && g.cameraMode == 1 && g.camRecentreOnFoot,
+              "version 1 at the old defaults: recentre 0, collision off");
+        const std::string &t = files()["v1.ini"];
+        check(t.find("recentre = 0\r\n") != std::string::npos && t.find("collision = off\r\n") != std::string::npos &&
+                  t.find("[game]\r\nrom = x.z64\r\nsettings_version = 2\r\n") != std::string::npos &&
+                  t.find("recentre_delay = 1.5\r\n") != std::string::npos && t.find("mode = orbit\r\n") != std::string::npos,
+              "... written back with the version, the rest kept");
+        /* the player then sets recentre = 1 again: it stays (the version is current) */
+        g.camRecentre = true;
+        live::configSave(g, {{"camera", "recentre"}});
+        live::Config g2;
+        check(live::configLoad(g2, "v1.ini") && g2.camRecentre && g2.camCollision == 1,
+              "migrated once: recentre set back to 1 afterwards stays");
+        /* a version 1 file with the player's own values: kept */
+        files()["v1own.ini"] = "[camera]\r\nrecentre = 0\r\ncollision = strict\r\n";
+        live::Config h;
+        check(live::configLoad(h, "v1own.ini") && !h.camRecentre && h.camCollision == 2 && h.settingsVersion == 2,
+              "version 1 with the player's own values (recentre 0, strict): kept");
+        /* a version 1 file without the keys: the new defaults, nothing to rewrite but the version */
+        files()["v1none.ini"] = "[audio]\r\nvolume = 70\r\n";
+        live::Config k;
+        check(live::configLoad(k, "v1none.ini") && !k.camRecentre && k.camCollision == 1 &&
+                  files()["v1none.ini"] == "[audio]\r\nvolume = 70\r\n\r\n[game]\r\nsettings_version = 2\r\n",
+              "version 1 without those keys: the new defaults, the version added");
+        /* version 2 with smooth: kept (the player's choice) */
+        files()["v2.ini"] = "[game]\r\nsettings_version = 2\r\n[camera]\r\ncollision = smooth\r\nrecentre = 1\r\n";
+        live::Config m;
+        check(live::configLoad(m, "v2.ini") && m.camCollision == 0 && m.camRecentre, "version 2: smooth and recentre 1 kept");
+        check(live::configSet(m, "camera.follow=0") && !m.camFollow && live::configValue(m, {"camera", "follow"}) == "0",
+              "camera.follow 0");
+    }
+    /* the analog throttle: settings, and the pad encoding (live_input.h) */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(!f.analogThrottle && f.throttlePad.size() == 1 && f.throttlePad[0].axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT &&
+                  live::configValue(f, {"controller", "throttle"}) == "righttrigger" &&
+                  live::configValue(f, {"controller", "analog_throttle"}) == "0",
+              "analog throttle: off by default, throttle = righttrigger");
+        check(live::configSet(f, "controller.analog_throttle=1") && f.analogThrottle &&
+                  live::configSet(f, "controller.throttle=lefttrigger") &&
+                  f.throttlePad[0].axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT && live::configSet(f, "controller.throttle_curve=2") &&
+                  f.throttleCurve == 2.0 && !live::configSet(f, "controller.throttle_curve=9") &&
+                  live::configSet(f, "controller.throttle_deadzone=3000") && f.throttleDeadzone == 3000,
+              "analog throttle settings parsed (a curve of 9 rejected)");
+        check(live::triggerAmount(0, 1500, 1.0) == 0 && live::triggerAmount(1500, 1500, 1.0) == 0 &&
+                  live::triggerAmount(1501, 1500, 1.0) == 1 && live::triggerAmount(32767, 1500, 1.0) == 255 &&
+                  std::abs(live::triggerAmount(16384, 1500, 1.0) - 121) <= 1 &&
+                  std::abs(live::triggerAmount(16384, 1500, 2.0) - 58) <= 1,
+              "trigger amount: dead zone, full, linear, curve");
+        const unsigned short kA = 0x8000, kB = 0x4000;
+        live::ThrottleState drive;
+        drive.play = true;
+        drive.vehicle = 4;   /* the Ramdozer, digital method */
+        auto enc = [&](const live::ThrottleState &s, unsigned short b, int y, int trig, unsigned short &ob, int &oy) {
+            ob = b, oy = y;
+            live::throttleEncode(s, ob, oy, trig);
+        };
+        unsigned short ob;
+        int oy;
+        enc(drive, 0, 37, -1, ob, oy);
+        check(ob == 0 && oy == 37, "no trigger value (off, or an --input line without it): unchanged");
+        enc(drive, 0, 37, 0, ob, oy);
+        check(ob == 0 && oy == 0, "released: no A, the raw y 0");
+        enc(drive, 0, 37, 255, ob, oy);
+        check(ob == kA && oy == 80, "full: A, y 80");
+        enc(drive, 0, 37, 128, ob, oy);
+        check(ob == kA && oy == 40, "half: A, y 40");
+        enc(drive, 0, 0, 1, ob, oy);
+        check(ob == kA && oy == 1, "the least pressure: A, y 1");
+        enc(drive, kA, 20, 50, ob, oy);
+        check(ob == kA && oy == 80, "the A button too: full");
+        enc(drive, kB, 0, 0, ob, oy);
+        check(ob == kB && oy == 0, "B (brake, reverse) as it was");
+        /* the game's side: y 80 from A becomes the raw y; full, released or not ours unchanged */
+        check(live::throttleGameY(40, kA, 80) == 40 && live::throttleGameY(80, kA, 80) == 80 &&
+                  live::throttleGameY(0, kA, 80) == 80 && live::throttleGameY(40, 0, 0) == 0 &&
+                  live::throttleGameY(40, kA | kB, 80) == 40 && live::throttleGameY(40, kB, -80) == -80,
+              "PORT_THROTTLE: A's 80 -> the raw y; full / released / B unchanged");
+        /* full and released give exactly the button's pad */
+        for (int trig : {0, 255}) {
+            enc(drive, 0, 55, trig, ob, oy);
+            const int y = live::throttleGameY(oy, ob, (ob & kA) ? 80 : 0);
+            check(y == (trig ? 80 : 0) && ob == (trig ? kA : 0), trig ? "full: the game's y as with A" : "released: as without A");
+        }
+        /* the analog method ("speed on 3D stick"): the larger of the stick and the trigger, full = A */
+        live::ThrottleState stick = drive;
+        stick.stickSpeed = true;
+        enc(stick, 0, 30, 128, ob, oy);
+        check(ob == 0 && oy == 40, "speed on stick: the trigger's 40 over the stick's 30");
+        enc(stick, 0, 60, 128, ob, oy);
+        check(ob == 0 && oy == 60, "... the stick's 60 over the trigger's 40");
+        enc(stick, 0, 30, 255, ob, oy);
+        check(ob == kA && oy == 30, "... full: the A button");
+        /* other characters, menus, pause: the trigger is the A button */
+        live::ThrottleState foot;
+        foot.play = true;
+        foot.vehicle = 0;
+        enc(foot, 0, 50, 200, ob, oy);
+        check(ob == kA && oy == 50, "on foot: a pressed trigger is A, the stick kept");
+        enc(foot, 0, 50, 60, ob, oy);
+        check(ob == 0 && oy == 50, "... lightly: nothing");
+        live::ThrottleState menu = drive;
+        menu.play = false;
+        enc(menu, 0, -30, 255, ob, oy);
+        check(ob == kA && oy == -30, "not in play (pause, menus): A, the stick kept");
+        bool listed = true;
+        for (int v : {1, 3, 4, 5, 7, 8, 10, 11, 13, 14, 15, 17, 18}) listed = listed && live::throttleVehicle(v);
+        for (int v : {0, 2, 6, 9, 12, 16, 0xFD, 0xFE, 0xFF}) listed = listed && !live::throttleVehicle(v);
+        check(listed, "the throttle vehicles: all but the driver, Thunderfist, the Crane, the J-Bomb, the Cyclone Suit");
     }
     live::PadSet pads;
     g_sampled = &pads;
@@ -280,6 +406,41 @@ int main(int, char **) {
     SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_LEFTX, 0);
     pump();
     check(live::readPad(c, pads, nullptr, false).idle(), "released: idle");
+
+    /* the analog throttle: the right trigger's pressure, no longer Z; the left trigger still Z */
+    {
+        live::Config t = c;
+        check(live::readPad(t, pads, nullptr, false).trigger == -1, "analog throttle off: no trigger value");
+        t.analogThrottle = true;
+        SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 16384);   /* (half: 0 .. 32767 from -32768) */
+        pump();
+        p = live::readPad(t, pads, nullptr, false);
+        check(p.button == 0 && p.trigger > 160 && p.trigger < 210,
+              "analog throttle on: the right trigger 3/4 down gives its pressure, not Z");
+        SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 32767);
+        SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_TRIGGERLEFT, 32767);
+        pump();
+        p = live::readPad(t, pads, nullptr, false);
+        check(p.button == Z && p.trigger == 255, "full: 255; the left trigger is still Z");
+        SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, kTriggerRest);
+        SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_TRIGGERLEFT, kTriggerRest);
+        pump();
+        p = live::readPad(t, pads, nullptr, false);
+        check(p.trigger == 0 && p.idle(), "released: 0, idle");
+        /* the gate: a trigger held when the menu closed waits for it to be let go */
+        SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 32767);
+        pump();
+        live::InputGate tg;
+        tg.close(live::readPad(t, pads, nullptr, false));
+        p = live::readPad(t, pads, nullptr, false);
+        tg.apply(p);
+        check(tg.closed() && p.trigger == 0, "gate: a held throttle is blocked");
+        SDL_JoystickSetVirtualAxis(j, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, kTriggerRest);
+        pump();
+        p = live::readPad(t, pads, nullptr, false);
+        tg.apply(p);
+        check(!tg.closed(), "... until let go");
+    }
 
     /* menu combination (Back+Start) */
     SDL_JoystickSetVirtualButton(j, SDL_CONTROLLER_BUTTON_BACK, 1);

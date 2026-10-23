@@ -70,6 +70,15 @@ void port_wtag(const void *gdl, int kind, int x0, int x1) {
     if (host_wtag_hook != NULL) host_wtag_hook((unsigned) (size_t) gdl, kind, x0, x1);
 }
 
+/* PORT_THROTTLE (45BB0.c cont_update): bc.exe's analog throttle (NULL otherwise: nothing changes) */
+void (*host_throttle_hook)(int rawY, unsigned short *button, signed char *y);
+void (*host_throttle_input_hook)(unsigned short *button, signed char *x, signed char *y, int trigger);
+int host_live_trigger = -1;
+
+void port_throttle(int rawY, unsigned short *button, signed char *y) {
+    if (host_throttle_hook != NULL) host_throttle_hook(rawY, button, y);
+}
+
 /* PORT_DRAW_CELLS: the visible-cell list the drawing paths use */
 short *port_draw_cells(short *game) {
     return host_draw_cells_hook != NULL ? host_draw_cells_hook(game) : game;

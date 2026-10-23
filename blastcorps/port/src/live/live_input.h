@@ -99,12 +99,46 @@ private:
 struct N64Pad {
     unsigned short button = 0;
     int x = 0, y = 0;            /* -80..80 */
-    bool idle() const { return button == 0 && x == 0 && y == 0; }
+    int trigger = -1;            /* the analog throttle's pressure 0..255 ([controller] analog_throttle; -1: off) */
+    bool idle() const { return button == 0 && x == 0 && y == 0 && trigger <= 0; }
 };
 
 /* the N64 pad from the bindings: keyboard (`keys`: SDL_GetKeyboardState, or
- * nullptr) and the playing controllers (their last sample) */
+ * nullptr) and the playing controllers (their last sample).  With analog_throttle on, the throttle inputs
+ * give `trigger` (and press no N64 button themselves) */
 N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *keys, bool altHeld);
+
+/* ---- the analog throttle ([controller] analog_throttle; live_throttle.cpp) ----------------------------
+ * The game's vehicles (all but the driver on foot, Thunderfist, the Crane, the J-Bomb and the Cyclone
+ * Suit) drive with 62740.c veh_throttle: A (or the stick's y in the "speed on 3D stick" control method)
+ * becomes the stick y gPadStickY, +80 in the digital method; each frame the speed gains the vehicle's band
+ * acceleration while it is under the top speed bands[13] * y / 80.  So a y of 80 t drives at the share t
+ * of the top speed (the game's own analog control method does that with the stick).  The trigger's
+ * pressure gets there as the raw pad's stick y (recorded and replayed by the game with the pad):
+ *  - digital method: A pressed and the raw y = 80 t (at least 1; 80 at full pressure or with the A button
+ *    itself); released: no A, y 0.  PORT_THROTTLE (after the game made y = 80 from A) puts the raw y in;
+ *  - "speed on 3D stick": y = the larger of the stick's and 80 t (full pressure: A, as the button);
+ *  - anything else (other characters, menus, pause): the trigger is the A button (pressed from
+ *    kTriggerPress). */
+constexpr int kTriggerPress = 96;   /* 0..255: about the digital trigger's 12000 of 32767 */
+/* the pressure 0..255 of a trigger axis value 0..32767 through the dead zone and the curve (an exponent:
+ * 1 linear, 2 finer at light pressure) */
+int triggerAmount(int axisValue, int deadzone, double curve);
+/* the game state the encoding depends on */
+struct ThrottleState {
+    bool play = false;           /* gGameMode MODE_LEVEL, not paused */
+    int vehicle = 0;             /* gCurVehicle */
+    bool stickSpeed = false;     /* the vehicle's control method bit: "speed on 3D stick" */
+};
+bool throttleVehicle(int vehicle);   /* driven by veh_throttle from A / the stick's y */
+/* the raw pad as the game will read it (plat_input_read) with the trigger's pressure (-1: unchanged) */
+void throttleEncode(const ThrottleState &s, unsigned short &button, int &y, int trigger);
+/* PORT_THROTTLE: the game's processed y (digital method) from the raw y */
+int throttleGameY(int rawY, unsigned short button, int y);
+/* (live_throttle.cpp, bc.exe) the hooks, reading `cfg` as it changes; `log`: --throttle-log (every read in
+ * play); the exit summary */
+void throttleSetup(const Config *cfg, bool log);
+void throttleSummary();
 
 /* all of a playing controller's menu buttons held */
 bool menuComboHeld(const Config &c, const PadSet &pads);
@@ -121,8 +155,9 @@ struct InputGate {
     static constexpr unsigned kMaxPolls = 60;   /* one second of retraces */
     unsigned short buttons = 0;  /* still blocked */
     bool stick = false;
+    bool trigger = false;        /* the analog throttle */
     unsigned polls = 0;
-    bool closed() const { return buttons != 0 || stick; }
+    bool closed() const { return buttons != 0 || stick || trigger; }
     void close(const N64Pad &now);
     void apply(N64Pad &p);       /* filters p; logs when the gate opens */
 };

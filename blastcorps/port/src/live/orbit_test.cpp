@@ -47,6 +47,13 @@ static void run(Orbit &o, const Orbit::Game &g, const Input &in, double seconds,
 
 int main() {
     Limits lim;
+    check(lim.follow && !lim.recentre && lim.collision == COLLISION_OFF,
+          "defaults: the view kept relative to the game's camera, no recentring, collision off");
+    /* (most tests below: the world-fixed view, recentring and smooth collision, settings version 1's
+     * behaviour; the new defaults have their own tests further down) */
+    lim.follow = false;
+    lim.recentre = true;
+    lim.collision = COLLISION_SMOOTH;
     /* angles and directions */
     {
         double y, p;
@@ -227,6 +234,154 @@ int main() {
         run(o, g, Input(), 10.0, l2);
         check(o.engaged() && near(o.yaw(), turned, 1e-9), "recentre off: the camera stays where it was left");
     }
+    /* ---- the kept view (the defaults: follow, no recentring) ---- */
+    {
+        const Limits d;   /* the defaults */
+        const double dt = 1.0 / 60;
+        /* the game's chase camera behind a vehicle driving a full circle in 12 s (yaw 30 -> 390) */
+        auto chase = [](double t, double pitch = 20.0, double dist = 100.0) {
+            Orbit::Game g;
+            const double a = t / 12.0 * 2.0 * 3.14159265358979;
+            g.target = {1000 + 300 * std::sin(a), 50, -400 + 300 * std::cos(a)};
+            g.eye = g.target + direction(30 + 360.0 * t / 12.0, pitch) * dist;
+            return g;
+        };
+        auto viewYaw = [&](const Orbit &o, const Orbit::Game &g, const Limits &l, double *pitch = nullptr) {
+            Vec3 e;
+            o.eyeFor(g, 0, 0, l, e);
+            double y, p;
+            angles(e - g.target, y, p);
+            if (pitch) *pitch = p;
+            return y;
+        };
+        Orbit o;
+        Input in;
+        in.yaw = 1.5;   /* 90 degrees in a second (the game's camera still) */
+        for (int i = 0; i < 60; i++) o.step(chase(0), in, dt, d, nullptr);
+        check(o.engaged() && near(o.yaw(), 90.0, 1e-6), "follow: the kept yaw is an offset from the game's (90)");
+        bool kept = true, engaged = true;
+        double t = 0;
+        for (int i = 0; i < 12 * 60; i++) {
+            t = (i + 1) * dt;
+            const Orbit::Game g = chase(t);
+            o.step(g, Input(), dt, d, nullptr);
+            double gy, gp;
+            angles(g.eye - g.target, gy, gp);
+            kept = kept && near(wrap180(viewYaw(o, g, d) - gy), 90.0, 1e-6);
+            engaged = engaged && o.engaged();
+        }
+        check(kept && engaged, "follow: driving a full circle the view stays 90 degrees from the chase camera");
+        run(o, chase(t), Input(), 20.0, d);
+        check(o.engaged() && near(o.yaw(), 90.0, 1e-9), "no recentring by default: still there 20 s later");
+        /* the world-fixed frame: the same circle, the view's compass direction kept */
+        Limits w = d;
+        w.follow = false;
+        Orbit ow;
+        for (int i = 0; i < 60; i++) ow.step(chase(0), in, dt, w, nullptr);
+        bool fixed = true;
+        for (int i = 0; i < 12 * 60; i++) {
+            const Orbit::Game g = chase((i + 1) * dt);
+            ow.step(g, Input(), dt, w, nullptr);
+            fixed = fixed && near(wrap180(viewYaw(ow, g, w) - 120.0), 0.0, 1e-6);
+        }
+        check(fixed, "follow off: driving a full circle the view keeps its world direction");
+        /* the tilt: an offset too, the view limited where it is made (the offset kept) */
+        Orbit op;
+        Input up;
+        up.pitch = 0.25;   /* 15 degrees up */
+        for (int i = 0; i < 60; i++) op.step(chase(0), up, dt, d, nullptr);
+        check(near(op.pitch(), 15.0, 1e-6), "follow: the tilt kept as an offset (15)");
+        double p;
+        op.step(chase(0, 35), Input(), dt, d, nullptr);
+        viewYaw(op, chase(0, 35), d, &p);
+        check(near(p, 50.0, 1e-6), "... the game's camera tilting with it (35 + 15)");
+        op.step(chase(0, 75), Input(), dt, d, nullptr);
+        viewYaw(op, chase(0, 75), d, &p);
+        check(near(p, d.pitchMax, 1e-6) && near(op.pitch(), 15.0, 1e-9), "... at most the highest tilt, the offset kept");
+        op.step(chase(0, 20), Input(), dt, d, nullptr);
+        viewYaw(op, chase(0, 20), d, &p);
+        check(near(p, 35.0, 1e-6), "... and back with the game's camera");
+        /* the zoom and the offset through getting out (a closer camera, another place and direction) and a
+         * pause (no steps meanwhile) */
+        Orbit oz;
+        Input zi;
+        zi.zoom = std::log2(1.6);
+        zi.yaw = 40;
+        oz.step(chase(0), zi, dt, d, nullptr);
+        Orbit::Game foot = chase(0, 30, 40);
+        foot.target = foot.target + Vec3{200, 0, -150};
+        foot.eye = foot.target + direction(250, 30) * 40.0;
+        run(oz, foot, Input(), 3.0, d);
+        Vec3 e;
+        oz.eyeFor(foot, 0, 0, d, e);
+        check(near(oz.zoom(), 1.6, 1e-9) && near(length(e - foot.target), 64.0, 1e-6) &&
+                  near(wrap180(viewYaw(oz, foot, d) - 290.0), 0.0, 1e-6),
+              "getting out: the zoom (1.6 x the new distance) and the offset (40) kept");
+        const Orbit before = oz;
+        run(oz, chase(5), Input(), 1.0, d);   /* back in, after a pause */
+        check(near(oz.zoom(), before.zoom(), 1e-12) && near(oz.yaw(), before.yaw(), 1e-12) && oz.engaged(),
+              "getting back in after a pause: the same view");
+        /* a new level (bc.exe: reset(false)): behind the player again, the zoom kept; camera_reset: all */
+        oz.reset(false);
+        check(!oz.engaged() && near(oz.zoom(), 1.6, 1e-12), "a new level: the game's direction, the zoom kept");
+        Input r;
+        r.reset = true;
+        oz.step(chase(0), r, dt, d, nullptr);
+        check(!oz.engaged() && near(oz.zoom(), 1.0, 1e-12), "camera_reset: the game's camera, zoom 1");
+        /* recentring on (an option): the offset eases back to 0 after the delay */
+        Limits rc = d;
+        rc.recentre = true;
+        Orbit orc;
+        for (int i = 0; i < 60; i++) orc.step(chase(0), in, dt, rc, nullptr);
+        for (int i = 0; i < 8 * 60; i++) orc.step(chase((i + 1) * dt), Input(), dt, rc, nullptr);
+        Vec3 ge;
+        orc.eyeFor(chase(8), 0, 0, rc, ge);
+        check(!orc.engaged() && nearV(ge, chase(8).eye, 1e-6), "recentre on: back to the game's camera, following it");
+        /* pictures between steps with a turning game camera: the offset between the two states' */
+        Orbit a = o, b = o;
+        Input more;
+        more.yaw = 10;
+        b.step(chase(t), more, dt, d, nullptr);
+        const Orbit h = Orbit::between(a, b, 0.5);
+        double gy, gp;
+        angles(chase(t).eye - chase(t).target, gy, gp);
+        check(near(wrap180(viewYaw(h, chase(t), d) - gy), 95.0, 1e-6), "between: the offsets blend (90 .. 100: 95)");
+    }
+    /* ---- collision off (the default): buildings ignored, the terrain under the eye, no snaps ---- */
+    {
+        const Limits d;
+        const double dt = 1.0 / 60;
+        Input in;
+        in.yaw = 1e-6;
+        /* the terrain: a cliff 30 high at x 150 (the eye 100 ahead of the target on +x, the target driving
+         * towards it at 30 units a second) */
+        const HeightFn cliff = [](double x, double, double) { return x > 150.0 ? 30.0 : 0.0; };
+        const HeightFn wall = [](double x, double, double z) { return x > 60 && x < 80 && std::fabs(z) < 50 ? 60.0 : 0.0; };
+        Orbit o;
+        double maxStep = 0, lastY = 0, minAbove = 1e9;
+        bool have = false;
+        for (int i = 0; i < 6 * 60; i++) {
+            Orbit::Game g;
+            g.target = {i * 0.5, 5, 0};
+            g.eye = g.target + direction(90, 3) * 100.0;
+            o.step(g, in, dt, d, wall, cliff);
+            Vec3 e;
+            o.eyeFor(g, 0, 0, d, e);
+            if (have) maxStep = std::max(maxStep, e.y - lastY);
+            lastY = e.y, have = true;
+            minAbove = std::min(minAbove, e.y - cliff(e.x, e.y, e.z));
+        }
+        check(minAbove >= d.floorClear - 1e-6, "off: the eye never under the terrain");
+        check(maxStep < 10.0, "off: up a 30-unit cliff on a spring (no step over 10 units)");
+        check(near(o.distanceRatio(), 1.0, 1e-9) && near(o.rise(), 0.0, 1e-9), "off: never pulled in or risen");
+        /* the eye in a building: counted, not moved */
+        Orbit ob;
+        Orbit::Game g;
+        g.target = {0, 5, 0};
+        g.eye = g.target + direction(90, 10) * 70.0;   /* the eye at x ~69: inside the wall */
+        run(ob, g, in, 1.0, d, wall, [](double, double, double) { return 0.0; });
+        check(ob.eyeInside() && near(ob.distanceRatio(), 1.0, 1e-9), "off: the eye inside a building is counted only");
+    }
     /* collision (strict: as before the smooth default): flat ground at y = 0, the target 5 above it */
     {
         const HeightFn flat = [](double, double, double) { return 0.0; };
@@ -332,7 +487,7 @@ int main() {
     /* smooth collision (the default): calm, ignores thin and brief obstructions, never stays inside */
     {
         Limits l = lim;
-        check(l.collision == COLLISION_SMOOTH, "collision: smooth is the default");
+        check(l.collision == COLLISION_SMOOTH, "collision: smooth (these tests)");
         Orbit::Game gw;
         gw.target = {0, 5, 0};
         gw.eye = gw.target + direction(90, 10) * 100.0;   /* the eye on the +x side */

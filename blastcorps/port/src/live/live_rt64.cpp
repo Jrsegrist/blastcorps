@@ -501,6 +501,8 @@ live::InputThread g_input;           /* SDL's controllers on their own thread (l
 live::PadSet g_pads;                 /* its latest sample, taken each retrace (pumpEvents) */
 unsigned short g_button;
 signed char g_stickX, g_stickY;
+int g_trigger = -1;                  /* the analog throttle's pressure (N64Pad::trigger) */
+bool g_throttleLog;                  /* --throttle-log */
 live::InputGate g_gate;              /* after the settings menu (live_input.h) */
 bool g_focused = true;               /* the window has the keyboard focus */
 unsigned g_lastScan;                 /* retraces since the controllers' last one-second line */
@@ -524,6 +526,7 @@ void pollInput() {
     g_button = p.button;
     g_stickX = (signed char) p.x;
     g_stickY = (signed char) p.y;
+    g_trigger = p.trigger;
 }
 
 bool menuCombo() {
@@ -2481,6 +2484,7 @@ int liveInput(unsigned short *button, signed char *x, signed char *y) {
     *button = g_button;
     *x = g_stickX;
     *y = g_stickY;
+    host_live_trigger = g_trigger;   /* (the analog throttle: plat_input_read gives it to live_throttle.cpp) */
     if (host_verbose && g_button != lastButton)
         host_log("live: pad buttons %04X stick %d,%d (frame %u)\n", g_button, g_stickX, g_stickY, plat_frames());
     lastButton = g_button;
@@ -2900,6 +2904,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--interp-log")) g_interp.log = true;
     else if (!strcmp(a, "--orbit-log")) live::orbitSetLog(true);
     else if (!strcmp(a, "--orbit-steplog")) live::orbitSetStepLog(true);
+    else if (!strcmp(a, "--throttle-log")) g_throttleLog = true;
     else if (!strcmp(a, "--orbit-repeatable")) live::orbitSetRepeatable(true);
     else if (!strcmp(a, "--orbit-cull")) {
         const char *s = next();
@@ -3100,6 +3105,7 @@ void prestart(HostOpts *o) {
     live::interpTagsSetLog(g_interp.log);
     live::interpTagsEnable(g_cfg.framerate != 0 && g_cfg.interpolation == 1);
     live::orbitSetup(g_app, &g_cfg, g_window);
+    live::throttleSetup(&g_cfg, g_throttleLog);
     if (g_cfg.fpsCounter != 0) counterApply();
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
@@ -3311,6 +3317,7 @@ int main(int, char **) {
         live::wideSummary();
         host_low_summary();
         live::orbitSummary();
+        live::throttleSummary();
     };
     host_opts_hook = optsHook;
     host_rom_hook = romHook;

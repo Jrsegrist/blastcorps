@@ -34,7 +34,8 @@ Controls (default; change them in the settings menu or bc.ini)
   Analog stick   Arrow keys          Left stick
   A              X                   A
   B              C                   B or X
-  Z              Z or Space          Left or right trigger
+  Z              Z or Space          Left or right trigger (with the analog throttle
+                                     on: the left trigger; the right one drives)
   Start          Enter               Start
   L / R          A / S               Shoulder buttons
   C buttons      I J K L             Right stick (the orbit camera's, if it is on)
@@ -62,7 +63,8 @@ Settings: bc.ini
 bc.ini is created next to bc.exe on the first start, with every setting explained in
 it. The settings menu writes it too; you can also edit it with Notepad while the
 game is closed. It holds:
-  [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1)
+  [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1),
+               settings_version (leave it: see "Changed defaults" below)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
                fullscreen, vsync, present_pacing (timer, the default, vsync, vrr
                or auto: see "Frame rate and smoothness"); optional enhancements (off by
@@ -83,15 +85,40 @@ game is closed. It holds:
                (0/1): see "Texture packs"
   [audio]      volume, mute
   [camera]     mode (original, the default, or orbit: the free camera, below),
-               sensitivity_x/y, invert_x/y, recentre (0/1) and recentre_delay
-               (seconds), relative_steering (0/1), recentre_on_foot, collision
-               (smooth, off or strict), zoom_min/max, tilt_min/max, mouse (0/1)
+               sensitivity_x/y, invert_x/y, follow (1, the default: the view turns
+               with your vehicle; 0: fixed in the world), recentre (0, the default,
+               or 1) and recentre_delay (seconds), relative_steering (0/1),
+               recentre_on_foot, collision (off, the default, smooth or strict),
+               zoom_min/max, tilt_min/max, mouse (0/1)
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
   [controller] the same for a game controller, plus which stick is the analog stick,
                its dead zone and sensitivity, which controller plays (pad = 1, 2 ...
-               or any) and the buttons that open the settings menu
+               or any), the buttons that open the settings menu, and the analog
+               throttle: analog_throttle (0, the default, or 1), throttle (the
+               trigger: righttrigger), throttle_deadzone, throttle_curve
 Delete bc.ini to get the defaults back. If a line isn't understood, the game says so
 when it starts and uses the default for it.
+
+Changed defaults: when a new version changes a default, a bc.ini from an older one
+gets the new default for that setting if it still has the old default, once (the
+log says so, and the file is rewritten; its comments stay as they were). A value you
+chose yourself stays. This version: recentre 1 -> 0 and collision smooth -> off (the
+orbit camera stays where you put it and buildings don't move it). Set them back in
+the menu or bc.ini if you liked the old behaviour; they stay that way.
+
+Analog throttle (analog_throttle = 1, or Controls > "Drive with the trigger's
+pressure" in the settings menu): the right trigger drives your vehicle by how far you
+press it. The game's vehicles accelerate the same way whatever the pressure, up to a
+top speed, and the pressure sets that top speed: half way holds about half the top
+speed, fully pressed is exactly the A button (as the game's own "speed on 3D stick"
+control method does with the stick). The trigger then presses no other N64 button: with
+the default bindings Z (brake, get out) is the left trigger only. The A button and the
+keyboard still drive at full throttle; B brakes and reverses as always. On foot, and
+for Thunderfist, the J-Bomb, the Cyclone Suit and the Crane (they don't use a
+throttle), the trigger is the A button. The pressure goes to the game with the
+controller's state that the game records, so the replay after a level should show
+your partial throttle too (turning the option on or off in the middle of a level
+can make that level's replay differ).
 
 The window can be resized freely; the picture keeps the N64's 4:3 shape unless
 widescreen is on (aspect): then the 3D world fills the wider picture, nothing is
@@ -119,9 +146,16 @@ foot, at any angle, tilt it and zoom it, while you play: the right stick (or key
 and push the right stick up or down to zoom in or out; the right stick's click (keypad
 5, the middle mouse button) resets it. (Older versions zoomed out with a click of the
 left stick, easy to do by accident while steering hard; a bc.ini with those old
-default buttons is changed to the new ones when the game starts.) By default it eases
-back behind you a moment after you let go (recentre); with recentre off it stays where
-you left it. It only changes what you see, with one exception: the driver on foot,
+default buttons is changed to the new ones when the game starts.) The view and the
+zoom stay where you put them: getting in and out, pausing, the map view and messages
+keep them, until you reset them or a new level starts (the zoom is kept even then).
+The angle is kept relative to the game's own camera, which follows your vehicle
+(follow = 1): set it to the side and it stays at the side as you drive and turn, like
+a chase camera; follow = 0 keeps it fixed in the world instead (driving a circle, it
+swings round you). recentre = 1 brings back the old behaviour of easing back behind
+you a moment after you let go. A click of the right stick while it is pushed far
+over (turning or zooming) doesn't reset the view (taken for an accident); click it
+with the stick centred. It only changes what you see, with one exception: the driver on foot,
 the J-Bomb, Thunderfist and the Cyclone Suit are steered by the game relative to its
 own camera, so with the view turned round "up" on the stick used to go towards you.
 With relative_steering = 1 (the default) the stick is turned to match the orbit's view
@@ -129,11 +163,13 @@ With relative_steering = 1 (the default) the stick is turned to match the orbit'
 and with the orbit off (or not turned) the game gets exactly what you press. While it
 is on, the right stick turns the camera instead of being the C buttons (C left/right,
 the game's own 45-degree camera turns, stay on J and L); in menus the right stick is
-the C buttons as before. Buildings in the way (collision = smooth, the default): the
-view rises over a building that stays between the camera and you, or moves in front
-of it, calmly (no jumps in and out), and goes back a moment after the view is clear;
-poles, corners and buildings rushing past just hide you for a moment. strict moves at
-once every time (as before); off never moves for buildings. The sky now moves picture
+the C buttons as before. Buildings in the way (collision = off, the default): the
+camera never moves for them, so it stays at your angle and zoom; you may see through
+a building, or lose sight of yourself behind one, for a moment. It is still kept
+above the ground, rising smoothly as the ground rises. collision = smooth: the view
+rises over a building that stays between the camera and you, or moves in front of it,
+calmly, and goes back a moment after the view is clear; strict moves at once every
+time. The sky now moves picture
 by picture with the orbit's view too (before, it moved only with the game's own 30
 frames a second, which looked like a stutter at high frame rates). People still face the game's own
 camera, the radar keeps the game's heading, and the screen doesn't shake in the
@@ -244,12 +280,12 @@ choice matters only with the Direct3D 12 graphics API):
          the cost of about 5-10 ms more delay (half to one refresh at 60 Hz).
          The game falls back to the timer for a few seconds if the PC can't
          keep up at all. Needs vsync on.
-  vrr    "G-Sync / FreeSync": for a variable-refresh display (G-Sync or FreeSync
-         turned on in the graphics driver). Pictures come at an even pace a little
-         under the display's highest rate (116 a second on 120 Hz, 139 on 144 Hz),
-         so the display never has to wait for its next fixed refresh. On a
-         display without variable refresh this gives a small stutter every
-         second or so: use timer there.
+  vrr    "G-Sync / FreeSync", experimental: pictures come at an even pace a little
+         under the display's highest rate (116 a second on 120 Hz, 139 on 144 Hz).
+         Measured on a G-Sync display it was less even than timer (the pacing's
+         own timer fell behind and restarted now and then), so use timer on
+         G-Sync / FreeSync displays too. On a display without variable refresh it
+         gives a small stutter every second or so.
   auto   picks one from the display and the settings (vsync off: timer; vsync on:
          vsync at the game's own frame rate, timer above it). Windows doesn't say
          whether G-Sync is on, so auto never picks vrr.
@@ -288,8 +324,8 @@ resolution.
 On 120/144 Hz and other high-refresh displays the speed is the same; a field then stays up for a whole number of
 refreshes (2 or 3 in turn at 144 Hz), a slight unevenness the eye barely sees.
 With framerate = display on a 120 Hz display (4 pictures per game picture) the
-timer pacing shows one picture per refresh; on a G-Sync / FreeSync display try
-present_pacing = vrr too and compare the frame-time lines in bc.log.
+timer pacing shows one picture per refresh, on G-Sync / FreeSync displays too (keep
+present_pacing = timer there).
 When a level starts, the first second can stutter briefly while the graphics
 driver prepares new shaders; the game then catches up and runs smoothly.
 

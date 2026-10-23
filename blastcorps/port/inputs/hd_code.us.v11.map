@@ -157,7 +157,7 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/45BB0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/45BB0.c.o
  .gptab.data    0x00000000       0x28 build_nm/src.us.v11/hd_code/45BB0.c.o
- .mdebug        0x00000000     0x15d4 build_nm/src.us.v11/hd_code/45BB0.c.o
+ .mdebug        0x00000000     0x15dc build_nm/src.us.v11/hd_code/45BB0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/46C20.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/46C20.c.o
  .mdebug        0x00000000      0x710 build_nm/src.us.v11/hd_code/46C20.c.o

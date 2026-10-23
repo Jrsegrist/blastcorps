@@ -114,7 +114,10 @@ struct Cam {
 };
 Cam g_built[2];           /* by DynamicBuf (host_camera_hook) */
 Cam g_last;               /* the last frame drawn */
-unsigned g_cuts;
+unsigned g_cuts;          /* the game's camera cuts in play (the orbit's view kept) */
+unsigned g_resets;        /* the orbit put back behind the player: new levels (orbitVi) */
+unsigned g_userResets;    /* ... camera_reset presses */
+unsigned g_resetsIgnored; /* camera_reset pressed with the camera stick pushed far (taken for an accident) */
 
 void mtxToDouble(uint32_t addr, double m[4][4]) {
     const uint32_t *w = reinterpret_cast<const uint32_t *>(uintptr_t(addr));
@@ -580,6 +583,8 @@ bool g_resetHeld;
 /* --orbit-test (g_test: above); sweep: the stress test (orbit::sweepAt, from the steps in play); hold:DEG: kept
  * DEG from the game's camera */
 double g_testYaw, g_testPitch = 1e9, g_testZoom = 0, g_testHold = 1e9;
+bool g_setPending;                /* --orbit-test set:YAW[:PITCH[:ZOOM]] (once, at the first step in play) */
+double g_setYaw, g_setPitch = 1e9, g_setZoom = 0;
 orbit::CollisionStats g_cstats;   /* how calm the collision was (orbitSummary) */
 bool g_stepLog;                   /* --orbit-steplog */
 /* camera-relative steering (steerHook) */
@@ -1067,6 +1072,8 @@ void orbitApply() {
     g_lim.pitchMax = g_cfg->camPitchMax;
     g_lim.zoomMin = g_cfg->camZoomMin;
     g_lim.zoomMax = g_cfg->camZoomMax;
+    if (g_lim.follow != g_cfg->camFollow) g_orbit.reset(false);   /* (the kept angles mean something else) */
+    g_lim.follow = g_cfg->camFollow;
     g_lim.recentre = g_cfg->camRecentre;
     g_lim.recentreDelay = g_cfg->camRecentreDelay;
     g_lim.collision = g_cfg->camCollision;
@@ -1132,9 +1139,27 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     const Cam &c = g_last;
     const bool was = g_active;
     g_active = c.valid && c.play;
+    /* The view the player set (yaw, tilt, zoom) is kept through everything (getting in and out, pause, the
+     * map view, message windows, the game's camera cuts) until camera_reset; a new level (its start, or
+     * another level number) starts from the game's camera again, the zoom kept. */
+    {
+        static int lastLevel = -1;
+        static bool wasStarting;
+        const int level = BC_LEVEL;
+        const bool starting = BC_MODE == 0x2000; /* MODE_LEVEL_START */
+        if ((starting && !wasStarting) || level != lastLevel) {
+            host_log("live: orbit camera: a new level (%d%s, frame %u): %s, zoom %.2f kept\n", level,
+                     starting ? ", its start" : "", plat_frames(),
+                     g_orbit.engaged() ? "back behind the player" : "behind the player", g_orbit.zoom());
+            g_resets++;
+        }
+        if (starting || level != lastLevel) g_orbit.reset(false);
+        lastLevel = level;
+        wasStarting = starting;
+    }
     if (!g_active) {
-        if (was) host_log("live: orbit camera inactive (game mode %08llX, frame %u)\n", c.mode, plat_frames());
-        g_orbit.reset(false);
+        if (was) host_log("live: orbit camera inactive (game mode %08llX, frame %u; the view is kept)\n", c.mode,
+                          plat_frames());
         g_motion.reset();
         g_yawRate = g_pitchRate = 0;
         g_mouseX = g_mouseY = g_wheel = 0;
@@ -1194,12 +1219,35 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     if (g_log && in.zoom != 0.0)
         host_log("live: orbit zoom input %.4f (log2; buttons %.2f, hold %d, wheel %.2f; step dt %.4f s, frame %u)\n",
                  in.zoom, zoomRate, zoomHold ? 1 : 0, g_wheel, dt, plat_frames());
-    const bool reset = actionValue(cf, pads, keys, A_CAM_RESET) > 0.5 || g_resetHeld;
-    static bool resetWas;
+    /* (a click of the right stick pushed far over while turning or zooming - its default binding - is taken
+     * for an accident: the view would jump back; a reset is a click with the stick near its centre) */
+    const bool busy = std::fabs(actionValue(cf, pads, keys, A_CAM_RIGHT) - actionValue(cf, pads, keys, A_CAM_LEFT)) > 0.5 ||
+                      std::fabs(actionValue(cf, pads, keys, A_CAM_UP) - actionValue(cf, pads, keys, A_CAM_DOWN)) > 0.5;
+    const bool pressed = actionValue(cf, pads, keys, A_CAM_RESET) > 0.5;
+    const bool reset = (pressed && !busy) || g_resetHeld;
+    static bool resetWas, ignoredWas;
+    if (pressed && busy && !ignoredWas) g_resetsIgnored++;
+    ignoredWas = pressed && busy;
     in.reset = reset && !resetWas;
-    resetWas = reset;
+    resetWas = pressed || g_resetHeld;   /* (held on from an ignored click: no reset when the stick comes back) */
+    if (in.reset) {
+        g_userResets++;
+        if (g_log) host_log("live: orbit camera: camera_reset (frame %u)\n", plat_frames());
+    }
     g_resetHeld = false;
     g_mouseX = g_mouseY = g_wheel = 0;
+    if (g_setPending) {   /* --orbit-test set:YAW[:PITCH[:ZOOM]]: put there once, then the player's input (none) */
+        double gy, gp, vy, vp;
+        orbit::angles(c.eye - c.target, gy, gp);
+        g_orbit.viewAngles(gy, gp, g_lim, vy, vp);
+        in = orbit::Input();
+        in.yaw = orbit::wrap180(gy + g_setYaw - vy) + 1e-9;
+        if (g_setPitch < 1e8) in.pitch = g_setPitch - vp;
+        if (g_setZoom > 0) in.zoom = std::log2(g_setZoom / g_orbit.zoom());
+        g_setPending = false;
+        host_log("live: orbit test: the view set to the game's yaw %+.0f, pitch %.0f, zoom %.2f (frame %u)\n", g_setYaw,
+                 g_setPitch < 1e8 ? g_setPitch : vp, g_setZoom > 0 ? g_setZoom : g_orbit.zoom(), plat_frames());
+    }
     if (g_sweep) {   /* --orbit-test sweep: turning, tilting and zooming by itself */
         const orbit::Sweep sw = orbit::sweepAt(g_sweepSteps++ * dt, g_lim);
         g_testYaw = sw.yawRate;
@@ -1211,13 +1259,14 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
         g_yawRate = g_testYaw;
         g_pitchRate = 0;
         in.yaw = g_testYaw * dt;
+        double gy, gp, vy, vp;
+        orbit::angles(c.eye - c.target, gy, gp);
+        g_orbit.viewAngles(gy, gp, g_lim, vy, vp);
         if (g_testHold < 1e8) {   /* hold:DEG: the game's camera's yaw + DEG */
-            double gy, gp;
-            orbit::angles(c.eye - c.target, gy, gp);
-            in.yaw = orbit::wrap180(gy + g_testHold - (g_orbit.engaged() ? g_orbit.yaw() : gy)) + 1e-9;
+            in.yaw = orbit::wrap180(gy + g_testHold - vy) + 1e-9;
             g_yawRate = 0;
         }
-        if (g_testPitch < 1e8) in.pitch = (g_testPitch - g_orbit.pitch()) * std::min(1.0, dt * 4.0) + 1e-9;
+        if (g_testPitch < 1e8) in.pitch = (g_testPitch - vp) * std::min(1.0, dt * 4.0) + 1e-9;
         if (g_testZoom > 0) in.zoom = std::log2(g_testZoom / g_orbit.zoom());
     }
     orbit::Limits lim = g_lim;
@@ -1234,10 +1283,13 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
         if (g_log) g_orbit.step(g, in, dt, lim, groundHeightChecked, terrainHeight);
         else g_orbit.step(g, in, dt, lim, groundHeight, terrainHeight);
     }
+    Vec3 stepEye;
+    g_orbit.eyeFor(g, 0, 0, lim, stepEye);
     if (g_orbit.engaged() || std::fabs(g_orbit.zoom() - 1.0) > 1e-6) {
         g_perf.steps++;
         g_perf.closeSteps += g_orbit.distanceRatio() < 0.3;
-        g_cstats.add(g_orbit.distanceRatio(), g_orbit.rise(), g_orbit.eyeInside(), dt);
+        g_cstats.add(g_orbit.distanceRatio(), g_orbit.rise(), g_orbit.eyeInside(), dt, g_orbit.lift(),
+                     stepEye.y - c.target.y);
         if (g_stepLog)   /* --orbit-steplog: every step's collision state */
             host_log("live: orbit step frame %u: pull-in %.3f (to %.3f) rise %.1f (to %.1f) lift %.1f inside %d\n",
                      plat_frames(), g_orbit.distanceRatio(), g_orbit.ratioTarget(), g_orbit.rise(), g_orbit.riseTarget(),
@@ -1245,11 +1297,7 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     } else {
         g_cstats.restart();
     }
-    {
-        Vec3 eye;
-        g_orbit.eyeFor(g, 0, 0, lim, eye);
-        g_motion.add(eye, c.target);
-    }
+    g_motion.add(stepEye, c.target);
     std::lock_guard<std::mutex> lock(g_mutex);
     g_shared.orbit = g_orbit;
     g_shared.lim = lim;
@@ -1271,13 +1319,12 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
     const unsigned dyn = (dl - (kDyn & 0x3FFFFFF)) / kDynSize;
     if (dyn > 1 || !g_built[dyn].valid) return;
     Cam c = g_built[dyn];
-    /* a cut (the game snapped its camera, a new mode or level): no blend from
-     * the frame before, the orbit starts from the game's camera again */
+    /* a cut (the game snapped its camera, a new mode or level): no blend from the frame before.  The
+     * orbit keeps the player's view (a new level: orbitVi starts it from the game's camera again) */
     const bool cut = !g_last.valid || c.snap || c.mode != g_last.mode || c.level != g_last.level;
-    if (cut && g_orbit.engaged() && c.play) {
-        g_orbit.reset(false);
+    if (cut && c.play) {
         g_cuts++;
-        if (g_log) host_log("live: orbit camera reset by a cut (frame %u)\n", plat_frames());
+        if (g_log) host_log("live: orbit camera: a cut (frame %u; the view kept)\n", plat_frames());
     }
     g_prevDrawn = cut ? c : g_last;
     g_lastCut = cut;
@@ -1373,6 +1420,16 @@ bool orbitSetTest(const std::string &spec) {
         g_test = g_sweep = true;
         return true;
     }
+    if (spec.compare(0, 4, "set:") == 0) {   /* set:YAW[:PITCH[:ZOOM]]: once (the kept view's tests) */
+        double y = 0, p = 1e9, z = 0;
+        const int n = sscanf(spec.c_str() + 4, "%lf:%lf:%lf", &y, &p, &z);
+        if (n < 1) return false;
+        g_setPending = true;
+        g_setYaw = y;
+        g_setPitch = n >= 2 ? p : 1e9;
+        g_setZoom = n >= 3 ? z : 0;
+        return true;
+    }
     if (spec.compare(0, 5, "hold:") == 0) {   /* hold:DEG[:PITCH]: DEG from the game's camera's yaw */
         double h = 0, p = 1e9;
         const int n = sscanf(spec.c_str() + 5, "%lf:%lf", &h, &p);
@@ -1438,9 +1495,14 @@ OrbitPerf orbitFrameTake() {
 void orbitSummary() {
     if (g_viewLog != nullptr) fflush(g_viewLog);   /* (RT64's render thread may still write: not closed) */
     if (g_cfg == nullptr || g_cfg->cameraMode != 1) return;
-    host_log("live: orbit camera: %u pictures drawn with its view, %u cuts, backdrop turned with it in %u frames, "
-             "%u billboards turned to it\n",
-             g_hooked.load(), g_cuts, g_bdFrames, g_bb.turned);
+    host_log("live: orbit camera: %u pictures drawn with its view, %u cuts (view kept), %u new-level and %u "
+             "camera_reset resets (%u clicks with the stick pushed ignored), backdrop turned with it in %u frames, %u "
+             "billboards turned to it\n",
+             g_hooked.load(), g_cuts, g_resets, g_userResets, g_resetsIgnored, g_bdFrames, g_bb.turned);
+    host_log("live: orbit view kept: %s, recentre %s; at the end yaw %.1f pitch %.1f%s, zoom %.2f%s\n",
+             g_lim.follow ? "relative to the game's camera (follow)" : "fixed in the world", g_lim.recentre ? "on" : "off",
+             g_orbit.yaw(), g_orbit.pitch(), g_lim.follow ? " (offsets)" : "", g_orbit.zoom(),
+             g_orbit.engaged() ? "" : " (not engaged: the game's direction)");
     host_log("live: orbit sky: %u backdrop draws moved picture by picture (interpolated; %u new IDs: cuts, engaging, "
              "repeats taken off)\n",
              g_sky.tagged, g_sky.newIds);
@@ -1455,6 +1517,10 @@ void orbitSummary() {
              orbit::collisionName(g_lim.collision), s.seconds, s.ratioTurns, min > 0 ? s.ratioTurns / min : 0.0,
              s.riseTurns, min > 0 ? s.riseTurns / min : 0.0, s.maxIn, s.maxOut, s.maxUp, s.maxDown, s.pulled, s.inside,
              s.steps);
+    host_log("live: orbit ground: the eye lifted over the ground at most %.1f units a second (%.2f in one step); "
+             "%u steps held at the terrain under the eye; the lift moved the eye up at most %.2f units in a step, "
+             "%u snaps over %.0f\n",
+             s.maxLiftUp, s.maxLiftStep, g_orbit.floorHits(), s.maxEyeStep, s.eyeJumps, s.jumpStep);
     host_log("live: orbit steering (%s): %u controller reads of a camera-relative character with the stick held "
              "in a turned orbit view, %u turned (at most %.0f degrees)\n",
              g_cfg->camRelativeSteering ? "relative to the orbit's view" : "off: the game's camera", g_steerReads,

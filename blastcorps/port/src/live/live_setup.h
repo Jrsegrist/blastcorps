@@ -27,6 +27,11 @@ extern const unsigned short kButtonBits[kButtons];
 extern const char *const kActionNames[A_COUNT];  /* the config keys */
 extern const char *const kActionLabels[A_COUNT]; /* for people (the settings menu) */
 
+/* bc.ini's settings version ([game] settings_version): the defaults of this build.  1 (or no line): up to
+ * 76dd727 (recentre = 1, collision = smooth); 2: recentre = 0, collision = off.  configLoad gives a file
+ * of an older version the new defaults where it still has the old ones, and writes the version. */
+constexpr int kSettingsVersion = 2;
+
 /* one game-controller input: a button, or an axis pushed one way */
 struct PadInput {
     int button = -1;    /* SDL_GameControllerButton */
@@ -40,6 +45,8 @@ struct Config {
     std::string rom;                /* as written in the file */
     std::string saves;              /* folder ("" = don't keep saves) */
     bool pak = false;
+    int settingsVersion = kSettingsVersion;   /* [game] settings_version: the defaults the file was made with
+                                                 (a file without it: 1); configLoad migrates older ones */
     bool vulkan = false;
     unsigned scale = 3;
     bool fullscreen = false;
@@ -89,14 +96,23 @@ struct Config {
     int deadzone = 7000;
     int sensitivity = 100;          /* analog stick, percent of the full N64 range */
     int padIndex = 0;               /* which game controller: 0 the first, N the N+1th, -1 all */
+    /* the analog throttle (live_input.h; off by default) */
+    bool analogThrottle = false;    /* the throttle inputs drive with their pressure (and press no N64 button) */
+    std::vector<PadInput> throttlePad;   /* [controller] throttle (default righttrigger) */
+    int throttleDeadzone = 1500;    /* of the trigger's 0..32767 */
+    double throttleCurve = 1.0;     /* the response: pressure ^ curve (1 linear) */
     /* [camera]: the optional free orbit camera (live_orbit.cpp; off by default) */
     int cameraMode = 0;             /* 0 original (the game's camera), 1 orbit */
     int camSensX = 100, camSensY = 100;   /* percent */
     bool camInvertX = false, camInvertY = false;
-    bool camRecentre = true;        /* ease back behind the player after the input is idle */
+    bool camFollow = true;          /* the view set is kept relative to the game's camera (turns with the
+                                       vehicle); false: fixed in the world (orbit::Limits::follow) */
+    bool camRecentre = false;       /* ease back behind the player after the input is idle (settings
+                                       version 1's default was on: configLoad migrates it) */
     bool camRecentreOnFoot = true;  /* ... for the characters the game steers relative to its camera, with
                                        camRelativeSteering off, even with camRecentre off */
-    int camCollision = 0;           /* how obstacles move it: 0 smooth, 1 off, 2 strict (orbit::Collision) */
+    int camCollision = 1;           /* how obstacles move it: 0 smooth, 1 off (the default; version 1's was
+                                       smooth), 2 strict (orbit::Collision) */
     bool camRelativeSteering = true;   /* those characters steer relative to the orbit's view */
     double camRecentreDelay = 1.5;  /* seconds */
     double camZoomMin = 0.5, camZoomMax = 2.5;      /* times the game's own distance */
@@ -123,6 +139,9 @@ void configDefaults(Config &c);
  * defaults (and their comments).  Returns false if it couldn't be read or
  * created (warnings say why). */
 bool configLoad(Config &c, const std::string &file);
+/* (configLoad) settings of an older c.settingsVersion still at an old default -> the new default; the
+ * changed settings and the version written to the file (logged) */
+void configMigrate(Config &c, const std::string &file);
 /* remember the ROM: rewrite (or add) the `rom =` line, keeping the rest */
 bool configSetRom(Config &c, const std::string &rom);
 /* "section.key=value" over the settings (bc.exe --set); false (and a

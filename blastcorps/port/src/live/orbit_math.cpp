@@ -114,6 +114,7 @@ void Orbit::reset(bool zoomToo) {
     riseT_ = 0.0;
     pullIn_ = letOut_ = riseUp_ = riseDown_ = 0.0;
     inside_ = false;
+    haveEye_ = false;
     if (zoomToo) zoom_ = 1.0;
 }
 
@@ -126,34 +127,39 @@ void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, c
     angles(off, gy, gp);
     if (in.reset) reset(true);
 
-    /* turning: from the game's direction if not engaged yet */
+    /* turning: from the game's direction if not engaged yet (follow: offsets from it, 0 = the game's) */
     const bool moved = in.yaw != 0.0 || in.pitch != 0.0;
+    const double baseYaw = lim.follow ? gy : 0.0, basePitch = lim.follow ? gp : 0.0;
     if (moved) {
         if (blend_ <= 0.0) {
-            yaw_ = gy;
-            pitch_ = gp;
+            yaw_ = gy - baseYaw;
+            pitch_ = gp - basePitch;
         }
         blend_ = 1.0;
         recentring_ = false;
-        yaw_ = wrap360(yaw_ + in.yaw);
+        yaw_ = lim.follow ? wrap180(yaw_ + in.yaw) : wrap360(yaw_ + in.yaw);
         pitch_ += in.pitch;
         idle_ = 0.0;
     } else {
         idle_ += dt;
     }
     if (blend_ > 0.0) {
-        /* the pitch limits, widened to include the game's own pitch (so easing
-         * back to it is never stopped by them) */
+        /* the pitch limits (on the view's absolute pitch); widened to include the game's own pitch (so easing
+         * back to it is never stopped by them).  Following, the kept offset is only limited where the player
+         * moves it: the game camera's pitch changing later doesn't change it (the view is limited as it is
+         * made: viewAngles) */
         const double lo = std::min(lim.pitchMin, gp), hi = std::max(lim.pitchMax, gp);
-        if (moved) pitch_ = std::max(lim.pitchMin, std::min(lim.pitchMax, pitch_));
-        pitch_ = std::max(lo, std::min(hi, pitch_));
+        if (moved) pitch_ = std::max(lim.pitchMin, std::min(lim.pitchMax, pitch_ + basePitch)) - basePitch;
+        if (!lim.follow) pitch_ = std::max(lo, std::min(hi, pitch_));
         if (lim.recentre && idle_ >= lim.recentreDelay) recentring_ = true;
         if (recentring_) {
             const double k = 1.0 - std::exp(-dt / std::max(0.01, lim.recentreTime));
-            yaw_ = wrap360(yaw_ + wrap180(gy - yaw_) * k);
-            pitch_ += (gp - pitch_) * k;
+            const double toYaw = gy - baseYaw, toPitch = gp - basePitch;
+            yaw_ = yaw_ + wrap180(toYaw - yaw_) * k;
+            yaw_ = lim.follow ? wrap180(yaw_) : wrap360(yaw_);
+            pitch_ += (toPitch - pitch_) * k;
             /* close enough: hand over to the game's camera itself (blend to 0) */
-            if (std::fabs(wrap180(gy - yaw_)) < 2.0 && std::fabs(gp - pitch_) < 2.0) {
+            if (std::fabs(wrap180(toYaw - yaw_)) < 2.0 && std::fabs(toPitch - pitch_) < 2.0) {
                 blend_ -= dt / 0.25;
                 if (blend_ <= 0.0) {
                     blend_ = 0.0;
@@ -171,10 +177,14 @@ void Orbit::step(const Game &g, const Input &in, double dt, const Limits &lim, c
      * camera is never moved: zoom 1, not engaged) */
     const bool collide = gameDist > 1e-6 && (blend_ > 0.0 || zoom_ > 1.0 + 1e-9);
     Vec3 dir0 = normalize(off);
-    if (blend_ > 0.0) dir0 = normalize(lerp(dir0, direction(yaw_, pitch_), blend_));
+    if (blend_ > 0.0) {
+        double vy, vp;
+        viewAngles(gy, gp, lim, vy, vp);
+        dir0 = normalize(lerp(dir0, direction(vy, vp), blend_));
+    }
     const double dist = gameDist * zoom_;
     if (lim.collision == COLLISION_STRICT) stepStrict(g, dir0, dist, collide, dt, lim, height);
-    else if (lim.collision == COLLISION_OFF) stepOff(g, dir0, dist, collide, dt, lim, terrain);
+    else if (lim.collision == COLLISION_OFF) stepOff(g, dir0, dist, collide, dt, lim, height, terrain);
     else stepSmooth(g, dir0, dist, collide, dt, lim, height);
 }
 
@@ -190,28 +200,59 @@ static bool insideAt(const Vec3 &target, const Vec3 &dir, double dist, double ra
 }
 
 void Orbit::stepOff(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
-                    const HeightFn &terrain) {
+                    const HeightFn &height, const HeightFn &terrain) {
     /* nothing moves it for obstacles: back out (if it was pulled in under another setting), kept above the
      * terrain only */
     ratioT_ = 1.0, riseT_ = 0.0;
     pullIn_ = letOut_ = riseUp_ = riseDown_ = 0.0;
     Spring::step(ratio_, ratioV_, 1.0, lim.springOut, dt);
     Spring::step(rise_, riseV_, 0.0, lim.springOut, dt);
-    double wantLift = 0.0;
+    double wantLift = 0.0, floorLift = 0.0;
     Vec3 dir = dir0;
     if (rise_ > 1e-6) {
         double y0, p0;
         angles(dir0, y0, p0);
         dir = direction(y0, std::min(89.0, p0 + rise_));
     }
+    const Vec3 eye = g.target + dir * (dist * ratio_);
     if (collide && terrain) {
-        const Vec3 eye = g.target + dir * (dist * ratio_);
-        const double h = terrain(eye.x, eye.y, eye.z);
-        if (h > -1e30) wantLift = std::max(0.0, h + lim.clearance - eye.y);
+        /* the clearance above the highest terrain around the eye (a ring of offRing units: rising ground is
+         * seen coming, so the eye goes up on the spring before it gets there, not in one step), and never
+         * below the terrain right under it (floorClear) */
+        const double qy = eye.y;
+        const double h = terrain(eye.x, qy, eye.z);
+        double around = h;
+        const double r = std::max(2.0, std::min(12.0, lim.offRing * dist));
+        for (int k = 0; k < 8; k++) {
+            const double a = k * (kPi / 4.0);
+            around = std::max(around, terrain(eye.x + r * std::cos(a), qy, eye.z + r * std::sin(a)));
+        }
+        /* and where the eye is going (its last step's move, 3 .. 18 steps on: a fast turn or drive sees the
+         * ground ahead in time for the spring) */
+        if (haveEye_) {
+            const Vec3 v = eye - lastEye_;
+            if (length(v) < dist)   /* (not a cut) */
+                for (int k : {3, 6, 12, 18}) {
+                    const Vec3 p = eye + v * double(k);
+                    around = std::max(around, terrain(p.x, std::max(p.y, eye.y), p.z));
+                }
+        }
+        if (around > -1e30) wantLift = std::max(0.0, around + lim.clearance - eye.y);
+        if (h > -1e30) floorLift = std::max(0.0, h + lim.floorClear - eye.y);
     }
-    if (wantLift > lift_) lift_ = wantLift, liftV_ = 0.0;
+    if (wantLift > lift_) Spring::step(lift_, liftV_, wantLift, lim.springIn, dt);
     else Spring::step(lift_, liftV_, wantLift, lim.springOut, dt);
-    inside_ = false;
+    if (lift_ < floorLift) {   /* (the spring too slow for it: at the terrain itself at once) */
+        lift_ = floorLift;
+        liftV_ = std::max(0.0, liftV_);
+        floorHits_++;
+    }
+    lastEye_ = eye, haveEye_ = true;
+    /* (only counted: the eye inside a building, nothing moves it) */
+    Vec3 e = eye;
+    e.y += lift_;
+    const double hb = collide && height ? height(e.x, e.y, e.z) : -1e31;
+    inside_ = hb > -1e30 && e.y < hb - 1e-6;
 }
 
 void Orbit::stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
@@ -450,7 +491,7 @@ bool CollisionStats::Turns::add(double v, double step) {
     return false;
 }
 
-void CollisionStats::add(double ratio, double rise, bool eyeInside, double dt) {
+void CollisionStats::add(double ratio, double rise, bool eyeInside, double dt, double lift, double eyeRel) {
     steps++;
     seconds += dt;
     inside += eyeInside;
@@ -459,17 +500,29 @@ void CollisionStats::add(double ratio, double rise, bool eyeInside, double dt) {
         have_ = true;
         ratio_ = Turns(), rise_ = Turns();
         ratio_.extreme = ratio, rise_.extreme = rise;
-        lastRatio_ = ratio, lastRise_ = rise;
+        lastRatio_ = ratio, lastRise_ = rise, lastLift_ = lift, lastEye_ = eyeRel;
         return;
     }
+    {
+        /* (what the lift moved the picture's eye up: a lift growing while the eye stays put - the view tilted
+         * or zoomed into the ground, held at it - shows no jump) */
+        const double up = std::min(lift - lastLift_, eyeRel - lastEye_);
+        maxEyeStep = std::max(maxEyeStep, up);
+        /* (a snap: a rise over jumpStep out of a much slower step - a spring's rise grows over a few steps) */
+        eyeJumps += up > jumpStep && up > 2.5 * std::max(0.0, lastUp_) + 1.0;
+        lastUp_ = up;
+    }
+    lastEye_ = eyeRel;
     if (dt > 0) {
         const double dr = (ratio - lastRatio_) / dt, du = (rise - lastRise_) / dt;
         maxIn = std::max(maxIn, -dr), maxOut = std::max(maxOut, dr);
         maxUp = std::max(maxUp, du), maxDown = std::max(maxDown, -du);
+        maxLiftUp = std::max(maxLiftUp, (lift - lastLift_) / dt);
+        maxLiftStep = std::max(maxLiftStep, lift - lastLift_);
     }
     ratioTurns += ratio_.add(ratio, ratioStep);
     riseTurns += rise_.add(rise, riseStep);
-    lastRatio_ = ratio, lastRise_ = rise;
+    lastRatio_ = ratio, lastRise_ = rise, lastLift_ = lift;
 }
 
 void rotateStick(int x, int y, double deg, int &ox, int &oy) {
@@ -495,8 +548,11 @@ void Orbit::eyeFor(const Game &g, double extraYaw, double extraPitch, const Limi
     }
     Vec3 dir = off * (1.0 / gameDist);
     if (blend_ > 0.0) {
-        const double p = std::max(std::min(lim.pitchMin, pitch_), std::min(std::max(lim.pitchMax, pitch_), pitch_ + extraPitch));
-        dir = normalize(lerp(dir, direction(yaw_ + extraYaw, p), blend_));
+        double gy, gp, vy, vp;
+        angles(off, gy, gp);
+        viewAngles(gy, gp, lim, vy, vp);
+        const double p = std::max(std::min(lim.pitchMin, vp), std::min(std::max(lim.pitchMax, vp), vp + extraPitch));
+        dir = normalize(lerp(dir, direction(vy + extraYaw, p), blend_));
     }
     if (rise_ > 1e-6) {
         double y0, p0;
@@ -505,6 +561,20 @@ void Orbit::eyeFor(const Game &g, double extraYaw, double extraPitch, const Limi
     }
     eye = g.target + dir * (gameDist * zoom_ * ratio_);
     eye.y += lift_;
+}
+
+void Orbit::viewAngles(double gameYaw, double gamePitch, const Limits &lim, double &yaw, double &pitch) const {
+    if (blend_ <= 0.0) {
+        yaw = gameYaw, pitch = gamePitch;
+        return;
+    }
+    if (!lim.follow) {
+        yaw = yaw_, pitch = pitch_;
+        return;
+    }
+    yaw = wrap360(gameYaw + yaw_);
+    /* (the limits widened to include the game's own pitch, as step) */
+    pitch = std::max(std::min(lim.pitchMin, gamePitch), std::min(std::max(lim.pitchMax, gamePitch), gamePitch + pitch_));
 }
 
 Orbit Orbit::between(const Orbit &a, const Orbit &b, double t) {

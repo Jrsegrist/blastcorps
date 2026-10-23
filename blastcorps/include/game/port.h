@@ -220,7 +220,14 @@ short *port_draw_cells(short *game);
 #define PORT_DRAW_CELLS(list) port_draw_cells((short *) (list))
 void port_wtag(const void *gdl, int kind, int x0, int x1);
 #define PORT_WTAG(gdl, kind, x0, x1) port_wtag((const void *) (gdl), (kind), (int) (x0), (int) (x1))
+/* bc.exe's analog throttle (45BB0.c cont_update, the digital control method's vehicles): the stick y the
+ * game made from the A button (+80: full throttle, the top speed bands[13] * y / 80) may become the raw pad's
+ * y (the trigger's pressure, put there by the host when it read the pad; recorded and replayed with it).
+ * Nothing changes unless bc.exe's analog_throttle is on. */
+void port_throttle(int rawY, unsigned short *button, signed char *y);
+#define PORT_THROTTLE(rawY, button, y) port_throttle((int) (rawY), (button), (signed char *) (y))
 #else
+#define PORT_THROTTLE(rawY, button, y)
 #define PORT_ITAG(gdl, kind, index)
 #define PORT_ISPAWN(kind, index)
 #define PORT_ICUT_IF(c)

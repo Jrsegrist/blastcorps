@@ -9,10 +9,13 @@
  *  - not engaged (nothing moved it, or it eased back): the game's direction,
  *    at the game's distance times the zoom: with zoom 1 exactly the game's
  *    camera;
- *  - engaged (the player turned it): an absolute (world) yaw and pitch, at the
- *    game's distance times the zoom.  With recentring on it eases back to the
- *    game's direction after the input has been idle for the delay; with it
- *    off it stays where it was left (the world direction) until reset.
+ *  - engaged (the player turned it): a yaw and pitch of its own, at the
+ *    game's distance times the zoom: with Limits::follow (the default) an
+ *    offset from the game camera's yaw and pitch (the view turns with the
+ *    game's chase camera, the player's offset kept), else absolute (world)
+ *    angles.  With recentring on it eases back to the game's direction after
+ *    the input has been idle for the delay; with it off (the default) it
+ *    stays where it was left until reset (camera_reset, a new level).
  *  - collision: the eye is pulled in along the line to T where the ground
  *    (a height query the caller supplies, read-only) would cover it, quickly,
  *    and lets out again slowly.
@@ -49,7 +52,7 @@ Vec3 direction(double yawDeg, double pitchDeg);
 void angles(const Vec3 &dir, double &yawDeg, double &pitchDeg);
 
 /* How obstacles move the camera (bc.ini [camera] collision):
- *  - smooth (the default): an obstacle between the camera and the target
+ *  - smooth: an obstacle between the camera and the target
  *    has to block the median of three rays (the line of sight and one each
  *    side: a pole, a lamp post or a building corner passing by doesn't) for
  *    holdIn before the camera rises over it or pulls in, and the view has to
@@ -59,7 +62,9 @@ void angles(const Vec3 &dir, double &yawDeg, double &pitchDeg);
  *    eye itself inside an obstacle moves it at once (still on a spring, in
  *    springEye).  Small or brief obstructions just occlude for a moment;
  *  - strict: as before (pulled in or risen at once, every step);
- *  - off: never moved for obstacles (only kept above the terrain). */
+ *  - off (the default): never moved for obstacles, only kept above the
+ *    terrain (on a spring that sees rising ground coming, never below the
+ *    ground right under the eye). */
 enum Collision { COLLISION_SMOOTH = 0, COLLISION_OFF = 1, COLLISION_STRICT = 2 };
 const char *collisionName(int mode);
 
@@ -72,7 +77,7 @@ struct Spring {
 
 /* the limits and behaviour (bc.ini [camera]; live_setup.cpp) */
 struct Limits {
-    int collision = COLLISION_SMOOTH;
+    int collision = COLLISION_OFF;
     double holdIn = 0.15;         /* smooth: seconds an obstruction must last before the camera moves for it ... */
     double holdOut = 0.8;         /* ... and the view must stay clear before it moves back */
     double springIn = 0.15;       /* smooth: the springs' times in and up ... */
@@ -84,7 +89,11 @@ struct Limits {
     double pitchMax = 80.0;
     double zoomMin = 0.5;         /* times the game's own distance */
     double zoomMax = 2.5;
-    bool recentre = true;         /* ease back behind the player after the input is idle ... */
+    bool follow = true;           /* the view the player set is kept relative to the game's camera (it turns
+                                     with the game's camera as that follows the vehicle: a chase camera with
+                                     the player's offset); false: kept fixed in the world (a compass
+                                     direction: driving a circle, the view swings round the vehicle) */
+    bool recentre = false;        /* ease back behind the player after the input is idle ... */
     double recentreDelay = 1.5;   /* ... this many seconds */
     double recentreTime = 0.35;   /* the easing's time constant (s) */
     double minDistance = 1.5;     /* drawing units: never closer to the target than this */
@@ -92,6 +101,9 @@ struct Limits {
     double nearShare = 0.15;      /* ... and doesn't test the part this close to the target (the
                                      target sits on the ground: the player's vehicle) */
     double clearance = 4.0;       /* drawing units above the ground */
+    double offRing = 0.1;         /* off: the terrain looked at around the eye, this share of the distance
+                                     away (2..12 units), so it rises on its spring before rising ground */
+    double floorClear = 1.0;      /* off: never closer than this above the terrain right under the eye */
     double liftTime = 0.3;        /* where pulled in as far as allowed and still too low: the eye is
                                      lifted above the ground (rises at once, settles in this time) */
     double riseBelow = 0.6;       /* blocked before this share of the distance: look for a steeper view
@@ -151,8 +163,11 @@ public:
     static Orbit between(const Orbit &a, const Orbit &b, double t);
 
     bool engaged() const { return blend_ > 0.0; }
+    /* the kept yaw and pitch: offsets from the game camera's (Limits::follow) or absolute */
     double yaw() const { return yaw_; }
     double pitch() const { return pitch_; }
+    /* the view's absolute yaw and pitch for a game camera direction (gameYaw, gamePitch; engaged or not) */
+    void viewAngles(double gameYaw, double gamePitch, const Limits &lim, double &yaw, double &pitch) const;
     double zoom() const { return zoom_; }
     double blend() const { return blend_; }
     double distanceRatio() const { return ratio_; }   /* the collision's pull-in (1: none) */
@@ -160,18 +175,20 @@ public:
     double rise() const { return rise_; }             /* ... and rise over obstacles (degrees) */
     double idle() const { return idle_; }
 
-    /* the eye of the last step inside an obstacle (point test; smooth/strict) */
+    /* the eye of the last step inside an obstacle (point test; smooth/strict: below its top plus the
+     * clearance; off: below its top, counted only) */
     bool eyeInside() const { return inside_; }
     double ratioTarget() const { return ratioT_; }   /* smooth: where the springs are going */
     double riseTarget() const { return riseT_; }
+    unsigned floorHits() const { return floorHits_; }   /* off: steps the terrain right under the eye lifted it at once */
 private:
     void stepStrict(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
                     const HeightFn &height);
     void stepSmooth(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
                     const HeightFn &height);
     void stepOff(const Game &g, const Vec3 &dir0, double dist, bool collide, double dt, const Limits &lim,
-                 const HeightFn &terrain);
-    double yaw_ = 0, pitch_ = 0;  /* absolute, while engaged */
+                 const HeightFn &height, const HeightFn &terrain);
+    double yaw_ = 0, pitch_ = 0;  /* while engaged: offsets from the game's (Limits::follow), else absolute */
     double zoom_ = 1.0;
     double blend_ = 0.0;          /* 1: the orbit's direction, 0: the game's (eases to 0 after recentring) */
     bool recentring_ = false;
@@ -184,6 +201,9 @@ private:
     double ratioT_ = 1.0, riseT_ = 0.0;
     double pullIn_ = 0, letOut_ = 0, riseUp_ = 0, riseDown_ = 0;
     bool inside_ = false;
+    unsigned floorHits_ = 0;      /* (statistics; kept by reset) */
+    Vec3 lastEye_;                /* off: the last step's eye before the lift (where it is going) */
+    bool haveEye_ = false;
 };
 
 /* How calm the collision is (the [camera] collision comparison, bc.exe's
@@ -196,7 +216,13 @@ struct CollisionStats {
     unsigned ratioTurns = 0, riseTurns = 0;
     double maxIn = 0, maxOut = 0, maxUp = 0, maxDown = 0;   /* share / s, share / s, deg / s, deg / s */
     unsigned steps = 0, inside = 0, pulled = 0;              /* steps; eye inside an obstacle; pulled under 0.6 */
-    void add(double ratio, double rise, bool eyeInside, double dt);
+    double maxLiftUp = 0, maxLiftStep = 0;                   /* the lift over the ground: units / s; one step's */
+    /* the eye's height over the target (eyeRel): the largest rise in one step that the lift made (the smaller
+     * of the lift's and the eye's rise), and the snaps: steps it rose over jumpStep that way out of a much
+     * slower step before (not a spring's steady rise) */
+    double maxEyeStep = 0, jumpStep = 3.0;
+    unsigned eyeJumps = 0;
+    void add(double ratio, double rise, bool eyeInside, double dt, double lift = 0.0, double eyeRel = 0.0);
     void restart() { have_ = false; }                        /* a cut: no move from the last value */
 
 private:
@@ -206,7 +232,7 @@ private:
         bool add(double v, double step);   /* true at a turning point */
     };
     bool have_ = false;
-    double lastRatio_ = 1, lastRise_ = 0;
+    double lastRatio_ = 1, lastRise_ = 0, lastLift_ = 0, lastEye_ = 0, lastUp_ = 0;
     Turns ratio_, rise_;
 };
 

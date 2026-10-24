@@ -212,6 +212,10 @@ jobs:
         working-directory: blastcorps
         run: python tools_port/tests/test_vermap.py
 
+      - name: level/model file library self-tests (tools_port/bcfiles/test_bcfiles.py, synthetic data)
+        working-directory: blastcorps
+        run: python tools_port/bcfiles/test_bcfiles.py
+
       - name: rename map (tools_port/tests/test_rename.py, rename.py --check)
         working-directory: blastcorps
         run: |

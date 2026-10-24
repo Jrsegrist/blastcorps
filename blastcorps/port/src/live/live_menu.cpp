@@ -925,6 +925,10 @@ void build() {
                 gameTab(c);
                 ImGui::EndTabItem();
             }
+            if (g_env.viewerTab && ImGui::BeginTabItem("Viewer", nullptr, flags(6))) {
+                g_env.viewerTab();
+                ImGui::EndTabItem();
+            }
             g_selectTab = -1;
             ImGui::EndTabBar();
         }
@@ -1068,6 +1072,7 @@ void menuFrame() {
     if (g_navCooldown > 0) g_navCooldown--;
     if (g_cap.action >= 0 || g_navCooldown > 0) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   /* (the viewer's frames turn it off) */
     ImGui_ImplSDL2_NewFrame();
     if (g_inspector->graphicsAPI == RT64::UserConfiguration::GraphicsAPI::Vulkan) ImGui_ImplVulkan_NewFrame();
     else ImGui_ImplDX12_NewFrame();
@@ -1091,6 +1096,40 @@ void menuFrame() {
 
 void menuDraw(plume::RenderCommandList *list) {
     if (g_visible && g_inspector) g_inspector->draw(list);
+}
+
+void uiFrame(const std::function<void()> &buildFn, bool mouse) {
+    if (g_open || !ensureInspector()) return;
+    std::lock_guard<std::mutex> lock(g_inspector->frameMutex);
+    /* (the viewer's keys and the controller fly its camera: no ImGui navigation with them) */
+    ImGui::GetIO().ConfigFlags &= ~(ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad);
+    newFrame(mouse);
+    buildFn();
+    ImGui::Render();
+    g_visible = true;
+}
+
+void uiHide() {
+    if (!g_open) g_visible = false;
+}
+
+bool uiEvent(SDL_Event &e) {
+    if (g_open || !g_inspector) return false;
+    /* (the mouse position comes from uiFrame, in pixels) */
+    if (e.type != SDL_MOUSEMOTION) g_inspector->handleSdlEvent(&e);
+    return true;
+}
+
+bool uiWantsMouse() {
+    return g_inspector && ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureMouse;
+}
+
+bool uiWantsKeyboard() {
+    return g_inspector && ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantTextInput;
+}
+
+float uiFontPx() {
+    return g_fontPx;
 }
 
 bool menuTestSet(const std::string &spec) {

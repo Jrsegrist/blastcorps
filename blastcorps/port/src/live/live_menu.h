@@ -35,6 +35,7 @@ struct MenuEnv {
     std::function<std::string()> dumpStatus;               /* the texture dump's counts ("" = off) */
     std::function<unsigned()> msaaSupported;               /* MSAA sample counts possible (mask: 2, 4, 8) */
     std::function<std::string()> cheatsStatus;             /* the debug cheats and where the game saves now */
+    std::function<void()> viewerTab;                       /* the Viewer tab's contents (live_viewer.cpp) */
 };
 
 void menuSetup(const MenuEnv &env);   /* once RT64 runs */
@@ -81,6 +82,19 @@ void counterFrame();
 void overlayMarker(const std::string &text);
 void overlayNote(const std::string &text, double seconds = 3.0);
 bool overlayWanted();   /* a marker or a note is up */
+
+/* The level viewer's panels and overlays (live_viewer.cpp), on the same ImGui
+ * context and the same present-thread drawing as the menu (main thread):
+ * uiFrame builds a frame with `build` (its windows, and the background draw
+ * list for markers) and shows it until the next uiFrame or uiHide; `mouse`:
+ * ImGui sees the mouse.  uiEvent hands ImGui an SDL event; uiWantsMouse /
+ * uiWantsKeyboard: ImGui is using them (a panel under the mouse, a text field). */
+void uiFrame(const std::function<void()> &build, bool mouse);
+void uiHide();
+bool uiEvent(SDL_Event &e);
+bool uiWantsMouse();
+bool uiWantsKeyboard();
+float uiFontPx();
 
 }  // namespace live
 

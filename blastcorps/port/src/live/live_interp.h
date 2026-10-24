@@ -54,6 +54,9 @@ typedef void (*GbiVertexHook)(RT64::State *state, uint32_t w1, uint32_t first);
  * command's physical address (the game's PORT_WTAG tags name addresses) */
 typedef void (*GbiAddressHook)(RT64::State *state, uint32_t addr);
 void interpSetWideHooks(GbiCommandHook hook, GbiVertexHook vtxHook, GbiAddressHook addrHook);
+/* the level viewer's (live_viewer.cpp): an address hook asked first, before every command (G_MTX and
+ * G_POPMTX too: the tags it follows may name their addresses) */
+void interpSetOwnerHook(GbiAddressHook hook);
 
 }  // namespace live
 

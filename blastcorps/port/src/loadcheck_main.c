@@ -64,6 +64,7 @@ void port_fe_loaded(void) {}
 void port_spin(void) {}
 void port_itag(const void *gdl, int kind, int index) { (void) gdl; (void) kind; (void) index; }
 short *port_draw_cells(short *game) { return game; }
+void port_viewer_frame(void) {}
 void port_wtag(const void *gdl, int kind, int x0, int x1) { (void) gdl; (void) kind; (void) x0; (void) x1; }
 unsigned int port_gvi_read(const char *fn, unsigned int v) { (void) fn; return v; }
 void debug_printf(const char *fmt, ...) { (void) fmt; }

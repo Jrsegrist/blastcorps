@@ -345,6 +345,207 @@ class TestMod(unittest.TestCase):
                 m.parse(t)
 
 
+def geometry_level():
+    """synthetic_level() with a small terrain: a 200 x 100 quad at y 10 (two
+    drawn and two floor triangles over a 2 x 1 ground grid of 100-unit cells),
+    a sub-list with Rare's G_CULLDL prologue called from fixed list 0, and one
+    wall at x = 150"""
+    lv = synthetic_level()
+    lv.header.update(vis_cols=2, vis_rows=1, vis_cell_w=100, vis_cell_d=100, ground_cols=2, ground_rows=1,
+                     ground_cell_w=100, ground_cell_d=100, coll_cols=2, coll_rows=1, coll_cell_w=100, coll_cell_d=100)
+    quad = [(0, 10, 0), (200, 10, 0), (200, 10, 100), (0, 10, 100)]
+    box = [(x, 10, z) for z in (0, 100) for x in (0, 200) for _ in (0, 1)]     # Rare's corner order, flat in y
+    lv.vertices = [Vtx(x, y, z, 0, 0, 0, 0, 0, 0, 0) for (x, y, z) in box] + \
+                  [Vtx(x, y, z, 0, x * 4, z * 4, 200, 100, 50, 255) for (x, y, z) in quad]
+    c = []
+    c += [(0xE7000000, 0)]                                        # 0x00 prefix (0x88..0x8C)
+    sub = 8
+    c += [(0x04700080, 0x08000000), (0xBE000000, 0x00000140),     # the box and G_CULLDL
+          (0xFD100000, 7), (0x04300040, 0x08000080),              # a texture id, the quad's 4 vertices
+          (0xBF000000, 0x00000A14), (0xBF000000, 0x0000141E), (0xB8000000, 0)]
+    fixed = 8 * len(c)
+    c += [(0x06000000, sub), (0xB8000000, 0)] + [(0xB8000000, 0)] * 3
+    lv.dl = b"".join(struct.pack(">II", *x) for x in c)
+    lv.dl_ptrs = {0x7C: fixed, 0x80: fixed, 0x88: 0, 0x8C: 8, 0x90: fixed, 0x94: fixed + 16, 0x98: fixed + 24,
+                  0x9C: fixed + 32}
+    for s in (0xA0, 0xA4, 0xA8, 0xAC):
+        lv.sections[s].value = []
+    for s in (0xB0, 0xB4, 0xB8, 0xBC):
+        lv.sections[s].value = []
+    t1 = [0, 10, 0, 200, 10, 0, 200, 10, 100]
+    t2 = [0, 10, 0, 200, 10, 100, 0, 10, 100]
+    lv.sections[0x30].value = [[L.GroundTri(*(t1 + [1, 0])), L.GroundTri(*(t2 + [1, 0]))]] * 2
+    wall = [150, 10, 0, 150, 60, 0, 150, 60, 100]
+    lv.sections[0x6C].value = [[L.CollTri(*(wall + [0x400, 1, 0]))]] * 2
+    lv.sections[0x70].value = [[], []]
+    lv.sections[0x48].value = [[0, 10], [0, 10]]
+    lv.sections[0x4C].value = L.Bounds(-50, -50, 250, 150)
+    lv.sections[0x74].value = {"nmtx": 0, "groups": []}
+    lv.sections[0x64].value = []
+    lv.sections[0x68].value = []
+    return lv
+
+
+class TestGeometry(unittest.TestCase):
+    """geometry.py: the generators and edits, on synthetic triangles"""
+
+    def setUp(self):
+        from bcfiles import geometry
+        self.G = geometry
+        self.data, self.split = geometry_level().write()
+
+    def level(self):
+        return L.Level.parse(self.data, self.split)
+
+    def test_keep_rare_gives_the_file_back(self):
+        lv = self.level()
+        g = self.G.Geometry.from_level(lv)
+        self.assertEqual(g.stats()["frozen"], 0)
+        out = self.level()
+        g.write_into(out, base=lv)
+        self.assertEqual(out.write(), (self.data, self.split))
+
+    def test_full_rebuild_matches_the_rules(self):
+        lv = self.level()
+        out = self.level()
+        self.G.Geometry.from_level(lv).write_into(out)
+        self.assertEqual(self.G.level_draw_streams(lv), self.G.level_draw_streams(out))
+        # both floor triangles meet both cells; the wall at x 150 only touches cell 0's grown
+        # rectangle [-50, 150] at its high edge (half-open: not in it)
+        self.assertEqual([len(c) for c in out["ground_grid"]], [2, 2])
+        self.assertEqual([len(c) for c in out["coll_grid_a"]], [0, 1])
+        self.assertEqual(out["vis_grid"], [[0, 10], [0, 10]])
+        self.assertEqual(out["bounds"], L.Bounds(-50, -50, 250, 150))
+
+    def test_cell_rules(self):
+        G = self.G
+        big = [-1000, 0, -1000, 3000, 0, -1000, -1000, 0, 3000]        # covers cell 0 and 1 strictly
+        self.assertEqual(G.tri_cells(big, 100, 100, 2, 1), [])
+        corner = [0, 0, 0, 3000, 0, 0, 0, 0, 3000]                     # a corner on cell 0's corner
+        self.assertEqual(G.tri_cells(corner, 100, 100, 2, 1), [0, 1])
+        edge = [100, 0, 10, 100, 50, 10, 100, 50, 90]                  # vertical, on x = 100
+        self.assertEqual(G.tri_cells(edge, 100, 100, 2, 1), [0, 1])
+        self.assertEqual(G.tri_cells(edge, 100, 100, 2, 1, 0, True), [1])
+        far = [260, 0, 10, 260, 50, 10, 260, 50, 90]                   # 60 past cell 1: out of reach
+        self.assertEqual(G.tri_cells(far, 100, 100, 2, 1, 50, True), [])
+        seg = [0, 0, 300, 300, 0, 0, 300, 0, 0]                        # a segment, off the cells' corner
+        self.assertFalse(G.tri_meets_rect(seg, 0, 0, 100, 100))
+        self.assertEqual(G.wall_heading([150, 10, 0, 150, 60, 0, 150, 60, 100]) in (0x400, 0xC00), True)
+
+    def test_move_raises_and_regenerates(self):
+        lv = self.level()
+        g = self.G.Geometry.from_level(lv)
+        g.apply_edit({"move": [[200, 10, 100, 200, 300, 100]]}, lv)
+        out = self.level()
+        g.write_into(out, base=lv)
+        data, split = out.write()
+        self.assertEqual(len(data), len(self.data))          # moved vertices are written over the old ones
+        p = L.Level.parse(data, split)
+        tris = [t[2] for t in self.G.Geometry.from_level(p).render_tris()]
+        self.assertIn((200, 300, 100), [(v[0], v[1], v[2]) for t in tris for v in t])
+        self.assertEqual(p["vis_grid"][1], [0, 300])                     # the moved corner is in cell 1 only
+        self.assertEqual(p["vis_grid"][0], [0, 10])
+        self.assertEqual(p["ground_grid"][0][0].y1, 10)
+        self.assertIn(300, [t._v[k] for t in p["ground_grid"][1] for k in (1, 4, 7)])
+        # the culling box follows the vertices
+        st = self.G.Geometry.from_level(p)
+        sub = [pc for pc in st.pieces if pc.kind == "sub"][0]
+        self.assertEqual(sub.ops[0][0], "cull")
+        self.assertEqual(max(v[1] for v in sub.ops[0][6]), 300)
+
+    def test_remove_add_and_batches(self):
+        lv = self.level()
+        g = self.G.Geometry.from_level(lv)
+        new = [{"after": 1, "v": [[0, 10, 100 + 10 * k, 0, 0, 9, 9, 9, 255], [200, 10, 100 + 10 * k, 0, 0, 9, 9, 9, 255],
+                                  [100, 20, 110 + 10 * k, 0, 0, 9, 9, 9, 255]]} for k in range(8)]
+        g.apply_edit({"remove": {"render": [0], "ground": [0]}, "add": {"render": new, "ground": [
+            {"v": [0, 10, 100, 200, 10, 100, 100, 20, 190], "surface": 2}]}}, lv)
+        out = self.level()
+        g.write_into(out, base=lv)
+        data, split = out.write()
+        p = L.Level.parse(data, split)
+        s = self.G.draw_stream(p, p.dl_ptrs[0x90])
+        tris = [x for x in s if x[0] == "T"]
+        self.assertEqual(len(tris), 1 + 8)
+        # every G_VTX loads at most 16 and the triangles' vertices were loaded
+        for q in range(0, len(p.dl), 8):
+            w0 = struct.unpack_from(">I", p.dl, q)[0]
+            if w0 >> 24 == 0x04:
+                self.assertLessEqual(((w0 >> 20) & 0xF) + 1, 16)
+        self.assertTrue(all(None not in t[2] for t in tris))
+        self.assertEqual([t._v[9] for c in p["ground_grid"] for t in c].count(2), 2)
+        self.assertEqual(p["bounds"].maxz, 190 + 50)
+
+    def test_refused_edits(self):
+        G = self.G
+        lv = self.level()
+        lv.sections[0x64].value = [{"tag": 1, "kinds": [0], "tris": [L.SwitchTri(*([0, 10, 0, 200, 10, 0, 9, 9, 9] + [0]))]}]
+        for ed in ({"move": [[0, 10, 0, 1, 2, 3]]},                       # a switch triangle's corner
+                   {"move": [[1, 2, 3, 4, 5, 70000]]},
+                   {"move": [[200, 10, 0, 1, 1, 1], [200, 10, 0, 2, 2, 2]]},
+                   {"remove": {"render": [99]}},
+                   {"add": {"render": [{"after": 0, "v": [[0] * 9] * 2}]}},
+                   {"add": {"ground": [{"v": [0] * 8}]}}):
+            with self.assertRaises(G.GeometryError, msg=str(ed)):
+                G.Geometry.from_level(lv).apply_edit(ed, lv)
+
+    def test_geometry_mod(self):
+        from bcfiles import mod
+        ed = {"move": [[200, 10, 100, 200, 40, 100]]}
+        m = mod.make("hill", "", [(3, self.data, [], None, ed)])
+        self.assertEqual(m["format"], "bcmod/2")
+        j = mod.parse(json.loads(mod.dumps(m)))
+        data, split = mod.apply_level(j["levels"][0], self.data, self.split)
+        self.assertNotEqual(data, self.data)
+        self.assertEqual(L.Level.parse(data, split)["vis_grid"][1], [0, 40])
+        # an empty edit is the original; v1 still loads; v1 can't carry geometry
+        m0 = mod.make("none", "", [(3, self.data, [], None, {"move": []})])
+        self.assertEqual(mod.apply_level(mod.parse(json.loads(mod.dumps(m0)))["levels"][0], self.data, self.split),
+                         (self.data, self.split))
+        self.assertEqual(mod.make("v1", "", [(3, self.data, [], None)])["format"], "bcmod/1")
+        with self.assertRaises(mod.ModError):
+            mod.parse({"format": "bcmod/1", "levels": [{"level": 3, "original_sha1": "a" * 40, "changes": [],
+                                                       "geometry": {}}]})
+
+    def test_gltf_round_trip(self):
+        from bcfiles import geogltf
+        lv = self.level()
+        with tempfile.TemporaryDirectory() as d:
+            path, st = geogltf.export(None, lv, d, "geo")
+            self.assertEqual((st["render"], st["ground"], st["walls_a"]), (2, 2, 1))
+            self.assertEqual(geogltf.import_edit(path, lv), {})
+            # move a corner in the file (as Blender would write it back): POSITION of every vertex at (200, 10, 100)
+            j = json.load(open(path))
+            binp = os.path.join(d, j["buffers"][0]["uri"])
+            buf = bytearray(open(binp, "rb").read())
+            for m in j["meshes"]:
+                for pr in m["primitives"]:
+                    a = j["accessors"][pr["attributes"]["POSITION"]]
+                    off = j["bufferViews"][a["bufferView"]]["byteOffset"]
+                    for k in range(a["count"]):
+                        x, y, z = struct.unpack_from("<3f", buf, off + 12 * k)
+                        if (round(x * 100), round(y * 100), round(z * 100)) == (200, 10, 100):
+                            struct.pack_into("<3f", buf, off + 12 * k, x, 0.5, z)
+            open(binp, "wb").write(buf)
+            ed = geogltf.import_edit(path, lv)
+            self.assertEqual(ed, {"move": [[200, 10, 100, 200, 50, 100]]})
+
+
+class TestTexturePack(unittest.TestCase):
+    def test_packings_round_trip(self):
+        w, h = 16, 8
+        rgba = bytes((x * 16, y * 32, (x * y) & 255, 255 if (x + y) % 3 else 0)[k] for y in range(h) for x in range(w)
+                     for k in range(4))
+        for fmt, siz, ptype in ((0, 16, 1), (0, 32, 2), (3, 8, 3), (4, 4, 6), (3, 16, 0), (4, 8, 3)):
+            tex = texture.from_rgba8(rgba, fmt, siz, w, h)
+            packed = texture.encode_slot(rgba, w, h, fmt, siz, ptype, len(tex))
+            self.assertEqual(texture.decode(packed, ptype)[:len(tex)], texture.quantize(tex, ptype), (fmt, siz, ptype))
+        flat = bytes([10, 20, 30, 255]) * (w * h)
+        self.assertLess(len(texture.encode_slot(flat, w, h, 0, 16, 1)), 16)     # one literal and back-references
+        with self.assertRaises(texture.TextureError):
+            texture.encode_slot(rgba, w, h, 2, 8, 1)                           # CI: no
+
+
 class TestModels(unittest.TestCase):
     def test_object(self):
         o = synthetic_object()

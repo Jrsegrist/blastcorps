@@ -129,6 +129,23 @@ def _covers(v9, x0, z0, x1, z1):
     return True
 
 
+def tris_overlap(a9, b9):
+    """do two triangles' x-z footprints share area (touching doesn't count)?"""
+    A = ((a9[0], a9[2]), (a9[3], a9[5]), (a9[6], a9[8]))
+    B = ((b9[0], b9[2]), (b9[3], b9[5]), (b9[6], b9[8]))
+    for P in (A, B):
+        for i in range(3):
+            p, q = P[i], P[(i + 1) % 3]
+            nx, nz = p[1] - q[1], q[0] - p[0]
+            if nx == 0 and nz == 0:
+                continue
+            sa = [nx * v[0] + nz * v[1] for v in A]
+            sb = [nx * v[0] + nz * v[1] for v in B]
+            if max(sa) <= min(sb) or max(sb) <= min(sa):
+                return False
+    return True
+
+
 def tri_cells(v9, cw, cd, cols, rows, margin=0, half_open=False):
     """the cells (row-major indices) whose rectangle, grown by margin, the
     triangle meets, as Rare's tool chose them (docs/systems/levels.md):
@@ -222,13 +239,14 @@ class Piece:
       ('vtx', w0, [v, ...])      a G_VTX with its vertices                    [frozen pieces]
       ('tri', w0, w1, (v, v, v)) a G_TRI1 as it is, with its vertices' values [frozen pieces]
     """
-    __slots__ = ("kind", "start", "end", "ops", "frozen", "why", "setup", "setup0", "ref", "orig")
+    __slots__ = ("kind", "start", "end", "ops", "frozen", "why", "setup", "setup0", "ref", "orig", "restructured")
 
     def __init__(self, kind, start, end, ref=None):
         self.kind, self.start, self.end, self.ref = kind, start, end, ref
         self.ops = []
         self.orig = []
         self.setup0 = 0
+        self.restructured = False   # an edit removed or added triangles here
         self.frozen = False
         self.why = ""
         self.setup = 0      # rec/grp: commands before the alternate start
@@ -311,6 +329,9 @@ def _box_pattern(v, bb):
     return tuple(0 if v[k] == bb[2 * k] else 1 for k in range(3))
 
 
+BOX_ORDER = ((0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 0), (0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1))
+
+
 def _box_from(pattern, rest, bb):
     return [(bb[p[0]], bb[2 + p[1]], bb[4 + p[2]]) + tuple(r) for p, r in zip(pattern, rest)]
 
@@ -374,7 +395,11 @@ def decode_piece(pc, dl, verts):
         body = [v for o in ops[2:] if o[0] == 'tri' for v in o[3]]
         bb = _aabb(body)
         if bb is not None and _aabb(box) == bb:
-            cull = ('cull', ops[0][1], [_box_pattern(v, bb) for v in box], [v[3:] for v in box], ops[1][1], ops[1][2], box)
+            # Rare's corner order (every US box that is not flat has it); a flat box (211 lists:
+            # min == max on an axis) gets it too, so a raised flat list's box grows with it
+            pat = list(BOX_ORDER) if len(box) == 8 and _box_from(BOX_ORDER, [v[3:] for v in box], bb) == box \
+                else [_box_pattern(v, bb) for v in box]
+            cull = ('cull', ops[0][1], pat, [v[3:] for v in box], ops[1][1], ops[1][2], box)
         else:
             why.append("G_CULLDL box is not the list's bounding box")
     pc.frozen = bool(why)
@@ -494,6 +519,46 @@ def emit_piece(pc, va, keep=False):
     return out, setup_out, dls
 
 
+def emit_moved(pc, va, moves, excl):
+    """a piece whose triangles only moved: its own commands and loads, with
+    the moved vertex values, written over its old vertices where no other
+    piece loads them (excl[i]: how many pieces load vertex i), else added;
+    a culling box made the bounding box of the moved vertices"""
+    out = []
+    dls = []
+    setup_out = None
+
+    def mv(v):
+        p = moves.get((v[0], v[1], v[2]))
+        return v if p is None else p + tuple(v[3:])
+    cull = pc.ops[0] if pc.ops and pc.ops[0][0] == 'cull' else None
+    for i, o in enumerate(pc.orig):
+        if i == pc.setup0 and pc.kind in ("rec", "grp"):
+            setup_out = len(out)
+        kind = o[0]
+        if kind == 'vtx':
+            vs = [mv(v) for v in o[2]]
+            if i == 0 and cull is not None:
+                bb = _aabb([v for x in pc.ops if x[0] in ('t', 'tri') for v in x[3]])
+                vs = _box_from(cull[2], cull[3], bb) if bb is not None else list(cull[6])
+            off = o[3]
+            if all(excl.get(off + j, 0) == 1 for j in range(len(vs))):
+                va.verts[off:off + len(vs)] = vs
+            else:
+                off = va.add(vs)
+            out.append((o[1], 0x08000000 | (off * 16)))
+        elif kind == 'dl':
+            dls.append((len(out), o[2]))
+            out.append((o[1], 0))
+        elif kind == 'tri':
+            out.append((o[1], o[2]))
+        else:
+            out.append((o[1], o[2]))
+    if pc.kind in ("rec", "grp") and setup_out is None:
+        setup_out = len(out) if pc.setup0 >= len(pc.orig) else 0
+    return out, setup_out, dls
+
+
 # ------------------------------------------------------------------ the model
 
 class Geometry:
@@ -508,6 +573,7 @@ class Geometry:
         self.walls = {0x6C: [], 0x70: []}
         self.notes = []
         self.orig_verts = []
+        self.moves = {}           # the corners apply_edit moved (emit_moved)
 
     # ---------------------------------------------------------- from a level
     @classmethod
@@ -590,15 +656,28 @@ class Geometry:
         """-> (block bytes, vertices, {orig offset: new offset}, piece outputs);
         base: the original Geometry: pieces it has unchanged keep their commands"""
         same = [False] * len(self.pieces)
-        if base is not None and len(base.pieces) == len(self.pieces):
-            same = [a.start == b.start and a.ops == b.ops for a, b in zip(self.pieces, base.pieces)]
+        aligned = base is not None and len(base.pieces) == len(self.pieces) and \
+            all(a.start == b.start for a, b in zip(self.pieces, base.pieces))
+        excl = {}
+        if aligned:
+            same = [a.ops == b.ops for a, b in zip(self.pieces, base.pieces)]
+            for pc in base.pieces:
+                used = set()
+                for o in pc.orig:
+                    if o[0] == 'vtx':
+                        used.update(range(o[3], o[3] + len(o[2])))
+                for i in used:
+                    excl[i] = excl.get(i, 0) + 1
         va = _VertexArray(base.orig_verts if base is not None else None)
         out = bytearray()
         bound = {}
         fix = []
         info = []
         for pc, keep in zip(self.pieces, same):
-            cmds, setup, dls = emit_piece(pc, va, keep)
+            if aligned and not keep and not pc.restructured:
+                cmds, setup, dls = emit_moved(pc, va, self.moves, excl)
+            else:
+                cmds, setup, dls = emit_piece(pc, va, keep)
             base = len(out)
             bound.setdefault(pc.start, base)
             for (k, tgt) in dls:
@@ -679,6 +758,338 @@ class Geometry:
             if b is not None:
                 lv.sections[0x4C].value = b
         return lv
+
+
+    # ---------------------------------------------------------- edits
+    def protected_positions(self, lv):
+        """x, y, z corners an edit may not move: the frozen pieces' vertices
+        (the bridges: G_MTX and part matrices), the moving-part groups'
+        triangles (0x74), the switch (0x64) and gate (0x68) triangles"""
+        out = set()
+        for pc in self.pieces:
+            if pc.frozen and pc.kind != "raw":
+                for o in pc.orig:
+                    if o[0] == 'vtx':
+                        out.update((v[0], v[1], v[2]) for v in o[2])
+        parts = lv.sections[0x74].value
+        for g in (parts or {}).get("groups", []):
+            for it in g["items"]:
+                v = it._v
+                out.update(((v[0], v[1], v[2]), (v[3], v[4], v[5]), (v[6], v[7], v[8])))
+        for g in lv.sections[0x64].value or []:
+            for t in g["tris"]:
+                v = t._v
+                out.update(((v[0], v[1], v[2]), (v[3], v[4], v[5]), (v[6], v[7], v[8])))
+        for g in lv.sections[0x68].value or []:
+            for t in g["tris"]:
+                v = t._v
+                out.update(((v[0], v[1], v[2]), (v[3], v[4], v[5]), (v[6], v[7], v[8])))
+        return out
+
+    def apply_edit(self, ed, lv=None):
+        """a geometry edit (a bcmod/2 level's "geometry", docs/tools.md):
+          move:      [[x, y, z, x', y', z'], ...]  every corner at (x, y, z) - drawn,
+                     ground or wall - goes to (x', y', z')
+          remove:    {"render": [ids], "ground": [ids], "walls_a": [ids], "walls_b": [ids]}
+          add:       {"render": [{"after": id, "v": [[x, y, z, s, t, r, g, b, a]] * 3, "flag": 0}],
+                      "ground": [{"v": [9 coords], "surface": 1, "flag": 0}],   (scanned first in their cells)
+                      "walls_a" / "walls_b": [{"v": [9 coords], "heading": h, "side": 0, "fail": 0}]}
+          settimg:   [[piece, k, texture id]]   the k-th G_SETTIMG of a piece loads another texture
+        Ids count the triangles of the unedited level (render: in block order,
+        render_tris(); ground and walls: their global order).  Applied in that
+        order: moves, removes, adds (in the moved coordinates), settimg.
+        lv: the level, to refuse moving what must not move."""
+        def s16(v, what):
+            if not isinstance(v, int) or isinstance(v, bool) or not -32768 <= v <= 32767:
+                raise GeometryError("%s: %r is not a whole number in -32768..32767" % (what, v))
+            return v
+        rt = self.render_tris()
+        moves = {}
+        for m in ed.get("move", []):
+            if len(m) != 6:
+                raise GeometryError("move %r: six numbers expected" % (m,))
+            a, b = tuple(s16(x, "move") for x in m[:3]), tuple(s16(x, "move") for x in m[3:])
+            if a in moves and moves[a] != b:
+                raise GeometryError("move: (%d, %d, %d) is moved to two places" % a)
+            moves[a] = b
+        if lv is not None and moves:
+            bad = [p for p in moves if p in self.protected_positions(lv)]
+            if bad:
+                raise GeometryError("move: %d corner(s) belong to a bridge, a moving part, a switch or a gate "
+                                    "(e.g. (%d, %d, %d)): those can't be moved" % ((len(bad),) + bad[0]))
+
+        def mv(v):
+            p = moves.get((v[0], v[1], v[2]))
+            return v if p is None else p + tuple(v[3:])
+
+        def mv9(t):
+            out = list(t)
+            for k in range(3):
+                p = moves.get(tuple(t[3 * k:3 * k + 3]))
+                if p is not None:
+                    out[3 * k:3 * k + 3] = p
+            return out
+        if moves:
+            # (orig -> final, over several edits)
+            for k, v in list(self.moves.items()):
+                if v in moves:
+                    self.moves[k] = moves[v]
+            for k, v in moves.items():
+                if k not in self.moves and k not in self.moves.values():
+                    self.moves[k] = v
+            for pc in self.pieces:
+                new = []
+                for o in pc.ops:
+                    if o[0] == 't':
+                        o = ('t', o[1], o[2], tuple(mv(v) for v in o[3]))
+                    elif o[0] == 'tri':
+                        o = ('tri', o[1], o[2], tuple(mv(v) for v in o[3]))
+                    elif o[0] == 'vtx':
+                        o = ('vtx', o[1], [mv(v) for v in o[2]], o[3])
+                    new.append(o)
+                pc.ops = new
+            self.ground = [mv9(t) for t in self.ground]
+            for s in (0x6C, 0x70):
+                self.walls[s] = [mv9(t) for t in self.walls[s]]
+        # removes (ids of the unedited level)
+        rem = ed.get("remove", {})
+        gone = {}
+        for i in rem.get("render", []):
+            if not isinstance(i, int) or not 0 <= i < len(rt):
+                raise GeometryError("remove render %r: no such triangle (0..%d)" % (i, len(rt) - 1))
+            pi, oi, _ = rt[i]
+            gone.setdefault(pi, set()).add(oi)
+        for key, lst in (("ground", self.ground), ("walls_a", self.walls[0x6C]), ("walls_b", self.walls[0x70])):
+            ids = rem.get(key, [])
+            for i in ids:
+                if not isinstance(i, int) or not 0 <= i < len(lst):
+                    raise GeometryError("remove %s %r: no such triangle (0..%d)" % (key, i, len(lst) - 1))
+            drop = set(ids)
+            lst[:] = [t for k, t in enumerate(lst) if k not in drop]
+        # adds (positions in the pieces counted before the removes)
+        add = ed.get("add", {})
+        after = {}
+        for a in add.get("render", []):
+            i = a.get("after")
+            if not isinstance(i, int) or not 0 <= i < len(rt):
+                raise GeometryError("add render: \"after\" %r: no such triangle" % (i,))
+            pi, oi, _ = rt[i]
+            if self.pieces[pi].frozen:
+                raise GeometryError("add render after %d: that triangle is in a list kept as it is (%s)"
+                                    % (i, self.pieces[pi].why))
+            vs = a.get("v")
+            if not isinstance(vs, list) or len(vs) != 3 or any(not isinstance(v, list) or len(v) != 9 for v in vs):
+                raise GeometryError("add render: \"v\": three [x, y, z, s, t, r, g, b, a] expected")
+            verts = []
+            for v in vs:
+                x, y, z, s, t = (s16(q, "add render") for q in v[:5])
+                col = v[5:]
+                if any(not isinstance(c, int) or not 0 <= c <= 255 for c in col):
+                    raise GeometryError("add render: colour %r: 0..255 expected" % (col,))
+                verts.append((x, y, z, 0, s, t) + tuple(col))
+            flag = a.get("flag", 0)
+            after.setdefault((pi, oi), []).append(('t', 0xBF000000, flag & 0xFF, tuple(verts)))
+        for pi, pc in enumerate(self.pieces):
+            g = gone.get(pi, set())
+            if not g and not any(k[0] == pi for k in after):
+                continue
+            pc.restructured = True
+            new = []
+            for oi, o in enumerate(pc.ops):
+                if oi not in g:
+                    new.append(o)
+                new.extend(after.get((pi, oi), []))
+            # the alternate start counts commands: removed ones before it move it
+            if pc.kind in ("rec", "grp"):
+                pc.setup -= sum(1 for oi in g if oi < pc.setup)
+            pc.ops = new
+        # added floor triangles go first: the game's scan of a cell stops at the first triangle it
+        # hits that has the stop flag (byte 0x13), so one added over Rare's ground must come before it
+        front = []
+        for a in add.get("ground", []):
+            v = [s16(q, "add ground") for q in a.get("v", [])]
+            if len(v) != 9:
+                raise GeometryError("add ground: \"v\": nine coordinates expected")
+            sf, fl = a.get("surface", 1), a.get("flag", 0)
+            if not 0 <= sf <= 255 or not 0 <= fl <= 255:
+                raise GeometryError("add ground: surface / flag 0..255")
+            front.append(v + [sf, fl])
+        # ... and the game moves the triangle a wheel last stood on to the front of its cell
+        # (ground_cache_tri): a stop-flagged triangle under an added one would still hide it, so the
+        # triangles an added one overlaps lose their stop flag
+        if front:
+            for t in self.ground:
+                if t[10] and any(tris_overlap(t[:9], a[:9]) for a in front):
+                    t[10] = 0
+        self.ground[:0] = front
+        for key, s in (("walls_a", 0x6C), ("walls_b", 0x70)):
+            for a in add.get(key, []):
+                v = [s16(q, "add " + key) for q in a.get("v", [])]
+                if len(v) != 9:
+                    raise GeometryError("add %s: \"v\": nine coordinates expected" % key)
+                h = a.get("heading", wall_heading(v))
+                if not 0 <= h <= 0xFFF:
+                    raise GeometryError("add %s: heading 0..4095" % key)
+                self.walls[s].append(v + [h, a.get("side", 0) & 0xFF, a.get("fail", 0) & 0xFF])
+        for st in ed.get("settimg", []):
+            pi, k, tid = st
+            if not 0 <= pi < len(self.pieces):
+                raise GeometryError("settimg: no piece %r" % (pi,))
+            pc = self.pieces[pi]
+            n = -1
+            for oi, o in enumerate(pc.ops):
+                if o[0] == 'c' and o[1] >> 24 == 0xFD:
+                    n += 1
+                    if n == k:
+                        pc.ops[oi] = ('c', o[1], tid)
+                        break
+            else:
+                raise GeometryError("settimg: piece %d has no G_SETTIMG %d" % (pi, k))
+            # (the piece's own command list too: a piece whose triangles only moved keeps it)
+            n = -1
+            for oi, o in enumerate(pc.orig):
+                if o[0] == 'c' and o[1] >> 24 == 0xFD:
+                    n += 1
+                    if n == k:
+                        pc.orig[oi] = ('c', o[1], tid)
+                        break
+        return self
+
+    def check_budgets(self, lv, levelno=None):
+        """[problems]: what the game's fixed sizes can't hold (the per-frame
+        visible lists, lvl_alloc_dl_buffers; the port's room for a grown file)"""
+        out = []
+        caps = dl_list_caps(lv, levelno)
+        for k in range(4):
+            n = 1 + (lv.dl_ptrs[0x8C] - lv.dl_ptrs[0x88]) // 8
+            for pc in self.pieces:
+                if pc.kind in ("rec", "grp") and pc.ref[0] == k:
+                    cmds, _, _ = emit_piece(pc, _VertexArray())
+                    n += len(cmds)
+            if caps and n > caps[k]:
+                out.append("visible list %d: %d commands with every cell visible; the game allocates %d" % (k, n, caps[k]))
+        return out
+
+
+# ------------------------------------------------------------------ edit builders (sculpting primitives)
+
+def _mid(a, b):
+    """the midpoint of two vertex value tuples (x, y, z, flag, s, t, r, g, b, a): floors of the sums, the same
+    whichever way round, so neighbours split a shared edge at the same point"""
+    return tuple((p + q) >> 1 for p, q in zip(a, b))
+
+
+def _split(tri, levels):
+    if levels == 0:
+        return [tri]
+    a, b, c = tri
+    ab, bc, ca = _mid(a, b), _mid(b, c), _mid(c, a)
+    out = []
+    for t in ((a, ab, ca), (ab, b, bc), (ca, bc, c), (ab, bc, ca)):
+        out += _split(t, levels - 1)
+    return out
+
+
+def subdivide_edit(geo, render_ids, levels=2, height=None):
+    """an edit that replaces drawn triangles (and the floor triangles with the
+    same corners) by 4**levels smaller ones each, every new corner raised by
+    height(x, z) (map units; None: flat): the sculpting primitive for hills
+    and dents.  Texture coordinates and colours are split with the corners;
+    the new triangles go right after the old one (its state, its list).
+    Keep height 0 on the region's edge: the corners there stay on the
+    neighbours' edges."""
+    rt = geo.render_tris()
+    ground_by = {}
+    for i, t in enumerate(geo.ground):
+        ground_by.setdefault(frozenset(tuple(t[3 * k:3 * k + 3]) for k in range(3)), []).append(i)
+    ed = {"remove": {"render": [], "ground": []}, "add": {"render": [], "ground": []}}
+
+    def lift(v):
+        if height is None:
+            return v
+        return (v[0], v[1] + int(round(height(v[0], v[2]))), v[2]) + tuple(v[3:])
+    for i in render_ids:
+        pi, oi, vs = rt[i]
+        if geo.pieces[pi].frozen:
+            raise GeometryError("triangle %d is in a list kept as it is (%s)" % (i, geo.pieces[pi].why))
+        small = [tuple(lift(v) for v in t) for t in _split(tuple(vs), levels)]
+        ed["remove"]["render"].append(i)
+        for t in small:
+            ed["add"]["render"].append({"after": i, "v": [[v[0], v[1], v[2], v[4], v[5], v[6], v[7], v[8], v[9]]
+                                                          for v in t]})
+        key = frozenset((v[0], v[1], v[2]) for v in vs)
+        for gi in ground_by.get(key, []):
+            if gi in ed["remove"]["ground"]:
+                continue
+            gt = geo.ground[gi]
+            # the floor triangle's own corner order, split the same way
+            gv = [tuple(gt[3 * k:3 * k + 3]) + (0,) * 7 for k in range(3)]
+            ed["remove"]["ground"].append(gi)
+            for t in _split(tuple(gv), levels):
+                t = [lift(v) for v in t]
+                ed["add"]["ground"].append({"v": [q for v in t for q in v[:3]], "surface": gt[9], "flag": gt[10]})
+    return ed
+
+
+def flatten_edit(geo, x0, z0, x1, z1, y):
+    """an edit that moves every corner (drawn, floor, wall) inside the
+    rectangle to height y"""
+    pts = set()
+    for _, _, vs in geo.render_tris():
+        pts.update((v[0], v[1], v[2]) for v in vs)
+    for t in geo.ground:
+        pts.update(tuple(t[3 * k:3 * k + 3]) for k in range(3))
+    return {"move": [[x, yy, z, x, y, z] for (x, yy, z) in sorted(pts)
+                     if x0 <= x <= x1 and z0 <= z <= z1 and yy != y]}
+
+
+def quad_edit(after, corners, st=None, rgba=(255, 255, 255, 255), surface=1, flag=0, walls=None):
+    """an edit adding a drawn and walkable quad (a ramp, a platform): corners
+    [(x, y, z)] * 4 in order around it, drawn after render triangle `after`
+    (its texture and state); st: the corners' (s, t) (default from x, z);
+    walls: also add the quad as wall triangles of that grid ("walls_a")"""
+    st = st or [(c[0] * 8 & 0x7FFF, c[2] * 8 & 0x7FFF) for c in corners]
+    v = [list(c) + list(s) + list(rgba) for c, s in zip(corners, st)]
+    tris = [(0, 1, 2), (0, 2, 3)]
+    ed = {"add": {"render": [{"after": after, "v": [v[i] for i in t]} for t in tris],
+                  "ground": [{"v": [q for i in t for q in corners[i]], "surface": surface, "flag": flag} for t in tris]}}
+    if walls:
+        ed["add"][walls] = [{"v": [q for i in t for q in corners[i]]} for t in tris]
+    return ed
+
+
+def merge_edits(*eds):
+    """several edits as one (lists joined; ids still count the unedited level)"""
+    out = {}
+    for ed in eds:
+        for k, v in ed.items():
+            if isinstance(v, dict):
+                d = out.setdefault(k, {})
+                for kk, vv in v.items():
+                    d.setdefault(kk, []).extend(vv)
+            else:
+                out.setdefault(k, []).extend(v)
+    return out
+
+
+def wall_heading(v9):
+    """the heading of a wall triangle's normal (12-bit, 0 = +z, 0x400 = +x),
+    as Rare's walls have it (to within a few units: Rare's came from the faces
+    of the source model)"""
+    import math
+    d1 = [v9[i] - v9[3 + i] for i in range(3)]
+    d2 = [v9[i] - v9[6 + i] for i in range(3)]
+    nx = d1[1] * d2[2] - d1[2] * d2[1]
+    nz = d1[0] * d2[1] - d1[1] * d2[0]
+    return int(round(math.atan2(nx, nz) / (2 * math.pi) * 4096)) & 0xFFF
+
+
+def dl_list_caps(lv, levelno=None):
+    """lvl_alloc_dl_buffers' sizes (commands) of the four visible lists, or None
+    for the levels it sizes by number (10, 11, 16, 17, 29)"""
+    if levelno in (10, 11, 16, 17, 29):
+        return None
+    return (6000, 5000, 100, 2000) if lv.header["dl_profile"] == 0 else (1000, 1000, 100, 2000)
 
 
 # ------------------------------------------------------------------ what the RSP draws (for comparisons)

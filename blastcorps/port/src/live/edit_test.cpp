@@ -3,6 +3,7 @@
  * level_edit.cpp (undo / redo, the marks, the gizmo's ray math), on a
  * synthetic level file built here in the ROM's byte order (nothing from the
  * ROM). */
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -153,6 +154,185 @@ Bytes makeLevel() {
 
 uint32_t hdr(const Bytes &b, unsigned slot) {
     return get32(b, slot);
+}
+
+/* a level with a little terrain for level_geo.c (as test_bcfiles.py geometry_level): a 200 x 100 quad at y 10
+ * (two drawn triangles in a sub-list with Rare's G_CULLDL prologue, called from fixed list 0; the same two as
+ * floor triangles in both cells of a 2 x 1 ground grid of 100-unit cells), a wall at x 150 in both cells of grid A */
+Bytes makeGeoLevel() {
+    std::vector<Bytes> sec(31);
+    auto S = [&](unsigned slot) -> Bytes & {
+        for (int i = 0; i < 31; i++)
+            if (kChain[i] == slot) return sec[i];
+        return sec[0];
+    };
+    const int t1[9] = {0, 10, 0, 200, 10, 0, 200, 10, 100}, t2[9] = {0, 10, 0, 200, 10, 100, 0, 10, 100};
+    const int wall[9] = {150, 10, 0, 150, 60, 0, 150, 60, 100};
+    for (int c = 0; c < 2; c++) {
+        put32(S(0x30), uint32_t(S(0x30).size() + 4 + 2 * 0x14));
+        for (const int *t : {t1, t2}) {
+            for (int k = 0; k < 9; k++) put16(S(0x30), t[k]);
+            S(0x30).push_back(1), S(0x30).push_back(0);
+        }
+        put32(S(0x6C), uint32_t(S(0x6C).size() + 4 + 0x16));
+        for (int k = 0; k < 9; k++) put16(S(0x6C), wall[k]);
+        put16(S(0x6C), 0x400), S(0x6C).push_back(1), S(0x6C).push_back(0);
+        put32(S(0x70), uint32_t(S(0x70).size() + 4));
+        put16(S(0x48), 0), put16(S(0x48), 10);
+    }
+    for (int v : {-50, -50, 250, 150}) put16(S(0x4C), v);
+    S(0x50).push_back(0), put16(S(0x50), 10), put16(S(0x50), 0), put16(S(0x50), 10), put16(S(0x50), 0);
+    S(0x54).push_back(0), put16(S(0x54), 0), put16(S(0x54), 0), put16(S(0x54), 0), put16(S(0x54), 0);
+    S(0x60).push_back(0xFF);
+    put32(S(0x74), 0);
+    Bytes verts;
+    auto vtx = [&](int x, int y, int z, int s, int t, int r, int g, int b, int a) {
+        put16(verts, x), put16(verts, y), put16(verts, z), put16(verts, 0), put16(verts, s), put16(verts, t);
+        verts.push_back(uint8_t(r)), verts.push_back(uint8_t(g)), verts.push_back(uint8_t(b)), verts.push_back(uint8_t(a));
+    };
+    for (int z : {0, 100})
+        for (int x : {0, 200})
+            for (int k = 0; k < 2; k++) vtx(x, 10, z, 0, 0, 0, 0, 0, 0);   /* the box, Rare's corner order */
+    const int quad[4][3] = {{0, 10, 0}, {200, 10, 0}, {200, 10, 100}, {0, 10, 100}};
+    for (const auto &q : quad) vtx(q[0], q[1], q[2], q[0] * 4, q[2] * 4, 200, 100, 50, 255);
+    Bytes dl;
+    const uint32_t cmds[][2] = {{0xE7000000u, 0},                                          /* 0x00 prefix */
+                                {0x04700080u, 0x08000000u}, {0xBE000000u, 0x140},           /* 0x08 the sub-list */
+                                {0xFD100000u, 7}, {0x04300040u, 0x08000080u},
+                                {0xBF000000u, 0x00000A14u}, {0xBF000000u, 0x0000141Eu}, {0xB8000000u, 0},
+                                {0x06000000u, 8}, {0xB8000000u, 0},                         /* 0x40 fixed 0 */
+                                {0xB8000000u, 0}, {0xB8000000u, 0}, {0xB8000000u, 0}};
+    for (const auto &c : cmds) put32(dl, c[0]), put32(dl, c[1]);
+    Bytes out(0xC8, 0);
+    const int h[12] = {2, 1, 100, 100, 2, 1, 100, 100, 2, 1, 100, 100};
+    for (int i = 0; i < 12; i++) out[2 * i] = uint8_t(h[i] >> 8), out[2 * i + 1] = uint8_t(h[i]);
+    out[0x18] = out[0x19] = out[0x1A] = 0xFF, out[0x1B] = 0xFC;
+    out[0x1F] = 1;
+    out.insert(out.end(), verts.begin(), verts.end());
+    uint32_t off[31];
+    for (int i = 0; i < 31; i++) {
+        while (out.size() % alignOf(kChain[i])) out.push_back(0);
+        off[i] = uint32_t(out.size());
+        out.insert(out.end(), sec[i].begin(), sec[i].end());
+    }
+    while (out.size() % 16) out.push_back(0);
+    const uint32_t base = uint32_t(out.size());
+    out.insert(out.end(), dl.begin(), dl.end());
+    while (out.size() % 16) out.push_back(0);
+    auto w32 = [&](unsigned slot, uint32_t v) {
+        for (int k = 0; k < 4; k++) out[slot + k] = uint8_t(v >> (24 - 8 * k));
+    };
+    for (int i = 0; i < 31; i++) w32(kChain[i], off[i]);
+    w32(0x78, base);
+    const unsigned dls[8] = {0x7C, 0x80, 0x88, 0x8C, 0x90, 0x94, 0x98, 0x9C};
+    const uint32_t rel[8] = {0x40, 0x40, 0, 8, 0x40, 0x50, 0x58, 0x60};
+    for (int i = 0; i < 8; i++) w32(dls[i], base + rel[i]);
+    w32(0x84, base + uint32_t(dl.size()));
+    return out;
+}
+
+/* the visibility grid's cell c (min, max) */
+void visCell(const Bytes &b, int c, int &mn, int &mx) {
+    const uint32_t at = get32(b, 0x48) + 4 * uint32_t(c);
+    mn = get16s(b, at), mx = get16s(b, at + 2);
+}
+
+void geoTests() {
+    char err[512];
+    const Bytes g0 = makeGeoLevel();
+    uint8_t *o = nullptr;
+    size_t on = 0;
+    check(lg_rebuild(g0.data(), g0.size(), 1, &o, &on, err, sizeof err) == 0 && on == g0.size() &&
+              !memcmp(o, g0.data(), on),
+          "geo: keeping Rare's data, a level comes back byte for byte");
+    free(o);
+    int mn, mx;
+    check(lg_rebuild(g0.data(), g0.size(), 0, &o, &on, err, sizeof err) == 0, "geo: a full rebuild");
+    if (o) {
+        const Bytes r(o, o + on);
+        visCell(r, 0, mn, mx);
+        check(mn == 0 && mx == 10, "geo: the visibility heights are the drawn vertices' (cell 0)");
+        /* the wall at x 150 only touches cell 0's grown rectangle at its high edge: in cell 1 alone */
+        const uint32_t a = get32(r, 0x6C);
+        check(get32(r, a) == 4 && get32(r, a + 4) == 8 + 0x16, "geo: wall cells are half-open (the wall is in cell 1 only)");
+        free(o);
+    }
+    LgEdit e;
+    memset(&e, 0, sizeof e);
+    check(lg_apply(g0.data(), g0.size(), g0.data(), g0.size(), &e, 3, &o, &on, err, sizeof err) == 0 && on == g0.size() &&
+              !memcmp(o, g0.data(), on),
+          "geo: an empty edit gives the file back");
+    free(o);
+    LgMove mv = {{200, 10, 100}, {200, 300, 100}};
+    e.move = &mv, e.nmove = 1;
+    check(lg_apply(g0.data(), g0.size(), g0.data(), g0.size(), &e, 3, &o, &on, err, sizeof err) == 0, "geo: a move");
+    if (o) {
+        const Bytes r(o, o + on);
+        visCell(r, 1, mn, mx);
+        int mn0, mx0;
+        visCell(r, 0, mn0, mx0);
+        check(mn == 0 && mx == 300 && mn0 == 0 && mx0 == 10, "geo: the moved corner raises its cell's height only");
+        check(on == g0.size(), "geo: moved vertices are written over the old ones (the file keeps its size)");
+        /* the culling box grew: the sub-list's first G_VTX loads a box with y up to 300 */
+        const uint32_t base = get32(r, 0x78), w1 = get32(r, base + 8 + 4);
+        int ymax = -99999;
+        for (int k = 0; k < 8; k++) ymax = std::max(ymax, get16s(r, 0xC8 + 16 * ((w1 & 0xFFFFFF) / 16 + k) + 2));
+        check(ymax == 300, "geo: the G_CULLDL box is the moved list's bounding box");
+        free(o);
+    }
+    e.move = nullptr, e.nmove = 0;
+    LgAddRender add;
+    memset(&add, 0, sizeof add);
+    add.after = 1;
+    const int16_t av[3][9] = {{0, 10, 100, 0, 0, 9, 9, 9, 255}, {200, 10, 100, 0, 0, 9, 9, 9, 255},
+                              {100, 20, 190, 0, 0, 9, 9, 9, 255}};
+    memcpy(add.v, av, sizeof av);
+    int rem0 = 0;
+    e.render = &add, e.nrender = 1, e.rem[0] = &rem0, e.nrem[0] = 1;
+    check(lg_apply(g0.data(), g0.size(), g0.data(), g0.size(), &e, 3, &o, &on, err, sizeof err) == 0,
+          "geo: a triangle removed and one added");
+    if (o) {
+        const Bytes r(o, o + on);
+        const uint32_t base = get32(r, 0x78), end = get32(r, 0x84);
+        int tris = 0;
+        for (uint32_t q = base; q < end; q += 8) tris += (get32(r, q) >> 24) == 0xBF;
+        check(tris == 2, "geo: the list draws the kept and the added triangle");
+        free(o);
+    }
+    int bad = 99;
+    e.render = nullptr, e.nrender = 0, e.rem[0] = &bad;
+    check(lg_apply(g0.data(), g0.size(), g0.data(), g0.size(), &e, 3, &o, &on, err, sizeof err) != 0 && o == nullptr,
+          "geo: removing a triangle that isn't there is refused");
+    /* mod files: bcmod/2 carries geometry, bcmod/1 can't */
+    {
+        char sha[41];
+        lm_sha1_hex(g0.data(), g0.size(), sha);
+        std::string t2 = std::string("{\"format\": \"bcmod/2\", \"levels\": [{\"level\": 3, \"original_sha1\": \"") + sha +
+                         "\", \"geometry\": {\"move\": [[200, 10, 100, 200, 40, 100]]}}]}";
+        LmMod m;
+        check(lm_mod_parse(t2.c_str(), t2.size(), &m, err, sizeof err) == 0 && m.nlevels == 1 && m.levels[0].geo &&
+                  m.levels[0].geo->nmove == 1 && m.format == 2,
+              "geo: a bcmod/2 level with geometry and no changes reads");
+        if (m.nlevels == 1) {
+            uint8_t *x = nullptr;
+            size_t xn = 0;
+            check(lm_mod_apply(&m.levels[0], g0.data(), g0.size(), &x, &xn, err, sizeof err) == 0 && x != nullptr,
+                  "geo: a geometry mod applies");
+            if (x) {
+                const Bytes r(x, x + xn);
+                visCell(r, 1, mn, mx);
+                check(mx == 40, "geo: ... with its derived sections regenerated");
+                free(x);
+            }
+        }
+        lm_mod_free(&m);
+        std::string t1 = std::string("{\"format\": \"bcmod/1\", \"levels\": [{\"level\": 3, \"original_sha1\": \"") + sha +
+                         "\", \"changes\": [], \"geometry\": {}}]}";
+        check(lm_mod_parse(t1.c_str(), t1.size(), &m, err, sizeof err) != 0, "geo: bcmod/1 can't carry geometry");
+        std::string t3 = std::string("{\"format\": \"bcmod/2\", \"levels\": [{\"level\": 3, \"original_sha1\": \"") + sha +
+                         "\", \"geometry\": {\"move\": [[1, 2, 3, 4, 5, 70000]]}}]}";
+        check(lm_mod_parse(t3.c_str(), t3.size(), &m, err, sizeof err) != 0, "geo: a coordinate outside s16 is refused");
+    }
 }
 
 }  // namespace
@@ -434,4 +614,5 @@ void editTests(void (*chk)(bool, const char *)) {
         check(edit::snapTo(1923, 16) == 1920 && edit::snapTo(1923.4, 0) == 1923 && edit::snapTo(-23, 16) == -16,
               "gizmo: the grid");
     }
+    geoTests();
 }

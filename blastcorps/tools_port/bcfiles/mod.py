@@ -17,6 +17,16 @@ for an emulator (`bcfiles mod-export`).
 An "add" inserts a copy of record copy_of (counted before the insert) at
 index and then sets its fields, so a mod holds no ROM data beyond the field
 values it sets.
+
+"bcmod/2" (bcmod/1 files still load) adds, per level, "geometry": an edit of
+the level's triangles (geometry.Geometry.apply_edit: moved corners, removed
+triangle ids, added triangles with the values the mod's author gives, other
+texture ids for a list's G_SETTIMG), and at the top "textures": texture-table
+slots with the author's own image (a PNG, base64) and the SHA-1 of the slot's
+packed bytes in the ROM it was made for.  Nothing derived is stored: the ground
+and wall grids, the visibility heights, the bounds and the display lists are
+regenerated from the edited triangles when the mod is applied (keeping Rare's
+data wherever the edit doesn't reach).
 """
 import hashlib
 import json
@@ -188,9 +198,19 @@ def load(path):
     return parse(json.loads(text.decode("utf-8")))
 
 
+FORMATS = ("bcmod/1", "bcmod/2")
+
+
 def parse(j):
-    if not isinstance(j, dict) or j.get("format") != "bcmod/1":
-        raise ModError("not a Blast Corps mod (\"format\": \"bcmod/1\" missing)")
+    if not isinstance(j, dict) or j.get("format") not in FORMATS:
+        raise ModError("not a Blast Corps mod (\"format\": \"bcmod/1\" or \"bcmod/2\" missing)")
+    v2 = j["format"] == "bcmod/2"
+    for t in j.get("textures", []) if v2 else []:
+        if not isinstance(t, dict) or not isinstance(t.get("id"), int) or not isinstance(t.get("png"), str) \
+                or not isinstance(t.get("slot_sha1"), str):
+            raise ModError("\"textures\": {\"id\", \"png\" (base64), \"slot_sha1\"} expected")
+    if not v2 and ("textures" in j or any("geometry" in L for L in j.get("levels", []) if isinstance(L, dict))):
+        raise ModError("geometry and textures need \"format\": \"bcmod/2\"")
     levels = j.get("levels")
     if not isinstance(levels, list):
         raise ModError("\"levels\": a list expected")
@@ -209,8 +229,12 @@ def parse(j):
             if not isinstance(v, str) or len(v) != 40 or any(c not in "0123456789abcdefABCDEF" for c in v):
                 raise ModError("level %d: %s: 40 hex digits expected" % (n, key))
             L[key] = v.lower()
+        if "changes" not in L and "geometry" in L:
+            L["changes"] = []
         if not isinstance(L.get("changes"), list):
             raise ModError("level %d: \"changes\": a list expected" % n)
+        if "geometry" in L and not isinstance(L["geometry"], dict):
+            raise ModError("level %d: \"geometry\": an object expected" % n)
         for c in L["changes"]:
             if c.get("kind") not in KINDS or c.get("op") not in ("set", "add", "delete"):
                 raise ModError("level %d: change %r not known" % (n, c))
@@ -240,6 +264,17 @@ def apply_level(ml, data, split):
         check_rules(lv)
     except ModError as e:
         raise ModError("level %d: %s" % (n, e))
+    if ml.get("geometry"):
+        from . import geometry
+        try:
+            g = geometry.Geometry.from_level(lv)
+            g.apply_edit(ml["geometry"], lv)
+            g.write_into(lv, base=Level.parse(data, split))
+            problems = g.check_budgets(lv, n)
+        except geometry.GeometryError as e:
+            raise ModError("level %d geometry: %s" % (n, e))
+        if problems:
+            raise ModError("level %d geometry: %s" % (n, "; ".join(problems)))
     out, s = lv.write()
     if ml.get("edited_sha1") and sha1(out) != ml["edited_sha1"]:
         raise ModError("level %d: the edited file came out with SHA-1 %s, the mod says %s"
@@ -256,16 +291,59 @@ def apply_mod(rom, mod):
     return out
 
 
-def make(name, description, levels):
-    """a mod: levels = [(level, original file, changes, edited file or None)]"""
-    j = {"format": "bcmod/1", "name": name, "description": description, "levels": []}
-    for n, orig, changes, edited in levels:
+def make(name, description, levels, textures=None):
+    """a mod: levels = [(level, original file, changes, edited file or None[, geometry edit])];
+    textures: [{"id", "png", "slot_sha1"}] (bcmod/2)"""
+    v2 = bool(textures) or any(len(t) > 4 and t[4] for t in levels)
+    j = {"format": "bcmod/2" if v2 else "bcmod/1", "name": name, "description": description, "levels": []}
+    for t in levels:
+        n, orig, changes, edited = t[:4]
         L = {"level": n, "original_sha1": sha1(orig)}
         if edited is not None:
             L["edited_sha1"] = sha1(edited)
         L["changes"] = changes
+        if len(t) > 4 and t[4]:
+            L["geometry"] = t[4]
         j["levels"].append(L)
+    if textures:
+        j["textures"] = textures
     return j
+
+
+# ------------------------------------------------------------------ textures (bcmod/2)
+
+def texture_patches(rom, mod):
+    """[(ROM offset, packed bytes, table entry index, new packed size)] for the
+    mod's texture slots, checked against the ROM (slot_sha1) and its room"""
+    import base64
+    from . import png, texture
+    out = []
+    ents = rom.tex_table
+    for t in mod.get("textures", []):
+        i = t["id"]
+        if not 0 <= i < texture.TEX_ENTRIES:
+            raise ModError("texture %d: no such table entry" % i)
+        e = ents[i]
+        slot = rom.data[e.rom:e.rom + e.size]
+        if sha1(slot) != t["slot_sha1"].lower():
+            raise ModError("texture %d: made for another texture (SHA-1 %s, this ROM's is %s)"
+                           % (i, t["slot_sha1"], sha1(slot)))
+        try:
+            w, h, rgba = png.decode_rgba(base64.b64decode(t["png"]))
+        except Exception as ex:
+            raise ModError("texture %d: the PNG doesn't read (%s)" % (i, ex))
+        fmt, siz = t.get("fmt"), t.get("siz")
+        if fmt is None or siz is None:
+            raise ModError("texture %d: \"fmt\" and \"siz\" (the texel format the level's lists use) expected" % i)
+        try:
+            packed = texture.encode_slot(rgba, w, h, fmt, siz, e.type, rom.texture(i))
+        except texture.TextureError as ex:
+            raise ModError("texture %d: %s" % (i, ex))
+        if len(packed) > e.dma_len:
+            raise ModError("texture %d: the image packs to %d bytes, the slot has room for %d (try fewer colours "
+                           "or a smaller image)" % (i, len(packed), e.dma_len))
+        out.append((e.rom, packed, i, len(packed)))
+    return out
 
 
 def dumps(mod):

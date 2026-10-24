@@ -10,12 +10,17 @@ python3 tools_port/bcfiles).
   mod-check ROM MOD.bcmod       a level mod (bc.exe's editor): its hashes and changes against the ROM
   mod-apply ROM MOD.bcmod OUTDIR   the edited level files (level_NN.bin, inflated)
   mod-export ROM MOD.bcmod OUT.z64 [--shift-dir D]   a ROM with the mod's levels in it (for emulators)
+  geo-rebuild ROM OUTDIR [--levels a,b-c] [--keep-rare]   levels with their derived sections regenerated
+  geo-gltf ROM level:N OUTDIR [--scale S]        a level's triangles as glTF for editing (Blender)
+  geo-import ROM level:N EDITED.gltf OUT.bcmod   the edited glTF back as a geometry mod (bcmod/2)
+  tex-import ROM ID IMAGE.png OUT.bcmod [--into MOD]   an image into texture slot ID (bcmod/2)
 
 FILE: level:N | level:NAME | model:NAME | scene:NAME | object:N (object-table index)
 | object:NAME | a hex ROM offset (0x4A5660).
 """
 import json
 import os
+import struct
 import sys
 
 from . import gz, lzss, rombuild
@@ -349,6 +354,16 @@ def cmd_mod_check(args):
             mod.sha1(data), " (as the mod says)" if ml.get("edited_sha1") else ""))
         for c in ml["changes"]:
             print("    " + mod.describe(c))
+        g = ml.get("geometry")
+        if g:
+            print("    geometry: %d moved corner(s), removed %s, added %s, %d G_SETTIMG change(s)" % (
+                len(g.get("move", [])), {k: len(v) for k, v in g.get("remove", {}).items()},
+                {k: len(v) for k, v in g.get("add", {}).items()}, len(g.get("settimg", []))))
+    try:
+        for at, packed, i, size in mod.texture_patches(rom, m):
+            print("  texture %d: %d packed bytes at ROM 0x%06X (fits in place)" % (i, size, at))
+    except mod.ModError as e:
+        raise SystemExit("%s: %s" % (args[1], e))
     print("mod-check: OK")
 
 
@@ -370,7 +385,21 @@ def cmd_mod_export(args):
         shift_dir = args[i + 1]
         del args[i:i + 2]
     rom = Rom.load(args[0])
-    _, out = _load_mod(rom, args[1])
+    m, out = _load_mod(rom, args[1])
+    from . import mod as modm, texture as texm
+    try:
+        tex = modm.texture_patches(rom, m)
+    except modm.ModError as e:
+        raise SystemExit("%s: %s" % (args[1], e))
+    if tex:
+        # texture slots in place (their table entries' packed size too): the code and the tables keep every offset
+        data = bytearray(rom.data)
+        for at, packed, i, size in tex:
+            e = rom.tex_table[i]
+            data[at:at + e.dma_len] = packed + bytes(e.dma_len - len(packed))
+            struct.pack_into(">H", data, texm.TEX_TABLE + 8 * i + 4, size)
+            print("mod-export: texture %d: %d -> %d packed bytes (room %d), in place" % (i, e.size, size, e.dma_len))
+        rom.data = bytes(data)
     patches = []
     for n, (data, split) in sorted(out.items()):
         f = rom.level(n)
@@ -397,6 +426,152 @@ def cmd_mod_export(args):
           % (args[2], len(patches)))
 
 
+# --------------------------------------------------------------- geometry
+
+def cmd_geo_rebuild(args):
+    """every level (or --levels a,b-c) with its derived sections regenerated
+    from its own triangles (geometry.py): level_NN.bin (inflated, the ROM's byte
+    order) and a summary of how close the result is to Rare's"""
+    from . import geometry
+    levels = list(range(60))
+    if "--levels" in args:
+        i = args.index("--levels")
+        levels = _level_list(args[i + 1])
+        del args[i:i + 2]
+    keep = "--keep-rare" in args
+    args = [a for a in args if a != "--keep-rare"]
+    rom = Rom.load(args[0])
+    os.makedirs(args[1], exist_ok=True)
+    for n in levels:
+        f = rom.level(n)
+        lv = Level.parse(f.data, f.split)
+        g = geometry.Geometry.from_level(lv)
+        out = Level.parse(f.data, f.split)
+        g.write_into(out, base=lv if keep else None)
+        data, split = out.write()
+        with open(os.path.join(args[1], "level_%02d.bin" % n), "wb") as fh:
+            fh.write(data)
+        print("geo-rebuild: level %02d %-10s %6d -> %6d bytes%s" % (n, f.name, len(f.data), len(data),
+                                                                   " (the ROM's bytes)" if data == f.data else ""))
+
+
+def cmd_geo_gltf(args):
+    """a level's triangles as glTF for editing (geogltf.py: ids and original
+    positions ride along in TEXCOORD_1/2)"""
+    from . import geogltf
+    scale = 0.01
+    if "--scale" in args:
+        i = args.index("--scale")
+        scale = float(args[i + 1])
+        del args[i:i + 2]
+    rom = Rom.load(args[0])
+    f = find(rom, args[1])
+    if f.kind != "level":
+        raise SystemExit("geo-gltf: a level, please (level:N)")
+    lv = Level.parse(f.data, f.split)
+    path, st = geogltf.export(rom, lv, args[2], "level%02d_%s_geo" % (f.info["level"], f.name), scale)
+    print("geo-gltf: %s (%s)" % (path, ", ".join("%s %s" % kv for kv in st.items())))
+
+
+def cmd_geo_import(args):
+    """an edited geo-gltf export -> a bcmod/2 with the geometry edit (checked by applying it)"""
+    from . import geogltf, mod
+    name = None
+    if "--name" in args:
+        i = args.index("--name")
+        name = args[i + 1]
+        del args[i:i + 2]
+    rom = Rom.load(args[0])
+    f = find(rom, args[1])
+    lv = Level.parse(f.data, f.split)
+    try:
+        edit = geogltf.import_edit(args[2], lv)
+    except geogltf.ImportError_ as e:
+        raise SystemExit("geo-import: %s" % e)
+    n = f.info["level"]
+    m = mod.make(name or os.path.basename(args[2]), "geometry from %s" % os.path.basename(args[2]),
+                 [(n, f.data, [], None, edit)])
+    m["format"] = "bcmod/2"
+    try:
+        data, split = mod.apply_level(mod.parse(json.loads(mod.dumps(m)))["levels"][0], f.data, f.split)
+    except mod.ModError as e:
+        raise SystemExit("geo-import: the edit doesn't apply: %s" % e)
+    m["levels"][0]["edited_sha1"] = mod.sha1(data)
+    with open(args[3], "w") as fh:
+        fh.write(mod.dumps(m))
+    print("geo-import: %s: %d moved corner(s), removed %s, added %s; level %d %d -> %d bytes" % (
+        args[3], len(edit.get("move", [])), {k: len(v) for k, v in edit.get("remove", {}).items()},
+        {k: len(v) for k, v in edit.get("add", {}).items()}, n, len(f.data), len(data)))
+
+
+def texture_usage(rom, tid):
+    """{(fmt, siz, width, height)} the levels' display lists use texture tid with"""
+    from . import gltf
+    use = set()
+    for n in range(60):
+        f = rom.level(n)
+        lv = Level.parse(f.data, f.split)
+        vbuf = b"".join(v.pack() for v in lv.vertices)
+        w = gltf.walk_linear(vbuf, 8, lv.dl)
+        for t in w.textures.values():
+            if t["id"] == tid:
+                use.add((t["fmt"], {0: 4, 1: 8, 2: 16, 3: 32}[t["siz"]], t["width"], t["height"]))
+    return use
+
+
+def cmd_tex_import(args):
+    """an image into a texture-table slot: a bcmod/2 with the slot (a new mod, or
+    added to an existing one with --into MOD); the image is packed the slot's way"""
+    import base64
+    from . import mod, png, texture
+    into = None
+    if "--into" in args:
+        i = args.index("--into")
+        into = args[i + 1]
+        del args[i:i + 2]
+    rom = Rom.load(args[0])
+    tid = int(args[1], 0)
+    data = open(args[2], "rb").read()
+    w, h, rgba = png.decode_rgba(data)
+    use = texture_usage(rom, tid)
+    if not use:
+        raise SystemExit("tex-import: no level list uses texture %d (its texel format is unknown)" % tid)
+    fits = [u for u in use if u[2] == w and u[3] == h]
+    if not fits:
+        raise SystemExit("tex-import: texture %d is used as %s; the image is %dx%d" % (tid, sorted(use), w, h))
+    fmt, siz = fits[0][:2]
+    e = rom.tex_table[tid]
+    try:
+        packed = texture.encode_slot(rgba, w, h, fmt, siz, e.type, rom.texture(tid))
+    except texture.TextureError as ex:
+        raise SystemExit("tex-import: %s" % ex)
+    print("tex-import: texture %d (%s %d-bit %dx%d, packing %d): %d -> %d packed bytes, room %d: %s" % (
+        tid, texture.G_IM_FMT.get(fmt), siz, w, h, e.type, e.size, len(packed), e.dma_len,
+        "fits in place" if len(packed) <= e.dma_len else "does NOT fit"))
+    if len(packed) > e.dma_len:
+        sys.exit(3)
+    ent = {"id": tid, "fmt": fmt, "siz": siz, "png": base64.b64encode(data).decode("ascii"),
+           "slot_sha1": mod.sha1(rom.texture_packed(tid))}
+    if into and os.path.exists(into):
+        m = mod.load(into)
+        m["format"] = "bcmod/2"
+        m["textures"] = [t for t in m.get("textures", []) if t["id"] != tid] + [ent]
+    else:
+        m = mod.make(os.path.basename(args[2]), "texture %d from %s" % (tid, os.path.basename(args[2])), [], [ent])
+    out = into or args[3]
+    with open(out, "w") as fh:
+        fh.write(mod.dumps(m))
+    print("tex-import: %s written" % out)
+
+
+def _level_list(s):
+    out = []
+    for part in s.split(","):
+        a, _, b = part.partition("-")
+        out += list(range(int(a), int(b or a) + 1))
+    return out
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
@@ -404,7 +579,8 @@ def main(argv=None):
     cmd, args = argv[0], argv[1:]
     table = {"list": (cmd_list, 1), "dump": (cmd_dump, 2), "extract": (cmd_extract, 2), "build": (cmd_build, 3),
              "gltf": (cmd_gltf, 3), "roundtrip": (cmd_roundtrip, 1), "mod-check": (cmd_mod_check, 2),
-             "mod-apply": (cmd_mod_apply, 3), "mod-export": (cmd_mod_export, 3)}
+             "mod-apply": (cmd_mod_apply, 3), "mod-export": (cmd_mod_export, 3), "geo-rebuild": (cmd_geo_rebuild, 2),
+             "geo-gltf": (cmd_geo_gltf, 3), "geo-import": (cmd_geo_import, 4), "tex-import": (cmd_tex_import, 3)}
     if cmd not in table or len([a for a in args if not a.startswith("--")]) < table[cmd][1]:
         usage()
     table[cmd][0](args)

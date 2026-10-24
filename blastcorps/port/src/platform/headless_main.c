@@ -64,6 +64,9 @@
  *                        for another ROM stops the run)
  *     --mod-out DIR      (testing) write the edited level files to DIR
  *                        (level_NN.bin, as the ROM would hold them inflated)
+ *     --level-dir DIR    (testing) the game reads DIR\level_NN.bin instead of
+ *                        the ROM's level NN wherever there is one (inflated, in
+ *                        the ROM's byte order: bcfiles geo-rebuild / mod-apply)
  *     -v / -q            verbose / quiet */
 #include <stdarg.h>
 #include <stdio.h>
@@ -93,7 +96,7 @@ static void usage(const char *bad) {
                     "       [--mpk FILE] [--print] [--wav FILE] [--wav-all] [--no-audio] [--audio-capture FILE[:N]]\n"
                     "       [--cull-wide K]\n"
                     "       [--poke F:ADDR:SIZE:VALUE,..] [--watch F:ADDR[:N]] [--no-msgbox] [--crash-dir DIR]\n"
-                    "       [--crash-test KIND[:F]] [--mod FILE] [--mod-out DIR] [-v] [-q]\n");
+                    "       [--crash-test KIND[:F]] [--mod FILE] [--mod-out DIR] [--level-dir DIR] [-v] [-q]\n");
     exit(1);
 }
 
@@ -129,6 +132,7 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
     HostOpts o;
     int i;
     size_t rom_size;
+    const char *level_dir = NULL;
     memset(&o, 0, sizeof o);
     o.gfx_cycles = 781250;
     o.cont_present = 1;
@@ -220,6 +224,7 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
             o.mod_paths[o.n_mod_paths++] = ARG();
         }
         else if (!strcmp(a, "--mod-out")) o.mod_out = ARG();
+        else if (!strcmp(a, "--level-dir")) level_dir = ARG();
         else if (!strcmp(a, "-v")) host_verbose = 1;
         else if (!strcmp(a, "-vv")) host_verbose = 2;
         else if (!strcmp(a, "-q")) o.quiet = 1;
@@ -241,6 +246,12 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
     for (i = 0; i < (int) o.n_mod_paths; i++) {
         char err[1024];
         if (port_mods_add(o.mod_paths[i], err, sizeof err)) host_fatal("The mod can't be used: %s", err);
+    }
+    if (level_dir != NULL) {
+        char err[1200];
+        const int n = port_mods_read_levels(level_dir, err, sizeof err);
+        if (n < 0) host_fatal("--level-dir: %s", err);
+        host_log("--level-dir: %d level file%s from %s\n", n, n == 1 ? "" : "s", level_dir);
     }
     if (o.mod_out != NULL) {
         const int n = port_mods_write_levels(o.mod_out);

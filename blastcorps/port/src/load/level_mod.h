@@ -24,6 +24,11 @@
  *                  {"op": "add", "kind": "rdu", "index": 100, "copy_of": 99, "fields": {"x": 2000}},
  *                  {"op": "delete", "kind": "tnt", "index": 3}]}]}
  *
+ * "bcmod/2" files (tools_port/bcfiles mod.py) may also carry, per level,
+ * "geometry": an edit of the level's triangles, applied after the changes with
+ * every derived section regenerated (level_geo.h); bcmod/1 files load as
+ * before.
+ *
  * Changes apply in order; an index counts the records as they are after the
  * changes before it.  "add" inserts a copy of record copy_of (counted before
  * the insert) at index and then sets its fields, so a mod holds no ROM bytes
@@ -36,6 +41,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+
+#include "level_geo.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,6 +91,13 @@ uint8_t *lm_build(const LmLevel *lv, size_t *size, uint32_t *split);
 /* the rules the game's set-up relies on: one driver spawn, known vehicle types, the arrays' sizes.
  * 0 ok, -1 and *err */
 int lm_check(const LmLevel *lv, char *err, size_t errlen);
+/* (level_geo.c) a section kept as bytes replaced (0x30, 0x48, 0x4C, 0x6C, 0x70, 0xA0..0xBC); 0 ok */
+int lm_set_raw_section(LmLevel *lv, unsigned slot, const uint8_t *p, size_t n);
+/* (level_geo.c) the segment-8 vertices and the display-list block replaced; rel: the header's display-list words
+ * (0x7C, 0x80, 0x84, 0x88 .. 0x9C) relative to the block; the visibility records and groups (sections 0xA0..0xBC)
+ * must hold offsets as if the block were at lm_dl_base (lm_build moves them with it) */
+int lm_set_display(LmLevel *lv, const uint8_t *vtx, size_t nvtx, const uint8_t *dl, size_t ndl, const uint32_t rel[9]);
+uint32_t lm_dl_base(const LmLevel *lv);
 
 /* ---- changes and mods ---- */
 enum { LM_OP_SET, LM_OP_ADD, LM_OP_DELETE };
@@ -103,12 +117,15 @@ typedef struct {
     char original_sha1[41], edited_sha1[41];   /* "" = not given */
     int nchanges;
     LmChange *changes;
+    LgEdit *geo;                               /* bcmod/2 "geometry" (NULL: none; level_geo.h) */
 } LmModLevel;
 typedef struct {
     char name[128];
     char description[512];
     int nlevels;
     LmModLevel *levels;
+    int format;                                /* 1 or 2 */
+    int ntextures;                             /* bcmod/2 "textures" (the port doesn't apply them yet) */
 } LmMod;
 
 void lm_sha1(const uint8_t *data, size_t len, uint8_t out[20]);

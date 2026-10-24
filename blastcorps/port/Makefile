@@ -71,7 +71,7 @@ HL_AUDIO := aspmain port_audio
 # so --clock can give each caller the emulator's values (os_time.c)
 HL_CLOCK_CALLERS := 00000 1C460 20460 22EE0 23C20 2C560
 # loadcheck's game files (src/loadcheck_main.c)
-LC_FILES := 00000 46C20 17A70 53220 7F8B0 5BF40 60F60 5CB60 60D50 32E00
+LC_FILES := 00000 46C20 17A70 53220 7F8B0 5BF40 60F60 5CB60 60D50 32E00 62740 89250 56040 77E20
 
 # ---------------------------------------------------------------------------
 # Generated from the decomp, shared by the builds and the checks: build/gen/

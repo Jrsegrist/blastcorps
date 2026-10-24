@@ -86,6 +86,145 @@ def encode_stored(texels):
     return t + bytes(-len(t) % 8)
 
 
+class TextureError(Exception):
+    pass
+
+
+# what each packing's literals can hold: texels are rounded to that first
+def quantize(texels, ptype):
+    t = bytearray(texels)
+    if ptype == 1:                       # u16 with bit 6 clear
+        for i in range(0, len(t) - 1, 2):
+            t[i + 1] &= 0xBF
+    elif ptype == 2:                     # 4-bit R, G, B, 3-bit A
+        for i in range(0, len(t) - 3, 4):
+            t[i] &= 0xF0
+            t[i + 1] &= 0xF0
+            t[i + 2] &= 0xF0
+            t[i + 3] &= 0xE0
+    elif ptype == 3:                     # even bytes
+        for i in range(len(t)):
+            t[i] &= 0xFE
+    elif ptype == 6:                     # AAA0BBB0
+        for i in range(len(t)):
+            t[i] &= 0xEE
+    return bytes(t)
+
+
+def _literal(unit, ptype):
+    if ptype == 1:
+        v = (unit[0] << 8) | unit[1]
+        return ((v & 0xFF80) >> 1) | (v & 0x3F)
+    if ptype == 2:
+        r, g, b, a = unit
+        return ((r >> 4) << 11) | ((g >> 4) << 7) | ((b >> 4) << 3) | (a >> 5)
+    if ptype == 3:
+        return ((unit[0] >> 1) << 8) | (unit[1] >> 1)
+    if ptype == 6:
+        def f(b):
+            return ((b >> 5) << 3) | ((b >> 1) & 7)
+        return (f(unit[0]) << 8) | f(unit[1])
+    raise TextureError("packing %d is not encoded here (palette packings 4 and 5)" % ptype)
+
+
+def pack(texels, ptype):
+    """texels (already representable: quantize) -> the packing's token stream,
+    literals and back-references (greedy, the longest match in the window)"""
+    if ptype == 0:
+        return encode_stored(texels)
+    if ptype not in (1, 2, 3, 6):
+        raise TextureError("packing %d is not encoded here (palette packings 4 and 5)" % ptype)
+    us = UNIT[ptype]
+    t = bytes(texels)
+    if len(t) % us:
+        raise TextureError("%d bytes of texels is not whole %d-byte units" % (len(t), us))
+    units = [t[i:i + us] for i in range(0, len(t), us)]
+    maxd = 511 if us == 4 else 511       # units back (the token's 10-bit byte distance)
+    out = bytearray()
+    i = 0
+    n = len(units)
+    index = {}
+    while i < n:
+        best_len, best_d = 0, 0
+        for j in reversed(index.get(units[i], [])):
+            d = i - j
+            if d > maxd:
+                break
+            k = 0
+            while k < 31 and i + k < n and units[j + k] == units[i + k]:
+                k += 1
+            if k > best_len:
+                best_len, best_d = k, d
+                if k == 31:
+                    break
+        if best_len >= 2:
+            db = best_d * us
+            tok = 0x8000 | ((db << 5) if us == 2 else (db << 4)) | best_len
+            out += struct.pack(">H", tok)
+            for q in range(i, i + best_len):
+                index.setdefault(units[q], []).append(q)
+            i += best_len
+        else:
+            out += struct.pack(">H", _literal(units[i], ptype))
+            index.setdefault(units[i], []).append(i)
+            i += 1
+    return bytes(out)
+
+
+def from_rgba8(rgba, fmt, siz, width, height):
+    """RGBA8 rows -> N64 texels (fmt 0 RGBA, 3 IA, 4 I; siz in bits).  CI needs
+    the palette of the slot and is not done here."""
+    n = width * height
+    if len(rgba) < 4 * n:
+        raise TextureError("the image has %d pixels, %dx%d expected" % (len(rgba) // 4, width, height))
+    px = [tuple(rgba[4 * i:4 * i + 4]) for i in range(n)]
+
+    def lum(c):
+        return (c[0] * 299 + c[1] * 587 + c[2] * 114 + 500) // 1000
+    if fmt == 0 and siz == 16:
+        return b"".join(struct.pack(">H", ((c[0] >> 3) << 11) | ((c[1] >> 3) << 6) | ((c[2] >> 3) << 1) |
+                                    (1 if c[3] >= 128 else 0)) for c in px)
+    if fmt == 0 and siz == 32:
+        return b"".join(bytes(c) for c in px)
+    if fmt == 3 and siz == 16:
+        return b"".join(bytes((lum(c), c[3])) for c in px)
+    if fmt == 3 and siz == 8:
+        return bytes(((lum(c) >> 4) << 4) | (c[3] >> 4) for c in px)
+    if fmt == 4 and siz == 8:
+        return bytes(lum(c) for c in px)
+    if fmt in (3, 4) and siz == 4:
+        def nib(c):
+            return ((lum(c) >> 5) << 1) | (1 if c[3] >= 128 else 0) if fmt == 3 else lum(c) >> 4
+        out = bytearray()
+        for i in range(0, n, 2):
+            out.append((nib(px[i]) << 4) | (nib(px[i + 1]) if i + 1 < n else 0))
+        return bytes(out)
+    raise TextureError("texel format %s %d-bit is not encoded here" % (G_IM_FMT.get(fmt, fmt), siz))
+
+
+def encode_slot(rgba, width, height, fmt, siz, ptype, original=None):
+    """an image for a texture-table slot: its texel format (the lists that use
+    it say: fmt, siz) and its packing; -> the packed bytes (they decode to the
+    image, rounded to what the packing holds).  original: the slot's decoded
+    texels; a slot that holds more than the image (other tiles after it) keeps
+    the rest, and the result decodes to as many bytes as before"""
+    tex = from_rgba8(rgba, fmt, siz, width, height)
+    if isinstance(original, int):
+        original = bytes(original)
+    if original is not None:
+        if len(tex) > len(original):
+            raise TextureError("%dx%d %s%d is %d bytes of texels, the slot holds %d: use the size its lists use"
+                               % (width, height, G_IM_FMT.get(fmt, fmt), siz, len(tex), len(original)))
+        tex += bytes(original[len(tex):])
+    q = quantize(tex, ptype)
+    packed = pack(q, ptype)
+    if decode(packed, ptype)[:len(q)] != q:
+        raise TextureError("internal: the packed image doesn't decode back")
+    if len(packed) > 0xFFFF:
+        raise TextureError("%d packed bytes: the table's size field holds at most 65535" % len(packed))
+    return packed
+
+
 class TexEntry:
     __slots__ = ("index", "offset", "size", "type", "dma_len")
 

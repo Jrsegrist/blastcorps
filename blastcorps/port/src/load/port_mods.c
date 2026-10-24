@@ -274,6 +274,9 @@ int port_mods_add(const char *path, char *err, size_t errlen) {
         }
     }
     LOG("mods: %s (%s): %d level%s\n", name, path, m.nlevels, m.nlevels == 1 ? "" : "s");
+    if (m.ntextures > 0)
+        LOG("mods: %s: its %d texture slot%s are not used by the port yet (tools_port/bcfiles mod-export puts them "
+            "into a ROM)\n", name, m.ntextures, m.ntextures == 1 ? "" : "s");
     for (k = 0; k < 60; k++) free(out[k]);
     lm_mod_free(&m);
     return 0;
@@ -305,6 +308,27 @@ int port_mods_write_levels(const char *dir) {
             return -1;
         }
         fclose(f);
+        n++;
+    }
+    return n;
+}
+
+int port_mods_read_levels(const char *dir, char *err, size_t errlen) {
+    int level, n = 0;
+    for (level = 0; level < 60; level++) {
+        char path[1024], src[1100];
+        size_t len = 0;
+        char *data;
+        snprintf(path, sizeof path, "%s\\level_%02d.bin", dir, level);
+        data = read_text(path, &len);
+        if (data == NULL) continue;
+        snprintf(src, sizeof src, "--level-dir %s", path);
+        if (port_level_set_edit(level, (const uint8_t *) data, len, src)) {
+            snprintf(err, errlen, "%s: not used (too large, or the ROM has no level %d)", path, level);
+            free(data);
+            return -1;
+        }
+        free(data);
         n++;
     }
     return n;

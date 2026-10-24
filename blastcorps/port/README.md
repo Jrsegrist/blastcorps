@@ -782,6 +782,23 @@ it without a fault.  The x64-asan preset is the tool for this now.
     plus the code segments' own offsets: not cheap, so not done.  Mods don't
     need it (nothing moves); an exported ROM whose levels fit in place runs
     with `--no-rom-check`.
+  - **Geometry mods** (roadmap item 6, part 3): bcmod/2 files may carry a
+    level's "geometry" (moved corners, added and removed drawn / floor / wall
+    triangles, G_SETTIMG retargets; docs/tools.md "Geometry").
+    `lm_mod_apply` applies the record changes, then `lg_apply`
+    (`src/load/level_geo.c`, the C twin of tools_port/bcfiles geometry.py)
+    regenerates the ground grid, the collision grids, the visibility heights,
+    the bounds and the display-list block from the edited triangles, keeping
+    the file's own data wherever the edit doesn't reach (an empty edit gives
+    the ROM's file back).  The result goes through the same hook as any mod.
+    loadcheck TD checks that `lg_rebuild` makes the same files as `bcfiles
+    geo-rebuild` on all 60 levels; mods give the same bytes as `bcfiles
+    mod-apply`.  A mod's texture slots ("textures") are not applied by the
+    port yet.  `--level-dir DIR` (bc_headless, bc.exe; testing): the game
+    reads `DIR\level_NN.bin` instead of the ROM's level (`port_mods_read_levels`).
+    The editor doesn't edit geometry yet (phase 2) and saves record changes
+    only: a level from a geometry mod is edited (and saved) without its
+    geometry.
   - **Testing**: `--viewer-test` ops `edit:on|off`, `eset:KIND:I:F=V,..`,
     `edup:KIND:I`, `edel:KIND:I`, `eundo`, `eredo`, `edrag:KIND:I:X,Z`,
     `erot:KIND:I:DEG`, `eaxis:KIND:I:x|y|z:D` (through the gizmo's picking),

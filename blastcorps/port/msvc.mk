@@ -46,14 +46,15 @@ loadcheck:
 	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts $(LCM)/facts.txt $(LC_TRACE); fi
 	$(PYTHON) ../tools_port/bcfiles geo-rebuild $(abspath $(ROM)) $(LCM)/rebuilt > $(LCM)/rebuilt.txt
 	BC_LC_LEVELS='$(shell wslpath -w $(abspath $(LCM)/rebuilt) 2>/dev/null)' WSLENV=BC_LC_LEVELS \
-		'$(MSVC_B)/bc_loadcheck.exe' '$(ROM_ARG)' $$([ -f $(LCM)/facts.txt ] && echo 56789ABC \
-		$$(wslpath -w $(LCM)/facts.txt) || echo 5678ABC) > $(LCM)/out_native.txt
+		'$(MSVC_B)/bc_loadcheck.exe' '$(ROM_ARG)' $$([ -f $(LCM)/facts.txt ] && echo 56789ABCD \
+		$$(wslpath -w $(LCM)/facts.txt) || echo 5678ABCD) > $(LCM)/out_native.txt
 	cd $(ROOT) && BC_LC_LEVELS_DIR=$(abspath $(LCM)/rebuilt) $(PYTHON) port/tools/loadref.py $(abspath $(ROM)) \
 		5678AB > port/$(LCM)/out_ref.txt
 	@grep '^T9 total' $(LCM)/out_native.txt || true
 	@echo "TB/TC: levels where the rebuilt file answers differently:" \
 		$$(grep -cE '^TB [0-9]+\.diff ground ([1-9]|[0-9]+/[0-9]+ probe [1-9])|^TC [0-9]+ ground [0-9]+ diff ([1-9]|[0-9]+ probe [0-9]+ diff [1-9])' \
 		$(LCM)/out_native.txt)
+	$(PYTHON) tools/geocheck.py $(LCM)/out_native.txt $(LCM)/rebuilt
 	$(PYTHON) tools/cmpout.py $(LCM)/out_ref.txt $(LCM)/out_native.txt
 
 # quick regression check: the inputs against the code, loadcheck, then

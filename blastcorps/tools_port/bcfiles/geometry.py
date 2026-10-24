@@ -394,7 +394,7 @@ def decode_piece(pc, dl, verts):
         box = ops[0][2]
         body = [v for o in ops[2:] if o[0] == 'tri' for v in o[3]]
         bb = _aabb(body)
-        if bb is not None and _aabb(box) == bb:
+        if bb is not None and _aabb(box) == bb and len(box) == 8:
             # Rare's corner order (every US box that is not flat has it); a flat box (211 lists:
             # min == max on an axis) gets it too, so a raised flat list's box grows with it
             pat = list(BOX_ORDER) if len(box) == 8 and _box_from(BOX_ORDER, [v[3:] for v in box], bb) == box \
@@ -559,6 +559,36 @@ def emit_moved(pc, va, moves, excl):
     return out, setup_out, dls
 
 
+def compact_vertices(dl, verts, keep=None):
+    """drop the vertices no G_VTX of the block loads any more (a re-packed
+    list's old ones) and move the loads' addresses down; -> the vertices.
+    keep: indexes to keep anyway (the file's own unloaded vertices)"""
+    used = bytearray(len(verts))
+    for i in keep or ():
+        if i < len(used):
+            used[i] = 1
+    loads = []
+    for q in range(0, len(dl) - 7, 8):
+        w0, w1 = struct.unpack_from(">II", dl, q)
+        if w0 >> 24 == 0x04 and w1 >> 24 == 8:
+            n = ((w0 >> 20) & 0xF) + 1
+            off = (w1 & 0xFFFFFF) // 16
+            loads.append((q, off))
+            for i in range(off, min(off + n, len(verts))):
+                used[i] = 1
+    if all(used):
+        return verts
+    new = [0] * (len(verts) + 1)
+    k = 0
+    for i in range(len(verts)):
+        new[i] = k
+        k += used[i]
+    new[len(verts)] = k
+    for q, off in loads:
+        struct.pack_into(">I", dl, q + 4, 0x08000000 | (new[off] * 16))
+    return [v for v, u in zip(verts, used) if u]
+
+
 # ------------------------------------------------------------------ the model
 
 class Geometry:
@@ -668,6 +698,20 @@ class Geometry:
                         used.update(range(o[3], o[3] + len(o[2])))
                 for i in used:
                     excl[i] = excl.get(i, 0) + 1
+        keep_idx = None
+        if base is not None:
+            # (vertices the file itself never loads stay where they are)
+            loaded = bytearray(len(base.orig_verts))
+            for pc in base.pieces:
+                for o in pc.orig:
+                    if o[0] == 'vtx':
+                        for i in range(o[3], min(o[3] + len(o[2]), len(loaded))):
+                            loaded[i] = 1
+                    elif o[0] == 'c' and o[1] >> 24 == 0x04 and o[2] >> 24 == 8:
+                        off = (o[2] & 0xFFFFFF) // 16
+                        for i in range(off, min(off + ((o[1] >> 20) & 0xF) + 1, len(loaded))):
+                            loaded[i] = 1
+            keep_idx = [i for i, u in enumerate(loaded) if not u]
         va = _VertexArray(base.orig_verts if base is not None else None)
         out = bytearray()
         bound = {}
@@ -691,7 +735,8 @@ class Geometry:
             if tgt not in starts:
                 raise GeometryError("G_DL to 0x%X: no list starts there" % tgt)
             struct.pack_into(">I", out, pos + 4, starts[tgt])
-        return bytes(out), [Vtx(*v) for v in va.verts], bound, info
+        verts = compact_vertices(out, va.verts, keep_idx)
+        return bytes(out), [Vtx(*v) for v in verts], bound, info
 
     # ---------------------------------------------------------- into a level
     def write_into(self, lv, parts=("ground", "walls", "vis", "bounds", "dl"), base=None):

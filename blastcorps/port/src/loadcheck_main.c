@@ -22,6 +22,9 @@
  *       random points over both, after lvl_read_header and the grid builders
  *   TC  (native only) TB's queries over a dense lattice: the number of points
  *       where the rebuilt file answers differently
+ *   TD  (native only) the port's own geometry engine (load/level_geo.c) over
+ *       every level: its rebuild's SHA-1 (tools/geocheck.py: the same file as
+ *       bcfiles geo-rebuild's) and its keep-Rare rebuild's (the ROM's file)
  *
  * usage: loadcheck.exe ROM [TESTS [FACTS]]   (TESTS: characters, default 5678A;
  *        TB/TC read the rebuilt levels from the folder in BC_LC_LEVELS)
@@ -515,6 +518,39 @@ static void tc(void) {
     }
 }
 
+/* TD (native only): the port's geometry engine (load/level_geo.c) over every
+ * level's own triangles: the SHA-1 of the full rebuild (tools/geocheck.py
+ * compares it with tools_port/bcfiles geo-rebuild's file) and of the
+ * keep-Rare's-data rebuild (must be the ROM's file) */
+int port_level_original(int level, const uint8_t **file, size_t *size);
+int lg_rebuild(const uint8_t *file, size_t size, int keep, uint8_t **out, size_t *outsize, char *err, size_t errlen);
+void lm_sha1_hex(const uint8_t *data, size_t len, char out[41]);
+static void td(void) {
+    int lvl;
+    for (lvl = 0; lvl < 60; lvl++) {
+        const uint8_t *f;
+        size_t n, on;
+        uint8_t *o;
+        char err[300], a[41], b[41], c[41];
+        int k;
+        if (port_level_original(lvl, &f, &n)) {
+            printf("TD %02d no file\n", lvl);
+            continue;
+        }
+        lm_sha1_hex(f, n, c);
+        for (k = 0; k < 2; k++) {
+            if (lg_rebuild(f, n, k, &o, &on, err, sizeof err)) {
+                printf("TD %02d %s: %s\n", lvl, k ? "keep" : "full", err);
+                a[0] = b[0] = 0;
+                break;
+            }
+            lm_sha1_hex(o, on, k ? b : a);
+            free(o);
+        }
+        printf("TD %02d full %s keep %s rom %s\n", lvl, a, b, c);
+    }
+}
+
 /* ---- T9: every read the original code made of each traced asset ----
  * (tools/widths.py facts over a tools/m64widths.py trace; local, not
  * committed).  Right after the asset arrives and port_on_dma/port_on_load
@@ -640,6 +676,7 @@ int main(int argc, char **argv) {
     if (strchr(tests, 'A')) ta();
     if (strchr(tests, 'B')) tb();
     if (strchr(tests, 'C')) tc();
+    if (strchr(tests, 'D')) td();
     g_t9_all = argc > 4 && !strcmp(argv[4], "all");
     if (strchr(tests, '9')) t9(argc > 3 ? argv[3] : "build/lc/facts.txt");
     fflush(stdout);

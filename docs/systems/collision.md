@@ -155,7 +155,9 @@ level-data records.
 `gCollCellsB` is skipped for the J-Bomb (vehicle 9): walls it can fly or stomp
 over. The grid lookup (`veh_grid_cells_at`) takes **one** cell, the one under
 the sphere's centre, with no bounds check, so triangles near a cell edge must
-be listed in both cells by the level data (presumably they are).
+be listed in both cells by the level data. They are: Rare's grids list a
+wall in every cell whose rectangle, grown by 50 map units, it meets
+([levels](levels.md), "What the geometry generators show").
 
 ### Sphere against triangle
 

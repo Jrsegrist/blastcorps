@@ -150,6 +150,43 @@ byte; [tools](../tools.md)):
   items, 0x380 bytes on 15, 16 and 20); every other level has just the
   zero count word.
 
+**What the geometry generators show** (`tools_port/bcfiles/geometry.py`
+and its C twin `port/src/load/level_geo.c`, which regenerate these sections
+from the level's triangles; [tools](../tools.md) "Geometry"):
+
+- **Floor triangles are drawn triangles.** Every triangle of the ground grid
+  (0x30) has the corners of a triangle of the display lists, on all 60
+  levels; the walls (0x6C, 0x70) mostly don't (an invisible mesh).
+- **Ground grid**: a triangle is listed in every cell its x-z footprint
+  meets (closed rectangles) except cells that lie strictly inside it (Rare's
+  tool took the cells a triangle's edges and corners reach: levels 28 and 48
+  each have a cell under a big triangle that isn't listed there, and the
+  game answers that cell from its other triangles). The cells' orders are
+  consistent (no cycle): one global order of the triangles gives every
+  cell's. The rest of Rare's cells differ only by triangles touching a cell
+  with no area and by duplicated triangles.
+- **Collision grids**: the same with each cell grown by 50 map units,
+  half-open. The game looks up one cell, the sphere centre's, with no bounds
+  check (`veh_grid_cells_at`), so a wall must be listed in every cell within
+  reach of the spheres that can touch it: 50 units is that reach in Rare's
+  data.
+- **Visibility grid**: per cell, the lowest and highest y (each at least 0
+  on its side) of the drawn vertices inside the cell's closed rectangle (543
+  of 545 cells).
+- **Bounds**: the floor triangles' extent with 50 units more on each side
+  (all 60).
+- **Display lists**: the sub-lists the fixed lists call begin with an
+  8-vertex box and G_CULLDL; the box is the bounding box of the list's own
+  vertices (1,013 of 1,018 lists; the other 5 are the bridges' packed lists,
+  whose box allows for the sag), its corners in one order (y fastest, then x,
+  then z). A visibility record's [start, alt) is the material set-up (no
+  vertices), [alt, end) the triangles.
+- **Run time**: `ground_cache_tri` moves the last triangle a wheel stood on
+  to the front of its cell and `ground_scan_grid` stops at a hit triangle
+  whose byte 0x13 (the stop flag) is set: a floor triangle added over Rare's
+  ground needs the stop flags under it cleared, or the cached triangle hides
+  it.
+
 ### Section record layouts
 
 Each table gives the on-file layout and where it ends up. "obj" is the level
@@ -754,7 +791,11 @@ bc.exe's level editor (the viewer's Editor panel) edits the records below
 (vehicle spawns, the carrier record, object placements, RDUs, TNT, crates,
 communication points, push blocks and slots) on a copy of the level file and
 saves them as a small mod file; `tools_port/bcfiles` applies the same mods to
-a ROM ([tools](../tools.md), "Level mods").
+a ROM ([tools](../tools.md), "Level mods"). Geometry mods (bcmod/2) also
+change the triangles - move corners, add and remove drawn, floor and wall
+triangles, retexture a list - and the ground and collision grids, the
+visibility heights, the bounds and the display lists are regenerated from
+them when the mod is applied ([tools](../tools.md), "Geometry").
 
 - **Move a vehicle, the driver's start or a respawn point:** edit the 9-byte
   record in the 0x50 list (BE type, x, y, z, heading). The driver record
@@ -773,6 +814,9 @@ a ROM ([tools](../tools.md), "Level mods").
   (ROM data at 0x802E8F94; `kind`, `target`, `medalTimes`). Remember that
   kinds 1 and 0x80 are rewritten at runtime by `fe_player_update_level_kinds`.
 - **Change gravity:** header word 0x18.
+- **Change the landscape:** a geometry mod (bcmod/2, [tools](../tools.md)
+  "Geometry"); `bcfiles geo-gltf` / `geo-import` round-trip a level's
+  triangles through Blender. Don't edit the grids by hand: they are derived.
 - **Sections are offset chains.** Growing one section means updating every
   later header offset, the segment-8 range (0x20) and the display-list
   offsets; the counts are implicit (most loops stop at exactly the next

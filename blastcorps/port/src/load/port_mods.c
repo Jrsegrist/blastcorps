@@ -274,6 +274,9 @@ int port_mods_add(const char *path, char *err, size_t errlen) {
         }
     }
     LOG("mods: %s (%s): %d level%s\n", name, path, m.nlevels, m.nlevels == 1 ? "" : "s");
+    if (m.ntextures > 0)
+        LOG("mods: %s: its %d texture slot%s are not used by the port yet (tools_port/bcfiles mod-export puts them "
+            "into a ROM)\n", name, m.ntextures, m.ntextures == 1 ? "" : "s");
     for (k = 0; k < 60; k++) free(out[k]);
     lm_mod_free(&m);
     return 0;

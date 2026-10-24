@@ -280,6 +280,7 @@ add_custom_command(OUTPUT ${GEN}/swaptab.c
 # RDRAM, the ROM and the load layer (byte order)
 host_lib(bc_core ${BC_PORT}/src/rdram.c ${BC_PORT}/src/inflate.c ${BC_PORT}/src/load/swap.c
     ${BC_PORT}/src/load/port_assets.c ${BC_PORT}/src/load/gfx_fix.c ${BC_PORT}/src/load/level_mod.c
+    ${BC_PORT}/src/load/level_geo.c
     ${BC_PORT}/src/load/port_mods.c ${GEN}/swaptab.c)
 # the platform's host side: fibers, logging, crash reports, the entry hook, audio
 host_lib(bc_host ${BC_PORT}/src/platform/plat_host.c ${BC_PORT}/src/platform/crash.c
@@ -485,7 +486,8 @@ if(BC_GAME)
     # window, ROM or renderer (exit 0: all pass)
     add_executable(bc_cameratest ${BC_PORT}/src/live/orbit_test.cpp ${BC_PORT}/src/live/orbit_math.cpp
         ${BC_PORT}/src/live/viewer_test.cpp ${BC_PORT}/src/live/viewer_records.cpp
-        ${BC_PORT}/src/live/edit_test.cpp ${BC_PORT}/src/live/level_edit.cpp ${BC_PORT}/src/load/level_mod.c)
+        ${BC_PORT}/src/live/edit_test.cpp ${BC_PORT}/src/live/level_edit.cpp ${BC_PORT}/src/load/level_mod.c
+        ${BC_PORT}/src/load/level_geo.c)
     target_include_directories(bc_cameratest PRIVATE ${BC_PORT}/src)
     target_compile_features(bc_cameratest PRIVATE cxx_std_17)
     target_compile_definitions(bc_cameratest PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)

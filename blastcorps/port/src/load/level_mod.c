@@ -629,6 +629,26 @@ oom:
     return NULL;
 }
 
+/* ------------------------------------------------------------------ geometry (level_geo.c) */
+int lm_set_raw_section(LmLevel *lv, unsigned slot, const uint8_t *p, size_t n) {
+    const int i = sect_of(slot);
+    if (i < 0 || lv->s[i].mode != M_RAW) return -1;
+    lv->s[i].tail.n = 0;
+    return buf_set(&lv->s[i].raw, p, n);
+}
+
+int lm_set_display(LmLevel *lv, const uint8_t *vtx, size_t nvtx, const uint8_t *dl, size_t ndl, const uint32_t rel[9]) {
+    int i;
+    if (buf_set(&lv->vtx, vtx, nvtx) || buf_set(&lv->dl, dl, ndl)) return -1;
+    for (i = 0; i < 9; i++) lv->oldDl[i] = lv->oldBase + rel[i];
+    /* the block's member is zero-padded to 16 bytes after the lists (level.py dl_trailer None) */
+    return buf_set(&lv->trailer, NULL, (16 - ndl % 16) % 16);
+}
+
+uint32_t lm_dl_base(const LmLevel *lv) {
+    return lv->oldBase;
+}
+
 /* ------------------------------------------------------------------ changes */
 int lm_apply(LmLevel *lv, const LmChange *c, char *err, size_t errlen) {
     LmLevel *undo;
@@ -920,9 +940,168 @@ static const JVal *jget(const JVal *o, const char *key) {
 void lm_mod_free(LmMod *m) {
     int i;
     if (m == NULL) return;
-    for (i = 0; i < m->nlevels; i++) free(m->levels[i].changes);
+    for (i = 0; i < m->nlevels; i++) {
+        free(m->levels[i].changes);
+        if (m->levels[i].geo) {
+            lg_edit_free(m->levels[i].geo);
+            free(m->levels[i].geo);
+        }
+    }
     free(m->levels);
     memset(m, 0, sizeof *m);
+}
+
+/* ---- a bcmod/2 level's "geometry" (geometry.py apply_edit's checks on the values) ---- */
+static int jint(const JVal *v, long lo, long hi, long *out) {
+    if (v == NULL || v->type != J_NUM || v->num < lo || v->num > hi) return -1;
+    *out = v->num;
+    return 0;
+}
+
+static int jints(const JVal *a, int n, long lo, long hi, long *out) {
+    int i;
+    if (a == NULL || a->type != J_ARR || a->n != n) return -1;
+    for (i = 0; i < n; i++)
+        if (jint(&a->items[i], lo, hi, &out[i])) return -1;
+    return 0;
+}
+
+static int parse_geo(const JVal *gv, LgEdit *e, int level, char *err, size_t errlen) {
+    const JVal *mv = jget(gv, "move"), *rm = jget(gv, "remove"), *ad = jget(gv, "add"), *st = jget(gv, "settimg");
+    static const char *kRem[4] = {"render", "ground", "walls_a", "walls_b"};
+    long v[27];
+    int i, k;
+    memset(e, 0, sizeof *e);
+    if (mv != NULL) {
+        if (mv->type != J_ARR) goto bad;
+        e->move = (LgMove *) calloc((size_t) mv->n + 1, sizeof(LgMove));
+        if (e->move == NULL) goto oom;
+        for (i = 0; i < mv->n; i++) {
+            if (jints(&mv->items[i], 6, -32768, 32767, v)) {
+                seterr(err, errlen, "level %d geometry: move %d: six whole numbers in -32768..32767 expected", level, i);
+                return -1;
+            }
+            for (k = 0; k < 3; k++) e->move[i].from[k] = (int16_t) v[k], e->move[i].to[k] = (int16_t) v[3 + k];
+            e->nmove++;
+        }
+    }
+    if (rm != NULL) {
+        if (rm->type != J_OBJ) goto bad;
+        for (k = 0; k < 4; k++) {
+            const JVal *a = jget(rm, kRem[k]);
+            if (a == NULL) continue;
+            if (a->type != J_ARR) goto bad;
+            e->rem[k] = (int *) calloc((size_t) a->n + 1, sizeof(int));
+            if (e->rem[k] == NULL) goto oom;
+            for (i = 0; i < a->n; i++) {
+                if (jint(&a->items[i], -100000000L, 100000000L, v)) goto bad;
+                e->rem[k][e->nrem[k]++] = (int) v[0];
+            }
+        }
+    }
+    if (ad != NULL) {
+        const JVal *a;
+        if (ad->type != J_OBJ) goto bad;
+        if ((a = jget(ad, "render")) != NULL) {
+            if (a->type != J_ARR) goto bad;
+            e->render = (LgAddRender *) calloc((size_t) a->n + 1, sizeof(LgAddRender));
+            if (e->render == NULL) goto oom;
+            for (i = 0; i < a->n; i++) {
+                const JVal *o = &a->items[i], *vs = jget(o, "v"), *fl = jget(o, "flag");
+                LgAddRender *r = &e->render[e->nrender];
+                long af, f = 0;
+                int c;
+                if (jint(jget(o, "after"), -100000000L, 100000000L, &af)) {
+                    seterr(err, errlen, "level %d geometry: add render %d: \"after\" (a triangle id) expected", level, i);
+                    return -1;
+                }
+                if (vs == NULL || vs->type != J_ARR || vs->n != 3) goto badv;
+                for (c = 0; c < 3; c++) {
+                    long w[9];
+                    int q;
+                    const JVal *x = &vs->items[c];
+                    if (x->type != J_ARR || x->n != 9) goto badv;
+                    for (q = 0; q < 9; q++)
+                        if (jint(&x->items[q], q < 5 ? -32768 : -100000000L, q < 5 ? 32767 : 100000000L, &w[q])) goto badv;
+                    for (q = 0; q < 9; q++) r->v[c][q] = (int16_t) (q < 5 ? w[q] : (w[q] < -1 ? -1 : w[q] > 256 ? 256 : w[q]));
+                }
+                if (fl != NULL && jint(fl, -100000000L, 100000000L, &f)) goto bad;
+                r->after = (int) af, r->flag = (int) (f & 0xFF);
+                e->nrender++;
+            }
+        }
+        if ((a = jget(ad, "ground")) != NULL) {
+            if (a->type != J_ARR) goto bad;
+            e->ground = (LgAddTri *) calloc((size_t) a->n + 1, sizeof(LgAddTri));
+            if (e->ground == NULL) goto oom;
+            for (i = 0; i < a->n; i++) {
+                const JVal *o = &a->items[i];
+                LgAddTri *t = &e->ground[e->nground];
+                long sf = 1, fl = 0;
+                int q;
+                if (jints(jget(o, "v"), 9, -32768, 32767, v)) {
+                    seterr(err, errlen, "level %d geometry: add ground %d: \"v\": nine coordinates expected", level, i);
+                    return -1;
+                }
+                if ((jget(o, "surface") && jint(jget(o, "surface"), 0, 255, &sf)) ||
+                    (jget(o, "flag") && jint(jget(o, "flag"), 0, 255, &fl))) {
+                    seterr(err, errlen, "level %d geometry: add ground %d: surface / flag 0..255", level, i);
+                    return -1;
+                }
+                for (q = 0; q < 9; q++) t->v[q] = (int16_t) v[q];
+                t->a = (int) sf, t->b = (int) fl;
+                e->nground++;
+            }
+        }
+        for (k = 0; k < 2; k++) {
+            a = jget(ad, k ? "walls_b" : "walls_a");
+            if (a == NULL) continue;
+            if (a->type != J_ARR) goto bad;
+            e->wall[k] = (LgAddTri *) calloc((size_t) a->n + 1, sizeof(LgAddTri));
+            if (e->wall[k] == NULL) goto oom;
+            for (i = 0; i < a->n; i++) {
+                const JVal *o = &a->items[i];
+                LgAddTri *t = &e->wall[k][e->nwall[k]];
+                long h = -1, sd = 0, fa = 0;
+                int q;
+                if (jints(jget(o, "v"), 9, -32768, 32767, v)) {
+                    seterr(err, errlen, "level %d geometry: add %s %d: \"v\": nine coordinates expected", level,
+                           k ? "walls_b" : "walls_a", i);
+                    return -1;
+                }
+                if (jget(o, "heading") && jint(jget(o, "heading"), 0, 0xFFF, &h)) {
+                    seterr(err, errlen, "level %d geometry: add %s %d: heading 0..4095", level, k ? "walls_b" : "walls_a", i);
+                    return -1;
+                }
+                if ((jget(o, "side") && jint(jget(o, "side"), -100000000L, 100000000L, &sd)) ||
+                    (jget(o, "fail") && jint(jget(o, "fail"), -100000000L, 100000000L, &fa)))
+                    goto bad;
+                for (q = 0; q < 9; q++) t->v[q] = (int16_t) v[q];
+                t->a = (int) h, t->b = (int) (sd & 0xFF), t->c = (int) (fa & 0xFF);
+                e->nwall[k]++;
+            }
+        }
+    }
+    if (st != NULL) {
+        if (st->type != J_ARR) goto bad;
+        e->settimg = (LgSettimg *) calloc((size_t) st->n + 1, sizeof(LgSettimg));
+        if (e->settimg == NULL) goto oom;
+        for (i = 0; i < st->n; i++) {
+            if (jints(&st->items[i], 3, -100000000L, 100000000L, v)) goto bad;
+            e->settimg[i].piece = (int) v[0], e->settimg[i].k = (int) v[1], e->settimg[i].tex = (uint32_t) v[2];
+            e->nsettimg++;
+        }
+    }
+    return 0;
+badv:
+    seterr(err, errlen, "level %d geometry: add render: \"v\": three [x, y, z, s, t, r, g, b, a] expected", level);
+    return -1;
+bad:
+    seterr(err, errlen, "level %d: \"geometry\" doesn't read (see docs/tools.md, Geometry mods)", level);
+    return -1;
+oom:
+    seterr(err, errlen, "out of memory");
+    return -1;
 }
 
 static int hexsha(const JVal *v, char out[41]) {
@@ -957,9 +1136,18 @@ int lm_mod_parse(const char *text, size_t len, LmMod *m, char *err, size_t errle
         goto fail;
     }
     fmt = jget(&root, "format");
-    if (root.type != J_OBJ || fmt == NULL || fmt->type != J_STR || strcmp(fmt->str, "bcmod/1") != 0) {
-        seterr(err, errlen, "not a Blast Corps mod (\"format\": \"bcmod/1\" missing)");
+    if (root.type != J_OBJ || fmt == NULL || fmt->type != J_STR ||
+        (strcmp(fmt->str, "bcmod/1") != 0 && strcmp(fmt->str, "bcmod/2") != 0)) {
+        seterr(err, errlen, "not a Blast Corps mod (\"format\": \"bcmod/1\" or \"bcmod/2\" missing)");
         goto fail;
+    }
+    m->format = strcmp(fmt->str, "bcmod/2") == 0 ? 2 : 1;
+    if ((v = jget(&root, "textures")) != NULL) {
+        if (m->format != 2 || v->type != J_ARR) {
+            seterr(err, errlen, "geometry and textures need \"format\": \"bcmod/2\"");
+            goto fail;
+        }
+        m->ntextures = v->n;
     }
     if ((v = jget(&root, "name")) != NULL && v->type == J_STR) snprintf(m->name, sizeof m->name, "%s", v->str);
     if ((v = jget(&root, "description")) != NULL && v->type == J_STR)
@@ -994,6 +1182,24 @@ int lm_mod_parse(const char *text, size_t len, LmMod *m, char *err, size_t errle
             goto fail;
         }
         ch = jget(L, "changes");
+        if ((v = jget(L, "geometry")) != NULL) {
+            if (m->format != 2) {
+                seterr(err, errlen, "geometry and textures need \"format\": \"bcmod/2\"");
+                goto fail;
+            }
+            if (v->type != J_OBJ) {
+                seterr(err, errlen, "level %d: \"geometry\": an object expected", ml->level);
+                goto fail;
+            }
+            ml->geo = (LgEdit *) calloc(1, sizeof(LgEdit));
+            if (ml->geo == NULL) goto oom;
+            if (parse_geo(v, ml->geo, ml->level, err, errlen)) goto fail;
+        }
+        if (ch == NULL && ml->geo != NULL) {
+            ml->changes = (LmChange *) calloc(1, sizeof(LmChange));
+            if (ml->changes == NULL) goto oom;
+            continue;
+        }
         if (ch == NULL || ch->type != J_ARR) {
             seterr(err, errlen, "level %d: \"changes\": a list expected", ml->level);
             goto fail;
@@ -1157,6 +1363,20 @@ int lm_mod_apply(const LmModLevel *ml, const uint8_t *orig, size_t size, uint8_t
     if (*out == NULL) {
         seterr(err, errlen, "out of memory");
         return -1;
+    }
+    if (ml->geo != NULL) {
+        /* the geometry, over the record changes: every derived section regenerated (level_geo.c) */
+        uint8_t *g = NULL;
+        size_t gn = 0;
+        char e[300];
+        if (lg_apply(*out, *outsize, orig, size, ml->geo, ml->level, &g, &gn, e, sizeof e)) {
+            seterr(err, errlen, "level %d geometry: %s", ml->level, e);
+            free(*out);
+            *out = NULL;
+            return -1;
+        }
+        free(*out);
+        *out = g, *outsize = gn;
     }
     if (ml->edited_sha1[0]) {
         lm_sha1_hex(*out, *outsize, sha);

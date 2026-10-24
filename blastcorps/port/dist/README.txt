@@ -274,7 +274,8 @@ Editor and mods
 The viewer's editor changes what a level places: vehicle spawns (and so where the
 player starts), the missile carrier's start, heading, speed and route length,
 buildings and other objects, RDUs, TNT, ammo crates, communication points, push
-blocks and their slots. It doesn't change the landscape, collision or textures.
+blocks and their slots. It doesn't change the landscape, collision or textures
+(geometry mods do: see below).
 Turn it on in the viewer's Editor panel (or Ctrl+E), then:
 
   left click          select a marker; the selected record gets a gizmo
@@ -309,6 +310,15 @@ list them in bc.ini:
 (or start bc.exe --mod path\to\file.bcmod). The game changes the level files in
 memory as it reads them from your ROM; your ROM file is never changed. Two mods
 can't change the same level. With no mods enabled the game is exactly as before.
+
+Geometry mods (format "bcmod/2", made with the decomp's bcfiles tool, for example
+from a level edited in Blender: python3 tools_port/bcfiles geo-gltf / geo-import)
+change the landscape too: they move, add or remove the ground's, the scenery's and
+the walls' triangles and can give a surface another texture. They go in the mods
+folder like any mod; the game works out the level's collision, ground and drawing
+data from the edited triangles when the level loads. A mod's own texture images
+("textures") are not used by bc.exe yet (the log says so); mod-export puts them
+into a ROM.
 
 For emulators, a mod can be put into a copy of your ROM with the decomp's bcfiles
 tool (python3 tools_port/bcfiles mod-export ROM my_mod.bcmod new.z64). When the

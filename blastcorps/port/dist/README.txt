@@ -203,6 +203,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --dump-textures texture_dump
   bc.exe --set game.debug_cheats=1   (the debug cheats, this run only)
   bc.exe --cmdline -c          (the game's own debug command line; -c: the cheats)
+  bc.exe --viewer 0            (the level viewer on level 0: see Viewer below)
 
 
 Debug cheats
@@ -231,6 +232,38 @@ progress, so it keeps saving to the cheats file until you close it. Next time yo
 start without the cheats, you play from your real save. To keep cheated progress in
 your real save instead, set cheats_save = normal (F1 > Game > "Saves with the
 cheats").
+
+
+Viewer
+------
+The level viewer holds the game still and lets you fly around a level, look at what
+it is made of and see each vehicle or building on its own. Open it with
+  bc.exe --viewer 3            (starts on level 3; any level 0-59)
+or while you play: F1 > Viewer > "Open the viewer here" (the game stops where it is
+and goes on from there when you leave). The Viewer tab can also load any level;
+leaving the viewer after loading one restarts the game (that game wasn't reached by
+playing, so it can't go on or save). Nothing is ever saved by the viewer.
+
+  WASD                move (Q / E: down / up; Shift: fast, Ctrl: slow)
+  right mouse button  hold and move the mouse to look around (the wheel: speed)
+  left click          select a marker: its record shows in the Inspector
+  Home or P           jump to the player's start      O   an overview from above
+  F                   look at the selection           M   model view of it
+  Tab or F1           show / hide the panels          Esc leave (model view: back)
+  F12                 screenshot without the overlays (Shift+F12: with them),
+                      saved in the screenshots folder next to bc.exe
+  Controller          left stick moves, right stick looks, triggers down / up,
+                      shoulders change the speed, A selects, B goes back,
+                      Y the player's start, Start the panels, Back leaves
+
+The panels pick the level, turn parts of the picture on and off (terrain, buildings,
+vehicles, effects, other items, sky, HUD, the far draw distance, a plain
+background), show markers for the level's records (vehicle spawns, the missile
+carrier and its route, buildings, RDUs, TNT, crates, communication points, push
+blocks, optional collision outlines and height zones) and list the vehicles and
+buildings for the model view. Everything is drawn by the game's own code from your
+ROM. In the menus or on the globe the viewer shows the picture as it is (the free
+camera works in levels).
 
 
 Texture packs

@@ -209,6 +209,8 @@ extern double host_cull_wide;
  * `addr` is the display-list address the tag applies from (0 for
  * PORT_ISPAWN and PORT_ICUT).  It must not change anything the game sees. */
 extern void (*host_itag_hook)(unsigned addr, int kind, int index);
+/* ... and bc.exe's level viewer's, while it captures a frame (live_viewer.cpp; the same tags, kinds < 30) */
+extern void (*host_viewer_itag_hook)(unsigned addr, int kind, int index);
 
 /* Widescreen tags from the game (port.h PORT_WTAG; plat_core.c): bc.exe's
  * widescreen sets this while the picture is wider than 4:3 (live_wide.cpp).
@@ -264,6 +266,14 @@ int host_cmdline_cheats(const char *cmdline);
 void host_cheats_set_save(int separate);
 int host_cheats_saves(void);
 const char *host_cheats_save_name(void);
+
+/* bc.exe's level viewer (plat_core.c; live_viewer.cpp): host_viewer_request asks for level `level` (bonus
+ * levels: `vehicle` stands for the player's pick); the game takes it at the end of a frame in a level or the
+ * attract demo (port.h PORT_VIEWER_FRAME).  host_viewer_state: 0 nothing asked, 1 waiting for such a frame,
+ * 2 asked (gNextGameMode = MODE_LEVEL_START); host_viewer_done puts it back to 0. */
+void host_viewer_request(int level, int vehicle);
+int host_viewer_state(void);
+void host_viewer_done(void);
 
 /* platform entry (plat_core.c): boots the game and never returns */
 PORT_NORETURN void plat_start(const HostOpts *o);

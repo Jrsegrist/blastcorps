@@ -14,6 +14,7 @@
 using namespace live::orbit;
 
 static int g_fail, g_pass;
+void viewerTests(void (*check)(bool, const char *));   /* viewer_test.cpp */
 
 static void check(bool ok, const char *what) {
     if (ok) g_pass++;
@@ -866,6 +867,7 @@ int main() {
         for (int c = 0; c < SPIKE_CAUSES; c++) named = named && spikeCauseName(c)[0] != '?';
         check(named && spikeCauseName(SPIKE_CAUSES)[0] == '?', "spike: every cause has a name");
     }
+    viewerTests(check);   /* the level viewer's parsing and camera (viewer_test.cpp) */
     printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

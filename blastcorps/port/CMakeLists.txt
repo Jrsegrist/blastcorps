@@ -452,7 +452,8 @@ if(BC_GAME)
     add_library(bc_live OBJECT ${BC_PORT}/src/live/live_rt64.cpp ${BC_PORT}/src/live/live_setup.cpp
         ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp ${BC_PORT}/src/live/live_interp.cpp
         ${BC_PORT}/src/live/live_orbit.cpp ${BC_PORT}/src/live/orbit_math.cpp ${BC_PORT}/src/live/live_wide.cpp
-        ${BC_PORT}/src/live/live_texdump.cpp ${BC_PORT}/src/live/tmem_decode.cpp ${BC_PORT}/src/live/live_throttle.cpp)
+        ${BC_PORT}/src/live/live_texdump.cpp ${BC_PORT}/src/live/tmem_decode.cpp ${BC_PORT}/src/live/live_throttle.cpp
+        ${BC_PORT}/src/live/live_viewer.cpp ${BC_PORT}/src/live/viewer_records.cpp)
     add_dependencies(bc_live bc_version rt64)
     target_compile_features(bc_live PRIVATE cxx_std_17)
     target_compile_definitions(bc_live PRIVATE RT64_NATIVE_HOST_LAYOUT SDL_MAIN_HANDLED HLSL_CPU FFX_GCC
@@ -476,8 +477,11 @@ if(BC_GAME)
     target_link_options(bc_inputtest PRIVATE /SUBSYSTEM:CONSOLE)
 
     # bc_cameratest.exe: tests of the orbit camera's math (orbit_math.cpp: limits,
-    # recentring, zoom, collision pull-in); no window, ROM or renderer (exit 0: all pass)
-    add_executable(bc_cameratest ${BC_PORT}/src/live/orbit_test.cpp ${BC_PORT}/src/live/orbit_math.cpp)
+    # recentring, zoom, collision pull-in) and of the level viewer's record parsing and
+    # camera (viewer_records.cpp, on synthetic level data); no window, ROM or renderer
+    # (exit 0: all pass)
+    add_executable(bc_cameratest ${BC_PORT}/src/live/orbit_test.cpp ${BC_PORT}/src/live/orbit_math.cpp
+        ${BC_PORT}/src/live/viewer_test.cpp ${BC_PORT}/src/live/viewer_records.cpp)
     target_compile_features(bc_cameratest PRIVATE cxx_std_17)
     target_compile_definitions(bc_cameratest PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
     target_compile_options(bc_cameratest PRIVATE /EHsc /W3)

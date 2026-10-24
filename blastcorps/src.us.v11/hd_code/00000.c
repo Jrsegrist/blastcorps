@@ -987,6 +987,7 @@ void hd_main_thread(void *arg) {
             if (!gPaused) {
                 gUnpausedFrames++;
             }
+            PORT_VIEWER_FRAME(); /* bc.exe's level viewer: a level it asked for (game/port.h) */
         }
         if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gCarrierHit || gLevelDone)) {
             rec_record(0, 0, 0);

@@ -621,6 +621,94 @@ it without a fault.  The x64-asan preset is the tool for this now.
   window's picture (PrintWindow with PW_RENDERFULLCONTENT, after RT64
   presented: RT64's output at the window's size, unlike `--shot`'s 320x240
   RDRAM picture) and `--window WxH` sets the window's size.
+- **The level and model viewer** (`src/live/live_viewer.cpp`, the records and
+  camera math in `src/live/viewer_records.cpp`; `bc.exe --viewer [LEVEL]`, or
+  the settings menu's Viewer tab).  Roadmap item 6, part 1: looking at levels
+  and models with the game's own drawing; designed for an editor later.
+  - **Holding the game still.** As the settings menu does: the game waits
+    inside the retrace hook (`liveVi` calls `viewerVi`), so none of its code
+    runs and its virtual clock doesn't move.  The picture is the game's last
+    captured frame, drawn again every tick: its graphics tasks go to RT64 once
+    more (`processDisplayLists` on the same RDRAM, read only; the VI line
+    counter alternates so RT64 presents each one).  Chosen over the game's own
+    pause (it changes modes, windows and the clock) and over stepping frames
+    (the world would move): nothing of the game changes while the viewer is
+    up.
+  - **The capture.** Before it freezes, the game runs two more frames (no
+    controller input, unpaced, silent) with every level cell in the drawing
+    paths (`PORT_DRAW_CELLS`, as the orbit camera's; as many cells as the
+    game's level display-list buffers hold, nearest first: an upper bound of
+    `lvl_build_visible_dl`'s copy per list against `lvl_alloc_dl_buffers`'
+    sizes, so nothing overflows; "draw every cell" off: the game's own cells)
+    and its `PORT_ITAG` tags recorded (`host_viewer_itag_hook`, plat_core.c).
+    Opened over play and left without loading a level, the game goes on from
+    there: the trace of such a run equals a run without the viewer (tested on
+    the attract demo and on level 3 driven by the verify-levels input).
+  - **Loading a level** (the menu's level picker, `--viewer LEVEL`): the game's
+    own set-up.  `host_viewer_request` (plat_core.c); at the end of a frame of
+    `hd_main_thread`'s loop (`PORT_VIEWER_FRAME`, game/port.h, the one game-code
+    hook) in a level or the attract demo (no front end loaded: the set-up
+    destroys the save thread), not fading and with no mode switch pending, the
+    game gets `levelno`, `gDiggerVehicle` (bonus levels: the lowest vehicle of
+    the level's `LevelInfo.vehicles` stands for the player's pick) and
+    `gNextGameMode = MODE_LEVEL_START`; a finished mission's medal reads "not
+    done" for that one switch (else the set-up would apply the status block
+    the front end loaded for another level).  From boot the request waits for
+    the attract demo (frame ~503).  All 60 level ids load (missions start in
+    play, other kinds in their countdown).  Since such a game wasn't brought
+    there by play (no player loaded from boot, a stale status block), leaving
+    the viewer after a load restarts bc.exe (the same command line without
+    `--viewer`, then exit); nothing is saved meanwhile (saving happens only in
+    the front end's results modes, never reached).
+  - **What is drawn** (the command hook, `interpSetCommandHook`, and an owner
+    hook before every command, `interpSetOwnerHook`, live_interp.cpp): who
+    draws what comes from the tags (`HUD`, `RADAR`: HUD; `OBJ`, `SHADOW*`:
+    vehicles; `BUILDING`, `BPART`, `FALL`, `RISE`, `GSHADOW`: buildings;
+    `BILLBOARD`, `PARTICLE`, `PEOPLE`, `MARKER`: effects), the level's lists
+    (`gLevelDl0..3[2]`, `gLevelFileDl0..3`, the packed calls at SEG2(0xA4E0):
+    terrain) and the frame's sky (the backdrop and ground fill after the
+    second `G_SETCIMG`); a category turned off has its draw commands
+    (triangles, quads, texture and fill rectangles) left out, the state
+    commands kept.  Plain background (the default): the ground fill drawn
+    full screen in grey and the backdrop left out (the game's sky is a flat
+    picture for its own camera).  The free camera's view replaces the frame's
+    game view in every perspective projection that has it (RT64 patch 0006's
+    `ViewHook`), and the far plane moves from 10000 to 120000.  Front-end
+    frames (the globe, menus) are drawn as they were, with the game's camera.
+  - **Overlays and the inspector** (ImGui over the picture, `uiFrame` in
+    live_menu.cpp): markers and labels for the level file's records - vehicle
+    spawns (type names, model files), the carrier record and its route (a
+    straight line along its heading, on the ground), object placements, RDUs,
+    TNT, ammo crates, communication points, push blocks and slots, height
+    zones (optional), panel events (inspector only) - and the runtime
+    `gObjects` / `gVehicles` records; collision outlines near the camera
+    (grids A and B from the file, the buildings' `CollisionTri`s).  A click
+    selects the nearest marker; the inspector lists its fields (levels.md's
+    layouts), its runtime record and its raw bytes.
+  - **Model view**: a vehicle (`gVehicles` record: its `OBJ` tag) or a
+    building (`gObjects` record: its `BUILDING` tag) of the current level
+    alone, on the plain background, with an orbit camera centred on what it
+    drew (its vertices through RT64's model matrices).  Vehicles not in the
+    level would need their files loaded onto the game's heap (it can't grow
+    without changing the game): not done.
+  - **Controls**: WASD move, Q/E (C/Space) down/up, Shift x4, Ctrl x0.25, the
+    right mouse button held: look, the wheel: speed; a controller's left stick
+    moves, the right stick looks, the triggers go down/up, the shoulders
+    change the speed, A selects at the centre, B backs out, Y: the player's
+    start, Start: the panels, Back: leave.  Home/P: the player's start, O: an
+    overview, F: look at the selection, M: model view, Tab/F1: the panels,
+    F12: a clean screenshot, Shift+F12: one with the overlays (in
+    `screenshots\` next to the exe, or `--shot-dir`), F11 fullscreen, Esc:
+    leave (model view: back).
+  - **Testing**: `--viewer-test "OP;OP;..."` runs a script in the frozen
+    viewer (`wait:N`, `cam:start|game|top|X,Y,Z,YAW,PITCH`, `show:CATEGORY|far|
+    plain|markers|labels|collision|zones|cells|labeldist|KIND=0|1`,
+    `select:KIND:I`, `dump:KIND:I` (the record's fields to the log),
+    `model:KIND:I|off`, `orbit:YAW,PITCH[,DIST]`, `shot:NAME` (clean),
+    `oshot:NAME` (overlays), `pshot:NAME` (with the panels), `level:N`,
+    `recapture`, `leave`, `quit`); `--viewer-open F` opens it over the game at
+    frame F.  `bc_cameratest` tests the record parsing and camera math on a
+    synthetic level image.
 - **Optional enhancements** (all off by default: with the defaults bc.exe
   renders exactly as before, and none of them changes the game logic or its
   per-frame trace, except the visibility test of widescreen and of a higher

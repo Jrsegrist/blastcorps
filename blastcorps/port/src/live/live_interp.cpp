@@ -88,6 +88,7 @@ GbiMatrixHook g_mtxHook;
 GbiCommandHook g_wideHook;   /* interpSetWideHooks (widescreen, live_wide.cpp) */
 GbiVertexHook g_vtxHook;
 GbiAddressHook g_addrHook;
+GbiAddressHook g_ownerHook;   /* interpSetOwnerHook (the level viewer, live_viewer.cpp) */
 
 /* the vertices RT64 has in the workload being built */
 uint32_t vertexCount(RT64::State *state) {
@@ -97,7 +98,7 @@ uint32_t vertexCount(RT64::State *state) {
 
 bool anyHook() {
     return g_hook != nullptr || g_mtxHook != nullptr || g_wideHook != nullptr || g_vtxHook != nullptr ||
-           g_addrHook != nullptr;
+           g_addrHook != nullptr || g_ownerHook != nullptr;
 }
 
 /* the tags of the display lists being built (physical address -> kind, index) */
@@ -502,6 +503,8 @@ void run(RT64::State *state, RT64::DisplayList **dl, uint8_t op) {
 void dispatch(RT64::State *state, RT64::DisplayList **dl) {
     const uint32_t w0 = (*dl)->w0;
     const uint8_t op = uint8_t(w0 >> 24);
+    if (g_ownerHook != nullptr)
+        g_ownerHook(state, uint32_t(reinterpret_cast<const uint8_t *>(*dl) - state->RDRAM) & 0xFFFFFF);
     if (g_addrHook != nullptr)
         g_addrHook(state, uint32_t(reinterpret_cast<const uint8_t *>(*dl) - state->RDRAM) & 0xFFFFFF);
     if (!g_on) {   /* only the command hooks want the commands */
@@ -644,6 +647,11 @@ void interpTagsEnable(bool on) {
 void interpSetCommandHook(GbiCommandHook hook, GbiMatrixHook mtxHook) {
     g_hook = hook;
     g_mtxHook = mtxHook;
+    if (!anyHook() && !g_on) unwrapAll();
+}
+
+void interpSetOwnerHook(GbiAddressHook hook) {
+    g_ownerHook = hook;
     if (!anyHook() && !g_on) unwrapAll();
 }
 

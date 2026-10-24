@@ -111,6 +111,9 @@
  *                       (menu_FFFFFFF.png) and close it again (testing)
  *     --menu-set S.K=V  in that menu, change a setting as a player would (applied
  *                       at once, written to bc.ini when the menu closes)
+ *     --viewer [LEVEL]  the level and model viewer (live_viewer.h), on LEVEL (default 0)
+ *     --viewer-test S   (testing) a script of viewer actions, "OP;OP;..." (live_viewer.cpp runTestOp)
+ *     --viewer-open F   (testing) open the viewer over the game at frame F
  *     --low-test MASK   (testing) the host memory below 4 GB (plat_host.h host_low_reserve):
  *                       1 crowd it before the start-up reservation, 2 after, 4 no reservation
  *     --no-msgbox       (headless_main.c) no dialog of any kind: errors, crash
@@ -174,6 +177,7 @@
 #include "live_wide.h"
 #include "live_setup.h"
 #include "live_texdump.h"
+#include "live_viewer.h"
 
 extern "C" {
 #include "plat_host.h"
@@ -376,7 +380,15 @@ void saveFrame(const HostViRegs &r, unsigned frame) {
  * Waits until RT64 presented what it was given, then asks the compositor for
  * the client area (PrintWindow with PW_RENDERFULLCONTENT, which also works
  * for a flip-model swap chain). */
+void saveWindowTo(const std::string &path);
 void saveWindow(const char *name) {
+    char path[512];
+    snprintf(path, sizeof path, "%s/%s.png", g_opt.shotDir, name);
+    saveWindowTo(path);
+}
+
+void saveWindowTo(const std::string &file) {
+    const char *path = file.c_str();
     if (g_app == nullptr || host_gui_window == nullptr) return;
     g_app->presentQueue->waitForPresentId(g_app->state->presentId);
     Sleep(120);
@@ -408,8 +420,6 @@ void saveWindow(const char *name) {
     DeleteObject(bmp);
     DeleteDC(mdc);
     ReleaseDC(hw, wdc);
-    char path[512];
-    snprintf(path, sizeof path, "%s/%s.png", g_opt.shotDir, name);
     if (ok && writePng(path, unsigned(w), unsigned(h), rgb)) host_log("live: saved %s (%dx%d window)\n", path, w, h);
     else host_log("live: window picture %s failed\n", path);
 }
@@ -572,7 +582,7 @@ bool openAudio(unsigned rate) {
 }
 
 void liveAudio(const short *lr, unsigned frames, unsigned rate) {
-    if (!g_opt.pace || frames == 0 || !openAudio(rate)) return;
+    if (!g_opt.pace || frames == 0 || live::viewerActive() || !openAudio(rate)) return;
     const double target = rate * 0.060;   /* queue length held near 60 ms */
     double queued = double(SDL_GetQueuedAudioSize(g_audioDev)) / 4.0;
     if (queued > rate * 0.3) {            /* far behind real time (a stall): start over */
@@ -2324,6 +2334,7 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     if (g_skipHi != 0 && g_app->interpreter->hleGBI->ucode == RT64::GBIUCode::F3D) skipWalk(dataPtr);
     if (g_cfg.framerate != 0) interpTask(dataPtr);
     const bool frameDl = isFrameDl(dataPtr);
+    live::viewerGfxTask(ucode, ucodeData, dataPtr, frameDl);   /* (the level viewer's capture) */
     live::orbitBeforeTask(dataPtr, frameDl);
     live::interpTagsBeforeTask(dataPtr, frameDl);
     live::wideBeforeTask();
@@ -2360,6 +2371,8 @@ unsigned long long g_when0;
 bool g_paceFromSeen;
 unsigned g_nextShot, g_nextWshot;
 bool g_quitRequested;
+bool g_viewerBoot;                   /* --viewer: the level viewer starts at the first retrace */
+unsigned g_viewerOpenFrame = ~0u;    /* --viewer-open F (testing): opened over the game at frame F */
 unsigned g_hashFrame = ~0u;          /* --texture-hashes */
 void logTextureHashes(unsigned frame);
 void packWatch(unsigned viCount);
@@ -2457,7 +2470,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         g_paceFromSeen = true;   /* (testing) the frame times from here */
         frameSegment("--pace-from");
     }
-    if (g_opt.pace && frames >= g_opt.paceFrom) {
+    if (g_opt.pace && frames >= g_opt.paceFrom && !live::viewerActive()) {   /* (the viewer loading: as fast as it goes) */
         LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
         if (g_t0.QuadPart == 0) {
@@ -2540,6 +2553,24 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
     g_tailRun.eventsMs = (secondsSince(g_tStart) - eventsStart) * 1e3;
     live::orbitVi(g_pads, g_focused ? SDL_GetKeyboardState(nullptr) : nullptr);
     if (live::menuIsOpen()) runMenu(0);
+    {
+        /* the level viewer: it runs here while it holds the game (live_viewer.h) */
+        const bool was = live::viewerActive();
+        if (frames >= g_viewerOpenFrame) {
+            g_viewerOpenFrame = ~0u;
+            live::viewerOpen();
+        }
+        if (was || live::viewerWanted() || g_viewerBoot) {
+            g_viewerBoot = false;
+            live::viewerVi(frames);
+        }
+        if (was && !live::viewerActive()) {
+            g_t0.QuadPart = 0;   /* pacing: start over from the next retrace */
+            interpApply();
+            g_gate.close(live::readPad(g_cfg, g_pads, SDL_GetKeyboardState(nullptr), (SDL_GetModState() & KMOD_ALT) != 0));
+            if (g_opt.fullscreen) SDL_ShowCursor(SDL_DISABLE);
+        }
+    }
     g_ft.viExit = secondsSince(g_tStart);
     g_tailRun.ms = (g_ft.viExit - tailStart) * 1e3;
     g_tail = g_tailRun;
@@ -2550,6 +2581,7 @@ int liveInput(unsigned short *button, signed char *x, signed char *y) {
     *button = g_button;
     *x = g_stickX;
     *y = g_stickY;
+    if (live::viewerActive()) *button = 0, *x = 0, *y = 0;   /* (the level viewer loading or capturing: no input) */
     host_live_trigger = g_trigger;   /* (the analog throttle: plat_input_read gives it to live_throttle.cpp) */
     if (host_verbose && g_button != lastButton)
         host_log("live: pad buttons %04X stick %d,%d (frame %u)\n", g_button, g_stickX, g_stickY, plat_frames());
@@ -2882,6 +2914,56 @@ std::string rendererStatus() {
     return buf;
 }
 
+/* the level viewer, left after it loaded a level: bc.exe again with the same command line but the viewer's
+ * options (a fresh boot), then this one exits */
+std::wstring quoteArg(const std::wstring &a) {
+    if (!a.empty() && a.find_first_of(L" \t\"") == std::wstring::npos) return a;
+    std::wstring q = L"\"";
+    unsigned slashes = 0;
+    for (wchar_t c : a) {
+        if (c == L'\\') {
+            slashes++;
+            continue;
+        }
+        q.append(c == L'"' ? slashes * 2 + 1 : slashes, L'\\');
+        slashes = 0;
+        q += c;
+    }
+    q.append(slashes * 2, L'\\');
+    return q + L"\"";
+}
+
+void restartWithoutViewer() {
+    int argc = 0;
+    wchar_t **wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    std::wstring cmd;
+    for (int i = 0; wargv != nullptr && i < argc; i++) {
+        const std::wstring a = wargv[i];
+        if (a == L"--viewer") {
+            if (i + 1 < argc && wargv[i + 1][0] >= L'0' && wargv[i + 1][0] <= L'9') i++;
+            continue;
+        }
+        if (a == L"--viewer-test") {
+            i++;
+            continue;
+        }
+        cmd += (cmd.empty() ? L"" : L" ") + quoteArg(a);
+    }
+    wchar_t exe[MAX_PATH];
+    GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    STARTUPINFOW si = {};
+    si.cb = sizeof si;
+    PROCESS_INFORMATION pi = {};
+    if (CreateProcessW(exe, &cmd[0], nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        host_log("live: started bc.exe again (pid %lu) without the viewer\n", (unsigned long) pi.dwProcessId);
+    } else {
+        host_log("live: could not start bc.exe again (error %lu)\n", (unsigned long) GetLastError());
+    }
+    shutdown(0);
+}
+
 /* ---- start-up ---------------------------------------------------------------- */
 unsigned num(const char *s) {
     return unsigned(strtoul(s, nullptr, 0));
@@ -2990,6 +3072,19 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--wseq")) {
         const char *s = next();
         if (sscanf(s, "%u:%u", &g_wseq.frame, &g_wseq.ms) != 2) host_fatal("--wseq %s: FRAME:MILLISECONDS", s);
+    }
+    else if (!strcmp(a, "--viewer")) {
+        /* --viewer [LEVEL]: the level viewer (live_viewer.h), on LEVEL (default 0) */
+        int level = 0;
+        if (*i + 1 < argc && argv[*i + 1][0] >= '0' && argv[*i + 1][0] <= '9') level = int(num(next()));
+        if (level < 0 || level >= 60) host_fatal("--viewer %d: levels are 0..59", level);
+        live::viewerStartAtBoot(level);
+        g_viewerBoot = true;
+    } else if (!strcmp(a, "--viewer-open")) {
+        g_viewerOpenFrame = std::max(1u, num(next()));   /* (testing) open the viewer over the game at frame F */
+    } else if (!strcmp(a, "--viewer-test")) {
+        const char *s = next();
+        if (!live::viewerSetTest(s)) host_fatal("--viewer-test %s: OP;OP;... (live_viewer.cpp runTestOp)", s);
     }
     else if (!strcmp(a, "--no-pace")) g_opt.pace = false;
     else if (!strcmp(a, "--pace-from")) g_opt.paceFrom = num(next());
@@ -3188,7 +3283,23 @@ void prestart(HostOpts *o) {
     };
     menu.dumpStatus = [] { return live::texDumpOn() ? live::texDumpStatus() : std::string(); };
     menu.cheatsStatus = cheatsSaveText;
+    menu.viewerTab = live::viewerMenuTab;
     live::menuSetup(menu);
+    {
+        live::ViewerEnv v;
+        v.app = g_app;
+        v.window = g_window;
+        v.cfg = &g_cfg;
+        v.viOrigin = &VI_ORIGIN_REG;
+        v.viCurrentLine = &VI_V_CURRENT_LINE_REG;
+        v.pads = [] { return g_input.latest(); };
+        v.saveWindow = saveWindowTo;
+        v.toggleFullscreen = [] { setFullscreen(!g_opt.fullscreen); };
+        v.quit = [](int code) { shutdown(code); };
+        v.restart = restartWithoutViewer;
+        if (strcmp(g_opt.shotDir, ".") != 0) v.shotDir = g_opt.shotDir;
+        live::viewerSetup(v);
+    }
     live::interpTagsSetup(g_app);
     live::interpTagsSetLog(g_interp.log);
     live::interpTagsEnable(g_cfg.framerate != 0 && g_cfg.interpolation == 1);
@@ -3408,6 +3519,7 @@ int main(int, char **) {
         host_low_summary();
         live::orbitSummary();
         live::throttleSummary();
+        live::viewerSummary();
     };
     host_opts_hook = optsHook;
     host_rom_hook = romHook;

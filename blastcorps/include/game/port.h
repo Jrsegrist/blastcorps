@@ -226,7 +226,14 @@ void port_wtag(const void *gdl, int kind, int x0, int x1);
  * Nothing changes unless bc.exe's analog_throttle is on. */
 void port_throttle(int rawY, unsigned short *button, signed char *y);
 #define PORT_THROTTLE(rawY, button, y) port_throttle((int) (rawY), (button), (signed char *) (y))
+/* bc.exe's level viewer (port/src/live/live_viewer.cpp): at the end of every frame of hd_main_thread's frame
+ * loop, the level the viewer asked for (if any) is requested the game's own way: levelno and gNextGameMode =
+ * MODE_LEVEL_START, so the mode switch sets it up (plat_core.c port_viewer_frame).  Nothing changes unless the
+ * viewer asked; it asks only while no front end is loaded and no fade or mode switch is under way. */
+void port_viewer_frame(void);
+#define PORT_VIEWER_FRAME() port_viewer_frame()
 #else
+#define PORT_VIEWER_FRAME()
 #define PORT_THROTTLE(rawY, button, y)
 #define PORT_ITAG(gdl, kind, index)
 #define PORT_ISPAWN(kind, index)

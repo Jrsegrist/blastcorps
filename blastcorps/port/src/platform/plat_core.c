@@ -56,10 +56,14 @@ void (*host_camera_hook)(int snap);
 short *(*host_draw_cells_hook)(short *game);
 void (*host_input_hook)(unsigned short *button, signed char *x, signed char *y);
 
+/* bc.exe's level viewer records them too while it captures a frame (live_viewer.cpp) */
+void (*host_viewer_itag_hook)(unsigned addr, int kind, int index);
+
 void port_itag(const void *gdl, int kind, int index) {
     /* PORT_ICUT_IF: every frame, at the end of the game's camera (index: the snap flag) */
     if (kind == 30 && host_camera_hook != NULL) host_camera_hook(index);
     if (host_itag_hook != NULL && (kind != 30 || index != 0)) host_itag_hook((unsigned) (size_t) gdl, kind, index);
+    if (host_viewer_itag_hook != NULL && kind < 30) host_viewer_itag_hook((unsigned) (size_t) gdl, kind, index);
 }
 
 /* ---- widescreen tags (port.h PORT_WTAG) ------------------------------------- */
@@ -82,6 +86,67 @@ void port_throttle(int rawY, unsigned short *button, signed char *y) {
 /* PORT_DRAW_CELLS: the visible-cell list the drawing paths use */
 short *port_draw_cells(short *game) {
     return host_draw_cells_hook != NULL ? host_draw_cells_hook(game) : game;
+}
+
+/* ---- bc.exe's level viewer (port.h PORT_VIEWER_FRAME) -------------------------
+ * The viewer (live_viewer.cpp) asks for a level; at the end of a frame of
+ * hd_main_thread's frame loop, when the game is in a level or the attract demo
+ * (no front end loaded: hd_setup_level would destroy the save thread), not
+ * fading and not already switching mode, the request becomes the game's own:
+ * levelno, gDiggerVehicle (bonus levels: the vehicle a type-1 spawn stands
+ * for) and gNextGameMode = MODE_LEVEL_START, so the mode switch runs the
+ * level's set-up as the globe's start would.  A finished mission would be set
+ * up with the status block the front end loaded last (pakBuffer: another
+ * level's), so its medal reads "not done" for that one switch (put back at the
+ * next frame's end).  Nothing happens unless the viewer asked: with it never
+ * used, the game runs exactly as without it. */
+extern s32 levelno;
+extern u64 gNextGameMode;
+extern u8 frontEndPresent;
+extern u8 gDiggerVehicle;
+extern u8 playerNumber;
+extern u8 players[][0x100];
+extern u8 gLevelInfo[][0x44];
+s32 areWeFading(void);
+static int g_view_state, g_view_level, g_view_vehicle;
+static int g_view_medal_player = -1, g_view_medal_level;
+static u8 g_view_medal;
+
+void host_viewer_request(int level, int vehicle) {
+    g_view_level = level;
+    g_view_vehicle = vehicle;
+    g_view_state = level >= 0 && level < 60 ? 1 : 0;
+}
+
+int host_viewer_state(void) {
+    return g_view_state;
+}
+
+void host_viewer_done(void) {
+    g_view_state = 0;
+}
+
+void port_viewer_frame(void) {
+    if (g_view_medal_player >= 0) {
+        players[g_view_medal_player][0x18 + g_view_medal_level] = g_view_medal;
+        g_view_medal_player = -1;
+    }
+    if (g_view_state != 1 || frontEndPresent || gNextGameMode != 0 || areWeFading()) return;
+    levelno = g_view_level;
+    if (gLevelInfo[levelno][0] != 1) gDiggerVehicle = (u8) g_view_vehicle;
+    if (playerNumber < 4) {
+        u8 *medal = &players[playerNumber][0x18 + levelno];
+        if (*medal > 0 && *medal < 6) {
+            g_view_medal_player = playerNumber;
+            g_view_medal_level = levelno;
+            g_view_medal = *medal;
+            *medal = 0;
+        }
+    }
+    gNextGameMode = 0x2000; /* MODE_LEVEL_START */
+    g_view_state = 2;
+    host_log("viewer: level %d asked for at frame %u (vehicle %d)\n", g_view_level, (unsigned) plat_stats.frames,
+             g_view_vehicle);
 }
 
 /* bc.exe's orbit camera: the commands and vertex values 2D2D810.c

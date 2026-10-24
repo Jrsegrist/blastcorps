@@ -189,6 +189,13 @@ static void swap_level(uint32_t base, uint32_t len) {
     /* 0x50, 0x54: byte streams (BE16S); 0x5C: 14-byte placements, BE16U bytes
      * but for the u16 at 0xA and 0xC; 0x60..0x74: byte grids */
     if (blk_sect(&b, 0x50, 0x58, &lo, &hi)) blk_keep(&b, lo, hi - lo);
+    /* 0x58: the carrier-progress panel events, 8-byte DigTrigger records
+     * {s16 carrier z; u8 a, b, c, d (hud_panel_start's arguments); u8 done; pad}.
+     * 32E00.c dig_coach_update reads the s16 natively (`lh`, not BE16S): the
+     * loader once left the section big-endian with the byte streams around
+     * it, so levels 1 and 26 (one record each, z 2879 = 0x0B3F) fired their
+     * panel at z 16139 (0x3F0B), past the carrier's route: never. */
+    if (blk_sect(&b, 0x58, 0x5C, &lo, &hi)) blk_records(&b, lo, hi, 8, "2@0");
     if (blk_sect(&b, 0x5C, 0x60, &lo, &hi)) blk_records(&b, lo, hi, 0xE, "2@A 2@C");
     if (blk_sect(&b, 0x60, 0x74, &lo, &hi)) blk_keep(&b, lo, hi - lo);
     if (blk_sect(&b, 0x74, 0x78, &lo, &hi)) lvl_groups(&b, lo, hi);

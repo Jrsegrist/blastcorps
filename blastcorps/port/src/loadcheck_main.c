@@ -13,8 +13,10 @@
  *   T7  every level: lvl_load_file load + lvl_read_alpha_zones object-stream unpack
  *   T8  every level: cam_apply_height_zone height zones at random positions
  *   T9  (needs a trace) every read the N64 code made of each traced asset
+ *   TA  every level: dig_coach_update's panel events (section 0x58) as the
+ *       carrier's z sweeps the s16 range: the z each event fires at
  *
- * usage: loadcheck.exe ROM [TESTS [FACTS]]   (TESTS: digits, default 5678)
+ * usage: loadcheck.exe ROM [TESTS [FACTS]]   (TESTS: characters, default 5678A)
  */
 #include <windows.h>
 #include <setjmp.h>
@@ -41,6 +43,7 @@ void tex_load_to_heap_impl(s32 id, u8 *param);
 void lvl_load_file(s32 level, s32 dest, s32 *size);
 void lvl_read_alpha_zones(u8 *obj);
 void cam_apply_height_zone(u8 *level);
+void dig_coach_update(s32 now);
 
 /* ---- the platform surface these need (as port/src/platform does it) ---- */
 static uint8_t *g_rom;
@@ -201,6 +204,61 @@ static void t8(void) {
     }
 }
 
+/* TA: the panel events [level + hdr[0x58], level + hdr[0x5C]) (8-byte
+ * DigTrigger records, 32E00.c), read by the game's own dig_coach_update right
+ * after the load: with gHaveCarrier set and gCarrierZ = k << 5 for k = -0x8000
+ * .. 0x7FF0 in steps of 0x10, the first k at which each event's done byte
+ * (+6) is set (it fires once k > its s16 z).  gGameMode 0 makes
+ * hud_panel_start return at once; gDigHit 0 and an empty sample ring skip
+ * the coaching checks; now = 0 skips the level-start message.  (The emulator
+ * runs of verify-levels end before any carrier gets that far.) */
+#define DIG_TRIGGERS     0x803BE6FCu
+#define DIG_TRIGGERS_END 0x803BE700u
+static void ta(void) {
+    int lvl;
+    for (lvl = 0; lvl < 60; lvl++) {
+        uint32_t lo, hi, p, i, n;
+        int32_t k;
+        uint32_t fired[64];
+        load_level(lvl);
+        lo = HEAP + V32(HEAP + 0x58);
+        hi = HEAP + V32(HEAP + 0x5C);
+        n = (hi - lo) / 8;
+        printf("TA %02d n %u\n", lvl, (unsigned) n);
+        if (n == 0 || n > 64) continue;
+        V32(DIG_TRIGGERS) = lo;
+        V32(DIG_TRIGGERS_END) = hi;
+        V32(0x80364A90) = 0;   /* gGameMode (u64) */
+        V32(0x80364A94) = 0;
+        V8(0x803643DB) = 1;    /* gHaveCarrier */
+        V8(0x803643D6) = 0;    /* gCarrierHit */
+        V8(0x8036CB2F) = 0;    /* gDigHit */
+        V8(0x8036CB28) = 0;    /* gDigSampleTail */
+        V8(0x8036CB29) = 0;    /* gDigSampleHead */
+        for (i = 0; i < n; i++) fired[i] = 0x7FFFFFFFu;
+        if (setjmp(crash_jmp)) {
+            printf("TA %02d CRASH\n", lvl);
+            continue;
+        }
+        crash_armed = 1;
+        for (k = -0x8000; k < 0x8000; k += 0x10) {
+            V32(0x803EF6E4) = (uint32_t) k << 5;   /* gCarrierZ */
+            dig_coach_update(0);
+            for (i = 0, p = lo; i < n; i++, p += 8)
+                if (fired[i] == 0x7FFFFFFFu && V8(p + 6)) fired[i] = (uint32_t) k;
+        }
+        crash_armed = 0;
+        for (i = 0, p = lo; i < n; i++, p += 8) {
+            if (fired[i] == 0x7FFFFFFFu)
+                printf("TA %02d.%02u never (%u %u %u %u)\n", lvl, (unsigned) i, V8(p + 2), V8(p + 3), V8(p + 4),
+                       V8(p + 5));
+            else
+                printf("TA %02d.%02u fires at z %d (%u %u %u %u)\n", lvl, (unsigned) i, (int) (int32_t) fired[i],
+                       V8(p + 2), V8(p + 3), V8(p + 4), V8(p + 5));
+        }
+    }
+}
+
 /* ---- T9: every read the original code made of each traced asset ----
  * (tools/widths.py facts over a tools/m64widths.py trace; local, not
  * committed).  Right after the asset arrives and port_on_dma/port_on_load
@@ -313,7 +371,7 @@ static void t9(const char *path) {
 
 int main(int argc, char **argv) {
     const char *rom = argc > 1 ? argv[1] : "baserom.us.v11.z64";
-    const char *tests = argc > 2 ? argv[2] : "5678";
+    const char *tests = argc > 2 ? argv[2] : "5678A";
     setvbuf(stdout, NULL, _IOFBF, 1 << 16);
     AddVectoredExceptionHandler(1, on_fault);
     if (rdram_map() || rdram_load(rom)) return 1;
@@ -323,6 +381,7 @@ int main(int argc, char **argv) {
     if (strchr(tests, '6')) t6();
     if (strchr(tests, '7')) t7();
     if (strchr(tests, '8')) t8();
+    if (strchr(tests, 'A')) ta();
     g_t9_all = argc > 4 && !strcmp(argv[4], "all");
     if (strchr(tests, '9')) t9(argc > 3 ? argv[3] : "build/lc/facts.txt");
     fflush(stdout);

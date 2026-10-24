@@ -42,7 +42,7 @@ loadcheck:
 	$(MAKE) msvc MSVC_TARGETS=bc_loadcheck
 	@mkdir -p $(LCM)
 	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts $(LCM)/facts.txt $(LC_TRACE); fi
-	'$(MSVC_B)/bc_loadcheck.exe' '$(ROM_ARG)' $$([ -f $(LCM)/facts.txt ] && echo 56789 \
+	'$(MSVC_B)/bc_loadcheck.exe' '$(ROM_ARG)' $$([ -f $(LCM)/facts.txt ] && echo 56789A \
 		$$(wslpath -w $(LCM)/facts.txt)) > $(LCM)/out_native.txt
 	cd $(ROOT) && $(PYTHON) port/tools/loadref.py $(abspath $(ROM)) > port/$(LCM)/out_ref.txt
 	@grep '^T9 total' $(LCM)/out_native.txt || true

@@ -17,7 +17,7 @@ from unicorn import Uc, UcError, UC_ARCH_MIPS, UC_MODE_MIPS64, UC_MODE_BIG_ENDIA
 from unicorn import mips_const as M
 
 ROMP = sys.argv[1]
-TESTS = sys.argv[2] if len(sys.argv) > 2 else "5678"
+TESTS = sys.argv[2] if len(sys.argv) > 2 else "5678A"
 BUILD = sys.argv[3] if len(sys.argv) > 3 else "build"
 rom = open(ROMP, "rb").read()
 RAM = 0x00800000
@@ -126,7 +126,7 @@ def level_blob(lvl):
     return blob
 
 
-if "7" in TESTS or "8" in TESTS:
+if "7" in TESTS or "8" in TESTS or "A" in TESTS:
     LEVELS = level_starts()
 
 if "7" in TESTS:
@@ -166,5 +166,41 @@ if "8" in TESTS:
                 out.append("T8 %02d.%02d CRASH" % (lvl, i))
                 continue
             out.append("T8 %02d.%02d %04X %02X" % (lvl, i, r16(0x8036444E), r8(0x80364411)))
+
+if "A" in TESTS:
+    # the panel events (0x58) through dig_coach_update as the carrier's z sweeps
+    # the s16 range (loadcheck_main.c ta: the same globals, the same steps)
+    for lvl in range(60):
+        wr(HEAP, level_blob(lvl))
+        lo, hi = HEAP + r32(HEAP + 0x58), HEAP + r32(HEAP + 0x5C)
+        n = (hi - lo) // 8
+        out.append("TA %02d n %u" % (lvl, n))
+        if n == 0 or n > 64:
+            continue
+        w32(0x803BE6FC, lo)          # gDigTriggers
+        w32(0x803BE700, hi)          # gDigTriggersEnd
+        wr(0x80364A90, bytes(8))     # gGameMode
+        w8(0x803643DB, 1)            # gHaveCarrier
+        w8(0x803643D6, 0)            # gCarrierHit
+        w8(0x8036CB2F, 0)            # gDigHit
+        w8(0x8036CB28, 0)            # gDigSampleTail
+        w8(0x8036CB29, 0)            # gDigSampleHead
+        fired = [None] * n
+        try:
+            for k in range(-0x8000, 0x8000, 0x10):
+                w32(0x803EF6E4, k << 5)  # gCarrierZ
+                call("dig_coach_update", a0=0)
+                for i in range(n):
+                    if fired[i] is None and r8(lo + 8 * i + 6):
+                        fired[i] = k
+        except UcError:
+            out.append("TA %02d CRASH" % lvl)
+            continue
+        for i in range(n):
+            args = " ".join(str(r8(lo + 8 * i + j)) for j in range(2, 6))
+            if fired[i] is None:
+                out.append("TA %02d.%02u never (%s)" % (lvl, i, args))
+            else:
+                out.append("TA %02d.%02u fires at z %d (%s)" % (lvl, i, fired[i], args))
 
 print("\n".join(out))

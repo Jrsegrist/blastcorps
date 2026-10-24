@@ -92,7 +92,7 @@ of section boundaries.
 | 0x4C | off | `lvl_read_header` | level box: s16 minX, minZ, maxX, maxZ -> `gBoundsMinX/MinZ/MaxX/MaxZ` (map units) |
 | 0x50..0x54 | off | `lvl_spawn_vehicles`, `lvl_find_start_vehicle`, `gRespawnPoints` | vehicle spawns (also the respawn points) |
 | 0x54 | off | `lvl_spawn_carrier`, `lvl_spawn_chopper` | the carrier record (9 bytes) |
-| 0x58..0x5C | off | `gDigTriggers`/`gDigTriggersEnd` | carrier-progress panel events |
+| 0x58..0x5C | off | `gDigTriggers`/`gDigTriggersEnd` (`dig_coach_update`) | carrier-progress panel events |
 | 0x5C..0x60 | off | `lvl_spawn_objects` | object (building) placements |
 | 0x60..0x64 | off | `lvl_read_alpha_zones` | vehicle alpha zones |
 | 0x64..0x68 | off | `lvl_build_switch_groups` | switch triangle groups |
@@ -295,12 +295,17 @@ it must not meet (`gTriTargets`) and the danger distances
 
 | off | type | meaning |
 | --- | --- | --- |
-| 0 | s16 | carrier z (map units): fires once `gCarrierZ >> 5` passes it |
+| 0 | s16 | carrier z (map units, read natively): fires once `gCarrierZ >> 5` passes it |
 | 2..5 | u8 x4 | the arguments of `hud_panel_start(a, b, c, d)` |
 | 6 | u8 | done flag (written into the loaded file when it fires) |
 | 7 | u8 | padding |
 
-Only checked while `gHaveCarrier` is set.
+Only checked while `gHaveCarrier` is set. Only levels 1 and 26 have a
+record, the same one: z 2879, `hud_panel_start(1, 1, 5, 0x81)`. Unlike the
+byte streams around it (0x50, 0x54, 0x5C), the s16 is read with a native
+halfword load, so the port's loader swaps it (`swap_level`; it once left
+the section big-endian, and the panel then waited for z 16139, which the
+carrier never reaches).
 
 **0x5C object placements** (`lvl_spawn_objects`): 14-byte records, BE
 except the two u16 at 0xA and 0xC (read natively):

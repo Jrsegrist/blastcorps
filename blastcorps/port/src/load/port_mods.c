@@ -310,6 +310,27 @@ int port_mods_write_levels(const char *dir) {
     return n;
 }
 
+int port_mods_read_levels(const char *dir, char *err, size_t errlen) {
+    int level, n = 0;
+    for (level = 0; level < 60; level++) {
+        char path[1024], src[1100];
+        size_t len = 0;
+        char *data;
+        snprintf(path, sizeof path, "%s\\level_%02d.bin", dir, level);
+        data = read_text(path, &len);
+        if (data == NULL) continue;
+        snprintf(src, sizeof src, "--level-dir %s", path);
+        if (port_level_set_edit(level, (const uint8_t *) data, len, src)) {
+            snprintf(err, errlen, "%s: not used (too large, or the ROM has no level %d)", path, level);
+            free(data);
+            return -1;
+        }
+        free(data);
+        n++;
+    }
+    return n;
+}
+
 /* ---- the game's hook (game/port.h) ---- */
 void port_level_pre(int level, unsigned int dest) {
     LevelState *s;

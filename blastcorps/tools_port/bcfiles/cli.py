@@ -397,6 +397,43 @@ def cmd_mod_export(args):
           % (args[2], len(patches)))
 
 
+# --------------------------------------------------------------- geometry
+
+def cmd_geo_rebuild(args):
+    """every level (or --levels a,b-c) with its derived sections regenerated
+    from its own triangles (geometry.py): level_NN.bin (inflated, the ROM's byte
+    order) and a summary of how close the result is to Rare's"""
+    from . import geometry
+    levels = list(range(60))
+    if "--levels" in args:
+        i = args.index("--levels")
+        levels = _level_list(args[i + 1])
+        del args[i:i + 2]
+    keep = "--keep-rare" in args
+    args = [a for a in args if a != "--keep-rare"]
+    rom = Rom.load(args[0])
+    os.makedirs(args[1], exist_ok=True)
+    for n in levels:
+        f = rom.level(n)
+        lv = Level.parse(f.data, f.split)
+        g = geometry.Geometry.from_level(lv)
+        out = Level.parse(f.data, f.split)
+        g.write_into(out, base=lv if keep else None)
+        data, split = out.write()
+        with open(os.path.join(args[1], "level_%02d.bin" % n), "wb") as fh:
+            fh.write(data)
+        print("geo-rebuild: level %02d %-10s %6d -> %6d bytes%s" % (n, f.name, len(f.data), len(data),
+                                                                   " (the ROM's bytes)" if data == f.data else ""))
+
+
+def _level_list(s):
+    out = []
+    for part in s.split(","):
+        a, _, b = part.partition("-")
+        out += list(range(int(a), int(b or a) + 1))
+    return out
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
@@ -404,7 +441,7 @@ def main(argv=None):
     cmd, args = argv[0], argv[1:]
     table = {"list": (cmd_list, 1), "dump": (cmd_dump, 2), "extract": (cmd_extract, 2), "build": (cmd_build, 3),
              "gltf": (cmd_gltf, 3), "roundtrip": (cmd_roundtrip, 1), "mod-check": (cmd_mod_check, 2),
-             "mod-apply": (cmd_mod_apply, 3), "mod-export": (cmd_mod_export, 3)}
+             "mod-apply": (cmd_mod_apply, 3), "mod-export": (cmd_mod_export, 3), "geo-rebuild": (cmd_geo_rebuild, 2)}
     if cmd not in table or len([a for a in args if not a.startswith("--")]) < table[cmd][1]:
         usage()
     table[cmd][0](args)

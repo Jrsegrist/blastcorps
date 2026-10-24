@@ -41,6 +41,9 @@ int port_level_check_objects(const uint8_t *file, size_t size, char *err, size_t
 unsigned port_level_edit_loads(int level);
 /* (testing: bc_headless --mod-out) every edited file to DIR\level_NN.bin; the count written, -1 on an error */
 int port_mods_write_levels(const char *dir);
+/* (testing: --level-dir) every DIR\level_NN.bin there is becomes that level's edited file, used as it is (e.g.
+ * bcfiles geo-rebuild's levels); the count read, -1 and *err on an error */
+int port_mods_read_levels(const char *dir, char *err, size_t errlen);
 
 #ifdef __cplusplus
 }

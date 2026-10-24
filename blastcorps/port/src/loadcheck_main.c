@@ -15,8 +15,16 @@
  *   T9  (needs a trace) every read the N64 code made of each traced asset
  *   TA  every level: dig_coach_update's panel events (section 0x58) as the
  *       carrier's z sweeps the s16 range: the z each event fires at
+ *   TB  every level, the ROM's file and the same level with its derived
+ *       sections rebuilt from its own triangles (tools_port/bcfiles geometry,
+ *       files in BC_LC_LEVELS): the game's ground and wall queries
+ *       (coll_ground_height, coll_begin_probe + coll_probe_tris) at the same
+ *       random points over both, after lvl_read_header and the grid builders
+ *   TC  (native only) TB's queries over a dense lattice: the number of points
+ *       where the rebuilt file answers differently
  *
- * usage: loadcheck.exe ROM [TESTS [FACTS]]   (TESTS: characters, default 5678A)
+ * usage: loadcheck.exe ROM [TESTS [FACTS]]   (TESTS: characters, default 5678A;
+ *        TB/TC read the rebuilt levels from the folder in BC_LC_LEVELS)
  */
 #include <windows.h>
 #include <setjmp.h>
@@ -44,6 +52,15 @@ void lvl_load_file(s32 level, s32 dest, s32 *size);
 void lvl_read_alpha_zones(u8 *obj);
 void cam_apply_height_zone(u8 *level);
 void dig_coach_update(s32 now);
+void lvl_read_header(u8 *obj);
+void lvl_build_ground_grid(u8 *obj);
+u8 *lvl_build_coll_grid_a(u8 *obj, s32 id, s32 b4F, s32 *s1io);
+u8 *lvl_build_coll_grid_b(u8 *obj, s32 id, s32 b4F, s32 *s1io);
+void lvl_build_part_tris(u8 *obj, s32 *s1io);
+s32 coll_ground_height(s32 x, s32 z, s32 y);
+void coll_begin_probe(s32 x, s32 y, s32 z);
+void coll_probe_tris(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag);
+int port_level_set_edit(int level, const uint8_t *file, size_t size, const char *source);
 
 /* ---- the platform surface these need (as port/src/platform does it) ---- */
 static uint8_t *g_rom;
@@ -259,6 +276,245 @@ static void ta(void) {
     }
 }
 
+/* ---- TB / TC: the ground and wall queries over a rebuilt level ----
+ * The level is loaded (the ROM's file, or the rebuilt one through the
+ * PORT_LEVEL hook, as a mod's would be), then lvl_read_header, the ground
+ * grid, collision grids A and B and the moving-part triangles are built as
+ * initlevel does (heap at 0x80180000, ids 0), with no objects, push blocks,
+ * switch or gate triangles.  A ground query: gGroundHitTri cleared,
+ * coll_ground_height(x, z, y), then the height, the hit triangle's surface
+ * and flag bytes and gGroundTriId.  A wall query: gFailTrigger cleared,
+ * coll_begin_probe + coll_probe_tris(x, y, z, r, 0xBE (the camera's kind), 0),
+ * then the free arc, gCollHit, gFreeArcCollapsed, gFailTrigger.  Points are in
+ * world units inside both grids (the game's lookups have no bounds checks). */
+#define TB_HEAP        0x80180000u
+#define A_GOBJECTS     0x803F4030u
+#define A_GOBJECTSEND  0x803F7654u
+#define A_GDYNTRIS     0x803F9330u
+#define A_GDYNTRISEND  0x803FB8B0u
+#define A_GSWITCHTRIS  0x803BD308u
+#define A_GSWITCHEND   0x803BD30Cu
+#define A_GCOLLTRIS    0x803B9890u
+#define A_GCOLLTRISEND 0x803BD300u
+#define A_LEVELNO      0x802E8BDCu
+#define A_GROUNDHIT    0x803EBC08u
+#define A_GROUNDTRIID  0x803F932Cu
+#define A_ARCSTART     0x803A7410u
+#define A_ARCEND       0x803A7412u
+#define A_COLLHIT      0x803A7424u
+#define A_ARCCOLLAPSED 0x803A742Fu
+#define A_FAILTRIGGER  0x803BE738u
+#define A_HITSPEED     0x803F77FCu
+
+static uint8_t *g_rebuilt[60];
+static size_t g_rebuilt_size[60];
+
+static int tb_read_rebuilt(void) {
+    const char *dir = getenv("BC_LC_LEVELS");
+    int lvl, n = 0;
+    if (dir == NULL) return 0;
+    for (lvl = 0; lvl < 60; lvl++) {
+        char path[1024];
+        FILE *f;
+        long sz;
+        snprintf(path, sizeof path, "%s\\level_%02d.bin", dir, lvl);
+        f = fopen(path, "rb");
+        if (f == NULL) continue;
+        fseek(f, 0, SEEK_END);
+        sz = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        g_rebuilt[lvl] = (uint8_t *) malloc((size_t) sz);
+        if (g_rebuilt[lvl] && fread(g_rebuilt[lvl], 1, (size_t) sz, f) == (size_t) sz) {
+            g_rebuilt_size[lvl] = (size_t) sz;
+            n++;
+        }
+        fclose(f);
+    }
+    return n;
+}
+
+/* the level (rebuilt or not) loaded and its grids built */
+static void tb_setup(int lvl, int rebuilt) {
+    s32 s1 = 0;
+    if (rebuilt)
+        port_level_set_edit(lvl, g_rebuilt[lvl], g_rebuilt_size[lvl], "rebuilt (loadcheck TB)");
+    load_level(lvl);
+    if (rebuilt) port_level_set_edit(lvl, NULL, 0, NULL);
+    V32(HEAPPTR) = TB_HEAP;
+    V32(A_LEVELNO) = (uint32_t) lvl;
+    lvl_read_header((u8 *) (uintptr_t) HEAP);
+    lvl_build_ground_grid((u8 *) (uintptr_t) HEAP);
+    lvl_build_coll_grid_a((u8 *) (uintptr_t) HEAP, 0, 0, &s1);
+    lvl_build_coll_grid_b((u8 *) (uintptr_t) HEAP, 0, 0, &s1);
+    lvl_build_part_tris((u8 *) (uintptr_t) HEAP, &s1);
+    V32(A_GOBJECTSEND) = A_GOBJECTS;
+    V32(A_GDYNTRISEND) = A_GDYNTRIS;
+    V32(A_GSWITCHTRIS) = 0;
+    V32(A_GSWITCHEND) = 0;
+    V32(A_GCOLLTRISEND) = A_GCOLLTRIS;
+    V16(A_HITSPEED) = 0;
+}
+
+static uint32_t tb_ground(s32 x, s32 z, s32 y) {
+    s32 h;
+    uint32_t t;
+    V32(A_GROUNDHIT) = 0;
+    V8(A_GROUNDTRIID) = 0;
+    h = coll_ground_height(x, z, y);
+    t = V32(A_GROUNDHIT);
+    return (uint32_t) h * 2654435761u ^ (t ? (uint32_t) V8(t + 0x12) << 8 | V8(t + 0x13) : 0xFFFF0000u) ^
+           (uint32_t) V8(A_GROUNDTRIID) << 24;
+}
+
+static uint32_t tb_probe(s32 x, s32 y, s32 z, s32 r) {
+    V8(A_FAILTRIGGER) = 0;
+    coll_begin_probe(x, y, z);
+    coll_probe_tris(x, y, z, r, 0xBE, 0);
+    return (uint32_t) V16(A_ARCSTART) | (uint32_t) V16(A_ARCEND) << 12 | (uint32_t) V8(A_COLLHIT) << 24 |
+           (uint32_t) V8(A_ARCCOLLAPSED) << 25 | (uint32_t) (V8(A_FAILTRIGGER) != 0) << 26;
+}
+
+typedef struct { s32 x, y, z, r; } TbPoint;
+
+/* the sample points of a level (the same in loadref.py): from its header (the
+ * rebuilt file keeps the header) */
+static int tb_points(int lvl, TbPoint *g, int ng, TbPoint *p, int np) {
+    uint32_t gw, gd, cw, cd;
+    int i;
+    rng_state = 0xB0u + (uint32_t) lvl;
+    gw = (uint32_t) V16(HEAP + 8) * V16(HEAP + 0xC);
+    gd = (uint32_t) V16(HEAP + 0xA) * V16(HEAP + 0xE);
+    cw = (uint32_t) V16(HEAP + 0x10) * V16(HEAP + 0x14);
+    cd = (uint32_t) V16(HEAP + 0x12) * V16(HEAP + 0x16);
+    if (cw > gw) cw = gw;
+    if (cd > gd) cd = gd;
+    if (gw == 0 || gd == 0 || cw == 0 || cd == 0) return 0;
+    /* (one rnd() per statement: the order is the reference's) */
+    for (i = 0; i < ng; i++) {
+        uint32_t k = rnd() % 4, a, b;
+        a = rnd() % gw;
+        b = rnd() % 32;
+        g[i].x = (s32) (a * 32 + b);
+        a = rnd() % gd;
+        b = rnd() % 32;
+        g[i].z = (s32) (a * 32 + b);
+        g[i].y = k == 0 ? 0 : k == 1 ? (s32) (rnd() % 0x10000) : k == 2 ? (s32) (rnd() % 0x40000) : 0x7FFFF;
+        g[i].r = 0;
+    }
+    for (i = 0; i < np; i++) {
+        static const s32 radii[4] = {0x100, 0x400, 0xC00, 0x1800};
+        uint32_t a, b;
+        a = rnd() % cw;
+        b = rnd() % 32;
+        p[i].x = (s32) (a * 32 + b);
+        a = rnd() % cd;
+        b = rnd() % 32;
+        p[i].z = (s32) (a * 32 + b);
+        p[i].r = radii[rnd() % 4];
+        p[i].y = 0x40000;   /* the probe goes at the ground under this + r / 2 */
+    }
+    return 1;
+}
+
+#define TB_NG 600
+#define TB_NP 600
+static void tb(void) {
+    int lvl, nreb = tb_read_rebuilt();
+    static TbPoint g[TB_NG], p[TB_NP];
+    static uint32_t res[2][TB_NG + TB_NP];
+    printf("TB rebuilt %d\n", nreb);
+    for (lvl = 0; lvl < 60; lvl++) {
+        int pass, i, dg = 0, dp = 0;
+        if (g_rebuilt[lvl] == NULL) continue;
+        for (pass = 0; pass < 2; pass++) {
+            uint32_t cg, cp;
+            if (setjmp(crash_jmp)) {
+                printf("TB %02d.%s CRASH\n", lvl, pass ? "rebuilt" : "rom");
+                goto next;
+            }
+            crash_armed = 1;
+            tb_setup(lvl, pass);
+            if (!tb_points(lvl, g, TB_NG, p, TB_NP)) {
+                crash_armed = 0;
+                goto next;
+            }
+            for (i = 0; i < TB_NG; i++) res[pass][i] = tb_ground(g[i].x, g[i].z, g[i].y);
+            for (i = 0; i < TB_NP; i++) {
+                s32 h = coll_ground_height(p[i].x, p[i].z, p[i].y);
+                if (h >= 0x40000) h = 0;   /* no ground there: at 0 (far up, the original's dadd traps) */
+                res[pass][TB_NG + i] = tb_probe(p[i].x, h + p[i].r / 2, p[i].z, p[i].r);
+            }
+            crash_armed = 0;
+            cg = crc32((const uint8_t *) res[pass], 4 * TB_NG);
+            cp = crc32((const uint8_t *) (res[pass] + TB_NG), 4 * TB_NP);
+            printf("TB %02d.%s ground %08X probe %08X\n", lvl, pass ? "rebuilt" : "rom", cg, cp);
+        }
+        for (i = 0; i < TB_NG; i++) dg += res[0][i] != res[1][i];
+        for (i = 0; i < TB_NP; i++) dp += res[0][TB_NG + i] != res[1][TB_NG + i];
+        printf("TB %02d.diff ground %d/%d probe %d/%d\n", lvl, dg, TB_NG, dp, TB_NP);
+    next:;
+    }
+}
+
+/* TC: native only, a lattice: ground every 12 map units (y cycling through
+ * four heights), walls every 48 with four radii */
+static void tc(void) {
+    int lvl, nreb = tb_read_rebuilt();
+    printf("TC rebuilt %d\n", nreb);
+    for (lvl = 0; lvl < 60; lvl++) {
+        uint32_t gw, gd, cw, cd, x, z, n, k;
+        uint32_t *res[2];
+        long ng = 0, np = 0, dg = 0, dp = 0;
+        int pass, shown = 0;
+        if (g_rebuilt[lvl] == NULL) continue;
+        load_level(lvl);
+        gw = (uint32_t) V16(HEAP + 8) * V16(HEAP + 0xC);
+        gd = (uint32_t) V16(HEAP + 0xA) * V16(HEAP + 0xE);
+        cw = (uint32_t) V16(HEAP + 0x10) * V16(HEAP + 0x14);
+        cd = (uint32_t) V16(HEAP + 0x12) * V16(HEAP + 0x16);
+        if (cw > gw) cw = gw;
+        if (cd > gd) cd = gd;
+        n = (gw / 12 + 1) * (gd / 12 + 1) + 4 * (cw / 48 + 1) * (cd / 48 + 1);
+        res[0] = (uint32_t *) malloc(4 * (size_t) n);
+        res[1] = (uint32_t *) malloc(4 * (size_t) n);
+        for (pass = 0; pass < 2; pass++) {
+            uint32_t q = 0;
+            static const s32 ys[4] = {0, 0x3000, 0x12000, 0x7FFFF};
+            static const s32 radii[4] = {0x100, 0x400, 0xC00, 0x1800};
+            if (setjmp(crash_jmp)) {
+                printf("TC %02d.%s CRASH\n", lvl, pass ? "rebuilt" : "rom");
+                goto next;
+            }
+            crash_armed = 1;
+            tb_setup(lvl, pass);
+            for (z = 0; z < gd; z += 12)
+                for (x = 0; x < gw; x += 12)
+                    res[pass][q++] = tb_ground((s32) x * 32 + 7, (s32) z * 32 + 7, ys[(x / 12 + z / 12) & 3]);
+            ng = q;
+            for (z = 0; z < cd; z += 48)
+                for (x = 0; x < cw; x += 48)
+                    for (k = 0; k < 4; k++) {
+                        s32 h = coll_ground_height((s32) x * 32 + 5, (s32) z * 32 + 5, 0x40000);
+                        if (h >= 0x40000) h = 0;
+                        res[pass][q++] = tb_probe((s32) x * 32 + 5, h + radii[k] / 2, (s32) z * 32 + 5, radii[k]);
+                    }
+            np = q - ng;
+            crash_armed = 0;
+        }
+        for (k = 0; k < (uint32_t) (ng + np); k++) {
+            if (res[0][k] == res[1][k]) continue;
+            if (k < (uint32_t) ng) dg++;
+            else dp++;
+            if (shown++ < 3) printf("TC %02d.e%d %s sample %u: rom %08X rebuilt %08X\n", lvl, shown,
+                                    k < (uint32_t) ng ? "ground" : "probe", k, res[0][k], res[1][k]);
+        }
+        printf("TC %02d ground %ld diff %ld probe %ld diff %ld\n", lvl, ng, dg, np, dp);
+    next:
+        free(res[0]);
+        free(res[1]);
+    }
+}
+
 /* ---- T9: every read the original code made of each traced asset ----
  * (tools/widths.py facts over a tools/m64widths.py trace; local, not
  * committed).  Right after the asset arrives and port_on_dma/port_on_load
@@ -382,6 +638,8 @@ int main(int argc, char **argv) {
     if (strchr(tests, '7')) t7();
     if (strchr(tests, '8')) t8();
     if (strchr(tests, 'A')) ta();
+    if (strchr(tests, 'B')) tb();
+    if (strchr(tests, 'C')) tc();
     g_t9_all = argc > 4 && !strcmp(argv[4], "all");
     if (strchr(tests, '9')) t9(argc > 3 ? argv[3] : "build/lc/facts.txt");
     fflush(stdout);

@@ -408,8 +408,8 @@ world-space. Billboards and particles build their own facing matrices from
 
 All game textures are entries of one ROM table. `tex_load_table` DMAs 0x8000
 bytes from ROM 0x4CE0 into the heap (`gTexTable`), once per mode. Entry n is
-8 bytes: ROM offset (from 0x4CE0), unpacked size, decoder type. The next
-entry's offset ends it.
+8 bytes: ROM offset (from 0x4CE0), packed size (what the decoder reads; see
+[files](files.md) 2.1), decoder type. The next entry's offset ends its DMA.
 
 Ways to get a texture:
 

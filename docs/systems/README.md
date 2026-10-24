@@ -33,7 +33,11 @@ here is dumped from the ROM.
 | [scoring](scoring.md) | level completion, RDUs, TNT, medals, timers, bonus levels (races, tests), scientists, communication points, best times and secrets |
 | [camera](camera.md) | the game's own camera: its modes, how it follows each vehicle, snaps and cuts |
 
-See also [versions](../versions.md) for what US 1.1 changed.
+See also [versions](../versions.md) for what US 1.1 changed, and
+[tools](../tools.md) for `bcfiles`, the Python library and command line that
+read, write, extract, rebuild and export (glTF) the level and model files
+from your own ROM; "confirmed by round trip" in files.md and levels.md
+means checked with it on every file of the US ROMs.
 
 ## Glossary
 

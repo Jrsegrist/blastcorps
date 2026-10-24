@@ -159,6 +159,16 @@ it is padded to 8 MB, or to the next MB above that.
   space; multiples of 16) before the ordinal-th unit of that section;
   ROM `pads` go before the unit at that original offset, `add` puts a new file
   there, `drop` leaves a unit out (the build stops if anything refers to it).
+* **A replaced file** (an edited level, model or building that outgrew its
+  place): `"rom": {"replace": [{"at": "0x4A5660", "path": "lagp.gz", "empty":
+  ["0x4ABF91"]}]}` gives the unit at `at` the bytes of `path` (the whole
+  gzip pair) and empties the units in `empty` (the pair's second member, now
+  inside `path`; emptied units are unaligned, so nothing comes between the
+  two members). `tools_port/bcfiles build` writes this file when an edited
+  file doesn't fit ([tools](tools.md)). Tested: lagp grown from 0x75B0 to
+  0x7788 compressed bytes (150 more RDUs, 12 more objects); every file after
+  it moved by 0x1E0, the tables and the code's ROM offsets followed, and the
+  ROM ran in mupen64plus into the level with all 44 objects in place.
 * Mind the free space in the memory map above: hd_code has about 0x930 bytes
   before 0x803FFFF8.  `--hd-vram` is meant to move hd_code down into the
   load buffer's spare 0x6E70 bytes, but the shift test has not run it: treat

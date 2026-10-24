@@ -531,6 +531,22 @@ def main():
         rom_adds.append((int(a["before"], 16), u))
     ROM_ADDS[:] = [u for _, u in rom_adds]
     drops = set(int(x, 16) for x in rcfg.get("drop", []))
+    # replaced files ("rom": {"replace": [{"at": ..., "path": ..., "empty": [...]}]}, written by
+    # bcfiles build for an edited file that outgrew its place): the unit at "at" takes the
+    # file's bytes; the units in "empty" (a gzip pair's second member, now inside the
+    # file) become empty and unaligned, so nothing comes between the two members
+    for r in rcfg.get("replace", []):
+        at = int(r["at"], 16)
+        u = next((x for x in rom_units if x.start == at), None)
+        if u is None or u.dyn:
+            die("rom.replace: no replaceable ROM unit starts at %06X" % at)
+        u.data = open(r["path"], "rb").read()
+        for e in r.get("empty", []):
+            v = next((x for x in rom_units if x.start == int(e, 16)), None)
+            if v is None:
+                die("rom.replace: no ROM unit starts at %s" % e)
+            v.data = b""
+            v.align = 1
 
     rom = RL.RomMapper(rom_units)
     # 3a: init's size (it doesn't depend on any symbol value) -> the ROM files' new places

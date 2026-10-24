@@ -107,12 +107,48 @@ of section boundaries.
 | 0x90, 0x94, 0x98, 0x9C | off | `lvl_relocate_dls` -> `gLevelFileDl0..3` | four display lists; [0x90, 0x84) is the range whose `gSPDisplayList` addresses are relocated |
 | 0xA0..0xB0 | off x5 | `lvl_build_visible_dls` | boundaries of four 0x14-byte visibility record ranges (list k: [0xA0+4k, 0xA4+4k)) |
 | 0xB0..0xC0 | off x5 | `lvl_build_visible_dls` | boundaries of four visibility group ranges |
-| 0xC4 | word | (no reader found) | unknown |
+| 0xC4 | word | (no reader found) | unknown; 0 in all 60 US levels |
 | 0xC8.. | data | `gLevelSegment8 = obj + 0xC8` | segment-8 data: `Vtx` records up to the 0x20 offset |
 
 The rendering side of 0x48 and 0x78..0xC0 (cell culling on the RSP, the
 visible lists) is in [rendering](rendering.md); only the formats are given
 here.
+
+**The layout, confirmed by round trip** (`tools_port/bcfiles`, all 60 levels of
+US 1.0 and 1.1 parsed into the records below and written back byte for
+byte; [tools](../tools.md)):
+
+- The sections lie in the order of the table, from 0xC8: vertices, 0x20,
+  0x24, ... 0x74, then 0xA0..0xC0 (the visibility records and groups), then
+  the display-list block at 0x78. Each section runs to the next offset of
+  that chain (0x30, 0x48, 0x4C, 0x54, 0x6C, 0x70 and 0x74 have no end word
+  of their own).
+- The records fill each section exactly. The only other bytes are zero
+  padding that aligns the next section: one byte after the 9-byte carrier
+  record when the panel events (read as s16) would start odd (50 levels),
+  1-3 bytes after collision grid B so that the 0x74 chain (s32) is
+  word-aligned (57 levels), and 4-12 bytes before the display-list block,
+  which starts on a 16-byte boundary.
+- The first gzip member ends exactly at 0x78; the second is the block.
+  0x84 is the end of the lists; the member is zero-padded to a multiple of
+  16 bytes after it (8 bytes in 29 levels).
+- The visibility records (0xA0..0xB0) and groups (0xB0..0xC0) hold absolute
+  file offsets (from the level's start, as `lvl_build_visible_dl` adds
+  them), all inside the display-list block; the level's `gSPDisplayList`
+  targets are offsets from the block (`lvl_relocate_dls`). An editor that
+  grows a section before the block must move the record offsets with it.
+- Totals over the 60 levels (US 1.1): 174,370 vertices, 981 object
+  placements, 154 vehicle spawns, 2,809 RDUs, 113 crates, 70 TNT crates,
+  28 communication points, 30 texture animations, 35 alpha zones, 32 switch
+  groups, 15 gate groups, 98,485 floor triangles in 1,608 ground cells,
+  23,110 + 871 collision triangles in grids A and B, 789 camera and 486
+  chopper height zones, 1,880,424 bytes of display lists. Push blocks: only
+  levels 9, 10 and 14 (13 blocks, 13 slots of 8 triangles each; the other
+  levels' 0x3C section is empty). Moving-part groups: only levels 0, 4, 15,
+  16 and 20, the sagging-bridge levels of `bridge_update_levels` (one group
+  of 48 items, 0x1C0 bytes of part matrices, on 0 and 4; two groups, 96
+  items, 0x380 bytes on 15, 16 and 20); every other level has just the
+  zero count word.
 
 ### Section record layouts
 
@@ -142,16 +178,23 @@ one nearest in height and sets `gGuardTrisBestY`.
 `{s16 x, y, z; u16 w}`; positions << 5, `w` goes to the entry's `unk12`. If
 any exist, model 0x96 is loaded (`lvl_load_model(0x96)`).
 
-**0x2C texture/animation records** (`lvl_resolve_tex_ids`; the port schema
-names the middle fields): variable length:
+**0x2C texture/animation records** (`lvl_resolve_tex_ids`, `lvl_step_tex_anims`,
+`lvl_find_tex_anim` in 5FD50.c): variable length, `8 + 4 * n` bytes:
 
 | off | type | meaning |
 | --- | --- | --- |
-| 0 | u32 | id (looked up by `lvl_find_tex_anim` / `lvl_step_tex_anims`) |
-| 4 | u8 | count n (must be >= 1) |
-| 5, 6 | u8 | unknown |
-| 8, A | s16 | unknown |
-| C | u32 x (n-1) | texture ids; replaced in place by `tex_get_impl(id)` (the texture's address) |
+| 0 | u32 | id (the visibility record id it animates) |
+| 4 | u8 | frame count n (must be >= 1) |
+| 5 | u8 | current frame (run time; frame 0 is the display list's own texture) |
+| 6 | u8 | fade: nonzero cross-fades into the next frame |
+| 7 | u8 | alpha (run time: `0xFF * timer / period` while fading) |
+| 8 | u16 | period: frames per animation frame |
+| A | u16 | timer (run time) |
+| C | u32 x (n-1) | texture ids of frames 1..n-1; replaced in place by `tex_get_impl(id)` (the texture's address) |
+
+Frame word f sits at +8 + 4f, so frame 0's word is the period/timer pair
+and is never used as an address. 30 records over the 60 US levels, all in
+this layout (confirmed by round trip, `docs/tools.md`).
 
 **0x30 ground grid** (`lvl_build_ground_grid`; read by `ground_scan_grid`):
 `gGroundCols * gGroundRows` cells back to back. Each cell is a BE u32 (the
@@ -738,10 +781,11 @@ From [versions](../versions.md) and the code:
 
 ## Open questions
 
-- Header 0xC4: no reader found. Bytes 5, 6, 8, 0xA of the 0x2C records, byte
-  0x13 of the ground triangles, the s16 pair at 8/0xA of the TNT records and
-  the word after a kind-0 gate area are stored but their meaning is not
-  traced.
+- Header 0xC4: no reader found (0 in every US level). Byte 0x13 of the
+  ground triangles, the s16 pair at 8/0xA of the TNT records and the word
+  after a kind-0 gate area are stored but their meaning is not traced. (The
+  0x2C records' bytes 5-7 and halves at 8/0xA are the frame, fade, alpha,
+  period and timer: `lvl_step_tex_anims`, above.)
 - `D_8030D888` (u64 in hd_code data, read by `lvl_spawn_vehicles`): the
   attract-mode filter (`only gRecVehicle's records`) runs only when the mode
   equals both 2 and this constant. Its value decides whether the filter is

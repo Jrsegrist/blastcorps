@@ -69,14 +69,26 @@ Notes on the table:
   above because `romStaticSegmentEnd` is 0x788000 while `hd_code` starts at
   0x787FD0: `hd_mode_setup` DMAs 0xC0 bytes from 0x787F40 (so the last 0x30
   bytes are the start of `hd_code`'s gzip member) and runs LZSS over them.
-  Presumably the LZSS stream's end marker comes before those bytes; the
-  yamls don't split the static segment out at all (0x787F40 is one of the
-  shiftable build's extra unit starts).
+  The LZSS stream's end marker does come before those bytes: the stream is
+  0x82 bytes (0x787F40-0x787FC2) and decodes to the 0xC0-byte segment
+  (checked with `tools_port/bcfiles`, [tools](../tools.md)); the yamls don't
+  split the static segment out at all (0x787F40 is one of the shiftable
+  build's extra unit starts).
 - `hd_boot` also reads a 16-word debug command line from PI address
   0xFFB000, past the end of the 8 MB ROM (`parse_cmdline` in
   `src.us.v11/hd_code/00000.c`). On a retail cartridge nothing is there.
-- Two small unnamed blobs sit at 0x6EC4B4 (just before the object table) and
-  0x787F37; nothing in the decompiled C names them (open question).
+- The two small "blobs" the yamls split at 0x6EC4B4 (just before the object
+  table) and 0x787F37 are zero padding: reflectlogo's pair ends at 0x6EC4B1
+  and the last building (endsid5) at 0x787F35, and the next file starts on a
+  16-byte boundary.
+- From the title logo (0x487050) to the end of the code, the only bytes
+  between two files are zeros up to the next 16-byte boundary, except in
+  the building area, where the pairs are packed back to back at any
+  address. `tools_port/bcfiles` finds the files by walking this chain, so it
+  also reads ROMs from the shiftable build.
+  All 738 gzip members of the ROM have FNAME and nothing else in their
+  flags, XFL 0, OS 3 (Unix), no pad byte before them, and a correct CRC32
+  and ISIZE.
 
 ### 1.1 The yamls
 
@@ -146,7 +158,10 @@ typedef struct {
 The comment on `TexTableEntry.size` in `5BF40.c` calls it "the unpacked
 size"; the code (`tex_decode` copies and decodes exactly `size` bytes of
 input) shows it is the packed size, which is also what the community notes
-say. Worth fixing in the comment.
+say. Worth fixing in the comment. The data agrees: decoding exactly `size`
+bytes of every entry with packing 1-6 (3,599 entries in US 1.1) gives more
+bytes than `size` in every case. 431 entries have a packing above 6 or size
+0, and 26 have a `size` larger than the distance to the next entry.
 
 ### 2.2 The packed-object table (ROM 0x6EC4C0)
 
@@ -159,7 +174,10 @@ Object `i` is `[0x6EC4C0 + t[i], 0x6EC4C0 + t[i+1])`, a pair of gzip members
 and DMAs the table raw each time a level's objects are spawned
 (`lvl_spawn_objects`). The level's placements name objects by this index
 (section 4.2). The shiftable build notes that entry 241 points at a second,
-identical copy of the `cohut1` pair (the yaml marks it `.DUPE`).
+identical copy of the `cohut1` pair (the yaml marks it `.DUPE`). Entries
+0-277 name 278 files, one file each, in ROM order; entries 278-511 (234 of
+them) all hold 0x9BA75, the end of the last building (ROM 0x787F35), so
+they name no file. The highest type any US level places is 277.
 
 ---
 
@@ -334,23 +352,39 @@ meanings beyond "who reads it" are tentative, see
 
 | off | type | meaning |
 | --- | --- | --- |
-| 0x00 | u16 | count of the `s16` table at slot 0x3C |
-| 0x02 | u16 | a height-like value; the record's word 0xC = this << 5 |
+| 0x00 | u16 | count of the `s16` table at slot 0x3C (`ObjectModel.numToppleKeys`) |
+| 0x02 | u16 | bounding radius: `LevelObject.radius` = this << 5 (object.h) |
 | 0x04 | u8 | toughness (`lvl_end_seq_set_toughness` sets 2 for kind 0x24 on level 0x31) |
-| 0x05-0x07 | u8 | flags; 0x06 = people count, written from the placement |
-| 0x08 | s32 | read natively; meaning unknown |
+| 0x05-0x07 | u8 | debris scale, people count (written from the placement), parts topple (object.h) |
+| 0x08 | s32 | `ObjectModel.value` (summed) |
+| 0x0D | u8 | `immunePart` (object.h) |
 | 0x0E | u16 | from the placement's 0xA; when non-zero the vertices are not moved |
 | 0x10-0x14 | offsets | display list (its `G_SETTIMG` ids resolved at load) |
-| 0x1C | offset | end of the vertex array; four `s16` (x, y, z) corner points |
-| 0x20 | offset | `s16` x, z, x, z bounds |
-| 0x24-0x28 | offsets | collision triangles, 0x14 bytes (nine `s16` + two bytes) |
+| 0x18 | offset | inside the display-list area: always its start + 0x18 |
+| 0x1C | offset | end of the vertex array; four `s16` (x, y, z) marker points |
+| 0x20 | offset | `s16` x, z, x, z footprint box |
+| 0x24-0x28 | offsets | floor/collision triangles, 0x14 bytes (nine `s16` + two bytes) |
 | 0x28-0x2C | offsets | texture records: `u32` id, count byte at +4, `count - 1` more ids from +0x10 (`lvl_resolve_object_tex`) |
 | 0x2C-0x30 | offsets | 8-byte points (`s16` x, y, z) |
 | 0x30-0x38 | offsets | two lists of 0x38-byte debris records |
 | 0x38 | offset | part lists (`obj_draw_all`) |
-| 0x3C-0x44 | offsets | `s16` tables (landing heights; y values) |
+| 0x3C-0x44 | offsets | `s16` tables (topple keys; part heights) |
+| 0x44-0x48 | offsets | byte records (`supportRecs`, `obj_part_exposed`) |
 | 0x48-0x4C | offsets | 0x19-byte triangles of unaligned big-endian `s16` |
+| 0x4C | offset | end of the 0x48 section; zeros follow up to the display-list area |
 | 0x50.. | Vtx[] | vertices (16 bytes each) up to slot 0x1C |
+
+Confirmed by round trip on all 278 buildings (`tools_port/bcfiles`, [tools](../tools.md)):
+the sections lie in the order 0x50 (vertices), 0x1C, 0x20, 0x24, ... 0x48,
+then the display lists at 0x10, each running to the next; every one is
+filled exactly by its records (4 marker points, one footprint box, whole
+0x14-, 0x38- and 0x19-byte records, the part lists to the byte); the only
+other bytes are the zeros after 0x4C that start the display-list member on
+a 16-byte boundary, and the second member is zero-padded to 16 bytes after
+0x14. The display lists address the vertices as segment 9 (file + 0x50)
+and contain no `gSPDisplayList`. Totals: 97,183 vertices, 2,459 floor
+triangles, 777 + 164 debris records, 18,486 0x19-byte triangles, 32
+texture records. (The names in brackets are `ObjectModel`'s, object.h.)
 
 ### 4.3 Textures
 
@@ -507,7 +541,22 @@ Model header (0x4C bytes of `s32` offsets; from `veh_add_record`,
 
 The front-end scenes (`usa_star`, `ninlogo`, `reflectlogo`) use the same
 layout for the parts `fe_scene_load` reads: segment 6 data at slot 0x14, the
-display list at 0x1C-0x20 (its `FeHdr` in front end `0DE70.c`).
+display list at 0x1C-0x20 (its `FeHdr` in front end `0DE70.c`). In
+`ninlogo` and `reflectlogo` the word at 0x20 points 8 bytes past the end of
+the file (the display-list member ends 8 bytes earlier), so
+`tex_resolve_dl` there also walks 8 bytes of whatever follows on the heap.
+
+Confirmed by round trip on the 21 models and 3 scenes (`tools_port/bcfiles`):
+the sections lie in slot order (0x00, 0x04, ... 0x18, then the display
+lists at 0x1C), each filled exactly by the shapes in the table: runs of
+`{s16 x4 or x6, the last = n; n x s32}` at 0x00 and 0x04 (0x04 after a
+leading `s16` pair), one `{k; n; n words; k rows}` list at 0x08 and 0x0C,
+the animation block's `s16` offset table and its animations at 0x10 (unused
+table entries point at the section's end), vertices at 0x14, the matrix
+block's words at 0x18. The first member ends at 0x1C; the ten words
+0x24-0x48 all point into the display-list area (0x24 at its start). The
+display lists use segment 6 (the vertex section) for vertices and segment
+7 for the part matrices, and contain no `gSPDisplayList`.
 
 ### 4.5 Whole images
 
@@ -612,18 +661,33 @@ in `include/`; the code uses offsets.
   not as bytes after an existing texture (those bytes would be DMAed with
   the texture before them, since its DMA length runs to the next entry).
   Whether the table has free entries is not known.
-- **Changing a level, building or model file:** in the matching build every
-  ROM offset is fixed. Use the shiftable build: it re-places every ROM file,
-  maps the `rom*` symbols to the files' new places, patches the 138 raw ROM
-  offsets in `hd_code`'s code (vehicle model ranges, the object table, the
-  texture table base) and rewrites both tables. Limits:
-  a compressed file must fit the 0x25AC0-byte staging area at 0x8021ED00
-  (the largest is 0x1EC50, per shiftable.md); a pair's second member must
-  follow the first directly; the ROM must end before 0xFFB000.
+- **Changing a level, building or model file:** `tools_port/bcfiles`
+  ([tools](../tools.md)) parses and writes them. An edited file whose
+  compressed bytes still fit the room up to the next file can go back in
+  place: every loader takes "next file's start minus this one's" and
+  inflates exactly two members, so the zeros left after a smaller file are
+  DMAed but never inflated. Levels and models have up to 15 bytes of padding, buildings
+  none, but compressing an edited file at level 9 (instead of the original
+  6) usually wins back far more than a small edit adds (moving an object in
+  lagp: 93 bytes to spare). Otherwise use the shiftable build: it re-places
+  every ROM file, maps the `rom*` symbols to the files' new places, patches
+  the 138 raw ROM offsets in `hd_code`'s code (vehicle model ranges, the
+  object table, the texture table base) and rewrites both tables; its pads
+  file takes a replaced file (`"rom": {"replace": ...}`, [shiftable](../shiftable.md)).
+  Limits: a compressed file must fit the 0x25AC0-byte staging area at
+  0x8021ED00 (the largest is 0x1EC50, per shiftable.md); a pair's second
+  member must follow the first directly; the ROM must end before 0xFFB000.
+  The port loads the files at their original offsets, so a shifted ROM runs
+  in an emulator but not in bc.exe / bc_headless (bc.exe also checks the
+  ROM's SHA-1 unless given `--no-rom-check`).
 - **Recompressing:** gzip files must be standard deflate members (method 8;
   `kiunzip_get_method` rejects anything else with "unknown method"). The
   repo's `tools/rarezip.py` is what the shiftable build uses for the code
-  members.
+  members. Compressing a file's inflated data with the repo's `tools/gzip`
+  at level 6 (with the original FNAME and MTIME in the header) gives back
+  every level, model, scene and building member byte for byte (US 1.0 and
+  1.1); Python's zlib at level 6 matches only some (14 of the 60 levels, 15
+  of 21 models, 255 of 278 buildings) because its block splitting differs.
 - **Which building goes where:** a level's placement list (header slot 0x5C)
   names object-table indexes; change the `type` field to place a different
   building. Each placement inflates its own copy, so placing many large
@@ -675,8 +739,6 @@ yamls) are generated (versions.md).
 
 ## 9. Open questions
 
-- **0x6EC4B4 and 0x787F37:** two small unnamed blobs (12 and 9 bytes) the
-  yamls leave as `bin`. Nothing in the decompiled C reads them by name.
 - **The last texture-table entries:** the assets yaml has a 0x7FFF-byte type-0
   "texture" at 0x350948 right before the music bank, which looks like the
   table's end sentinel (it supplies the DMA end of the entry before it).
@@ -695,8 +757,11 @@ yamls) are generated (versions.md).
 - **The decompression arena at 0x8004B400** is the heap's base, where
   `hd_mode_setup` also puts `gRdpOutputBuffer`. Presumably safe because loads
   happen while nothing is being drawn; not verified.
-- **Model header slot 0x48** and building header 0x08 / 0x18 / 0x4C: read,
-  meaning unknown.
+- **Model header slot 0x48** (points into the display-list area like
+  0x28-0x44) and building header 0x18 (always the display-list area + 0x18)
+  and 0x4C (the end of the 0x48 section): read, meaning unknown. Building
+  header 0x08 is `ObjectModel.value` (object.h). (The 0x6EC4B4 and 0x787F37
+  "blobs" of earlier versions of this list are zero padding, section 1.)
 - **Unnamed symbols in this area:** `D_0048F5A0_end` and `D_0048F970_end`
   (front end, ROM ends of the boot banner and icon); `D_8030D888` (a u64 game
   mode constant `lvl_spawn_vehicles` compares with).

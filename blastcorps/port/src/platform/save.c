@@ -288,6 +288,16 @@ const char *host_cheats_save_name(void) {
                                                                 : NULL;
 }
 
+/* ---- saving off (plat_host.h host_saves_block) ---- */
+int host_saves_blocked;
+
+void host_saves_block(const char *why) {
+    if (!host_saves_blocked)
+        host_log("saves: off for the rest of this run (%s): the game saves into memory only, no file is written "
+                 "(frame %u)\n", why, (unsigned) plat_stats.frames);
+    host_saves_blocked = 1;
+}
+
 /* each frame (plat_on_frame): bc_headless --cheats-on F, and a switch that waits */
 void plat_cheats_frame(u32 f) {
     if (plat_cfg.cheats_on_frame != 0 && f == plat_cfg.cheats_on_frame) host_cheats_set(1);

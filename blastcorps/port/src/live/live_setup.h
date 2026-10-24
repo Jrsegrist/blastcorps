@@ -125,6 +125,9 @@ struct Config {
     double camZoomMin = 0.5, camZoomMax = 2.5;      /* times the game's own distance */
     double camPitchMin = -10, camPitchMax = 80;     /* degrees above the horizontal */
     bool camMouse = true;           /* mouse look: drag with a mouse button held, wheel zooms */
+    /* [mods]: level mods (.bcmod files, port/src/load/level_mod.h) applied in memory to the ROM's level files */
+    std::string modsDir = "mods";   /* folder (relative to the exe's) */
+    std::vector<std::string> mods;  /* enabled: file names in that folder (".bcmod" optional); empty: none */
     std::vector<std::string> warnings;  /* problems found in the file (shown once) */
 };
 

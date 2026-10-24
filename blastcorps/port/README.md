@@ -711,6 +711,85 @@ it without a fault.  The x64-asan preset is the tool for this now.
     `recapture`, `leave`, `quit`); `--viewer-open F` opens it over the game at
     frame F.  `bc_cameratest` tests the record parsing and camera math on a
     synthetic level image.
+- **The level editor and mods** (roadmap item 6, part 2: records, not
+  geometry).  The model: `src/load/level_mod.c` (plain C, shared by
+  bc_headless, bc.exe and the editor: a level file as the ROM holds it, its
+  editable records, add / delete, the layout, the change list, `.bcmod`
+  files, SHA-1), `src/live/level_edit.cpp` (the editor: undo / redo, which
+  records were edited, the gizmo's ray math), `src/load/port_mods.c` (the
+  edited files the game reads).  docs/tools.md has the mod format.
+  - **Editing** (the viewer's Editor panel, Ctrl+E): the editor works on a
+    host-side copy of the level file - the ROM's, inflated by the host
+    (`port_level_original`: both gzip members at lvl_load_file's ROM offset),
+    plus the changes a loaded mod makes - and the markers and the inspector
+    show that copy (`viewer::parseLevel(..., fileOrder)`).  Records: vehicle
+    spawns, the carrier record, object placements, RDUs, TNT, ammo crates,
+    communication points, push blocks and slots.  A selected record gets a
+    gizmo (ImGui overlay): the square drags it on the horizontal plane at its
+    height (`edit::pickRay` through view x projection, `rayPlaneY`), y then
+    taken from the level's ground grid on the host side (the viewer's
+    `groundAt` over `gGroundCells`: the game's `coll_ground_height` writes game
+    state, so it isn't called while frozen), optionally on a grid; the arrows
+    move along an axis (`rayAxis`), the ring turns the heading.  The inspector
+    edits every field as a number; Ctrl+Z / Ctrl+Y, Ctrl+D (a copy 48 units
+    along x), Del, R, G.  Each edit is a change (`LmChange`) pushed on the
+    list; the copy is rebuilt from the original and the list (so undo is
+    exact), checked against the game's rules (`lm_check`: one driver spawn,
+    known vehicle types, the fixed arrays' sizes: 8 spawns, 55 objects, 400
+    RDUs, 20 TNT, 15 crates, 2 communication points, 8 blocks and 8 slots)
+    and refused if it breaks one.  Edited records are drawn magenta with a
+    `*`, a mod's orange; the Changes panel lists the changes.
+  - **Apply**: the edited file goes to `port_level_set_edit` and the level is
+    loaded again by the game's own set-up (the viewer's level request), so
+    the picture afterwards is the game running the edit.  **Play from here**:
+    the same, then the viewer is left into play once the level is up (no
+    restart): a test run, with saving switched off for the rest of the run
+    (`host_saves_block`, save.c: the game saves into its EEPROM / pak images
+    in memory as always, os_si.c and pif.c don't write the files) and a
+    "TEST RUN" marker.  **Save mod**: `mods\<name>.bcmod` next to the exe
+    (the mods' changes, then the editor's, with both SHA-1s), optionally
+    added to bc.ini's `[mods] enabled`; unsaved edits are kept in
+    `mods\autosave_LNN.bcmod` when the viewer is left.
+  - **The game-code hook** (the only one): `lvl_load_file` (00000.c) calls
+    `PORT_LEVEL_PRE(level, dest)` before its `hd_rom_load` and
+    `PORT_LEVEL_POST(level, rom, dest, size)` after it (game/port.h, empty in
+    the N64 builds).  With no edited file for the level both return at once.
+    With one, PRE keeps the bytes (and byte-order units) under the ROM file's
+    extent; `hd_rom_load` runs as always (the DMA, the inflate, the swap);
+    POST puts back what lay beyond an edited file that is shorter, writes the
+    edited file (big-endian, as the ROM would hold it) over the inflated one,
+    sets `*size` and swaps it through `port_on_load`, as the ROM's was.  The
+    heap then grows by the edited file's size, exactly as for a ROM that
+    holds the edited file (the compressed staging buffer still holds the
+    ROM's bytes: the only difference).  An edited file may be at most 64 KB
+    larger than the ROM's.
+  - **Mods at load time**: `bc_headless --mod FILE` and `bc.exe --mod FILE`
+    (repeatable), bc.exe's `[mods] enabled = a, b` (files in `[mods] folder`,
+    default `mods`; `--no-mods` skips them).  `port_mods_add` checks each
+    level's `original_sha1` against the ROM's file, applies the changes,
+    checks the rules and the object types against the ROM's object table and
+    the `edited_sha1`; a mod that doesn't fit is refused whole (bc_headless:
+    the run stops; bc.exe: a message, the game starts without it).  Two mods
+    can't change one level.  `bc_headless --mod-out DIR` writes the edited
+    files (testing).  No mod and no edit: nothing runs, the traces equal
+    main's.
+  - **Moved files**: the port reads the ROM's files at the original offsets
+    (`kLevelRom`, port_assets.c's ranges, `rdram.h`'s code offsets, every ROM
+    symbol linked into the game code), so a ROM whose files were moved (the
+    shiftable build) doesn't run in bc.exe.  Supporting it would mean walking
+    the ROM at boot (as tools_port/bcfiles romfs.py does) and translating
+    every PI DMA address through the 7,049 ROM units of the assets yaml,
+    plus the code segments' own offsets: not cheap, so not done.  Mods don't
+    need it (nothing moves); an exported ROM whose levels fit in place runs
+    with `--no-rom-check`.
+  - **Testing**: `--viewer-test` ops `edit:on|off`, `eset:KIND:I:F=V,..`,
+    `edup:KIND:I`, `edel:KIND:I`, `eundo`, `eredo`, `edrag:KIND:I:X,Z`,
+    `erot:KIND:I:DEG`, `eaxis:KIND:I:x|y|z:D` (through the gizmo's picking),
+    `egrid:N`, `esnap:0|1`, `eapply`, `eplay`, `esave:NAME[:1]`.
+    `bc_cameratest` tests level_mod.c and level_edit.cpp on a synthetic level
+    file (the layout of an odd-sized add, undo to the original, the rules,
+    the mod format, SHA-1, the ray math); `tools_port/bcfiles/test_bcfiles.py`
+    tests `mod.py`.
 - **Optional enhancements** (all off by default: with the defaults bc.exe
   renders exactly as before, and none of them changes the game logic or its
   per-frame trace, except the visibility test of widescreen and of a higher

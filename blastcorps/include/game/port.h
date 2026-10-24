@@ -232,7 +232,18 @@ void port_throttle(int rawY, unsigned short *button, signed char *y);
  * viewer asked; it asks only while no front end is loaded and no fade or mode switch is under way. */
 void port_viewer_frame(void);
 #define PORT_VIEWER_FRAME() port_viewer_frame()
+/* Edited level files (mods, bc.exe's level editor: port/src/load/port_mods.c).  Around lvl_load_file's
+ * hd_rom_load: PORT_LEVEL_PRE(level, dest) before it, PORT_LEVEL_POST(level, rom, dest, size) after it, where
+ * the host puts the edited file (big-endian, as the ROM would hold it) over what was inflated, sets *size and
+ * swaps it as it swapped the ROM's.  Nothing changes unless that level has an edited file. */
+void port_level_pre(int level, unsigned int dest);
+void port_level_post(int level, unsigned int rom, unsigned int dest, unsigned int *size);
+#define PORT_LEVEL_PRE(level, dest) port_level_pre((int) (level), (unsigned int) (dest))
+#define PORT_LEVEL_POST(level, rom, dest, size) \
+    port_level_post((int) (level), (unsigned int) (rom), (unsigned int) (dest), (unsigned int *) (size))
 #else
+#define PORT_LEVEL_PRE(level, dest)
+#define PORT_LEVEL_POST(level, rom, dest, size)
 #define PORT_VIEWER_FRAME()
 #define PORT_THROTTLE(rawY, button, y)
 #define PORT_ITAG(gdl, kind, index)

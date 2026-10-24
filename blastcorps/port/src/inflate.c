@@ -96,7 +96,15 @@ static void codes(State *s, const Huff *lit, const Huff *dist) {
     }
 }
 
+long inflate_raw_used(const uint8_t *src, size_t srclen, uint8_t *dst, size_t dstmax, size_t *used);
+
 long inflate_raw(const uint8_t *src, size_t srclen, uint8_t *dst, size_t dstmax) {
+    return inflate_raw_used(src, srclen, dst, dstmax, NULL);
+}
+
+/* ... and *used: the input bytes the stream took (it ends on a byte boundary: the bits left over in its last
+ * byte are padding) */
+long inflate_raw_used(const uint8_t *src, size_t srclen, uint8_t *dst, size_t dstmax, size_t *used) {
     State s;
     Huff lit, dist;
     uint8_t lengths[320];
@@ -148,5 +156,6 @@ long inflate_raw(const uint8_t *src, size_t srclen, uint8_t *dst, size_t dstmax)
         }
         if (s.err) return -1;
     } while (!last);
+    if (used) *used = s.pos;
     return (long) s.out;
 }

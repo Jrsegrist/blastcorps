@@ -114,6 +114,8 @@
  *     --viewer [LEVEL]  the level and model viewer (live_viewer.h), on LEVEL (default 0)
  *     --viewer-test S   (testing) a script of viewer actions, "OP;OP;..." (live_viewer.cpp runTestOp)
  *     --viewer-open F   (testing) open the viewer over the game at frame F
+ *     --mod FILE        (headless_main.c) a level mod (.bcmod), also bc.ini's [mods] enabled;
+ *     --no-mods         bc.ini's [mods] enabled not used
  *     --low-test MASK   (testing) the host memory below 4 GB (plat_host.h host_low_reserve):
  *                       1 crowd it before the start-up reservation, 2 after, 4 no reservation
  *     --no-msgbox       (headless_main.c) no dialog of any kind: errors, crash
@@ -183,6 +185,7 @@ extern "C" {
 #include "plat_host.h"
 #include "rdram.h"
 #include "load/port_load.h"
+#include "load/port_mods.h"
 unsigned plat_frames(void); /* save.c */
 }
 
@@ -2372,6 +2375,7 @@ bool g_paceFromSeen;
 unsigned g_nextShot, g_nextWshot;
 bool g_quitRequested;
 bool g_viewerBoot;                   /* --viewer: the level viewer starts at the first retrace */
+bool g_noMods;                       /* --no-mods: bc.ini's [mods] enabled not used */
 unsigned g_viewerOpenFrame = ~0u;    /* --viewer-open F (testing): opened over the game at frame F */
 unsigned g_hashFrame = ~0u;          /* --texture-hashes */
 void logTextureHashes(unsigned frame);
@@ -3002,6 +3006,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--vsync")) g_opt.vsync = true;
     else if (!strcmp(a, "--no-vsync")) g_opt.vsync = false;
     else if (!strcmp(a, "--no-rom-check")) g_opt.romCheck = false;
+    else if (!strcmp(a, "--no-mods")) g_noMods = true;   /* bc.ini's [mods] enabled not used (--mod still is) */
     else if (!strcmp(a, "--pace-log")) g_opt.paceLog = next();
     else if (!strcmp(a, "--flip-log")) g_flip.path = next();
     else if (!strcmp(a, "--perf-log")) g_perf.path = next();
@@ -3158,6 +3163,29 @@ void prestart(HostOpts *o) {
                  g_cfg.cheatsSaveSeparate ? "separate" : "normal", o->cmdline != nullptr ? o->cmdline : "");
     }
     makeSaveDirs(o);
+    /* bc.ini's [mods] enabled (--no-mods: none; --mod FILE was loaded by host_main) */
+    if (!g_noMods && !g_cfg.mods.empty()) {
+        std::string dir = live::absPath(g_cfg, g_cfg.modsDir.empty() ? "mods" : g_cfg.modsDir);
+        if (!dir.empty() && dir.back() != '\\' && dir.back() != '/') dir += "\\";
+        std::string problems;
+        for (const std::string &m : g_cfg.mods) {
+            std::string path = dir + m;
+            if (path.size() < 6 || _stricmp(path.c_str() + path.size() - 6, ".bcmod") != 0) path += ".bcmod";
+            char err[1024];
+            if (port_mods_add(path.c_str(), err, sizeof err) != 0) {
+                host_log("live: mods: %s not used: %s\n", m.c_str(), err);
+                problems += m + ": " + err + "\n\n";
+            }
+        }
+        if (!problems.empty())
+            host_message(("These mods ([mods] enabled in bc.ini) are not used; the game starts without them:\n\n" +
+                          problems).c_str(), 0);
+    }
+    if (port_mods_count() > 0) {
+        std::string names;
+        for (int i = 0; i < port_mods_count(); i++) names += std::string(i ? ", " : "") + port_mods_name(i);
+        host_log("live: mods in use: %s\n", names.c_str());
+    }
     if (!g_cfg.warnings.empty()) {
         std::string msg = "Some settings were not understood and their defaults are used:\n\n";
         for (const std::string &w : g_cfg.warnings) {

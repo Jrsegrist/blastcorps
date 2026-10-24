@@ -263,6 +263,88 @@ class TestLevel(unittest.TestCase):
         self.assertEqual(p.write(), (b"\1" * 0x100, 0x100))
 
 
+class TestMod(unittest.TestCase):
+    """level mods (.bcmod, mod.py): the same rules as bc.exe's (port/src/load/level_mod.c)"""
+
+    def setUp(self):
+        from bcfiles import mod
+        self.mod = mod
+        self.data, self.split = synthetic_level().write()
+
+    def level_mod(self, changes, edited=True):
+        lv = L.Level.parse(self.data, self.split)
+        for c in changes:
+            self.mod.apply_change(lv, c)
+        out = lv.write()[0] if edited else None
+        return self.mod.make("t", "", [(5, self.data, changes, out)])
+
+    def test_set_add_delete(self):
+        m = self.mod
+        changes = [{"op": "set", "kind": "object", "index": 1, "fields": {"x": 1880, "z": 1881}},
+                   {"op": "add", "kind": "vehicle", "index": 2, "copy_of": 1, "fields": {"x": 400}},
+                   {"op": "delete", "kind": "rdu", "index": 0}]
+        j = m.parse(json.loads(m.dumps(self.level_mod(changes))))
+        data, split = m.apply_level(j["levels"][0], self.data, self.split)
+        p = L.Level.parse(data, split)
+        self.assertEqual(p.notes, [])
+        self.assertEqual((p["objects"][1].x, p["objects"][1].z), (1880, 1881))
+        self.assertEqual([(v.type, v.x) for v in p["spawns"]], [(0, 10), (1, 10), (1, 400)])
+        self.assertEqual(len(p["rdus"]), 1)
+        # the odd-sized spawn moved everything after it; the block stays on 16 bytes
+        self.assertEqual(split % 16, 0)
+        self.assertEqual(p.dl, L.Level.parse(self.data, self.split).dl)
+
+    def test_undo_gives_the_original(self):
+        changes = [{"op": "add", "kind": "crate", "index": 0, "copy_of": 0, "fields": {"y": 99}},
+                   {"op": "delete", "kind": "crate", "index": 0}]
+        j = self.level_mod(changes)
+        data, split = self.mod.apply_level(j["levels"][0], self.data, self.split)
+        self.assertEqual((data, split), (self.data, self.split))
+        self.assertEqual(j["levels"][0]["edited_sha1"], j["levels"][0]["original_sha1"])
+
+    def test_slot_moves_its_triangles(self):
+        changes = [{"op": "set", "kind": "slot", "index": 0, "fields": {"x": 54}}]
+        data, split = self.mod.apply_level(self.level_mod(changes)["levels"][0], self.data, self.split)
+        s = L.Level.parse(data, split)["blocks"]["slots"][0]
+        self.assertEqual((s["x"], s["tris"][0].x0, s["tris"][0].x1, s["tris"][0].y0), (54, 60, 70, 0))
+
+    def test_refused(self):
+        m = self.mod
+        j = self.level_mod([{"op": "set", "kind": "rdu", "index": 0, "fields": {"x": 5}}])
+        other = bytearray(self.data)
+        other[0xC8] ^= 1
+        with self.assertRaises(m.ModError):         # another ROM's file
+            m.apply_level(j["levels"][0], bytes(other), self.split)
+        j["levels"][0]["edited_sha1"] = "0" * 40
+        with self.assertRaises(m.ModError):         # not the maker's result
+            m.apply_level(j["levels"][0], self.data, self.split)
+        bad = [{"op": "add", "kind": "carrier", "index": 1, "copy_of": 0},
+               {"op": "delete", "kind": "carrier", "index": 0},
+               {"op": "set", "kind": "object", "index": 0, "fields": {"x": -1}},
+               {"op": "set", "kind": "vehicle", "index": 0, "fields": {"heading": 4096}},
+               {"op": "add", "kind": "commpt", "index": 0, "copy_of": 9},
+               {"op": "delete", "kind": "tnt", "index": 5}]
+        for c in bad:
+            lv = L.Level.parse(self.data, self.split)
+            with self.assertRaises(m.ModError, msg=str(c)):
+                m.apply_change(lv, c)
+            self.assertEqual(lv.write(), (self.data, self.split), "a refused change leaves the level as it was")
+        lv = L.Level.parse(self.data, self.split)
+        m.apply_change(lv, {"op": "add", "kind": "commpt", "index": 0, "copy_of": 0})
+        with self.assertRaises(m.ModError):         # the game holds 2
+            m.apply_change(lv, {"op": "add", "kind": "commpt", "index": 0, "copy_of": 0})
+        lv = L.Level.parse(self.data, self.split)
+        m.apply_change(lv, {"op": "delete", "kind": "vehicle", "index": 0})
+        with self.assertRaises(m.ModError):         # no driver
+            m.check_rules(lv)
+        for t in ({"format": "x", "levels": []}, {"format": "bcmod/1", "levels": [{"level": 60}]},
+                  {"format": "bcmod/1", "levels": [{"level": 1, "original_sha1": "z" * 40, "changes": []}]},
+                  {"format": "bcmod/1", "levels": [{"level": 1, "original_sha1": "a" * 40,
+                                                    "changes": [{"op": "add", "kind": "rdu", "index": 0}]}]}):
+            with self.assertRaises(m.ModError):
+                m.parse(t)
+
+
 class TestModels(unittest.TestCase):
     def test_object(self):
         o = synthetic_object()

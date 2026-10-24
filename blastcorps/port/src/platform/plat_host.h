@@ -165,7 +165,17 @@ typedef struct HostOpts {
     unsigned cheats_on_frame;  /* --cheats-on F: turn the debug cheats on when frame F is sent, as bc.exe's
                                   setting does in a running game (0 = never) */
     const struct HostLive *live; /* renderer, window, live input (bc.exe); NULL in bc_headless */
+    const char **mod_paths;    /* --mod FILE (repeatable): .bcmod files applied to the ROM's level files in memory
+                                  (port/src/load/port_mods.h); a mod that doesn't fit the ROM stops the run */
+    unsigned n_mod_paths;
+    const char *mod_out;       /* --mod-out DIR (testing): the edited level files written there at start-up */
 } HostOpts;
+
+/* Saving switched off (save.c): the game still saves into the EEPROM and pak images in memory (it sees no
+ * difference), but nothing is written to the files.  bc.exe's level editor sets it for a test run of an
+ * edited level ("Play from here"). */
+extern int host_saves_blocked;
+void host_saves_block(const char *why);
 
 /* The VI registers as libultra's VI manager would program them for the
  * frame on screen (os_hw.c fills them at every retrace). */

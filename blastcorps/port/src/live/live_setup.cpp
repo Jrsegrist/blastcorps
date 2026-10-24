@@ -174,6 +174,14 @@ static const char kDefaultIni[] =
     "; Mouse look: hold a mouse button and move the mouse to turn, the wheel zooms. 1 = on.\r\n"
     "mouse = 1\r\n"
     "\r\n"
+    "[mods]\r\n"
+    "; Level mods: .bcmod files (made with the level viewer's editor, see README.txt) in this\r\n"
+    "; folder. They change the level files in memory as the game reads them from your ROM; the\r\n"
+    "; ROM itself is never changed. A mod made for another ROM version is refused.\r\n"
+    "folder = mods\r\n"
+    "; The mods to use, by file name, separated with commas (empty: none, the game as it is).\r\n"
+    "enabled =\r\n"
+    "\r\n"
     "[keyboard]\r\n"
     "; The N64 controller from the keyboard. Values are SDL key names, for example X, Space,\r\n"
     "; Return, Left Shift, Right Ctrl, Keypad 8, Up, F5. Several keys: separate them with\r\n"
@@ -545,6 +553,10 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 else ok = false;
             } else ok = false;
             if (c.camPitchMin > c.camPitchMax) std::swap(c.camPitchMin, c.camPitchMax);
+        } else if (section == "mods") {
+            if (key == "folder") c.modsDir = v.empty() ? "mods" : v;
+            else if (key == "enabled") c.mods = splitList(v);
+            else ok = false;
         } else if (section == "audio") {
             if (key == "volume") ok = parseInt(v, 0, 100, c.volume);
             else if (key == "mute") ok = parseBool(v, c.mute);
@@ -919,6 +931,13 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "mouse") return c.camMouse ? "1" : "0";
         if (k == "relative_steering") return c.camRelativeSteering ? "1" : "0";
         if (k == "collision") return c.camCollision == 1 ? "off" : c.camCollision == 2 ? "strict" : "smooth";
+    } else if (s.section == "mods") {
+        if (k == "folder") return c.modsDir;
+        if (k == "enabled") {
+            std::string v;
+            for (const std::string &m : c.mods) v += (v.empty() ? "" : ", ") + m;
+            return v;
+        }
     } else if (s.section == "audio") {
         if (k == "volume") return std::to_string(c.volume);
         if (k == "mute") return c.mute ? "1" : "0";

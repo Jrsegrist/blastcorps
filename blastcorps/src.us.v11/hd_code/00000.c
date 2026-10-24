@@ -4739,7 +4739,9 @@ void lvl_load_file(s32 level, s32 dest, s32 *size) {
             *size = romWorldTexturesRaw - romLevel59Raw;
             break;
     }
+    PORT_LEVEL_PRE(level, dest); /* an edited level file (mods, bc.exe's editor: game/port.h) */
     hd_rom_load((u32) start, (u32) ((void *) N64_IPTR(dest)), (u32 *) size, 12, 10, 1);
+    PORT_LEVEL_POST(level, start, dest, size);
 }
 
 /* hd.c's level setup (arg0: a saved status stream or 0): the level's state,

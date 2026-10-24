@@ -66,11 +66,14 @@ int rom_normalise(uint8_t *p, size_t n);
 
 /* gunzip one member at ROM offset OFF into DST (max DSTMAX); returns size or -1 */
 long rom_gunzip(uint32_t off, void *dst, size_t dstmax);
+/* ... and *next: the ROM offset after the member (its 8-byte trailer), where a following member starts */
+long rom_gunzip_next(uint32_t off, void *dst, size_t dstmax, uint32_t *next);
 
 /* byte-swap N elements of WIDTH bytes (2, 4 or 8) in place */
 void swap_range(uint32_t addr, uint32_t n, int width);
 
 /* in inflate.c: raw deflate */
 long inflate_raw(const uint8_t *src, size_t srclen, uint8_t *dst, size_t dstmax);
+long inflate_raw_used(const uint8_t *src, size_t srclen, uint8_t *dst, size_t dstmax, size_t *used);
 
 #endif

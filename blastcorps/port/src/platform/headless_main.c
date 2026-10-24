@@ -58,6 +58,12 @@
  *     --crash-test KIND[:F]  crash on purpose at frame F (testing the crash
  *                        report): av, div, stack, thread, abort, fatal, box,
  *                        heaplock, heapbad, heapover, cxx (bc.exe)
+ *     --mod FILE         a level mod (.bcmod, port/src/load/level_mod.h): the
+ *                        level files it changes are edited in memory as the
+ *                        game reads them from the ROM (repeatable; a mod made
+ *                        for another ROM stops the run)
+ *     --mod-out DIR      (testing) write the edited level files to DIR
+ *                        (level_NN.bin, as the ROM would hold them inflated)
  *     -v / -q            verbose / quiet */
 #include <stdarg.h>
 #include <stdio.h>
@@ -66,6 +72,7 @@
 #include "rdram.h"
 #include "plat_host.h"
 #include "load/port_load.h"
+#include "load/port_mods.h"
 
 void (*host_opts_hook)(HostOpts *o);
 void (*host_rom_hook)(HostOpts *o);
@@ -86,7 +93,7 @@ static void usage(const char *bad) {
                     "       [--mpk FILE] [--print] [--wav FILE] [--wav-all] [--no-audio] [--audio-capture FILE[:N]]\n"
                     "       [--cull-wide K]\n"
                     "       [--poke F:ADDR:SIZE:VALUE,..] [--watch F:ADDR[:N]] [--no-msgbox] [--crash-dir DIR]\n"
-                    "       [--crash-test KIND[:F]] [-v] [-q]\n");
+                    "       [--crash-test KIND[:F]] [--mod FILE] [--mod-out DIR] [-v] [-q]\n");
     exit(1);
 }
 
@@ -208,6 +215,11 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
             }
             o.audio_capture = s;
         }
+        else if (!strcmp(a, "--mod")) {
+            o.mod_paths = realloc((void *) o.mod_paths, (o.n_mod_paths + 1) * sizeof *o.mod_paths);
+            o.mod_paths[o.n_mod_paths++] = ARG();
+        }
+        else if (!strcmp(a, "--mod-out")) o.mod_out = ARG();
         else if (!strcmp(a, "-v")) host_verbose = 1;
         else if (!strcmp(a, "-vv")) host_verbose = 2;
         else if (!strcmp(a, "-q")) o.quiet = 1;
@@ -224,6 +236,17 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
     if (rdram_load(o.rom_path)) host_fatal("%s", rdram_error());
     o.rom = rom_bytes(&rom_size);
     o.rom_size = (unsigned) rom_size;
+    /* level mods: applied in memory to the level files the game reads from the ROM (none: nothing changes) */
+    port_mods_log_hook = host_log;
+    for (i = 0; i < (int) o.n_mod_paths; i++) {
+        char err[1024];
+        if (port_mods_add(o.mod_paths[i], err, sizeof err)) host_fatal("The mod can't be used: %s", err);
+    }
+    if (o.mod_out != NULL) {
+        const int n = port_mods_write_levels(o.mod_out);
+        if (n < 0) host_fatal("--mod-out %s: can't write the edited level files", o.mod_out);
+        host_log("mods: %d edited level file%s written to %s\n", n, n == 1 ? "" : "s", o.mod_out);
+    }
     if (prestart != NULL) prestart(&o);
     plat_start(&o);
 }

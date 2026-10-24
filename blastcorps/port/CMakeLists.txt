@@ -279,7 +279,8 @@ add_custom_command(OUTPUT ${GEN}/swaptab.c
     COMMENT "byte-order table of the data images (swaptab.py)" VERBATIM)
 # RDRAM, the ROM and the load layer (byte order)
 host_lib(bc_core ${BC_PORT}/src/rdram.c ${BC_PORT}/src/inflate.c ${BC_PORT}/src/load/swap.c
-    ${BC_PORT}/src/load/port_assets.c ${BC_PORT}/src/load/gfx_fix.c ${GEN}/swaptab.c)
+    ${BC_PORT}/src/load/port_assets.c ${BC_PORT}/src/load/gfx_fix.c ${BC_PORT}/src/load/level_mod.c
+    ${BC_PORT}/src/load/port_mods.c ${GEN}/swaptab.c)
 # the platform's host side: fibers, logging, crash reports, the entry hook, audio
 host_lib(bc_host ${BC_PORT}/src/platform/plat_host.c ${BC_PORT}/src/platform/crash.c
     ${BC_PORT}/src/platform/entry_x64.asm ${BC_PORT}/src/audio/aspmain.c ${BC_PORT}/src/audio/port_audio.c)
@@ -453,7 +454,8 @@ if(BC_GAME)
         ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp ${BC_PORT}/src/live/live_interp.cpp
         ${BC_PORT}/src/live/live_orbit.cpp ${BC_PORT}/src/live/orbit_math.cpp ${BC_PORT}/src/live/live_wide.cpp
         ${BC_PORT}/src/live/live_texdump.cpp ${BC_PORT}/src/live/tmem_decode.cpp ${BC_PORT}/src/live/live_throttle.cpp
-        ${BC_PORT}/src/live/live_viewer.cpp ${BC_PORT}/src/live/viewer_records.cpp)
+        ${BC_PORT}/src/live/live_viewer.cpp ${BC_PORT}/src/live/viewer_records.cpp
+        ${BC_PORT}/src/live/level_edit.cpp)
     add_dependencies(bc_live bc_version rt64)
     target_compile_features(bc_live PRIVATE cxx_std_17)
     target_compile_definitions(bc_live PRIVATE RT64_NATIVE_HOST_LAYOUT SDL_MAIN_HANDLED HLSL_CPU FFX_GCC
@@ -477,11 +479,14 @@ if(BC_GAME)
     target_link_options(bc_inputtest PRIVATE /SUBSYSTEM:CONSOLE)
 
     # bc_cameratest.exe: tests of the orbit camera's math (orbit_math.cpp: limits,
-    # recentring, zoom, collision pull-in) and of the level viewer's record parsing and
-    # camera (viewer_records.cpp, on synthetic level data); no window, ROM or renderer
-    # (exit 0: all pass)
+    # recentring, zoom, collision pull-in), of the level viewer's record parsing and
+    # camera (viewer_records.cpp) and of the level editor's records, change list and mod
+    # files (src/load/level_mod.c, edit_test.cpp), all on synthetic level data; no
+    # window, ROM or renderer (exit 0: all pass)
     add_executable(bc_cameratest ${BC_PORT}/src/live/orbit_test.cpp ${BC_PORT}/src/live/orbit_math.cpp
-        ${BC_PORT}/src/live/viewer_test.cpp ${BC_PORT}/src/live/viewer_records.cpp)
+        ${BC_PORT}/src/live/viewer_test.cpp ${BC_PORT}/src/live/viewer_records.cpp
+        ${BC_PORT}/src/live/edit_test.cpp ${BC_PORT}/src/live/level_edit.cpp ${BC_PORT}/src/load/level_mod.c)
+    target_include_directories(bc_cameratest PRIVATE ${BC_PORT}/src)
     target_compile_features(bc_cameratest PRIVATE cxx_std_17)
     target_compile_definitions(bc_cameratest PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
     target_compile_options(bc_cameratest PRIVATE /EHsc /W3)

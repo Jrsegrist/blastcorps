@@ -174,6 +174,21 @@ int main(int, char **) {
                   live::configValue(f, {"controller", "fps_counter"}) == "back+y", "fps counter buttons back+y");
         check(f.menuPad.size() == 2, "menu buttons untouched");
     }
+    /* [mods]: none by default (the game as it is), a list, the folder */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(f.mods.empty() && f.modsDir == "mods" && live::configValue(f, {"mods", "enabled"}).empty(),
+              "mods default: none enabled, folder mods");
+        check(live::configSet(f, "mods.enabled=wide start, other.bcmod ,") && f.mods.size() == 2 &&
+                  f.mods[0] == "wide start" && f.mods[1] == "other.bcmod" &&
+                  live::configValue(f, {"mods", "enabled"}) == "wide start, other.bcmod",
+              "mods.enabled: a list (spaces kept inside names, empty items dropped)");
+        check(live::configSet(f, "mods.folder=D:\\my mods") && f.modsDir == "D:\\my mods" &&
+                  live::configSet(f, "mods.enabled=") && f.mods.empty(),
+              "mods.folder, and an empty list");
+        check(!live::configSet(f, "mods.colour=1"), "mods: an unknown key rejected");
+    }
     /* [game] debug_cheats and cheats_save: defaults, values, bad values, the new file's text, an older file
      * without them (no migration: nothing rewritten), the menu's change saved; the debug_cheats key */
     {

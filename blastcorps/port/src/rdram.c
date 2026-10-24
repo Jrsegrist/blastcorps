@@ -153,14 +153,22 @@ static int load_rom(const char *path) {
 }
 
 long rom_gunzip(uint32_t off, void *dst, size_t dstmax) {
+    return rom_gunzip_next(off, dst, dstmax, NULL);
+}
+
+long rom_gunzip_next(uint32_t off, void *dst, size_t dstmax, uint32_t *next) {
     const uint8_t *p = g_rom + off;
-    size_t i = 10;
-    if (p[0] != 0x1F || p[1] != 0x8B || p[2] != 8) return -1;
+    size_t i = 10, used = 0;
+    long n;
+    if (off + 18 > g_rom_size || p[0] != 0x1F || p[1] != 0x8B || p[2] != 8) return -1;
     if (p[3] & 4) i += 2 + (p[i] | (p[i + 1] << 8));
-    if (p[3] & 8) while (p[i++]) {}
-    if (p[3] & 16) while (p[i++]) {}
+    if (p[3] & 8) while (off + i < g_rom_size && p[i++]) {}
+    if (p[3] & 16) while (off + i < g_rom_size && p[i++]) {}
     if (p[3] & 2) i += 2;
-    return inflate_raw(p + i, g_rom_size - off - i, dst, dstmax);
+    if (off + i >= g_rom_size) return -1;
+    n = inflate_raw_used(p + i, g_rom_size - off - i, dst, dstmax, &used);
+    if (next) *next = (uint32_t) (off + i + used + 8);
+    return n;
 }
 
 void swap_range(uint32_t addr, uint32_t n, int width) {

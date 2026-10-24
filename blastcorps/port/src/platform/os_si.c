@@ -38,7 +38,7 @@ void plat_si_init(void) {
 }
 
 void plat_si_flush(void) {
-    if (g_eeprom_dirty && plat_cfg.eeprom_path != NULL) {
+    if (g_eeprom_dirty && plat_cfg.eeprom_path != NULL && !host_saves_blocked) {
         const double t0 = host_ms();   /* (host_prof: bc.exe's long game steps) */
         if (host_write_file(plat_cfg.eeprom_path, g_eeprom, sizeof g_eeprom) != 0)
             host_log("si: can't write %s\n", plat_cfg.eeprom_path);

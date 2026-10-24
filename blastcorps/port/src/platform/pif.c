@@ -123,6 +123,7 @@ static void mpk_flush(u32 off, u32 len) {
     const double t0 = host_ms();   /* (host_prof: bc.exe's long game steps) */
     (void) off;
     (void) len;
+    if (host_saves_blocked) return;   /* (save.c host_saves_block: the image in memory only) */
     if (host_write_file(plat_cfg.mpk_path, g_mpk, MPK_SIZE) != 0)
         host_log("pif: can't write %s\n", plat_cfg.mpk_path);
     host_prof.save_ms += host_ms() - t0;

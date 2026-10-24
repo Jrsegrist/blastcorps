@@ -750,6 +750,12 @@ Every `levelno` comparison found in the C (hex as in the code):
 
 ## Modding notes
 
+bc.exe's level editor (the viewer's Editor panel) edits the records below
+(vehicle spawns, the carrier record, object placements, RDUs, TNT, crates,
+communication points, push blocks and slots) on a copy of the level file and
+saves them as a small mod file; `tools_port/bcfiles` applies the same mods to
+a ROM ([tools](../tools.md), "Level mods").
+
 - **Move a vehicle, the driver's start or a respawn point:** edit the 9-byte
   record in the 0x50 list (BE type, x, y, z, heading). The driver record
   (type 0) must stay; a vehicle placed exactly on it is the start vehicle;

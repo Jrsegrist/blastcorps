@@ -82,12 +82,15 @@ struct LevelHeader {
     uint32_t offAt(uint32_t hdrOffset) const { return off[(hdrOffset - 0x20) / 4]; }
 };
 
-/* the header of a level image of `size` bytes; false (and *why) if it doesn't look like one */
-bool parseHeader(const uint8_t *lvl, size_t size, LevelHeader &h, std::string *why = nullptr);
+/* the header of a level image of `size` bytes; false (and *why) if it doesn't look like one.
+ * fileOrder: the image as the ROM holds it (every field big-endian: the level editor's copy,
+ * src/load/level_mod.h), not as the port's loader left it in memory */
+bool parseHeader(const uint8_t *lvl, size_t size, LevelHeader &h, std::string *why = nullptr, bool fileOrder = false);
 
 /* every record of the sections above, in section order; problems (a section
  * that ends inside a record, an unknown vehicle type) go to *notes */
-std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std::string> *notes = nullptr);
+std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std::string> *notes = nullptr,
+                               bool fileOrder = false);
 
 /* the game's runtime records (host-order structs, include/game/object.h, 00000.c VehRecord) */
 Record gameObjectRecord(const uint8_t *obj, int index, uint32_t addr);   /* 0xFC bytes */

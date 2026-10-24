@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -38,6 +39,7 @@
 #include "imgui/imgui.h"
 #include "render/rt64_projection_processor.h"
 
+#include "level_edit.h"
 #include "live_interp.h"
 #include "live_menu.h"
 #include "live_orbit.h"
@@ -45,6 +47,8 @@
 #include "live_wide.h"
 #include "orbit_math.h"
 #include "viewer_records.h"
+
+#include "load/port_mods.h"
 
 extern "C" {
 #include "plat_host.h"
@@ -358,8 +362,33 @@ int bonusVehicle(int level) {
     return 1;
 }
 
+/* ---- the level editor (level_edit.h): its state here, the rest further down -------------------------- */
+edit::Editor g_ed;
+bool g_editMode;                  /* the editor's panels, gizmo and keys are on */
+std::vector<Record> g_rtRecs;     /* the runtime records (gObjects, gVehicles) as read at the freeze */
+
+/* the level file's records: the editor's copy while it edits this level, else the file in RDRAM */
+void readFileRecords() {
+    const bool fromEditor = g_editMode && g_ed.isOpen() && g_ed.level() == g_fz.levelNo;
+    std::vector<Record> recs;
+    if (fromEditor) {
+        const std::vector<uint8_t> &img = g_ed.image();
+        recs = viewer::parseLevel(img.data(), img.size(), &g_notes, true);
+    } else {
+        const uint32_t lvl = levelData();
+        const size_t span = levelSpan(lvl);
+        if (span != 0) recs = viewer::parseLevel(reinterpret_cast<const uint8_t *>(uintptr_t(lvl)), span, &g_notes);
+    }
+    /* 2-D records on the ground */
+    for (Record &r : recs)
+        if (r.hasPos && !r.yKnown) r.y = groundAt(r.x, r.z, 0.0) + 2;
+    g_recs = recs;
+    g_recs.insert(g_recs.end(), g_rtRecs.begin(), g_rtRecs.end());
+}
+
 void readRecords() {
     g_recs.clear();
+    g_rtRecs.clear();
     g_notes.clear();
     g_tris.clear();
     g_sel = -1;
@@ -370,19 +399,16 @@ void readRecords() {
         g_notes.push_back("no level data: " + why);
         return;
     }
-    g_recs = viewer::parseLevel(reinterpret_cast<const uint8_t *>(uintptr_t(lvl)), span, &g_notes);
-    /* 2-D records on the ground */
-    for (Record &r : g_recs)
-        if (r.hasPos && !r.yKnown) r.y = groundAt(r.x, r.z, 0.0) + 2;
     /* the runtime records */
     const uint32_t oe = rd<uint32_t>(kGObjectsEnd);
     if (oe >= kGObjects && oe <= kGObjects + 0xFCu * 64)
         for (uint32_t o = kGObjects, i = 0; o + 0xFC <= oe; o += 0xFC, i++)
-            g_recs.push_back(viewer::gameObjectRecord(reinterpret_cast<const uint8_t *>(uintptr_t(o)), int(i), o));
+            g_rtRecs.push_back(viewer::gameObjectRecord(reinterpret_cast<const uint8_t *>(uintptr_t(o)), int(i), o));
     const uint32_t ve = rd<uint32_t>(kGVehiclesEnd);
     if (ve >= kGVehicles && ve <= kGVehicles + 0x74u * 32)
         for (uint32_t v = kGVehicles, i = 0; v + 0x74 <= ve; v += 0x74, i++)
-            g_recs.push_back(viewer::gameVehicleRecord(reinterpret_cast<const uint8_t *>(uintptr_t(v)), int(i), v));
+            g_rtRecs.push_back(viewer::gameVehicleRecord(reinterpret_cast<const uint8_t *>(uintptr_t(v)), int(i), v));
+    readFileRecords();
     /* collision: grids A and B (0x6C, 0x70: per cell a BE u32 end offset, then 0x16-byte triangles of nine BE
      * s16) and the buildings' triangles (gObjects [+4, +8): 0x60-byte records, s32 vertices / 8 at +0x28) */
     const uint8_t *L = reinterpret_cast<const uint8_t *>(uintptr_t(lvl));
@@ -907,12 +933,514 @@ bool overlayProjection(double proj[4][4], double &rx, double &ry, double &rw, do
     return true;
 }
 
+/* ---- the level editor: edits ----------------------------------------------------------
+ * The editor works on a host-side copy of the level file (edit::Editor over port_mods.h's copy of the ROM's
+ * file, plus the changes a loaded mod already makes to it); the markers and the inspector show that copy
+ * while editing.  Apply gives the game the edited file (port_level_set_edit) and reloads the level through
+ * the game's own set-up, so what is shown afterwards is the game running it. */
+struct Drag {
+    int mode = 0;                 /* 0 none, 1 on the ground plane, 2 along x, 3 along y, 4 along z, 5 heading */
+    int kind = -1, index = -1;
+    Vec start, cur;
+    double startHeading = 0, heading = 0;
+    double grabX = 0, grabZ = 0, t0 = 0, a0 = 0;
+    bool moved = false;
+} g_drag;
+struct EditOpts {
+    bool snapGround = true;       /* a record moved on the ground plane sits on the ground (its y = the floor's) */
+    int grid = 0;                 /* x / z snapped to this step (map units; 0: none) */
+} g_eopt;
+std::string g_editMsg;            /* the last edit's result (the Changes panel) */
+std::string g_savedSha;           /* the edited file last saved to a mod file */
+std::string g_savedPath;
+char g_modName[64] = "my_level_mod";
+bool g_modEnable = true;
+bool g_playAfterLoad;             /* "Play from here": leave the viewer into play once the level is up */
+bool g_testRun;                   /* this run played an edited level: saving is off */
+/* the overlays' projection of this tick (the gizmo's picking) */
+struct OverlayView {
+    bool ok = false;
+    double view[4][4] = {}, proj[4][4] = {};
+    double rx = 0, ry = 0, rw = 0, rh = 0;
+} g_ov;
+/* edits asked for by the panels: run after the UI frame is built (they replace the records the panels read) */
+std::vector<std::function<void()>> g_after;
+
+bool isEditable(int kind) {
+    return kind >= viewer::REC_VEHICLE && kind <= viewer::REC_BLOCKSLOT;
+}
+bool kindHasY(int kind) {
+    return kind != viewer::REC_CARRIER;
+}
+bool kindHasHeading(int kind) {
+    return kind == viewer::REC_VEHICLE || kind == viewer::REC_CARRIER;
+}
+bool editing() {
+    return g_editMode && g_ed.isOpen() && g_ed.level() == g_fz.levelNo && g_fz.level && !g_mv.on;
+}
+
+/* the editor on the frozen level (opened on the ROM's file and the loaded mods' changes) */
+bool editorOpen() {
+    if (!g_fz.level || g_fz.levelNo < 0 || g_fz.levelNo >= 60) {
+        g_editMsg = "The editor works on a level frame.";
+        return false;
+    }
+    if (g_ed.isOpen() && g_ed.level() == g_fz.levelNo) return true;
+    /* another level's edits: kept for when it comes back (the game keeps its applied file too) */
+    static std::vector<LmChange> stash[60];
+    if (g_ed.isOpen()) stash[g_ed.level()] = g_ed.changes();
+    const uint8_t *orig = nullptr;
+    size_t n = 0;
+    if (port_level_original(g_fz.levelNo, &orig, &n)) {
+        g_editMsg = "The level file can't be read from the ROM.";
+        return false;
+    }
+    std::vector<LmChange> base;
+    const LmChange *ch = nullptr;
+    int nch = 0;
+    const char *modName = nullptr;
+    std::string baseName;
+    if (port_level_mod_changes(g_fz.levelNo, &ch, &nch, &modName)) {
+        base.assign(ch, ch + nch);
+        baseName = modName ? modName : "";
+    }
+    if (!g_ed.open(g_fz.levelNo, orig, n, base, baseName)) {
+        g_editMsg = "The level can't be edited: " + g_ed.error();
+        host_log("live: editor: level %d: %s\n", g_fz.levelNo, g_ed.error().c_str());
+        return false;
+    }
+    g_savedSha = g_ed.imageSha1();
+    g_savedPath.clear();
+    for (const LmChange &c : stash[g_fz.levelNo]) g_ed.push(c);
+    stash[g_fz.levelNo].clear();
+    /* what the game runs now: this level's edited file, if it was given one */
+    const uint8_t *cur = nullptr;
+    size_t curSize = 0;
+    if (port_level_edited(g_fz.levelNo, &cur, &curSize)) {
+        char sha[41];
+        lm_sha1_hex(cur, curSize, sha);
+        if (sha == g_ed.imageSha1()) g_ed.markApplied();
+    }
+    host_log("live: editor: level %d opened (file 0x%X bytes, SHA-1 %s%s%s)\n", g_fz.levelNo, unsigned(n),
+             g_ed.originalSha1().c_str(), base.empty() ? "" : "; the changes of mod ", baseName.c_str());
+    return true;
+}
+
+void reselect(int kind, int index) {
+    g_sel = findRecord(kind, index);
+}
+
+void setEditMode(bool on) {
+    int kind = -1, index = -1;
+    if (g_sel >= 0 && g_sel < int(g_recs.size())) kind = g_recs[g_sel].kind, index = g_recs[g_sel].index;
+    if (on && !editorOpen()) return;
+    g_editMode = on;
+    g_drag = Drag();
+    readFileRecords();
+    if (kind >= 0) reselect(kind, index);
+    host_log("live: editor: %s\n", on ? "on" : "off");
+}
+
+bool pushEdit(const LmChange &c, int selKind, int selIndex) {
+    if (!g_ed.push(c)) {
+        g_editMsg = "Not done: " + g_ed.error();
+        host_log("live: editor: refused: %s: %s\n", edit::describe(c).c_str(), g_ed.error().c_str());
+        return false;
+    }
+    g_editMsg = edit::describe(c);
+    host_log("live: editor: %s (%u changes; file SHA-1 %s)\n", g_editMsg.c_str(), unsigned(g_ed.changes().size()),
+             g_ed.imageSha1().c_str());
+    readFileRecords();
+    if (selKind >= 0) reselect(selKind, selIndex);
+    else g_sel = -1;
+    return true;
+}
+
+void editUndo() {
+    if (!g_ed.canUndo()) return;
+    const LmChange c = g_ed.changes().back();
+    g_ed.undo();
+    g_editMsg = "Undone: " + edit::describe(c);
+    host_log("live: editor: undo %s\n", edit::describe(c).c_str());
+    readFileRecords();
+    reselect(c.kind, std::min(c.index, std::max(0, g_ed.count(c.kind) - 1)));
+}
+
+void editRedo() {
+    if (!g_ed.canRedo()) return;
+    if (!g_ed.redo()) {
+        g_editMsg = "Not redone: " + g_ed.error();
+        return;
+    }
+    const LmChange c = g_ed.changes().back();
+    g_editMsg = "Redone: " + edit::describe(c);
+    host_log("live: editor: redo %s\n", edit::describe(c).c_str());
+    readFileRecords();
+    reselect(c.kind, c.op == LM_OP_DELETE ? -1 : c.index);
+}
+
+/* the selected record, if the editor can change it */
+bool selEditable(int &kind, int &index) {
+    if (!editing() || g_sel < 0 || g_sel >= int(g_recs.size()) || !isEditable(g_recs[g_sel].kind)) return false;
+    kind = g_recs[g_sel].kind, index = g_recs[g_sel].index;
+    return index < g_ed.count(kind);
+}
+
+void duplicateSel() {
+    int kind, index;
+    if (!selEditable(kind, index)) return;
+    /* the copy goes next to it, 48 map units along x (snapped to the grid) */
+    const int fx = lm_field_index(kind, "x");
+    const long x = g_ed.get(kind, index, "x");
+    long nx = edit::snapTo(double(x + 48), g_eopt.grid);
+    long lo, hi;
+    lm_field_range(kind, fx, &lo, &hi);
+    if (nx > hi) nx = edit::snapTo(double(x - 48), g_eopt.grid);
+    pushEdit(edit::makeAdd(kind, index + 1, index, {{fx, nx}}), kind, index + 1);
+}
+
+void deleteSel() {
+    int kind, index;
+    if (!selEditable(kind, index)) return;
+    pushEdit(edit::makeDelete(kind, index), -1, -1);
+}
+
+void rotateSel(double deg) {
+    int kind, index;
+    if (!selEditable(kind, index) || !kindHasHeading(kind)) return;
+    const double d = edit::degreesFromHeading(g_ed.get(kind, index, "heading")) + deg;
+    pushEdit(edit::makeSet(kind, index, {{lm_field_index(kind, "heading"), edit::headingFromDegrees(d)}}), kind,
+             index);
+}
+
+void groundSel() {
+    int kind, index;
+    if (!selEditable(kind, index) || !kindHasY(kind)) return;
+    const double x = double(g_ed.get(kind, index, "x")), z = double(g_ed.get(kind, index, "z"));
+    const double y = groundAt(x, z, double(g_ed.get(kind, index, "y")));
+    pushEdit(edit::makeSet(kind, index, {{lm_field_index(kind, "y"), std::lround(y)}}), kind, index);
+}
+
+/* a field's value clamped to its range */
+long clampField(int kind, const char *name, double v) {
+    long lo, hi;
+    lm_field_range(kind, lm_field_index(kind, name), &lo, &hi);
+    return std::max(lo, std::min(hi, long(std::lround(v))));
+}
+
+std::string modsDir() {
+    std::string dir = g_env.cfg != nullptr ? absPath(*g_env.cfg, g_env.cfg->modsDir.empty() ? "mods" : g_env.cfg->modsDir)
+                                           : "mods";
+    if (!dir.empty() && dir.back() != '\\' && dir.back() != '/') dir += "\\";
+    return dir;
+}
+
+/* the editor's file for the game's next load of the level (NULL: the ROM's, or the mod's as loaded) */
+void giveEditsToGame() {
+    const int level = g_ed.level();
+    if (g_ed.changes().empty()) {
+        /* nothing of the editor's: what the game read before (the loaded mod's file, or the ROM's) */
+        const LmChange *ch;
+        int n;
+        const char *name;
+        if (port_level_mod_changes(level, &ch, &n, &name))
+            port_level_set_edit(level, g_ed.image().data(), g_ed.image().size(), (std::string("mod ") + name).c_str());
+        else
+            port_level_set_edit(level, nullptr, 0, nullptr);
+    } else {
+        port_level_set_edit(level, g_ed.image().data(), g_ed.image().size(), "the level editor");
+    }
+    g_ed.markApplied();
+}
+
+void requestLevel(int level);
+
+void applyEdits() {
+    if (!g_ed.isOpen()) return;
+    giveEditsToGame();
+    g_editMsg = "Applied: the level is loaded again with the edits.";
+    host_log("live: editor: apply: level %d reloaded with the edited file (SHA-1 %s, %u changes)\n", g_ed.level(),
+             g_ed.imageSha1().c_str(), unsigned(g_ed.changes().size()));
+    requestLevel(g_ed.level());
+}
+
+void playEdits() {
+    if (!g_ed.isOpen()) return;
+    giveEditsToGame();
+    g_testRun = true;
+    host_saves_block("a test run of an edited level");
+    overlayMarker("TEST RUN of an edited level - saving is off");
+    g_playAfterLoad = true;
+    host_log("live: editor: play from here: level %d, edited file SHA-1 %s; saving off for this run\n", g_ed.level(),
+             g_ed.imageSha1().c_str());
+    requestLevel(g_ed.level());
+}
+
+bool saveMod(const std::string &name, bool enable) {
+    std::string clean;
+    for (char c : name)
+        if (isalnum((unsigned char) c) || c == '_' || c == '-' || c == '.' || c == ' ') clean += c;
+    while (!clean.empty() && (clean.back() == ' ' || clean.back() == '.')) clean.pop_back();
+    if (clean.empty()) {
+        g_editMsg = "Give the mod a name (letters, digits, - and _).";
+        return false;
+    }
+    const std::string dir = modsDir();
+    CreateDirectoryW(wide(dir).c_str(), nullptr);
+    const std::string path = dir + clean + ".bcmod";
+    char desc[160];
+    snprintf(desc, sizeof desc, "level %d, %u change%s, made with bc.exe's level editor", g_ed.level(),
+             unsigned(g_ed.baseChanges().size() + g_ed.changes().size()),
+             g_ed.baseChanges().size() + g_ed.changes().size() == 1 ? "" : "s");
+    const std::string text = g_ed.modText(clean, desc);
+    if (text.empty() || host_write_file(path.c_str(), text.data(), unsigned(text.size())) != 0) {
+        g_editMsg = "Can't write " + path;
+        host_log("live: editor: can't write %s\n", path.c_str());
+        return false;
+    }
+    g_savedSha = g_ed.imageSha1();
+    g_savedPath = path;
+    g_editMsg = "Saved " + path;
+    host_log("live: editor: saved %s (%u bytes; level %d, edited file SHA-1 %s)\n", path.c_str(),
+             unsigned(text.size()), g_ed.level(), g_savedSha.c_str());
+    if (enable && g_env.cfg != nullptr) {
+        Config &c = *g_env.cfg;
+        if (std::find(c.mods.begin(), c.mods.end(), clean) == c.mods.end()) c.mods.push_back(clean);
+        if (configSave(c, {{"mods", "enabled"}}))
+            g_editMsg += " (enabled in bc.ini: used from the next start)";
+        else
+            g_editMsg += " (not enabled: no bc.ini in this run)";
+    }
+    return true;
+}
+
+/* edits not saved in a mod file when the viewer is left: kept in mods\autosave_LNN.bcmod */
+void autosave() {
+    if (!g_ed.isOpen() || g_ed.changes().empty() || g_ed.imageSha1() == g_savedSha) return;
+    char name[32];
+    snprintf(name, sizeof name, "autosave_L%02d", g_ed.level());
+    const std::string msg = g_editMsg;
+    if (saveMod(name, false)) host_log("live: editor: unsaved edits kept in %s\n", g_savedPath.c_str());
+    g_editMsg = msg;
+}
+
+/* ---- the gizmo -------------------------------------------------------------------------- */
+struct Gizmo {
+    bool ok = false;
+    ImVec2 c;                     /* the centre on screen */
+    ImVec2 tip[3];                /* the x, y, z arrows' tips */
+    bool axis[3] = {};
+    std::vector<ImVec2> ring;     /* the heading ring (empty: none) */
+    double len = 0;               /* the arrows' world length */
+    Vec p;
+};
+
+bool projectPoint(const Vec &p, ImVec2 &s, double *depth = nullptr) {
+    double x, y;
+    if (!g_ov.ok || !viewer::project(g_ov.view, g_ov.proj, p, g_ov.rx, g_ov.ry, g_ov.rw, g_ov.rh, x, y, depth))
+        return false;
+    s = ImVec2(float(x), float(y));
+    return true;
+}
+
+/* the selected record's position (the drag's while dragging) */
+bool selPosition(Vec &p, int &kind, int &index) {
+    if (!selEditable(kind, index)) return false;
+    const Record &r = g_recs[g_sel];
+    if (!r.hasPos) return false;
+    p = g_drag.mode != 0 && g_drag.kind == kind && g_drag.index == index ? g_drag.cur : Vec{r.x, r.y, r.z};
+    return true;
+}
+
+Gizmo gizmo() {
+    Gizmo g;
+    int kind, index;
+    if (!selPosition(g.p, kind, index)) return g;
+    double depth;
+    if (!projectPoint(g.p, g.c, &depth) || depth < 1.0) return g;
+    g.len = 70.0 * depth / (std::max(1e-6, std::fabs(g_ov.proj[1][1])) * g_ov.rh * 0.5);
+    const Vec dirs[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    for (int a = 0; a < 3; a++) {
+        if (a == 1 && !kindHasY(kind)) continue;
+        g.axis[a] = projectPoint({g.p.x + dirs[a].x * g.len, g.p.y + dirs[a].y * g.len, g.p.z + dirs[a].z * g.len},
+                                 g.tip[a]);
+    }
+    if (kindHasHeading(kind))
+        for (int i = 0; i <= 48; i++) {
+            const double t = i * 2.0 * 3.14159265358979 / 48;
+            ImVec2 s;
+            if (!projectPoint({g.p.x + std::sin(t) * g.len * 1.35, g.p.y, g.p.z + std::cos(t) * g.len * 1.35}, s)) {
+                g.ring.clear();
+                break;
+            }
+            g.ring.push_back(s);
+        }
+    g.ok = true;
+    return g;
+}
+
+float segDist(ImVec2 p, ImVec2 a, ImVec2 b) {
+    const float dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+    float t = l2 > 0 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2 : 0;
+    t = std::max(0.0f, std::min(1.0f, t));
+    return std::hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+/* the gizmo part under a window point: 0 none, else Drag::mode */
+int gizmoHit(float x, float y) {
+    const Gizmo g = gizmo();
+    if (!g.ok) return 0;
+    const ImVec2 p(x, y);
+    if (std::hypot(x - g.c.x, y - g.c.y) <= 11) return 1;
+    int best = 0;
+    float bd = 8;
+    for (int a = 0; a < 3; a++)
+        if (g.axis[a]) {
+            const float d = segDist(p, g.c, g.tip[a]);
+            if (d < bd) bd = d, best = 2 + a;
+        }
+    if (best) return best;
+    for (size_t i = 1; i < g.ring.size(); i++)
+        if (segDist(p, g.ring[i - 1], g.ring[i]) < 7) return 5;
+    return 0;
+}
+
+bool screenRay(float sx, float sy, edit::V3 &o, edit::V3 &d) {
+    return g_ov.ok && edit::pickRay(g_ov.view, g_ov.proj, g_ov.rx, g_ov.ry, g_ov.rw, g_ov.rh, sx, sy, o, d);
+}
+
+bool beginDrag(int mode, float sx, float sy) {
+    int kind, index;
+    Vec p;
+    edit::V3 o, d;
+    if (mode == 0 || !selPosition(p, kind, index) || !screenRay(sx, sy, o, d)) return false;
+    g_drag = Drag();
+    g_drag.mode = mode, g_drag.kind = kind, g_drag.index = index;
+    g_drag.start = g_drag.cur = p;
+    g_drag.startHeading = g_drag.heading =
+        kindHasHeading(kind) ? edit::degreesFromHeading(g_ed.get(kind, index, "heading")) : 0;
+    double gx, gz, t;
+    if (mode == 1 || mode == 5) {
+        if (!edit::rayPlaneY(o, d, p.y, gx, gz)) return g_drag = Drag(), false;
+        g_drag.grabX = p.x - gx, g_drag.grabZ = p.z - gz;
+        g_drag.a0 = std::atan2(gx - p.x, gz - p.z) * 180.0 / 3.14159265358979;
+    } else {
+        const edit::V3 a = {mode == 2 ? 1.0 : 0.0, mode == 3 ? 1.0 : 0.0, mode == 4 ? 1.0 : 0.0};
+        if (!edit::rayAxis(o, d, {p.x, p.y, p.z}, a, t)) return g_drag = Drag(), false;
+        g_drag.t0 = t;
+    }
+    return true;
+}
+
+void updateDrag(float sx, float sy) {
+    edit::V3 o, d;
+    if (g_drag.mode == 0 || !screenRay(sx, sy, o, d)) return;
+    const int kind = g_drag.kind;
+    Vec n = g_drag.start;
+    double gx, gz, t;
+    switch (g_drag.mode) {
+    case 1:
+        if (!edit::rayPlaneY(o, d, g_drag.start.y, gx, gz)) return;
+        n.x = double(edit::snapTo(gx + g_drag.grabX, g_eopt.grid));
+        n.z = double(edit::snapTo(gz + g_drag.grabZ, g_eopt.grid));
+        if (kindHasY(kind) && g_eopt.snapGround) n.y = std::round(groundAt(n.x, n.z, g_drag.start.y));
+        break;
+    case 2: case 3: case 4: {
+        const edit::V3 a = {g_drag.mode == 2 ? 1.0 : 0.0, g_drag.mode == 3 ? 1.0 : 0.0, g_drag.mode == 4 ? 1.0 : 0.0};
+        if (!edit::rayAxis(o, d, {g_drag.start.x, g_drag.start.y, g_drag.start.z}, a, t)) return;
+        const double dv = t - g_drag.t0;
+        if (g_drag.mode == 2) n.x = double(edit::snapTo(g_drag.start.x + dv, g_eopt.grid));
+        if (g_drag.mode == 3) n.y = std::round(g_drag.start.y + dv);
+        if (g_drag.mode == 4) n.z = double(edit::snapTo(g_drag.start.z + dv, g_eopt.grid));
+        break;
+    }
+    case 5: {
+        if (!edit::rayPlaneY(o, d, g_drag.start.y, gx, gz)) return;
+        const double a = std::atan2(gx - g_drag.start.x, gz - g_drag.start.z) * 180.0 / 3.14159265358979;
+        double h = g_drag.startHeading + (a - g_drag.a0);
+        if (g_eopt.grid > 0) h = std::round(h / 15.0) * 15.0;   /* (with a grid: 15-degree steps) */
+        g_drag.heading = edit::degreesFromHeading(edit::headingFromDegrees(h));
+        break;
+    }
+    default:
+        return;
+    }
+    n.x = double(clampField(kind, "x", n.x)), n.z = double(clampField(kind, "z", n.z));
+    if (kindHasY(kind)) n.y = double(clampField(kind, "y", n.y));
+    g_drag.cur = n;
+    g_drag.moved = true;
+}
+
+void endDrag() {
+    if (g_drag.mode == 0) return;
+    const Drag d = g_drag;
+    g_drag = Drag();
+    if (!d.moved) return;
+    std::vector<edit::FieldValue> f;
+    if (d.mode == 5) {
+        const int h = edit::headingFromDegrees(d.heading);
+        if (h != g_ed.get(d.kind, d.index, "heading")) f.push_back({lm_field_index(d.kind, "heading"), h});
+    } else {
+        const long x = std::lround(d.cur.x), y = std::lround(d.cur.y), z = std::lround(d.cur.z);
+        if (x != g_ed.get(d.kind, d.index, "x")) f.push_back({lm_field_index(d.kind, "x"), x});
+        if (kindHasY(d.kind) && y != g_ed.get(d.kind, d.index, "y")) f.push_back({lm_field_index(d.kind, "y"), y});
+        if (z != g_ed.get(d.kind, d.index, "z")) f.push_back({lm_field_index(d.kind, "z"), z});
+    }
+    if (!f.empty()) pushEdit(edit::makeSet(d.kind, d.index, f), d.kind, d.index);
+}
+
+void drawGizmo(ImDrawList *dl) {
+    const Gizmo g = gizmo();
+    if (!g.ok) return;
+    const ImU32 cols[3] = {IM_COL32(240, 70, 70, 255), IM_COL32(80, 230, 80, 255), IM_COL32(80, 140, 255, 255)};
+    const int active = g_drag.mode;
+    if (!g.ring.empty()) {
+        const ImU32 rc = active == 5 ? IM_COL32(255, 255, 120, 255) : IM_COL32(255, 220, 80, 200);
+        dl->AddPolyline(g.ring.data(), int(g.ring.size()), rc, 0, active == 5 ? 3.5f : 2.0f);
+        /* the heading's mark on the ring */
+        const double h = (active == 5 ? g_drag.heading
+                                      : edit::degreesFromHeading(g_ed.get(g_recs[g_sel].kind, g_recs[g_sel].index,
+                                                                          "heading"))) * 3.14159265358979 / 180.0;
+        ImVec2 s;
+        if (projectPoint({g.p.x + std::sin(h) * g.len * 1.35, g.p.y, g.p.z + std::cos(h) * g.len * 1.35}, s)) {
+            dl->AddLine(g.c, s, rc, 2.0f);
+            dl->AddCircleFilled(s, 6.0f, rc, 12);
+        }
+    }
+    for (int a = 0; a < 3; a++) {
+        if (!g.axis[a]) continue;
+        const bool on = active == 2 + a;
+        dl->AddLine(g.c, g.tip[a], cols[a], on ? 5.0f : 3.0f);
+        const float dx = g.tip[a].x - g.c.x, dy = g.tip[a].y - g.c.y, l = std::max(1.0f, std::hypot(dx, dy));
+        const ImVec2 u(dx / l, dy / l), nrm(-u.y, u.x);
+        dl->AddTriangleFilled(ImVec2(g.tip[a].x + u.x * 12, g.tip[a].y + u.y * 12),
+                              ImVec2(g.tip[a].x + nrm.x * 6, g.tip[a].y + nrm.y * 6),
+                              ImVec2(g.tip[a].x - nrm.x * 6, g.tip[a].y - nrm.y * 6), cols[a]);
+        static const char *const names[3] = {"x", "y", "z"};
+        dl->AddText(ImVec2(g.tip[a].x + u.x * 16 - 3, g.tip[a].y + u.y * 16 - 7), cols[a], names[a]);
+    }
+    const ImU32 cc = active == 1 ? IM_COL32(255, 255, 255, 255) : IM_COL32(255, 255, 255, 200);
+    dl->AddRectFilled(ImVec2(g.c.x - 6, g.c.y - 6), ImVec2(g.c.x + 6, g.c.y + 6), IM_COL32(0, 0, 0, 140));
+    dl->AddRect(ImVec2(g.c.x - 7, g.c.y - 7), ImVec2(g.c.x + 7, g.c.y + 7), cc, 0, 0, 2.0f);
+    if (active != 0) {
+        char b[96];
+        if (active == 5) snprintf(b, sizeof b, "heading %.1f", g_drag.heading);
+        else snprintf(b, sizeof b, "%.0f, %.0f, %.0f", g_drag.cur.x, g_drag.cur.y, g_drag.cur.z);
+        dl->AddText(ImVec2(g.c.x + 12, g.c.y + 10), IM_COL32(255, 255, 255, 255), b);
+    }
+}
+
 void drawOverlays() {
     g_markers.clear();
+    g_ov.ok = false;
     if (!g_fz.level) return;
     double view[4][4], proj[4][4], rx, ry, rw, rh;
     currentView(view);
     if (!overlayProjection(proj, rx, ry, rw, rh)) return;
+    g_ov.ok = true;
+    memcpy(g_ov.view, view, sizeof view);
+    memcpy(g_ov.proj, proj, sizeof proj);
+    g_ov.rx = rx, g_ov.ry = ry, g_ov.rw = rw, g_ov.rh = rh;
     ImDrawList *dl = ImGui::GetBackgroundDrawList();
     const float font = uiFontPx();
     auto proj2 = [&](const Vec &p, float &sx, float &sy, double *depth) {
@@ -971,34 +1499,44 @@ void drawOverlays() {
                 dl->AddLine(ImVec2(sx[k], sy[k]), ImVec2(sx[(k + 1) & 3], sy[(k + 1) & 3]),
                             r.kind == viewer::REC_CAMZONE ? IM_COL32(255, 255, 0, 160) : IM_COL32(0, 255, 255, 160), 1.5f);
         }
+    const bool ed = editing();
     for (size_t i = 0; i < g_recs.size(); i++) {
         const Record &r = g_recs[i];
         if (!r.hasPos || r.hasBox || !g_opt.kinds[r.kind]) continue;
+        /* the editor: a record being dragged is drawn where it goes; edited records stand out */
+        const bool dragged = ed && g_drag.mode != 0 && r.kind == g_drag.kind && r.index == g_drag.index;
+        const Vec at = dragged ? g_drag.cur : Vec{r.x, r.y, r.z};
+        const double heading = dragged && g_drag.mode == 5 ? g_drag.heading : r.heading;
+        const int mark = ed && isEditable(r.kind) ? g_ed.edited(r.kind, r.index) : 0;
         float sx, sy;
         double depth;
-        if (!proj2({r.x, r.y, r.z}, sx, sy, &depth) || depth < 1.0) continue;
+        if (!proj2(at, sx, sy, &depth) || depth < 1.0) continue;
         if (sx < -50 || sy < -50 || sx > ImGui::GetIO().DisplaySize.x + 50 || sy > ImGui::GetIO().DisplaySize.y + 50)
             continue;
-        const ImU32 col = kindColor(r.kind);
+        const ImU32 col = mark == 1 ? IM_COL32(255, 70, 255, 255) : mark == 2 ? IM_COL32(255, 150, 40, 255)
+                                                                             : kindColor(r.kind);
         const float rad = std::max(4.0f, std::min(30.0f, float(r.radius * proj[1][1] / depth * rh * 0.5)));
         const bool sel = int(i) == g_sel;
-        dl->AddCircle(ImVec2(sx, sy), rad, col, 16, sel ? 3.0f : 1.5f);
+        dl->AddCircle(ImVec2(sx, sy), rad, col, 16, sel ? 3.0f : mark ? 2.5f : 1.5f);
+        if (mark) dl->AddCircle(ImVec2(sx, sy), rad + 4, col, 16, 1.0f);
         if (r.hasHeading) {
             double dx, dz;
-            viewer::headingDir(r.heading, dx, dz);
+            viewer::headingDir(heading, dx, dz);
             float hx, hy;
-            if (proj2({r.x + dx * r.radius * 1.5, r.y, r.z + dz * r.radius * 1.5}, hx, hy, nullptr))
+            if (proj2({at.x + dx * r.radius * 1.5, at.y, at.z + dz * r.radius * 1.5}, hx, hy, nullptr))
                 dl->AddLine(ImVec2(sx, sy), ImVec2(hx, hy), col, 2.0f);
         }
         /* (labels near the camera only: the RDUs, lined up by the dozen, nearer still) */
         const double labelDist = r.kind == viewer::REC_RDU ? g_opt.labelDist * 0.4 : g_opt.labelDist;
-        if (g_opt.labels && (sel || depth < labelDist)) {
+        if (g_opt.labels && (sel || mark || depth < labelDist)) {
+            const std::string text = mark ? r.label + (mark == 1 ? " *" : " (mod)") : r.label;
             const ImVec2 tp(sx + rad + 3, sy - font * 0.4f);
-            dl->AddText(ImVec2(tp.x + 1, tp.y + 1), IM_COL32(0, 0, 0, 200), r.label.c_str());
-            dl->AddText(tp, col, r.label.c_str());
+            dl->AddText(ImVec2(tp.x + 1, tp.y + 1), IM_COL32(0, 0, 0, 200), text.c_str());
+            dl->AddText(tp, col, text.c_str());
         }
         g_markers.push_back({int(i), sx, sy, rad, depth});
     }
+    if (ed) drawGizmo(dl);
 }
 
 void selectAt(float x, float y) {
@@ -1099,7 +1637,8 @@ void inspector() {
     const ImGuiIO &io = ImGui::GetIO();
     const float f = uiFontPx() * kPanelScale;
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - f * 0.5f, f * 0.5f), ImGuiCond_FirstUseEver, ImVec2(1, 0));
-    ImGui::SetNextWindowSize(ImVec2(f * 21, std::min(io.DisplaySize.y * 0.8f, f * 34)), ImGuiCond_FirstUseEver);
+    /* (above the editor's Changes panel, bottom right) */
+    ImGui::SetNextWindowSize(ImVec2(f * 21, std::min(io.DisplaySize.y * 0.54f, f * 34)), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowBgAlpha(0.85f);
     if (!ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoSavedSettings)) {
         ImGui::End();
@@ -1124,6 +1663,55 @@ void inspector() {
     }
     ImGui::SameLine();
     if (ImGui::Button("Model view")) modelFor(g_sel);
+    int ek, ei;
+    if (selEditable(ek, ei)) {
+        /* the editor: the record's fields as numbers (Enter or leaving the field makes the change) */
+        const int mark = g_ed.edited(ek, ei);
+        ImGui::Separator();
+        ImGui::TextColored(mark == 1 ? ImVec4(1, 0.3f, 1, 1) : mark == 2 ? ImVec4(1, 0.6f, 0.15f, 1) : ImVec4(0.6f, 1, 0.6f, 1),
+                           "%s", mark == 1 ? "Edited (not in the ROM's file)" : mark == 2 ? "Changed by the loaded mod"
+                                                                                       : "Editable: as the ROM has it");
+        ImGui::PushItemWidth(f * 7);
+        for (int fi = 0; fi < lm_field_count(ek); fi++) {
+            long v = 0, lo, hi;
+            g_ed.get(ek, ei, fi, v);
+            lm_field_range(ek, fi, &lo, &hi);
+            int iv = int(v);
+            ImGui::PushID(fi);
+            ImGui::InputInt(lm_field_name(ek, fi), &iv, 1, 16);
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                iv = int(std::max(lo, std::min(hi, long(iv))));
+                if (iv != v) g_after.push_back([=] { pushEdit(edit::makeSet(ek, ei, {{fi, iv}}), ek, ei); });
+            }
+            if (!strcmp(lm_field_name(ek, fi), "heading")) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("%.1f deg", edit::degreesFromHeading(v));
+            }
+            ImGui::PopID();
+        }
+        ImGui::PopItemWidth();
+        if (ImGui::Button("Duplicate (Ctrl+D)")) g_after.push_back(duplicateSel);
+        ImGui::SameLine();
+        ImGui::BeginDisabled(ek == viewer::REC_CARRIER);
+        if (ImGui::Button("Delete (Del)")) g_after.push_back(deleteSel);
+        ImGui::EndDisabled();
+        if (kindHasY(ek)) {
+            ImGui::SameLine();
+            if (ImGui::Button("On the ground (G)")) g_after.push_back(groundSel);
+        }
+        if (kindHasHeading(ek)) {
+            if (ImGui::Button("-15 deg")) g_after.push_back([] { rotateSel(-15); });
+            ImGui::SameLine();
+            if (ImGui::Button("+15 deg (R)")) g_after.push_back([] { rotateSel(15); });
+        }
+        ImGui::TextDisabled("%d of at most %d %s records", g_ed.count(ek), lm_kind_max(ek), lm_kind_key(ek));
+        ImGui::Separator();
+        /* (the rest below is the record as it is now, from the editor's copy) */
+        if (!ImGui::CollapsingHeader("As the viewer reads it")) {
+            ImGui::End();
+            return;
+        }
+    }
     if (ImGui::BeginTable("fields", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg)) {
         for (const viewer::Field &fl : r.fields) {
             ImGui::TableNextRow();
@@ -1205,6 +1793,25 @@ void mainPanel() {
         ImGui::TextDisabled("(the game's: 10000)");
         ImGui::TextDisabled("WASD move, Q/E down/up, Shift fast, Ctrl slow, right mouse button: look, wheel: speed");
     }
+    if (ImGui::CollapsingHeader("Editor", ImGuiTreeNodeFlags_DefaultOpen)) {
+        bool on = g_editMode;
+        if (ImGui::Checkbox("Edit the level's records (Ctrl+E)", &on)) g_after.push_back([on] { setEditMode(on); });
+        if (g_editMode) {
+            ImGui::Checkbox("Moved records sit on the ground", &g_eopt.snapGround);
+            static const int grids[] = {0, 8, 16, 32, 64, 128};
+            int gi = 0;
+            for (int i = 0; i < 6; i++)
+                if (grids[i] == g_eopt.grid) gi = i;
+            ImGui::SetNextItemWidth(f * 6);
+            if (ImGui::Combo("Grid (x, z)", &gi, "none\0 8\0 16\0 32\0 64\0 128\0")) g_eopt.grid = grids[gi];
+            ImGui::TextDisabled("Click a marker, drag its square (on the ground), an arrow (along x, y or z) or the "
+                                "ring (heading). Ctrl+Z undo, Ctrl+Y redo, Ctrl+D duplicate, Del delete, R turn.");
+        } else {
+            ImGui::TextDisabled("Move, turn, add and delete vehicles, buildings, RDUs, TNT, crates, communication "
+                                "points, push blocks and the carrier's start; then play the level with them.");
+        }
+        if (!g_editMsg.empty()) ImGui::TextWrapped("%s", g_editMsg.c_str());
+    }
     if (ImGui::CollapsingHeader("Show", ImGuiTreeNodeFlags_DefaultOpen)) {
         for (int c = 0; c < CAT_COUNT; c++) {
             bool b = g_opt.show[c];
@@ -1272,12 +1879,88 @@ void mainPanel() {
     ImGui::End();
 }
 
+/* the editor's change list, and what to do with it */
+void changesPanel() {
+    const ImGuiIO &io = ImGui::GetIO();
+    const float f = uiFontPx() * kPanelScale;
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - f * 0.5f, io.DisplaySize.y - f * 2.5f), ImGuiCond_FirstUseEver,
+                            ImVec2(1, 1));
+    ImGui::SetNextWindowSize(ImVec2(f * 24, std::min(f * 21, io.DisplaySize.y * 0.4f)), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowBgAlpha(0.85f);
+    if (!ImGui::Begin("Changes", nullptr, ImGuiWindowFlags_NoSavedSettings)) {
+        ImGui::End();
+        return;
+    }
+    ImGui::SetWindowFontScale(kPanelScale);
+    const auto &base = g_ed.baseChanges();
+    const auto &ch = g_ed.changes();
+    ImGui::Text("Level %d: %u change%s%s", g_ed.level(), unsigned(ch.size()), ch.size() == 1 ? "" : "s",
+                g_ed.dirty() ? "  (not in the game yet: Apply)" : "  (the game runs them)");
+    ImGui::BeginChild("changelist", ImVec2(0, f * 8), true);
+    for (size_t i = 0; i < base.size(); i++)
+        ImGui::TextDisabled("mod %s: %s", g_ed.baseName().c_str(), edit::describe(base[i]).c_str());
+    for (size_t i = 0; i < ch.size(); i++) {
+        ImGui::PushID(int(i));
+        const std::string t = std::to_string(i + 1) + ". " + edit::describe(ch[i]);
+        if (ImGui::Selectable(t.c_str(), false) && ch[i].op != LM_OP_DELETE) {
+            const int k = ch[i].kind, idx = ch[i].index;
+            g_after.push_back([k, idx] { reselect(k, idx); });
+        }
+        ImGui::PopID();
+    }
+    if (base.empty() && ch.empty()) ImGui::TextDisabled("No changes yet.");
+    ImGui::EndChild();
+    ImGui::BeginDisabled(!g_ed.canUndo());
+    if (ImGui::Button("Undo (Ctrl+Z)")) g_after.push_back(editUndo);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!g_ed.canRedo());
+    if (ImGui::Button("Redo (Ctrl+Y)")) g_after.push_back(editRedo);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(ch.empty());
+    if (ImGui::Button("Undo all")) g_after.push_back([] {
+        g_ed.revertAll();
+        g_editMsg = "Every change undone (Redo brings them back).";
+        readFileRecords();
+        g_sel = -1;
+    });
+    ImGui::EndDisabled();
+    ImGui::Separator();
+    if (ImGui::Button("Apply (reload the level)")) g_after.push_back(applyEdits);
+    ImGui::SameLine();
+    if (ImGui::Button("Play from here")) g_after.push_back(playEdits);
+    ImGui::TextDisabled("Apply: the game sets the level up again from the edited file. Play: leaves the viewer into "
+                        "the edited level (a test run: saving is off until bc.exe is closed).");
+    ImGui::Separator();
+    ImGui::SetNextItemWidth(f * 12);
+    ImGui::InputText("##modname", g_modName, sizeof g_modName);
+    ImGui::SameLine();
+    if (ImGui::Button("Save mod")) {
+        const std::string n = g_modName;
+        const bool en = g_modEnable;
+        g_after.push_back([n, en] { saveMod(n, en); });
+    }
+    ImGui::Checkbox("Use it from the next start (bc.ini [mods])", &g_modEnable);
+    ImGui::TextDisabled("%s<name>.bcmod: a small file with the changes only (no game data): share it.",
+                        modsDir().c_str());
+    if (!g_savedPath.empty())
+        ImGui::TextDisabled("%s %s", g_ed.imageSha1() == g_savedSha ? "Saved:" : "Changed since", g_savedPath.c_str());
+    /* the level's heap: an edited level that holds more uses more of it */
+    const uint32_t heap = rd<uint32_t>(kHeapPtr);
+    if (heap > 0x80000000u && heap < 0x8021ED00u)
+        ImGui::TextDisabled("Level heap ends at 0x%08X: %u KB below the load buffer (0x8021ED00)", heap,
+                            unsigned((0x8021ED00u - heap) / 1024));
+    ImGui::End();
+}
+
 void buildUi() {
     if (g_cleanShot) return;   /* (nothing over the picture) */
     drawOverlays();
     if (g_overlayShot || !g_opt.ui) return;
     mainPanel();
     inspector();
+    if (editing()) changesPanel();
     /* the status line */
     const ImGuiIO &io = ImGui::GetIO();
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y - 4), ImGuiCond_Always, ImVec2(0.5f, 1));
@@ -1300,6 +1983,15 @@ bool g_looking;                   /* right mouse button held: mouse look */
 double g_mdx, g_mdy, g_wheel;
 unsigned short g_padPrev;
 
+/* window points (SDL's, in desktop points) -> the picture's pixels (ImGui's) */
+void windowToPixels(int wx, int wy, float &x, float &y) {
+    int ww, wh, pw, ph;
+    SDL_GetWindowSize(g_env.window, &ww, &wh);
+    SDL_GetWindowSizeInPixels(g_env.window, &pw, &ph);
+    x = float(wx) * pw / std::max(1, ww);
+    y = float(wy) * ph / std::max(1, wh);
+}
+
 void viewerEvent(SDL_Event &e) {
     if (e.type == SDL_QUIT) g_env.quit(0);
     const bool uiMouse = uiWantsMouse() && !g_looking;
@@ -1308,8 +2000,26 @@ void viewerEvent(SDL_Event &e) {
     case SDL_KEYDOWN: {
         if (e.key.repeat || uiWantsKeyboard()) break;
         const SDL_Scancode sc = e.key.keysym.scancode;
+        const bool ctrl = (e.key.keysym.mod & KMOD_CTRL) != 0, shift = (e.key.keysym.mod & KMOD_SHIFT) != 0;
+        /* the editor's keys */
+        if (ctrl && sc == SDL_SCANCODE_E) {
+            setEditMode(!g_editMode);
+            break;
+        }
+        if (editing()) {
+            bool used = true;
+            if (ctrl && sc == SDL_SCANCODE_Z && !shift) editUndo();
+            else if (ctrl && (sc == SDL_SCANCODE_Y || (sc == SDL_SCANCODE_Z && shift))) editRedo();
+            else if (ctrl && sc == SDL_SCANCODE_D) duplicateSel();
+            else if (sc == SDL_SCANCODE_DELETE) deleteSel();
+            else if (sc == SDL_SCANCODE_R && !ctrl) rotateSel(shift ? -15 : 15);
+            else if (sc == SDL_SCANCODE_G && !ctrl) groundSel();
+            else used = false;
+            if (used) break;
+        }
         if (sc == SDL_SCANCODE_ESCAPE) {
-            if (g_mv.on) g_mv.on = false;
+            if (g_drag.mode != 0) g_drag = Drag();   /* (a drag called off) */
+            else if (g_mv.on) g_mv.on = false;
             else g_leave = true;
         } else if (sc == SDL_SCANCODE_TAB || sc == SDL_SCANCODE_F1) {
             g_opt.ui = !g_opt.ui;
@@ -1336,13 +2046,15 @@ void viewerEvent(SDL_Event &e) {
             g_looking = true;
             SDL_SetRelativeMouseMode(SDL_TRUE);
         } else if (e.button.button == SDL_BUTTON_LEFT && !uiMouse) {
-            int ww, wh, pw, ph;
-            SDL_GetWindowSize(g_env.window, &ww, &wh);
-            SDL_GetWindowSizeInPixels(g_env.window, &pw, &ph);
-            selectAt(float(e.button.x) * pw / std::max(1, ww), float(e.button.y) * ph / std::max(1, wh));
+            float x, y;
+            windowToPixels(e.button.x, e.button.y, x, y);
+            /* the editor: the gizmo of the selected record first, else a selection */
+            const int hit = editing() ? gizmoHit(x, y) : 0;
+            if (hit == 0 || !beginDrag(hit, x, y)) selectAt(x, y);
         }
         break;
     case SDL_MOUSEBUTTONUP:
+        if (e.button.button == SDL_BUTTON_LEFT && g_drag.mode != 0) endDrag();
         if (g_looking && (SDL_GetMouseState(nullptr, nullptr) & (SDL_BUTTON_LMASK | SDL_BUTTON_RMASK)) == 0) {
             g_looking = false;
             SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -1350,6 +2062,11 @@ void viewerEvent(SDL_Event &e) {
         break;
     case SDL_MOUSEMOTION:
         if (g_looking) g_mdx += e.motion.xrel, g_mdy += e.motion.yrel;
+        if (g_drag.mode != 0) {
+            float x, y;
+            windowToPixels(e.motion.x, e.motion.y, x, y);
+            updateDrag(x, y);
+        }
         break;
     case SDL_MOUSEWHEEL:
         if (!uiMouse) g_wheel += e.wheel.preciseY != 0.0f ? e.wheel.preciseY : float(e.wheel.y);
@@ -1442,6 +2159,112 @@ void doShot(const std::string &name, bool overlays, bool panels = false) {
     g_shots++;
 }
 
+/* the editor's test ops (--viewer-test):
+ *   eset:KIND:I:FIELD=V,FIELD=V   a change of fields          edup:KIND:I    duplicate (Ctrl+D)
+ *   edel:KIND:I                   delete                      eundo / eredo
+ *   edrag:KIND:I:X,Z              drag the gizmo's square to x, z (through the picking, as the mouse would)
+ *   erot:KIND:I:DEG               drag the gizmo's ring to heading DEG
+ *   eaxis:KIND:I:A:D              drag arrow A (x, y or z) by D map units
+ *   egrid:N / esnap:0|1           the grid, the ground snap
+ *   eapply / eplay                Apply / Play from here       esave:NAME[:enable]   save the mod */
+void runEditOp(const std::string &name, const std::string &arg) {
+    std::vector<std::string> p;
+    for (size_t a = 0;;) {
+        const size_t b = arg.find(':', a);
+        p.push_back(arg.substr(a, b == std::string::npos ? std::string::npos : b - a));
+        if (b == std::string::npos) break;
+        a = b + 1;
+    }
+    int kind = -1, index = p.size() > 1 ? atoi(p[1].c_str()) : 0;
+    for (int k = 0; k < viewer::REC_KINDS; k++)
+        if (!p.empty() && p[0] == viewer::recKindKey(k)) kind = k;
+    auto selectIt = [&]() {
+        reselect(kind, index);
+        if (g_sel < 0) host_log("live: viewer test: no record %s\n", arg.c_str());
+        uiFrame(buildUi, false);   /* (the overlays' projection of this view, for the picking) */
+        return g_sel >= 0;
+    };
+    if (name == "eset" && p.size() >= 3 && kind >= 0) {
+        std::vector<edit::FieldValue> f;
+        size_t a = 0;
+        const std::string &s = p[2];
+        while (a < s.size()) {
+            size_t b = s.find(',', a);
+            if (b == std::string::npos) b = s.size();
+            const std::string kv = s.substr(a, b - a);
+            const size_t eq = kv.find('=');
+            const int fi = lm_field_index(kind, kv.substr(0, eq).c_str());
+            if (fi >= 0 && eq != std::string::npos) f.push_back({fi, atol(kv.c_str() + eq + 1)});
+            a = b + 1;
+        }
+        pushEdit(edit::makeSet(kind, index, f), kind, index);
+    } else if (name == "edup" && kind >= 0) {
+        if (selectIt()) duplicateSel();
+    } else if (name == "edel" && kind >= 0) {
+        if (selectIt()) deleteSel();
+    } else if (name == "eundo") {
+        editUndo();
+    } else if (name == "eredo") {
+        editRedo();
+    } else if (name == "egrid") {
+        g_eopt.grid = std::max(0, atoi(arg.c_str()));
+    } else if (name == "esnap") {
+        g_eopt.snapGround = takeFlag(arg);
+    } else if ((name == "edrag" || name == "erot" || name == "eaxis") && kind >= 0 && p.size() >= 3) {
+        if (!selectIt()) return;
+        const Gizmo g = gizmo();
+        if (!g.ok) {
+            host_log("live: viewer test: %s: no gizmo (not editing, or off screen)\n", name.c_str());
+            return;
+        }
+        ImVec2 s0 = g.c, s1;
+        int mode = 1;
+        bool ok = true;
+        if (name == "edrag") {
+            double x = 0, z = 0;
+            sscanf(p[2].c_str(), "%lf,%lf", &x, &z);
+            ok = projectPoint({x, g.p.y, z}, s1);
+        } else if (name == "erot") {
+            mode = 5;
+            const double h0 = edit::degreesFromHeading(g_ed.get(kind, index, "heading")) * 3.14159265358979 / 180.0,
+                         h1 = atof(p[2].c_str()) * 3.14159265358979 / 180.0, r = g.len * 1.35;
+            ok = projectPoint({g.p.x + std::sin(h0) * r, g.p.y, g.p.z + std::cos(h0) * r}, s0) &&
+                 projectPoint({g.p.x + std::sin(h1) * r, g.p.y, g.p.z + std::cos(h1) * r}, s1);
+        } else {
+            const int a = p[2] == "x" ? 0 : p[2] == "y" ? 1 : 2;
+            const double d = p.size() > 3 ? atof(p[3].c_str()) : 0;
+            mode = 2 + a;
+            s0 = ImVec2((g.c.x + g.tip[a].x) / 2, (g.c.y + g.tip[a].y) / 2);
+            ok = projectPoint({g.p.x + (a == 0 ? g.len / 2 + d : 0), g.p.y + (a == 1 ? g.len / 2 + d : 0),
+                               g.p.z + (a == 2 ? g.len / 2 + d : 0)}, s1);
+        }
+        const int hit = gizmoHit(s0.x, s0.y);
+        host_log("live: viewer test: %s: the gizmo at (%.0f, %.0f) is part %d (want %d)\n", name.c_str(), s0.x, s0.y,
+                 hit, mode);
+        if (!ok) {
+            host_log("live: viewer test: %s: the target isn't in the picture (move the camera)\n", name.c_str());
+            return;
+        }
+        if (!beginDrag(mode, s0.x, s0.y)) {
+            host_log("live: viewer test: %s: the drag didn't start\n", name.c_str());
+            return;
+        }
+        updateDrag((s0.x + s1.x) / 2, (s0.y + s1.y) / 2);
+        updateDrag(s1.x, s1.y);
+        endDrag();
+    } else if (name == "eapply") {
+        applyEdits();
+    } else if (name == "eplay") {
+        playEdits();
+    } else if (name == "esave") {
+        saveMod(p.empty() ? "test" : p[0], p.size() > 1 && takeFlag(p[1]));
+    } else {
+        host_log("live: viewer test: %s:%s not understood\n", name.c_str(), arg.c_str());
+        return;
+    }
+    if (!g_editMsg.empty()) host_log("live: viewer test: %s -> %s\n", name.c_str(), g_editMsg.c_str());
+}
+
 void runTestOp() {
     if (g_testWait > 0) {
         g_testWait--;
@@ -1525,6 +2348,10 @@ void runTestOp() {
         g_mv.yaw = y, g_mv.pitch = p, g_mv.dist = std::max(1.0, g_mv.radius * 2.6 * d);
     } else if (name == "shot" || name == "oshot" || name == "pshot") {   /* clean / overlays / as on screen */
         doShot(arg, name != "shot", name == "pshot");
+    } else if (name == "edit") {   /* the editor: edit:on / edit:off */
+        setEditMode(takeFlag(arg));
+    } else if (name.size() > 1 && name[0] == 'e' && name != "edit") {
+        runEditOp(name, arg);
     } else if (name == "ui") {
         g_opt.ui = takeFlag(arg);
     } else if (name == "level") {
@@ -1578,6 +2405,12 @@ void runFrozen() {
         }
         if (g_opt.ui || g_opt.markers || g_opt.collision) uiFrame(buildUi, true);
         else uiHide();
+        /* the edits the panels asked for (after the frame: they replace the records the panels read) */
+        while (!g_after.empty()) {
+            std::vector<std::function<void()>> todo;
+            todo.swap(g_after);
+            for (auto &fn : todo) fn();
+        }
         replay();
         if (g_mv.on && g_measure && g_mv.vtx > 0) {
             /* the model's own extent, from what it drew */
@@ -1629,6 +2462,7 @@ void leave() {
     hooksOff();
     g_state = S_OFF;
     uiHide();
+    autosave();
     if (g_quitAfter) {
         host_log("live: viewer: done (--viewer-test quit)\n");
         g_env.quit(0);
@@ -1746,6 +2580,17 @@ void viewerVi(unsigned frames) {
         if (there) {
             host_viewer_done();
             host_log("live: viewer: level %d up after %u frames\n", g_wantLevel, plat_frames() - g_loadStart);
+            if (g_playAfterLoad) {
+                /* "Play from here": the game goes on into the edited level, as play (paced, with sound and input) */
+                g_playAfterLoad = false;
+                autosave();
+                hooksOff();
+                g_state = S_OFF;
+                uiHide();
+                host_log("live: viewer: test run of the edited level %d from frame %u (saving off)\n", g_wantLevel,
+                         plat_frames());
+                return;
+            }
             beginCapture();
         } else if (plat_frames() - g_loadStart > 6000) {
             host_log("live: viewer: level %d didn't come up (mode %08llX, request state %d): giving up\n", g_wantLevel,

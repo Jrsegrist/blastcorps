@@ -7,6 +7,9 @@ python3 tools_port/bcfiles).
   build ROM JSONDIR OUT.z64     a ROM with the edited JSON files of an extract put back
   gltf ROM FILE OUTDIR          glTF 2.0 (+ PNG textures) of a model, building or level
   roundtrip ROM                 parse and write every level/model/scene/building, compare
+  mod-check ROM MOD.bcmod       a level mod (bc.exe's editor): its hashes and changes against the ROM
+  mod-apply ROM MOD.bcmod OUTDIR   the edited level files (level_NN.bin, inflated)
+  mod-export ROM MOD.bcmod OUT.z64 [--shift-dir D]   a ROM with the mod's levels in it (for emulators)
 
 FILE: level:N | level:NAME | model:NAME | scene:NAME | object:N (object-table index)
 | object:NAME | a hex ROM offset (0x4A5660).
@@ -322,13 +325,86 @@ def cmd_roundtrip(args):
     sys.exit(1 if bad else 0)
 
 
+# -------------------------------------------------------------------- mods
+
+def _load_mod(rom, path):
+    from . import mod
+    try:
+        m = mod.load(path)
+        return m, mod.apply_mod(rom, m)
+    except (mod.ModError, ValueError) as e:
+        raise SystemExit("%s: %s" % (path, e))
+
+
+def cmd_mod_check(args):
+    from . import mod
+    rom = Rom.load(args[0])
+    m, out = _load_mod(rom, args[1])
+    print("%s: \"%s\" (%s)" % (args[1], m.get("name", ""), m.get("description", "")))
+    for ml in m["levels"]:
+        data, split = out[ml["level"]]
+        f = rom.level(ml["level"])
+        print("  level %d (%s): %d change%s, %d -> %d bytes inflated, edited SHA-1 %s%s" % (
+            ml["level"], f.name, len(ml["changes"]), "" if len(ml["changes"]) == 1 else "s", len(f.data), len(data),
+            mod.sha1(data), " (as the mod says)" if ml.get("edited_sha1") else ""))
+        for c in ml["changes"]:
+            print("    " + mod.describe(c))
+    print("mod-check: OK")
+
+
+def cmd_mod_apply(args):
+    rom = Rom.load(args[0])
+    _, out = _load_mod(rom, args[1])
+    os.makedirs(args[2], exist_ok=True)
+    for n, (data, split) in sorted(out.items()):
+        path = os.path.join(args[2], "level_%02d.bin" % n)
+        with open(path, "wb") as fh:
+            fh.write(data)
+        print("mod-apply: %s (%d bytes, split 0x%X)" % (path, len(data), split))
+
+
+def cmd_mod_export(args):
+    shift_dir = None
+    if "--shift-dir" in args:
+        i = args.index("--shift-dir")
+        shift_dir = args[i + 1]
+        del args[i:i + 2]
+    rom = Rom.load(args[0])
+    _, out = _load_mod(rom, args[1])
+    patches = []
+    for n, (data, split) in sorted(out.items()):
+        f = rom.level(n)
+        if data == f.data:
+            continue
+        blob, how = rombuild.pack_to_fit(f, data, split)
+        pt = rombuild.Patch(f, blob, True, how)
+        print("mod-export: level %d %s: %d -> %d bytes inflated, %d -> %d compressed (%s; slot %d): %s"
+              % (n, f.name, len(f.data), len(data), f.end - f.start, len(blob), how, pt.slot,
+                 "in place" if pt.fits else "does NOT fit"))
+        patches.append(pt)
+    image, rest = rombuild.apply_in_place(rom.data, patches)
+    if rest:
+        d = shift_dir or (args[2] + ".shift")
+        cfg = rombuild.shift_config(rest, d)
+        print("mod-export: %d level(s) grew past their slot; for the shiftable build (docs/shiftable.md):" % len(rest))
+        print("  make VERSION=us.v11 SHIFT=1 BASEROM=<this ROM> SHIFT_PADS=%s" % os.path.abspath(cfg))
+        print("  (%s not written; a ROM with files moved runs in an emulator, not in bc.exe: use the mod there)"
+              % args[2])
+        sys.exit(3)
+    with open(args[2], "wb") as fh:
+        fh.write(image)
+    print("mod-export: %s written (%d level(s) in place; bc.exe needs --no-rom-check for it, or use the mod)"
+          % (args[2], len(patches)))
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
         usage()
     cmd, args = argv[0], argv[1:]
     table = {"list": (cmd_list, 1), "dump": (cmd_dump, 2), "extract": (cmd_extract, 2), "build": (cmd_build, 3),
-             "gltf": (cmd_gltf, 3), "roundtrip": (cmd_roundtrip, 1)}
+             "gltf": (cmd_gltf, 3), "roundtrip": (cmd_roundtrip, 1), "mod-check": (cmd_mod_check, 2),
+             "mod-apply": (cmd_mod_apply, 3), "mod-export": (cmd_mod_export, 3)}
     if cmd not in table or len([a for a in args if not a.startswith("--")]) < table[cmd][1]:
         usage()
     table[cmd][0](args)

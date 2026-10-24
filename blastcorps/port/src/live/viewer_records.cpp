@@ -27,6 +27,20 @@ uint32_t le32(const uint8_t *p) {
 uint16_t be16(const uint8_t *p) {
     return uint16_t((p[0] << 8) | p[1]);
 }
+/* the fields the game reads natively: host order in the port's memory, big-endian in the file as the ROM holds
+ * it (parseHeader / parseLevel's fileOrder) */
+bool g_fileOrder = false;
+uint16_t n16(const uint8_t *p) {
+    return g_fileOrder ? be16(p) : le16(p);
+}
+uint32_t n32(const uint8_t *p) {
+    return g_fileOrder ? uint32_t(be16(p)) << 16 | be16(p + 2) : le32(p);
+}
+struct OrderScope {
+    bool old;
+    explicit OrderScope(bool f) : old(g_fileOrder) { g_fileOrder = f; }
+    ~OrderScope() { g_fileOrder = old; }
+};
 
 std::string fmt(const char *f, ...) {
     char buf[512];
@@ -145,20 +159,21 @@ const char *vehicleModelFile(int type) {
     }
 }
 
-bool parseHeader(const uint8_t *lvl, size_t size, LevelHeader &h, std::string *why) {
+bool parseHeader(const uint8_t *lvl, size_t size, LevelHeader &h, std::string *why, bool fileOrder) {
+    OrderScope order(fileOrder);
     h = LevelHeader();
     if (lvl == nullptr || size < 0xC8) {
         if (why) *why = "no level file (or under 0xC8 bytes)";
         return false;
     }
-    h.cols = le16(lvl + 0), h.rows = le16(lvl + 2), h.cellW = le16(lvl + 4), h.cellD = le16(lvl + 6);
-    h.groundCols = le16(lvl + 8), h.groundRows = le16(lvl + 0xA), h.groundCellW = le16(lvl + 0xC),
-    h.groundCellD = le16(lvl + 0xE);
-    h.collCols = le16(lvl + 0x10), h.collRows = le16(lvl + 0x12), h.collCellW = le16(lvl + 0x14),
-    h.collCellD = le16(lvl + 0x16);
-    h.gravity = int32_t(le32(lvl + 0x18));
-    h.dlProfile = int(le32(lvl + 0x1C) & 0xFF);
-    for (int k = 0; k < 0x2A; k++) h.off[k] = le32(lvl + 0x20 + 4 * k);
+    h.cols = n16(lvl + 0), h.rows = n16(lvl + 2), h.cellW = n16(lvl + 4), h.cellD = n16(lvl + 6);
+    h.groundCols = n16(lvl + 8), h.groundRows = n16(lvl + 0xA), h.groundCellW = n16(lvl + 0xC),
+    h.groundCellD = n16(lvl + 0xE);
+    h.collCols = n16(lvl + 0x10), h.collRows = n16(lvl + 0x12), h.collCellW = n16(lvl + 0x14),
+    h.collCellD = n16(lvl + 0x16);
+    h.gravity = int32_t(n32(lvl + 0x18));
+    h.dlProfile = int(n32(lvl + 0x1C) & 0xFF);
+    for (int k = 0; k < 0x2A; k++) h.off[k] = n32(lvl + 0x20 + 4 * k);
     /* the data sections' offsets (0x20 .. 0x74) must lie in the file (each section's own range is checked
      * where it is read) */
     for (uint32_t s = 0x20; s <= 0x74; s += 4) {
@@ -172,8 +187,8 @@ bool parseHeader(const uint8_t *lvl, size_t size, LevelHeader &h, std::string *w
         if (why) *why = "the level box (0x4C) is outside the file";
         return false;
     }
-    h.minX = int16_t(le16(lvl + box)), h.minZ = int16_t(le16(lvl + box + 2));
-    h.maxX = int16_t(le16(lvl + box + 4)), h.maxZ = int16_t(le16(lvl + box + 6));
+    h.minX = int16_t(n16(lvl + box)), h.minZ = int16_t(n16(lvl + box + 2));
+    h.maxX = int16_t(n16(lvl + box + 4)), h.maxZ = int16_t(n16(lvl + box + 6));
     if (h.cols == 0 || h.rows == 0 || h.cols * h.rows > 0x8000) {
         if (why) *why = fmt("visibility grid %ux%u", h.cols, h.rows);
         return false;
@@ -190,11 +205,12 @@ void headingDir(double deg, double &dx, double &dz) {
     dz = std::cos(deg * kPi / 180.0);
 }
 
-std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std::string> *notes) {
+std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std::string> *notes, bool fileOrder) {
+    OrderScope order(fileOrder);
     std::vector<Record> out;
     LevelHeader h;
     std::string why;
-    if (!parseHeader(lvl, size, h, &why)) {
+    if (!parseHeader(lvl, size, h, &why, fileOrder)) {
         if (notes) notes->push_back(why);
         return out;
     }
@@ -269,7 +285,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             r.hasPos = true;
             r.x = be16(b + 0), r.y = be16(b + 2), r.z = be16(b + 4);
             r.type = be16(b + 6);
-            const int motion = le16(b + 0xA), tag = le16(b + 0xC);
+            const int motion = n16(b + 0xA), tag = n16(b + 0xC);
             r.radius = 30;
             r.label = fmt("obj 0x%02X", r.type);
             r.title = fmt("Object placement %d: type 0x%02X", i, r.type);
@@ -295,7 +311,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             const uint8_t *b = lvl + p;
             Record r = base(REC_RDU, i, lvl, p, 6);
             r.hasPos = true;
-            r.x = int16_t(le16(b)), r.y = int16_t(le16(b + 2)), r.z = int16_t(le16(b + 4));
+            r.x = int16_t(n16(b)), r.y = int16_t(n16(b + 2)), r.z = int16_t(n16(b + 4));
             r.radius = 12;
             r.label = fmt("RDU %d", i);
             r.title = fmt("RDU %d", i);
@@ -315,7 +331,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             const uint8_t *b = lvl + p;
             Record r = base(REC_TNT, i, lvl, p, 12);
             r.hasPos = true;
-            r.x = int16_t(le16(b)), r.y = int16_t(le16(b + 2)), r.z = int16_t(le16(b + 4));
+            r.x = int16_t(n16(b)), r.y = int16_t(n16(b + 2)), r.z = int16_t(n16(b + 4));
             r.type = b[6];
             r.radius = 16;
             r.label = fmt("TNT %d", i);
@@ -325,8 +341,8 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             add(r, "y", "snapped to the ground at spawn (coll_ground_height)");
             add(r, "type", fmt("%u (box definition: extents, face textures, radius)", b[6]));
             add(r, "timer", fmt("%u (fuse %u frames)", b[7], b[7] * 60u));
-            add(r, "@8 (unk1A)", fmt("%d", int16_t(le16(b + 8))));
-            add(r, "@A (unk1C)", fmt("%d", int16_t(le16(b + 0xA))));
+            add(r, "@8 (unk1A)", fmt("%d", int16_t(n16(b + 8))));
+            add(r, "@A (unk1C)", fmt("%d", int16_t(n16(b + 0xA))));
             out.push_back(r);
         }
         endsInside(notes, 0x38, hi - p, 12);
@@ -339,8 +355,8 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             const uint8_t *b = lvl + p;
             Record r = base(REC_CRATE, i, lvl, p, 8);
             r.hasPos = true;
-            r.x = int16_t(le16(b)), r.y = int16_t(le16(b + 2)), r.z = int16_t(le16(b + 4));
-            r.type = int16_t(le16(b + 6));
+            r.x = int16_t(n16(b)), r.y = int16_t(n16(b + 2)), r.z = int16_t(n16(b + 4));
+            r.type = int16_t(n16(b + 6));
             r.radius = 14;
             r.label = fmt("crate %d", i);
             r.title = fmt("Ammo crate %d", i);
@@ -359,13 +375,13 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             const uint8_t *b = lvl + p;
             Record r = base(REC_COMMPT, i, lvl, p, 8);
             r.hasPos = true;
-            r.x = int16_t(le16(b)), r.y = int16_t(le16(b + 2)), r.z = int16_t(le16(b + 4));
+            r.x = int16_t(n16(b)), r.y = int16_t(n16(b + 2)), r.z = int16_t(n16(b + 4));
             r.radius = 16;
             r.label = fmt("comm %d", i);
             r.title = fmt("Communication point %d", i);
             r.model = "commpoint (model 0x96)";
             posFields(r);
-            add(r, "w", fmt("%u (-> the entry's unk12)", le16(b + 6)));
+            add(r, "w", fmt("%u (-> the entry's unk12)", n16(b + 6)));
             out.push_back(r);
         }
         endsInside(notes, 0x28, hi - p, 8);
@@ -374,14 +390,14 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
      * n x 0x16-byte triangles} */
     if (section(h, size, 0x3C, 0x40, lo, hi, notes) && lo + 2 <= hi) {
         uint32_t p = lo;
-        const int n = int16_t(le16(lvl + p));
+        const int n = int16_t(n16(lvl + p));
         p += 2;
         for (int i = 0; i < n && p + 8 <= hi; i++, p += 8) {
             const uint8_t *b = lvl + p;
             Record r = base(REC_BLOCK, i, lvl, p, 8);
             r.hasPos = true;
-            r.x = int16_t(le16(b)), r.y = int16_t(le16(b + 2)), r.z = int16_t(le16(b + 4));
-            r.type = int16_t(le16(b + 6));
+            r.x = int16_t(n16(b)), r.y = int16_t(n16(b + 2)), r.z = int16_t(n16(b + 4));
+            r.type = int16_t(n16(b + 6));
             r.radius = 20;
             r.label = fmt("block %d", i);
             r.title = fmt("Push block %d", i);
@@ -392,7 +408,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             out.push_back(r);
         }
         if (p + 2 <= hi) {
-            const int m = int16_t(le16(lvl + p));
+            const int m = int16_t(n16(lvl + p));
             p += 2;
             for (int i = 0; i < m && p + 10 <= hi; i++) {
                 const uint8_t *b = lvl + p;
@@ -401,7 +417,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
                 if (p + len > hi) break;
                 Record r = base(REC_BLOCKSLOT, i, lvl, p, len);
                 r.hasPos = true;
-                r.x = int16_t(le16(b)), r.y = int16_t(le16(b + 2)), r.z = int16_t(le16(b + 4));
+                r.x = int16_t(n16(b)), r.y = int16_t(n16(b + 2)), r.z = int16_t(n16(b + 4));
                 r.type = b[6];
                 r.radius = 20;
                 r.label = fmt("slot %d", i);
@@ -410,7 +426,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
                 posFields(r);
                 add(r, "model", fmt("%u", b[6]));
                 add(r, "triangles", fmt("%u (0x16 bytes each, -> gDynTris)", tris));
-                const int target = int16_t(le16(b + 8));
+                const int target = int16_t(n16(b + 8));
                 add(r, "target", target ? fmt("%d: a +-40 gBoxTargets box (\"fill the holes\")", target) : "0");
                 out.push_back(r);
                 p += len;
@@ -428,7 +444,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             r.label = fmt("panel %d", i);
             r.title = fmt("Panel event %d", i);
             r.type = b[2];
-            add(r, "carrier z", fmt("%d map units: fires once gCarrierZ >> 5 passes it", int16_t(le16(b))));
+            add(r, "carrier z", fmt("%d map units: fires once gCarrierZ >> 5 passes it", int16_t(n16(b))));
             add(r, "hud_panel_start", fmt("(%u, %u, %u, %u)", b[2], b[3], b[4], b[5]));
             add(r, "done", fmt("%u", b[6]));
             out.push_back(r);
@@ -445,9 +461,9 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             const uint8_t *b = lvl + p;
             Record r = base(z == 0 ? REC_CAMZONE : REC_CHOPPERZONE, i, lvl, p, 10);
             r.hasBox = true;
-            r.x0 = int16_t(le16(b)), r.z0 = int16_t(le16(b + 2)), r.x1 = int16_t(le16(b + 4)),
-            r.z1 = int16_t(le16(b + 6));
-            const int height = int16_t(le16(b + 8));
+            r.x0 = int16_t(n16(b)), r.z0 = int16_t(n16(b + 2)), r.x1 = int16_t(n16(b + 4)),
+            r.z1 = int16_t(n16(b + 6));
+            const int height = int16_t(n16(b + 8));
             r.hasPos = true;
             r.x = (r.x0 + r.x1) / 2, r.z = (r.z0 + r.z1) / 2, r.y = height == 3000 ? 0 : height;
             r.yKnown = height != 3000;

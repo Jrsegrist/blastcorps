@@ -204,6 +204,8 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --set game.debug_cheats=1   (the debug cheats, this run only)
   bc.exe --cmdline -c          (the game's own debug command line; -c: the cheats)
   bc.exe --viewer 0            (the level viewer on level 0: see Viewer below)
+  bc.exe --mod mods\my_mod.bcmod   (a level mod for this run: see Editor and mods)
+  bc.exe --no-mods             (start without the mods enabled in bc.ini)
 
 
 Debug cheats
@@ -242,7 +244,8 @@ it is made of and see each vehicle or building on its own. Open it with
 or while you play: F1 > Viewer > "Open the viewer here" (the game stops where it is
 and goes on from there when you leave). The Viewer tab can also load any level;
 leaving the viewer after loading one restarts the game (that game wasn't reached by
-playing, so it can't go on or save). Nothing is ever saved by the viewer.
+playing, so it can't go on or save). The viewer never touches your saves (its editor
+writes mod files only: see Editor and mods).
 
   WASD                move (Q / E: down / up; Shift: fast, Ctrl: slow)
   right mouse button  hold and move the mouse to look around (the wheel: speed)
@@ -264,6 +267,55 @@ blocks, optional collision outlines and height zones) and list the vehicles and
 buildings for the model view. Everything is drawn by the game's own code from your
 ROM. In the menus or on the globe the viewer shows the picture as it is (the free
 camera works in levels).
+
+
+Editor and mods
+---------------
+The viewer's editor changes what a level places: vehicle spawns (and so where the
+player starts), the missile carrier's start, heading, speed and route length,
+buildings and other objects, RDUs, TNT, ammo crates, communication points, push
+blocks and their slots. It doesn't change the landscape, collision or textures.
+Turn it on in the viewer's Editor panel (or Ctrl+E), then:
+
+  left click          select a marker; the selected record gets a gizmo
+  drag the square     move it on the ground (it sits on the ground: "Moved records sit
+                      on the ground"; a grid in the Editor panel snaps x and z)
+  drag an arrow       move it along x (red), y (green, up) or z (blue)
+  drag the ring       turn it (vehicles and the carrier)
+  Inspector           every field as a number (Enter to change it)
+  Ctrl+Z / Ctrl+Y     undo / redo        Ctrl+D  duplicate (a copy next to it)
+  Del                 delete             R / Shift+R  turn by 15 degrees
+  G                   put it on the ground
+
+Edited records are drawn in magenta with a *, records a loaded mod changed in
+orange. The Changes panel lists every change (click one to select its record) and:
+  Apply              the game sets the level up again from the edited file, so what
+                     you see is the game really running your edit (vehicles that
+                     spawn, buildings with their collision, the carrier's route ...)
+  Play from here     leaves the viewer into the edited level as a normal game. This is
+                     a test run: saving is off until you close bc.exe (a "TEST RUN"
+                     marker shows in a corner), so a test can't change your save.
+  Save mod           writes mods\<name>.bcmod next to bc.exe; with "Use it from the
+                     next start" it is also enabled in bc.ini. Edits you leave the
+                     viewer with unsaved are kept in mods\autosave_LNN.bcmod.
+
+A mod file is small JSON: for each level, the changes (record, field, value) and a
+fingerprint (SHA-1) of the level as your ROM has it, so a mod made for another ROM
+version is refused instead of breaking the level. It holds none of the game's data:
+share the .bcmod file, never a ROM. To use mods, put them in the mods folder and
+list them in bc.ini:
+  [mods]
+  enabled = my_mod, other_mod
+(or start bc.exe --mod path\to\file.bcmod). The game changes the level files in
+memory as it reads them from your ROM; your ROM file is never changed. Two mods
+can't change the same level. With no mods enabled the game is exactly as before.
+
+For emulators, a mod can be put into a copy of your ROM with the decomp's bcfiles
+tool (python3 tools_port/bcfiles mod-export ROM my_mod.bcmod new.z64). When the
+edited level still fits its place in the ROM that ROM also runs in bc.exe
+(bc.exe --no-rom-check new.z64); one that grew needs the decomp's shiftable build
+and then runs in emulators only (bc.exe reads the ROM's files at their usual
+places). The mod file itself works in bc.exe either way.
 
 
 Texture packs

@@ -292,8 +292,10 @@ Tools:
   game's own loaders and consumers (`bc_loadcheck.exe`,
   `src/loadcheck_main.c`), native vs the original code in unicorn
   (`tools/loadref.py`): T5 the gUseEeprom alias, T6 520 texture decodes, T7
-  every level's object stream, T8 every level's height zones; with a trace,
-  T9 checks every traced read of every traced asset right after loading.
+  every level's object stream, T8 every level's height zones, TA every
+  level's carrier panel events (section 0x58) through dig_coach_update as
+  the carrier's z sweeps the s16 range; with a trace, T9 checks every traced
+  read of every traced asset right after loading.
 
 ### bc_headless and the platform layer
 
@@ -1878,6 +1880,21 @@ reuses the loaded register), and the pak thread's scheduler client, added by
 hd_load_front_end after the inflate's CPU time, got a retrace message natively
 that the emulator's retrace had already passed (sched_add_client and
 sched_remove_client are entry switch points now; levels 23 and 45 match 14/14).
+A byte-order bug these runs can't see (endian agent): the loader left level
+section 0x58, the carrier-progress panel events, big-endian, but
+dig_coach_update reads its s16 carrier z natively, so on levels 1 and 26 the
+panel (`hud_panel_start(1, 1, 5, 0x81)` at z 2879) waited for z 16139 and
+never came.  verify-levels never gets there: with its input the carrier hits a
+building at z ~1670 (and ~2100 on the retry), and the lenient dump comparison
+accepts a halfword in either byte order, so the unswapped section looks fine
+until the event fires.  With the carrier moved on both sides
+(`--poke 1150:803EF6E4:4:16580`, z 2860, plus the level poke; `compare.py emu
+--calls hud_panel_start` and the exe's `--calls hud_panel_start`) the emulator
+shows the panel at frame 1179 on both levels, the old exe never (every dump
+differs from 1180 on), the fixed one at 1179 with the later dumps matching
+(but for a few gTuneStack words after the danger tune the moved carrier
+starts at 1150, in both exes).  loadcheck's TA now checks the section
+against the original code on every level.
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
 writes to ADDR's 4 KB page from frame F on (rip and the stack's code

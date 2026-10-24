@@ -417,8 +417,8 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             }
         }
     }
-    /* 0x58 panel events: 8 bytes {s16 carrier z; u8 a, b, c, d; u8 done; pad} (the loader leaves this
-     * section big-endian) */
+    /* 0x58 panel events: 8 bytes {s16 carrier z; u8 a, b, c, d; u8 done; pad}; dig_coach_update reads the
+     * s16 natively, so the loader swaps it (schemas.h; it used to leave the section big-endian) */
     if (section(h, size, 0x58, 0x5C, lo, hi, notes)) {
         int i = 0;
         uint32_t p = lo;
@@ -428,8 +428,7 @@ std::vector<Record> parseLevel(const uint8_t *lvl, size_t size, std::vector<std:
             r.label = fmt("panel %d", i);
             r.title = fmt("Panel event %d", i);
             r.type = b[2];
-            add(r, "carrier z", fmt("%d as the file has it (BE), %d as read natively", int16_t(be16(b)),
-                                    int16_t(le16(b))));
+            add(r, "carrier z", fmt("%d map units: fires once gCarrierZ >> 5 passes it", int16_t(le16(b))));
             add(r, "hud_panel_start", fmt("(%u, %u, %u, %u)", b[2], b[3], b[4], b[5]));
             add(r, "done", fmt("%u", b[6]));
             out.push_back(r);

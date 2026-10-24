@@ -222,7 +222,7 @@ game_lib(bc_plat SOURCES ${PLAT_SRCS} ${BC_PORT}/src/platform/layout_check.c
 
 # loadcheck (the load layer against the original code, `make -C port loadcheck-msvc`):
 # its game files on their own, without the platform's hooks
-set(LC_FILES 00000 46C20 17A70 53220 7F8B0 5BF40 60F60 5CB60 60D50)
+set(LC_FILES 00000 46C20 17A70 53220 7F8B0 5BF40 60F60 5CB60 60D50 32E00)
 set(LC_SRCS)
 foreach(n ${LC_FILES})
     list(APPEND LC_SRCS ${BC_HD_SRC}/${n}.c)

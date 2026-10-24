@@ -137,9 +137,9 @@ Img makeLevel() {
     at(0x54);
     m.u8(p, 28), m.be16(p + 1, 1980), m.be16(p + 3, 2018), m.be16(p + 5, 0), m.be16(p + 7, 3000);
     p += 9;
-    /* 0x58 panel events (left big-endian): 1 */
+    /* 0x58 panel events (host order: the loader swaps the s16): 1 */
     at(0x58);
-    m.be16(p, 2500), m.u8(p + 2, 1), m.u8(p + 3, 2), m.u8(p + 4, 3), m.u8(p + 5, 4);
+    m.le16(p, 2500), m.u8(p + 2, 1), m.u8(p + 3, 2), m.u8(p + 4, 3), m.u8(p + 5, 4);
     p += 8;
     /* 0x5C placements: 2 (BE but the u16 at 0xA, 0xC) */
     at(0x5C);
@@ -221,8 +221,8 @@ void viewerTests(void (*check)(bool, const char *)) {
         check(x->raw.size() == 10 + 2 * 0x16 && has(*x, "triangles", "2") && has(*x, "target", "gBoxTargets"),
               "viewer: block slot with its triangles and target");
     if (const Record *x = nth(r, REC_PANEL, 0))
-        check(has(*x, "carrier z", "2500 as the file has it") && has(*x, "hud_panel_start", "(1, 2, 3, 4)"),
-              "viewer: panel event read big-endian (the loader leaves it)");
+        check(has(*x, "carrier z", "2500 map units") && has(*x, "hud_panel_start", "(1, 2, 3, 4)"),
+              "viewer: panel event: the carrier z in host order (as dig_coach_update reads it)");
     if (const Record *x = nth(r, REC_CAMZONE, 0))
         check(x->hasBox && near(x->x0, -100) && near(x->z1, 400) && near(x->y, 55), "viewer: camera height zone box");
     if (const Record *x = nth(r, REC_CHOPPERZONE, 0))
